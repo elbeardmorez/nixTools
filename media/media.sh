@@ -4,6 +4,10 @@ SCRIPTNAME=${0##*/}
 IFSORG=$IFS
 
 CWD="$PWD/"
+
+RC_FILE="${RC_FILE:-"$HOME/.nixTools/$SCRIPTNAME"}"
+[ -e "$RC_FILE" ] && . "$RC_FILE"
+
 PATHMEDIA="${PATHMEDIA:-"$HOME/media/"}"
 
 MINSEARCH=3
