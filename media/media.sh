@@ -26,6 +26,12 @@ function help()
   echo ""
 }
 
+function fnDisplay()
+{  
+  display="${DISPLAY_:-"$DISPLAY"}"
+  echo $display
+}
+
 fnSearch()
 {
   # search in a set of directories
@@ -99,8 +105,9 @@ fnSearch()
 fnPlay()
 {
   sSearch="$1" && shift
+  display=$(fnDisplay)
 
-  [[ -d "$sSearch" || -f "$sSearch" ]] && $CMDPLAY $CMDPLAY_OPTIONS "$sSearch" "$@" && exit 0
+  [[ -d "$sSearch" || -f "$sSearch" ]] && DISPLAY=$display $CMDPLAY $CMDPLAY_OPTIONS "$sSearch" "$@" && exit 0
   IFS=$'\n' sMatched=($(fnSearch "$sSearch" 2>/dev/null )); IFS=$IFSORG
 
   play=0
@@ -171,10 +178,10 @@ fnPlay()
         if [ "x$PLAYLIST" != "x" ]; then
           [ $l -eq 0 ] && echo "$file" > "$PLAYLIST" || echo "$file" >> "$PLAYLIST"
         else
-          $cmdplay $([ "x$cmdplay_options" != "x" ] && echo "$cmdplay_options") "$file" "$@"
+          DISPLAY=$display $cmdplay $([ "x$cmdplay_options" != "x" ] && echo "$cmdplay_options") "$file" "$@"
         fi
       done
-      [ "x$PLAYLIST" != "x" ] && eval $cmdplay $([ "x$cmdplay_options" != x ] && echo "$cmdplay_options") $([ "x$cmdplay_playlist_options" != "x" ] && echo "${cmdplay_playlist_options}${PLAYLIST}" || echo "$PLAYLIST") "$@"
+      [ "x$PLAYLIST" != "x" ] && DISPLAY=$display eval $cmdplay $([ "x$cmdplay_options" != x ] && echo "$cmdplay_options") $([ "x$cmdplay_playlist_options" != "x" ] && echo "${cmdplay_playlist_options}${PLAYLIST}" || echo "$PLAYLIST") "$@"
     fi
   fi
 
