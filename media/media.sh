@@ -10,12 +10,15 @@ RC_FILE="${RC_FILE:-"$HOME/.nixTools/$SCRIPTNAME"}"
 
 PATHMEDIA="${PATHMEDIA:-"$HOME/media/"}"
 
+CHARPOSIX='][^$?*+'
 MINSEARCH=3
 VIDEXT="avi|mkv|mp4"
 CMDPLAY="${CMDPLAY:-"mplayer"}"
 CMDPLAY_OPTIONS="${CMDPLAY_OPTIONS:-"-tv"}"
 CMDPLAY_PLAYLIST_OPTIONS="${CMDPLAY_PLAYLIST_OPTIONS:-"-p "}"
 PLAYLIST="${PLAYLIST:-"/tmp/$CMDPLAY.playlist"}"
+
+REGEX=0
 
 OPTION="play"
 
@@ -32,6 +35,15 @@ function fnDisplay()
   echo $display
 }
 
+function fnRegexp()
+{
+  #escape reserved characters
+  sExp="$1" && shift
+  sExp=$(echo "$sExp" | sed 's/\(['$CHARPOSIX']\)/\\\1/g')
+  echo "$sExp"
+  exit 1
+}
+
 fnSearch()
 {
   # search in a set of directories
@@ -46,14 +58,30 @@ fnSearch()
   [ "x$1" == "xinteractive" ] && bInteractive=1 && shift
   
   [ "x$args" == "x" ] && help && exit 1
-  sSearch="$1" 
+  sSearch="$1"
+  #if [ "$REGEX" -eq 0 ]; then
+  #  # escape posix regex characters
+  #  sSearch=${sSearch//\\//\\\\}
+  #  for c in \[ \] \. \^ \$ \? \* \+; do
+  #    sSearch=${sSearch//"$c"/"\\$c"}
+  #   done
+  #else
+    sSearch="$(fnRegexp "$sSearch")"
+  #fi
   IFS=$'\n'
 
   bContinue=1
   dirs=("$PATHMEDIA"*/)
   while [ $bContinue -eq 1 ]; do      
     for dir in "${dirs[@]}"; do
-      arr=($(find $dir -type f -iname "*$sSearch*" 2>/dev/null))    
+      if [ "$REGEX" -eq 1 ]; then
+        # FIX: video file only filter for globs?
+        #arr=($(find "$dir" -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)$'))
+        arr=($(find $dir -type f -iregex ".*$sSearch.*" 2>/dev/null))    
+      else
+        #glob match
+        arr=($(find $dir -type f -iname "*$sSearch*" 2>/dev/null))    
+      fi
       if [[ ${#arr[@]} -gt 0 && "x$arr" != "x" ]]; then
         bAdd=1
         if [ $bInteractive -eq 1 ]; then
@@ -108,7 +136,7 @@ fnPlay()
   display=$(fnDisplay)
 
   [[ -d "$sSearch" || -f "$sSearch" ]] && DISPLAY=$display $CMDPLAY $CMDPLAY_OPTIONS "$sSearch" "$@" && exit 0
-  IFS=$'\n' sMatched=($(fnSearch "$sSearch" 2>/dev/null )); IFS=$IFSORG
+  IFS=$'\n' sMatched=($(fnSearch $([ $REGEX -eq 1 ] && echo "regex") "$sSearch" 2>/dev/null )); IFS=$IFSORG
 
   play=0
   cmdplay="$CMDPLAY" 
@@ -190,6 +218,9 @@ fnPlay()
 #args
 [ $# -lt 1 ] && help && exit 1
 
+#REGEX
+[[ $# -gt 1 && "x$1" == "xregex" ]] && REGEX=1 && shift
+
 if [ "x$(echo $1 | sed -n 's/^\('\
 's\|search\|'\
 'p\|play'\
@@ -197,6 +228,9 @@ if [ "x$(echo $1 | sed -n 's/^\('\
   OPTION=$1
   shift
 fi
+
+#REGEX
+[[ $# -gt 1 && "x$1" == "xregex" ]] && REGEX=1 && shift
 
 args=("$@")
 case $OPTION in
