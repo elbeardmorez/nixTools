@@ -185,6 +185,37 @@ fnFileInfo()
   [ $level -gt 0 ] && echo "$sLength$sFps$sSize$sVideo$sAudio$sChannels"
 }
 
+fnFilesInfo()
+{
+  #echo "#args: $#" 1>&2
+  [[ $# -gt 0 && "x$(echo "$1" | sed -n '/^[0-9]\+$/p')" != "x" ]] && level=$1 && shift || level=1
+  #echo "#args: $#" 1>&2
+  if [ $# -gt 1 ]; then
+    sFiles=("$@")
+  else
+    sSearch="$1" && shift
+    if [ -f "$sSearch" ]; then
+      sFiles=("$sSearch")
+    elif [ -d "$sSearch" ]; then
+      IFS=$'\n'; sFiles=($(find "$sSearch" -type f -maxdepth 1 -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)$' | sort)); IFS=$IFSORG
+      x=$? && [ $x -ne 0 ] && return $x
+    else
+      IFS=$'\n'; sFiles=($(fnSearch "$sSearch" "$VIDEXT")); IFS=$IFSORG
+      x=$? && [ $x -ne 0 ] && return $x
+    fi
+  fi
+  for f in "${sFiles[@]}"; do
+    [ "x$(echo "$f" | grep -iP "\.($VIDEXT)$")" == "x" ] && continue
+    #echo -ne "#$f$([ $level -gt 2 ] && echo '\n' || echo ' | ')"    
+    if [ $level -eq 0 ]; then
+      echo "#$f" && fnFileInfo $level "$f"
+    else
+      s=$(fnFileInfo $level "$f")
+      echo -e "[$s]  \t$f"
+    fi
+  done
+}
+
 fnSearch()
 {
   # search in a set of directories
@@ -378,6 +409,6 @@ args=("$@")
 case $OPTION in
   "s"|"search") fnSearch "${args[@]}" ;;
   "p"|"play") fnPlay "${args[@]}" ;;
-  "i"|"info") fnFileInfo "${args[@]}" ;;
+  "i"|"info") fnFilesInfo "${args[@]}" ;;
   *) help ;;
 esac
