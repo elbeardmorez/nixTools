@@ -30,7 +30,15 @@ OPTION="play"
 function help()
 {
   echo ""
-  echo -e "usage: $SCRIPTNAME [search|play] 'partialfilename'\t: search for, and play media files (partially) matching the search term"
+  echo -e "usage: $SCRIPTNAME [OPTION] TARGET"
+  echo ""
+  echo "with OPTION:"
+  echo ""
+  echo -e "\tplay  : play media file(s)"
+  echo -e "\tsearch  : search for file(s) only"
+  echo -e "\tinfo  : output formatted information on file(s)"
+  echo ""
+  echo "with TARGET:  a target file / directory or a partial file name to search for"
   echo ""
 }
 
