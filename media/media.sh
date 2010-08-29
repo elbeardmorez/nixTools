@@ -56,6 +56,66 @@ function fnRegexp()
   exit 1
 }
 
+function fnTimeValid()
+{
+  pos="$1"
+  if [ "x$(echo "$pos" | sed -n 's|^\([+-/*]\{,1\}\s*[0-9:]*[0-9]\{2\}:[0-9]\{2\}[:,.]\{1\}[0-9]\{1,\}\)$|\1|p')" == "x" ]; then
+    echo "illegal position format. require '00:00:00[.,:]0[00...]'" 1>&2
+    echo 0
+  else
+    echo 1
+  fi
+}
+
+function fnTimeAdd()
+{
+  #iterate through : delimited array, adding $2 $1 ..carrying an extra 1 iff length of result
+  #is greater than the length of either ot the original numbers
+
+  base="$1"
+  bump="$2"
+  [[ $(fnTimeValid "$base") -eq 0 || $(fnTimeValid "$bump") -eq 0 ]] && echo "$base" &&  return 1
+
+  IFS=$'\:\,\.'
+  aBase=($base)
+  aBump=($bump)
+  IFS=$IFSORG
+  sFinal=""
+  lCarry=0
+  l=${#aBase[@]}
+  while [ $l -gt 0 ]; do
+    lBase=${aBase[$[$l-1]]}
+    lBump=${aBump[$[$l-1]]}
+    lRes=$((10#$lBase+10#$lBump+10#$lCarry))
+    if [ ${#lBase} -eq 2 ]; then
+      sToken=$[10#$lRes%60]
+      lCarry=$[$[10#$lRes-10#$lRes%60]/60]
+    else
+      if [ ${#lRes} -gt ${#lBase} ]; then
+        sToken=${lRes:1:${#lBase}}
+        lCarry=1
+      else
+        sToken=$lRes
+        lCarry=0
+      fi
+    fi
+    #re-pad token
+    if [ ${#sToken} -lt ${#lBase} ]; then
+      ll=${#sToken}
+      while [ ${#sToken} -lt ${#lBase} ]; do
+        sToken="0"$sToken
+      done
+    fi 
+    if [ "x$sFinal" == "x" ]; then
+      sFinal=$sToken
+    else
+      sFinal="$sToken${base:$[${#base[0]}-${#sFinal[0]}-1]:1}$sFinal"
+    fi
+    l=$[$l-1]
+  done
+  echo "$sFinal"
+}
+
 fnFileStreamInfo()
 {
   #via ffmpeg
@@ -204,6 +264,8 @@ fnFilesInfo()
       x=$? && [ $x -ne 0 ] && return $x
     fi
   fi
+  sLength="00:00:00.00"
+  l=0
   for f in "${sFiles[@]}"; do
     [ "x$(echo "$f" | grep -iP "\.($VIDEXT)$")" == "x" ] && continue
     #echo -ne "#$f$([ $level -gt 2 ] && echo '\n' || echo ' | ')"    
@@ -212,8 +274,12 @@ fnFilesInfo()
     else
       s=$(fnFileInfo $level "$f")
       echo -e "[$s]  \t$f"
+      #[ $level -ge 3 ] && sLength=$(fnTimeAdd "$sLength" "$(echo "$s" | sed -n 's/^\[\(.*\)|.*$/\1/p')" 2>/dev/null)
+      [ $level -ge 3 ] && sLength=$(fnTimeAdd "$sLength" "$(echo "$s" | cut -d'|' -f1)" 2>/dev/null)
     fi
+    l=$[$l+1]
   done
+  [[ $level -ge 3 && $l -gt 1 ]] && echo "[total duration: $sLength]"
 }
 
 fnSearch()
