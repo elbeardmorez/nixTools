@@ -8,6 +8,9 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 
+option=$1
+if [ $option = "add-repo" ]; then
+
 target=$1
 if [ "$(echo "$target" | awk '{print substr($0, length($0))}')" = "/" ]; then
   target=$(echo "$target" | awk '{print substr($0, 1, length($0) - 1)}')
@@ -52,3 +55,36 @@ svn co $SERVER$repo temp
 svn mkdir temp/branches temp/tags temp/trunk
 svn ci -m "[add] repository structure" ./temp
 rm -rf temp
+
+elif [ $option = "clean-repo" ]; then
+
+  target=$1
+  if ! [ -d $target ]; then
+    echo "'$target' is not a directory"
+    exit 1
+  fi
+  matches=($(find $target -name *.svn))
+  if [ ${#matches[@]} -eq 0 ]; then
+    echo "no '.svn' directories found under specified workspace"
+  else
+    for d in ${matches[@]}; do
+      echo "found a '.svn' directory at '$d'"
+    done
+    echo -n "remove all? [y/n]"
+    read -es -n1 result
+    if [ "$result" = "y" ]; then
+      for d in ${matches[@]}; do
+        rm -rf $d
+        if [[ $? -eq 0 && ! -d $d ]]; then
+          echo "removed '$d'"
+        else
+          echo "failed to remove '$d'"
+          exit 1
+        fi
+      done
+    fi
+  fi
+
+else
+  echo "unsupported option '$option'"
+fi
