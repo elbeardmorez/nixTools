@@ -85,6 +85,27 @@ elif [ $option = "clean-repo" ]; then
     fi
   fi
 
+elif [ $option = "ignore" ]; then
+
+  if [ ! -d $(pwd)/.svn ]; then
+    echo $(pwd) is not under source control
+    exit 1
+  fi
+
+  declare list
+  for arg in $@; do
+    if [ ${#list} -eq 0 ]; then
+      list="$arg"
+    else
+      list=$list\$\'\\n\'$arg
+    fi
+  done
+  eval "svn propset svn:ignore $list ."
+
+  sleep 1
+  echo "svn:ignore set:"
+  svn propget svn:ignore
+
 else
   echo "unsupported option '$option'"
 fi
