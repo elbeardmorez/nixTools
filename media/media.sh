@@ -9,6 +9,7 @@ RC_FILE="${RC_FILE:-"$HOME/.nixTools/$SCRIPTNAME"}"
 [ -e "$RC_FILE" ] && . "$RC_FILE"
 
 PATHMEDIA="${PATHMEDIA:-"$HOME/media/"}"
+PATHARCHIVELISTS="${PATHARCHIVELISTS:-"${PATHMEDIA}/archives/"}"
 
 CHARPOSIX='][^$?*+'
 CHARSED='][|-'
@@ -37,6 +38,7 @@ function help()
   echo -e "\tplay  : play media file(s)"
   echo -e "\tsearch  : search for file(s) only"
   echo -e "\tinfo  : output formatted information on file(s)"
+  echo -e "\tarchive  : recursively search a directory and list valid media files with their info, writing all output to a file"
   echo ""
   echo "with TARGET:  a target file / directory or a partial file name to search for"
   echo ""
@@ -275,7 +277,7 @@ fnFilesInfo()
   sLength="00:00:00.00"
   l=0
   for f in "${sFiles[@]}"; do
-    [ "x$(echo "$f" | grep -iP "\.($VIDEXT)$")" == "x" ] && continue
+    [ "x$(echo "$f" | grep -iP "\||(\.($VIDEXT)$)")" == "x" ] && continue # allow archive strings through (match '|')
     #echo -ne "#$f$([ $level -gt 2 ] && echo '\n' || echo ' | ')"    
     if [ $level -eq 0 ]; then
       echo "#$f" && fnFileInfo $level "$f"
@@ -461,6 +463,38 @@ fnPlay()
 
 }
 
+fnArchive()
+{
+  #list files at target for archive purposes
+
+  CWD="$PWD/"
+  target="$PATHARCHIVELISTS"
+  level=0
+  [[ $# -gt 0 && "x$(echo "$1" | sed -n '/^[0-9]\+$/p')" != "x" ]] && level=$1 && shift
+  [ $# -gt 0 ] && source="$1" && shift || source="."
+  [ -d "$source" ] && cd "$source"
+  [ "x${source:$[${#source}-1]:1}" == "x/" ] && source="${source:0:$[${#source}-2]}" && shift || source="$PWD"
+  [ $# -gt 0 ] && file="$1" && shift || file="${source##*/}"
+  
+  source="$source/"
+  if [ $level -eq 0 ]; then
+    find . -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)' | sort -i > "$target$file"
+  else
+    IFS=$'\n'; sFiles=($(find . -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)' | sort -i)); IFS=$IFSORG
+    bAppend=0
+    for f in "${sFiles[@]}"; do
+      s="$f|$(fnFileInfo $level "$f")"
+      if [ $bAppend -eq 0 ]; then
+        echo "$s" > "$target$file" && bAppend=1
+      else
+        echo "$s" >> "$target$file"
+      fi
+    done    
+  fi
+  echo "updated archive list: '$target$file'"
+  cd $CWD
+}
+
 #args
 [ $# -lt 1 ] && help && exit 1
 
@@ -470,7 +504,8 @@ fnPlay()
 if [ "x$(echo $1 | sed -n 's/^\('\
 's\|search\|'\
 'p\|play\|'\
-'i\|info'\
+'i\|info\|'\
+'a\|archive'\
 '\)$/\1/p')" != "x" ]; then
   OPTION=$1
   shift
@@ -484,5 +519,6 @@ case $OPTION in
   "s"|"search") fnSearch "${args[@]}" ;;
   "p"|"play") fnPlay "${args[@]}" ;;
   "i"|"info") fnFilesInfo "${args[@]}" ;;
+  "a"|"archive") fnArchive "${args[@]}" ;;  
   *) help ;;
 esac
