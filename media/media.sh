@@ -354,7 +354,53 @@ fnSearch()
         fi
       fi
     done
-
+    if [ -d "$PATHARCHIVELISTS" ]; then
+      if [ "$REGEX" -eq 0 ]; then
+        arr=($(grep -ri "$sSearch" "$PATHARCHIVELISTS" 2>/dev/null))
+      else    
+        arr=($(grep -rie "$sSearch" "$PATHARCHIVELISTS" 2>/dev/null))
+      fi 
+      #filter results
+      if [[ ${#arr[@]} -gt 0 && "x$arr" != "x" ]]; then
+        arr2=
+        for s in ${arr[@]}; do
+          s="$(echo "$s" | sed -n 's/^\([^:~]*\):\([^|]*\).*$/\1|\2/p')"
+          if [ "$REGEX" -eq 0 ]; then
+            s="$(echo "$s" | grep -i "$sSearch" 2>/dev/null)"
+          else
+            s="$(echo "$s" | grep -ie "$sSearch" 2>/dev/null)"
+          fi          
+          if [ "x$s" != "x" ]; then
+            [ "x${arr2}" == "x" ] && arr2=("$s") || arr2=("${arr2[@]}" "$s")
+          fi
+        done
+        #merge results
+        bAdd=1
+        if [ $bInteractive -eq 1 ]; then
+          echo "[user] target: '$dir', search: '*sSearch*', found files:" 1>&2
+          for f in "${arr[@]}"; do echo "  $f" 1>&2; done
+          echo -n "[user] search further? [(y)es/(n)o/e(x)it]:  " 1>&2
+          bRetry2=1                
+          while [ $bRetry2 -eq 1 ]; do
+            echo -en '\033[1D\033[K'
+            read -n 1 -s result
+            case "$result" in
+              "x" | "X") echo -n $result; bRetry2=0; bContinue=0; echo ""; exit 0 ;;
+              "n" | "N") echo -n $result; bRetry2=0; bRetry=0; bContinue=0; echo ""; break ;;
+              "y" | "Y") echo -n $result; bRetry2=0; bAdd=0 ;;
+              *) echo -n " " 1>&2
+            esac
+          done
+          echo ""
+        fi
+        if [ $bAdd -eq 1 ]; then
+          [[ ${#files[@]} -gt 0 && "x$files" != "x" ]] && files=(${files[@]} ${arr2[@]}) || files=(${arr2[@]})
+        fi
+      fi
+    else
+      echo "no archive lists found at: '$PATHARCHIVELISTS'" 1>&2
+    fi
+    
     if [[ $bIterative -eq 0 ||
       ${#sSearch} -le $MINSEARCH ||
       (${#files[@]} -gt 0 && ${files} != "x") ]]; then
