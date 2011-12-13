@@ -23,6 +23,7 @@ CMDPLAY="${CMDPLAY:-"mplayer"}"
 CMDPLAY_OPTIONS="${CMDPLAY_OPTIONS:-"-tv"}"
 CMDPLAY_PLAYLIST_OPTIONS="${CMDPLAY_PLAYLIST_OPTIONS:-"-p "}"
 PLAYLIST="${PLAYLIST:-"/tmp/$CMDPLAY.playlist"}"
+LOG="${LOG:-"/var/log/$SCRIPTNAME"}"
 
 REGEX=0
 
@@ -42,6 +43,13 @@ function help()
   echo ""
   echo "with TARGET:  a target file / directory or a partial file name to search for"
   echo ""
+}
+
+function fnLog()
+{
+  [ $DEBUG -ge 2 ] && echo "[debug fnLog]" 1>&2
+
+  echo "$@" | tee $LOG 1>&2
 }
 
 function fnDisplay()
@@ -290,6 +298,206 @@ fnFilesInfo()
     l=$[$l+1]
   done
   [[ $level -ge 3 && $l -gt 1 ]] && echo "[total duration: $sLength]"
+}
+
+fnFiles()
+{
+  #given a file name, return a tab delimited array of associated files in the local directory
+
+  [ $DEBUG -ge 1 ] && echo "[debug fnFiles]" 1>&2
+
+  bVerbose=1
+  [ "x$1" == "xsilent" ] && bVerbose=0 && shift
+  bInteractive=0
+  [ "x$1" == "xinteractive" ] && bInteractive=1 && shift
+  lDepth=1
+  [ "x$1" == "xfull" ] && lDepth=10 && shift
+  sSearch="$1" && shift
+  sSearchPrev=""
+  sSearchLast=""
+  sSearchCustom=""
+  lFound=0
+  lFoundPrev=0
+  lFoundFirst=0 #used to delay exit to 2nd successful search
+  lFoundLast=0
+  bAuto=1
+  bMerge=0
+  bSearch=1
+  sType=""
+  [ $# -gt 0 ] && sType="$1" && shift
+
+  IFS=$'\n'
+  while [ $bSearch -gt 0 ]; do
+    bSearched=0
+    bDiff=0
+    if [[ $bInteractive -eq 0 && (
+            ${#sSearch} -eq 0 || 
+            (${#sSearch} -le $MINSEARCH && $lFoundLast -gt $lFoundFirst)) ]]; then 
+      bSearch=0
+    else
+      if [[ $bAuto -eq 0 || 
+           ($bAuto -eq 1 && ${#sSearch} -ge $MINSEARCH) ||
+           ($bAuto -eq 1 && $bInteractive -eq 1) ]]; then
+#           ($bAuto -eq 1 && ${#sSearch} -ge $MINSEARCH) ]]; then
+        #whenever there is a difference between the new search and the previous search
+        #replace the last search by the previous search
+        [ $DEBUG -ge 2 ] && echo "[debug fnFiles] #1 sSearch: '$sSearch' sSearchCustom: '$sSearchCustom' sSearchPrev: '$sSearchPrev'  sSearchLast: '$sSearchLast'" 1>&2
+        [ ! "x$sSearchCustom" == "x" ] && sSearchPrev="$sSearch" && sSearch="$sSearchCustom"
+        if [[ ! "x$sSearch" == x$sSearchPrev || "x$sSearchLast" == "x" ]]; then
+          sFiles=($(find ./ -maxdepth $lDepth -iregex '.*'"$(fnRegexp "$sSearch" "sed")"'.*\('"$(fnRegexp "$sType" "sed")"'\)$'))
+          unset sFiles2
+          for f in "${sFiles[@]}"; do
+            [ -d "$f" ] &&
+               sFiles2=("${sFiles2[@]}" $(find "$f"/ $sDepth -type f)) ||
+               sFiles2=("${sFiles2[@]}" "$f")
+          done
+          sFiles=(${sFiles2[@]})
+          lFound=${#sFiles[@]}
+          if [ $lFound -ne $lFoundPrev ]; then
+            bDiff=1
+          elif [ $bAuto -eq 0 ]; then
+            #compare old and new searches
+            declare -A arr
+            for f in "${sFilesPrev[@]}"; do arr["$f"]="$f"; done        
+            for f in "${sFiles[@]}"; do [ "x${arr[$f]}" == "x" ] && bDiff=1 && break; done
+          fi
+          if [ $bDiff -eq 1 ]; then
+            #keep record for revert
+            lFoundLast=$lFoundPrev
+            sFilesLast=(${sFilesPrev[@]})
+            sSearchLast=$sSearchPrev
+            [ $DEBUG -ge 2 ] && echo "[debug fnFiles] lFoundLast: '$lFoundLast', sSearchLast: '$sSearchLast', sFilesLast: '${sFilesLast[@]}'" 1>&2
+          fi
+          if [ $lFoundFirst -eq 0 ]; then lFoundFirst=$lFound; fi
+          if [ $bMerge -eq 1 ]; then
+            [ $DEBUG -ge 2 ] && echo "[debug fnFiles] lFoundLast: '$lFoundLast', sSearchLast: '$sSearchLast', sFilesLast: '${sFilesLast[@]}'" 1>&2
+            sFiles2=("${sFiles[@]}") && sFiles=("${sFilesLast[@]}")
+            declare -A arr
+            for f in "${sFilesLast[@]}"; do arr["$f"]="$f"; done        
+            for f in "${sFiles2[@]}"; do [ "x${arr[$f]}" == "x" ] && 
+                                         sFiles=("${sFiles[@]}" "$f"); done
+            lFound=${#sFiles[@]} 
+          fi
+        fi
+      fi
+      [ $DEBUG -ge 2 ] && echo "[debug fnFiles] #2 sSearch: '$sSearch' sSearchCustom: '$sSearchCustom' sSearchPrev: '$sSearchPrev'  sSearchLast: '$sSearchLast'" 1>&2
+      if [[ ($bDiff -eq 1) ||
+            ($bInteractive -eq 1 && $bAuto -eq 0) || 
+            ($bAuto -eq 1 && ${#sSearch} -le $MINSEARCH) ]]; then
+        [ $DEBUG -ge 1 ] && echo "[debug fnFiles] $sSearch == $sSearchPrev ??" 1>&2
+        if [ $bVerbose -eq 1 ]; then
+          if [[ $bAuto -eq 1 && $bDiff -eq 0 && ${#sSearch} -le $MINSEARCH && x$sSearch == x$sSearchPrev ]]; then
+            echo "minimum search term length hit with '$sSearch'" 1>&2
+          else
+            echo -e "found ${#sFiles[@]} associated files searching with '$sSearch'" 1>&2
+          fi
+        fi
+        if [ $bInteractive -gt 0 ]; then
+          l=0; for f in "${sFiles[@]}"; do l=$[$l+1]; echo "  $f" 1>&2; [ $l -ge 10 ] && break; done
+          if [ $lFound -gt 10 ]; then echo "..." 1>&2; fi
+          echo -ne "search for more files automatically [y]es/[n]o" \
+            "or manually [a]ppend/[c]lear? [r]evert matches or e[x]it? " 1>&2
+          bRetry=1
+          while [ $bRetry -gt 0 ]; do
+            result=
+            read -s -n 1 result 
+            case "$result" in
+              "y"|"Y") echo "$result" 1>&2; bRetry=0; bAuto=1; sSearchCustom="" ;;
+              "n"|"N") echo "$result" 1>&2; bRetry=0; bSearch=0 ;;
+              "a"|"A") echo "$result" 1>&2; bRetry=0; bAuto=0; bMerge=1; echo -n "search: " 1>&2; read sSearchCustom ;;
+              "c"|"C") echo "$result" 1>&2; bRetry=0; bAuto=0; echo -n "search: " 1>&2; read sSearchCustom ;;
+              "r"|"R") echo "$result" 1>&2; bRetry=0; bAuto=0; bMerge=0; sSearchCustom="$sSearchLast" ;;
+              "x"|"X") echo "$result" 1>&2; return 1 ;;
+            esac          
+          done
+        else
+          if [[ (! "x$sSearchLast" == "x" && $lFound -gt 1) || ${#sSearch} -le $MINSEARCH ]]; then bSearch=0; fi
+        fi
+      else
+        if [[ $bAuto -eq 1 && ${#sSearch} -le $MINSEARCH ]]; then
+          if [ $bInteractive -eq 0 ]; then bSearch=0; fi
+        fi
+      fi
+      sSearchPrev="$sSearch"
+      sFilesPrev=("${sFiles[@]}")
+      lFoundPrev=$lFound
+      if [[ $bAuto -eq 1 && ${#sSearch} -gt $MINSEARCH ]]; then  sSearch=${sSearch:0:$[${#sSearch}-1]}; fi
+      [ $DEBUG -ge 2 ] && echo "[debug fnFiles] #3 sSearch: '$sSearch' sSearchCustom: '$sSearchCustom' sSearchPrev: '$sSearchPrev'  sSearchLast: '$sSearchLast'" 1>&2
+#      exit 1
+    fi
+  done 
+  IFS=$IFSORG
+    
+  #verify files
+  [ $DEBUG -ge 1 ] && echo "[debug fnFiles] sFiles: '${sFiles[@]}'" 1>&2
+  bVerify=1
+  IFS=$'\n'
+  if [ $lFound -gt 0 ]; then
+    if [ $bInteractive -eq 0 ]; then
+      sFiles2=(${sFiles[@]})
+    else
+      echo -e "verify associations for matched files" 1>&2
+      bAutoAdd=0
+      unset sFiles2
+      for f in "${sFiles[@]}"; do
+        if [ -d "$f" ]; then
+          for f2 in $(find "$f2" -type f); do
+            bAdd=0
+            if [ $bAutoAdd -gt 0 ]; then
+              bAdd=1
+            else
+              echo -ne "  $f [(y)es/(n)o/(a)ll/(c)ancel/e(x)it] " 1>&2
+              bRetry=1
+              while [ $bRetry -gt 0 ]; do
+                result=
+                read -s -n 1 result 
+                case "$result" in
+                  "y"|"Y") echo "$result" 1>&2; bRetry=0; bAdd=1 ;;
+                  "n"|"N") echo "$result" 1>&2; bRetry=0 ;;
+                  "a"|"A") echo "$result" 1>&2; bRetry=0; bAdd=1; bAutoAdd=1 ;;
+                  "c"|"C") echo "$result" 1>&2; bRetry=0; bVerify=0 ;;
+                  "x"|"X") echo "$result" 1>&2; return 1 ;;
+                esac             
+              done             
+            fi
+            if [ $bAdd -eq 1 ]; then sFiles2=("${sFiles2[@]}" "$f"); fi             
+            if [ $bVerify -eq 0 ]; then break; fi
+          done 
+        elif [ -f "$f" ]; then
+          bAdd=0
+          if [ $bAutoAdd -gt 0 ]; then
+            bAdd=1
+          else
+            echo -ne "  $f [(y)es/(n)o/(a)ll/(c)ancel/e(x)it] " 1>&2
+            bRetry=1
+            while [ $bRetry -gt 0 ]; do
+              result=
+              read -s -n 1 result 
+              case "$result" in
+                "y"|"Y") echo "$result" 1>&2; bRetry=0; bAdd=1 ;;
+                "n"|"N") echo "$result" 1>&2; bRetry=0 ;;
+                "a"|"A") echo "$result" 1>&2; bRetry=0; bAdd=1; bAutoAdd=1 ;;
+                "c"|"C") echo "$result" 1>&2; bRetry=0; bVerify=0 ;;
+                "x"|"X") echo "$result" 1>&2; return 1 ;;
+              esac 
+            done
+          fi
+          if [ $bAdd -eq 1 ]; then sFiles2=("${sFiles2[@]}" "$f"); fi             
+          if [ $bVerify -eq 0 ]; then break; fi
+        fi
+      done
+    fi 
+  fi
+  IFS=$IFSORG
+
+  [ $DEBUG -ge 1 ] && echo "[debug fnFiles] sFiles2: '${sFiles2[@]}'" 1>&2
+ 
+  if [[ ! "x${sFiles2}" == "x" && ${#sFiles2[@]} -gt 0 ]]; then
+    [ $bVerbose -eq 1 ] && fnLog "associated files for '$sSearch': '${sFiles2[@]}'"
+    #return '\n' delimited strings
+    for f in "${sFiles2[@]}"; do echo "$f"; done
+  fi
+
 }
 
 fnSearch()
