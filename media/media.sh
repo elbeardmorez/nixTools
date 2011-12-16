@@ -8,6 +8,8 @@ CWD="$PWD/"
 RC_FILE="${RC_FILE:-"$HOME/.nixTools/$SCRIPTNAME"}"
 [ -e "$RC_FILE" ] && . "$RC_FILE"
 
+ROOTDISK="${ROOTDISK:-"/media/"}"
+ROOTISO="${ROOTISO:-"/media/iso/"}"
 PATHMEDIA="${PATHMEDIA:-"$HOME/media/"}"
 PATHARCHIVELISTS="${PATHARCHIVELISTS:-"${PATHMEDIA}/archives/"}"
 
@@ -22,6 +24,7 @@ AUDCHANNELS="1.0ch=mono|2.0ch=2.0,2ch,2 ch,stereo|3.0ch=3.0|4.0ch=4.0|5.0ch=5.0|
 CMDPLAY="${CMDPLAY:-"mplayer"}"
 CMDPLAY_OPTIONS="${CMDPLAY_OPTIONS:-"-tv"}"
 CMDPLAY_PLAYLIST_OPTIONS="${CMDPLAY_PLAYLIST_OPTIONS:-"-p "}"
+CMDINFOMPLAYER="${CMDINFOMPLAYER:-"mplayer -identify -frames 0 -vc null -vo null -ao null"}"
 PLAYLIST="${PLAYLIST:-"/tmp/$CMDPLAY.playlist"}"
 LOG="${LOG:-"/var/log/$SCRIPTNAME"}"
 
@@ -56,6 +59,13 @@ function fnDisplay()
 {  
   display="${DISPLAY_:-"$DISPLAY"}"
   echo $display
+}
+
+function fnDriveStatus()
+{
+  [ $DEBUG -ge 1 ] && echo "[debug fnDriveStatus]" 1>&2
+
+  [ "x$(cdrecord -V --inq dev=/dev/dvd 2>&1 | grep "medium not present")" == "x" ] && echo 1 || echo -1
 }
 
 function fnRegexp()
@@ -224,6 +234,24 @@ fnFileStreamInfo()
   #via ffmpeg
   sFile="$1"
   IFS=$'\n'; sInfo=($(ffmpeg -i "file:$sFile" 2>&1 | grep -iP "stream|duration")); IFS=$IFSORG
+  #via mplayer
+  #ID_VCD_TRACK_1_MSF=00:16:63.0
+  if [ ${#sInfo[@]} -eq 0 ]; then
+    IFS=$'\n'; sInfo=($($CMDINFOMPLAYER "$sFile" 2>/dev/null | sed -n '/^\(VIDEO\|AUDIO\).*$/p')); IFS=$IFSORG
+    IFS=$'\n'; sTracks=($($CMDINFOMPLAYER "$sFile" 2>/dev/null | sed -n 's/^ID_VCD_TRACK_\([0-9]\)_MSF=\([0-9:]*\)$/\1|\2/p')); IFS=$IFSORG  
+    if [ ${#sTracks[@]} -gt 0 ]; then
+      sTrackTime2=
+      for s in "${sTracks[@]}"; do
+        sTrackTime2=$(fnPositionTimeToNumeric "${s##*|}")
+        if [[ "x$sTrack" == "x" || $(math_ "\$gt($sTrackTime2, $sTrackTime)") -eq 1 ]]; then
+          sTrack="${s%%|*}"
+          sTrackTime="$sTrackTime2"
+        fi
+      done
+      s="duration: $(fnPositionNumericToTime $sTrackTime),"
+      [ ${#sInfo[@]} -eq 0 ] && sInfo=("$s") || sInfo=("${sInfo[@]}" "$s")
+    fi
+  fi
   for s in "${sInfo[@]}"; do echo "$s"; done
 }
 
@@ -737,12 +765,23 @@ fnPlay()
   if [[ ${#sMatched[@]} -gt 0 && ! "x$sMatched" == "x" ]]; then
     #files to play!   
     #iterate results. prepend titles potentially requiring user interation (e.g. using discs)
+    ##format type:name[:info] -> title:file[:search]
     sPlaylist=
-    for file in "${sMatched[@]}"; do
+    for s in "${sMatched[@]}"; do	   
+      [ "x$(echo "$s" | grep '|')" == "x" ] && s="file|$s"
+      type="${s%%|*}" && s=${s:$[${#type}+1]} && type="${type##*/}"
+      name="${s%%|*}" && s=${s:$[${#name}+1]}
+      s=""
       prepend=0
-#        title="$(echo "$file" | sed -n 's/^.*\/\([^[]*\)[. ]\+.*$/\1/p')"
-      title="${file##*/}" && title="${title%[*}" && title="$(echo "$title" | sed 's/\(^\.\|\.$\)//g')" #alternative approach below
-      s="$title|$file"
+#        title="$(echo "$name" | sed -n 's/^.*\/\([^[]*\)[. ]\+.*$/\1/p')"
+      title="${name##*/}" && title="${title%[*}" && title="$(echo "$title" | sed 's/\(^\.\|\.$\)//g')" #alternative approach below
+      case "$type" in
+        "dvd"|"dvds") s="$title|dvdnav:////dev/dvd"; prepend=1 ;;
+        "vcd"|"vcds") s="$title|vcd:////dev/dvd"; prepend=1 ;;
+        "cd"|"cds") s="$title|/dev/dvd|$sSearch"; prepend=1 ;;
+        "file"|"files") s="$title|$name" ;;
+        *) s="$title|$ROOTDISK$type/$name" ;; #convert archive entry to location 
+      esac
       #add to list
       if [ "x${sPlaylist}" == "x" ]; then
         sPlaylist=("$s")
@@ -758,29 +797,144 @@ fnPlay()
       title="${s%%|*}" && s=${s:$[${#title}+1]} && title="$(echo ${title##*/} | sed 's/[. ]\[.*$//I')"
       file="${s%%|*}" && s=${s:$[${#file}+1]}
       search="$s" && [ "$search" == "$file" ] && search=""
-      #file type?
-      if [ "x$(echo "$file" | grep -iP '^.*\.('$VIDEXT')$')" != "x" ]; then         
-
-        #play?            
-        echo -n "play '$title'? [(y)es/(n)o/(v)erbose/e(x)it]:  "
+      if [ "x$(echo "$file" | grep "/dev/dvd")" != "x" ]; then
+        #play?
+        echo -n "play '$title'? [(y)es/(n)o/e(x)it]:  "
         bRetry=1                
         while [ $bRetry -eq 1 ]; do
           echo -en '\033[1D\033[K'
           read -n 1 -s result
           case "$result" in
-            "y" | "Y") echo -n $result; bRetry=0 ;;
-            "n" | "N") echo -n $result; bRetry=0; file="" ;;
-            "v" | "V") echo -n $result; echo -en "\033[G\033[1Kplay '$file'? [(y)es/(n)o/(v)erbose/e(x)it]:  " ;;
             "x" | "X") echo -n $result; bRetry=0; echo ""; exit 0 ;;
+            "n" | "N") echo -n $result; bRetry=0; file="" ;;
+            "y" | "Y") echo -n $result; bRetry=0 ;;
             *) echo -n " " 1>&2
           esac
         done
-        echo ""                  
-
+        echo ""
         if [ "x$file" != "x" ]; then
-          #add to playlist
-          if [[ -e "$file" && "x$file" != "x" ]]; then
-            [ "x${sFiles[@]}" == "x" ] && sFiles=("$file") || sFiles=("${sFiles[@]}" "$file")
+          played=0
+          bRetry=1
+          sFiles=
+          while [ $bRetry -eq 1 ]; do
+            [ $played -gt 0 ] && NEXT="next "
+            if [ "${#sFiles}" -gt 0 ]; then
+              #files to play
+              if [ "x$file" == "x/dev/dvd" ]; then
+                type="cd" #cds
+                echo "playing '$title' [cd]" 1>&2
+                for f in "${sFiles[@]}"; do DISPLAY=$display $cmdplay $cmdplay_options $@ "$ROOTISO$f"; done
+                umount "$ROOTISO" 2>/dev/null
+              else
+                type="${file:0:3}" #dvds/vcds
+                echo "playing '$title' []" 1>&2
+                DISPLAY=$display $cmdplay $@ $cmdplay_options "${sFiles[0]}"
+              fi
+              played=$[$played+${#sFiles[@]}]
+              sFiles=             
+            else
+              if [[ ! -t $(fnDriveStatus) || $played -gt 0 ]]; then
+                #block until disc is inserted
+                echo -n "[user] insert "$NEXT"disk for '$title' [(r)etry|(e)ject|(l)oad|e(x)it]:  "
+                bRetry2=1                
+                while [ $bRetry2 -eq 1 ]; do
+                  echo -en '\033[1D\033[K'
+                  read -n 1 -s result
+                  case "$result" in
+                    "r" | "R") echo -n $result; [ -t $(fnDriveStatus) ] && bRetry2=0 ;;
+                    "e" | "E") echo -n $result; umount /dev/dvd >/dev/null 1>&2; [ -t $(fnDriveStatus) ] && eject -T >/dev/null 1>&2 ;;
+                    "l" | "L") echo -n $result; [ ! -t $(fnDriveStatus) ] && eject -t 2>/dev/null ;;
+                    "x" | "X") echo -n $result; bRetry=0; bRetry2=0; file="" ;;
+                    *) echo -n " " 1>&2
+                  esac          
+                done
+                echo ""
+              fi
+              if [ "x$file" != "x" ]; then               
+                if [ "x$file" == "x/dev/dvd" ]; then
+                  #mount and search for files
+                  mount -t auto -o ro /dev/dvd "$ROOTISO" 2>/dev/null && sleep 1
+                  cd $ROOTISO
+                  IFS=$'\n'
+                  sFiles=($(fnFiles silent full "$search" "$VIDEXT"))
+                  x=$?
+                  if [ ${#sFiles[@]} -eq 0 ]; then
+                    sFiles=($(fnFiles interactive full "$search" "$VIDEXT"))
+                    x=$?
+                  fi
+                  IFS=$IFSORG
+                  cd - >/dev/null 2>&1
+                  [ $x -ne 0 ] && bRetry=0 && sFiles= && continue
+                else
+                  #specify the track for vcds
+                  if [ "${file:0:3}" == "vcd" ]; then
+                    #ID_VCD_TRACK_1_MSF=00:16:63
+                    IFS=$'\n'; sTracks=($($CMDINFOMPLAYER "$file" | sed -n 's/^ID_VCD_TRACK_\([0-9]\)_MSF=\([0-9:]*\)$/\1|\2\.0/p')); IFS=$IFSORG
+                    if [ ${#sTracks[@]} -gt 0 ]; then
+                      for s in "${sTracks[@]}"; do
+                        sTrackTime2=$(fnPositionTimeToNumeric "${s##*|}")
+                        if [[ "x$sTrack" == "x" || $(math_ "\$gt($sTrackTime2, $sTrackTime)") -eq 1 ]]; then
+                          sTrack="${s%%|*}"
+                          sTrackTime="$sTrackTime2"
+                        fi
+                      done                          
+                    fi
+                    [ "x$sTrack" == "x" ] && sTrack="1"                    
+                    sFiles=("$(echo "$file" | sed 's|vcd://|vcd://'$sTrack'|')")
+                  else
+                    sFiles=("$file")
+                  fi
+                fi
+              fi
+            fi
+          done
+        fi
+      else
+        #file type?
+        if [ "x$(echo "$file" | grep -iP '^.*\.('$VIDEXT')$')" != "x" ]; then         
+
+          #play?            
+          echo -n "play '$title'? [(y)es/(n)o/(v)erbose/e(x)it]:  "
+          bRetry=1                
+          while [ $bRetry -eq 1 ]; do
+            echo -en '\033[1D\033[K'
+            read -n 1 -s result
+            case "$result" in
+              "y" | "Y") echo -n $result; bRetry=0 ;;
+              "n" | "N") echo -n $result; bRetry=0; file="" ;;
+              "v" | "V") echo -n $result; echo -en "\033[G\033[1Kplay '$file'? [(y)es/(n)o/(v)erbose/e(x)it]:  " ;;
+              "x" | "X") echo -n $result; bRetry=0; echo ""; exit 0 ;;
+              *) echo -n " " 1>&2
+            esac
+          done
+          echo ""                  
+
+          if [ "x$file" != "x" ]; then
+            #block whilst file doesn't exist      
+            bRetry=1                
+            while [ $bRetry -eq 1 ]; do
+              if [ -e "$file" ]; then
+                bRetry=0
+              else 
+                echo -n "[user] file '$file' does not exist? [(r)etry/(s)kip/e(x)it]:  "
+                bRetry2=1                
+                while [ $bRetry2 -eq 1 ]; do
+                  echo -en '\033[1D\033[K'
+                  read -n 1 -s result
+                  case "$result" in
+                    "x" | "X") echo -n $result; bRetry=0; bRetry2=0; echo ""; exit 0 ;;
+                    "s" | "S") echo -n $result; bRetry=0; bRetry2=0 ;;
+                    "r" | "R") echo -n $result; bRetry2=0 ;;
+                    *) echo -n " " 1>&2
+                  esac
+                done
+                echo ""
+              fi
+            done
+            #add to playlist
+            if [[ -e "$file" && "x$file" != "x" ]]; then
+              [ "x${sFiles[@]}" == "x" ] && sFiles=("$file") || sFiles=("${sFiles[@]}" "$file")
+            fi
           fi
         fi
       fi
