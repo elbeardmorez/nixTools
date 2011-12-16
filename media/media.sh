@@ -74,7 +74,7 @@ function fnRegexp()
   exit 1
 }
 
-function fnTimeValid()
+function fnPositionTimeValid()
 {
   pos="$1"
   if [ "x$(echo "$pos" | sed -n 's|^\([+-/*]\{,1\}\s*[0-9:]*[0-9]\{2\}:[0-9]\{2\}[:,.]\{1\}[0-9]\{1,\}\)$|\1|p')" == "x" ]; then
@@ -85,14 +85,99 @@ function fnTimeValid()
   fi
 }
 
-function fnTimeAdd()
+function fnPositionNumericValid()
+{
+  num="$1"
+  [ "x$(echo "$num" | sed -n '/.*[.,:]\{1\}[0-9]\+/p')" == "x" ] && num="$num.0"
+  if [ "x$(echo "$num" | sed -n 's|^\([+-/*]\{,1\}\s*[0-9]\+[:,.]\{1\}[0-9]\{1,\}\)$|\1|p')" == "x" ]; then
+    echo "illegal number format. require '0[.,:]0[00...]'" 1>&2
+    echo 0
+  else
+    echo 1
+  fi
+}
+
+function fnPositionNumericToTime()
+{
+  #convert float to positon string  
+
+  sPrefix="$(echo "$1" | sed -n 's/^\([^0-9]\+\).*$/\1/p')"
+  lNum="${1:${#sPrefix}}"
+  shift
+  [ $(fnPositionNumericValid "$lNum") -eq 0 ] && exit 1
+  lToken="-1" && [ $# -gt 0 ] && lToken=$1 && shift
+  sDelimMilliseconds="." && [ $# -gt 0 ] && sDelimMilliseconds="$1" && shift
+  #IFS='.,:' && sTokens=($(echo "$sPos")) && IFS=$IFSORG
+  #lTokens=${lTokens:-${#sTokens[@]}}
+  ##force emtpy tokens if required
+  #if [ $lTokens -ne ${#sTokens[@]} ]; then
+  #  for l in $(seq ${#sTokens[@]} 1 $lTokens); do sTokens[$[$l-1]]="00"; done
+  #fi
+  IFS='.,:' && sTokens=($(echo "$lNum")) && IFS=$IFSORG
+
+  sTotal=$(printf "%.3f" "0.${sTokens[1]}" | cut -d'.' -f2) #milliseconds
+  lCarry=${sTokens[0]} #the rest!
+  local l
+  while [[ `echo "$lCarry > 0" | bc` -eq 1 || $l -lt $lToken || $l -le 1 ]]; do
+    case $l in
+      1) #seconds
+        lCarry2=`echo "scale=0;($lCarry)/60" | bc`
+        sTotal="$(printf "%02d" `echo "scale=0;($lCarry-($lCarry2*60))" | bc`).$sTotal"
+        lCarry=$lCarry2
+        ;;
+      2) #minutes
+        lCarry2=`echo "scale=0;($lCarry)/60" | bc`
+        sTotal="$(printf "%02d" `echo "scale=0;($lCarry-($lCarry2*60))" | bc`):$sTotal"
+        lCarry=$lCarry2
+        ;;
+      3) #hours
+        lCarry2=`echo "scale=0;($lCarry)/24" | bc`
+        sTotal="$(printf "%02d" `echo "scale=0;($lCarry-($lCarry2*24))" | bc`):$sTotal"
+        lCarry=$lCarry2
+        ;;
+      4) #days
+        sTotal="$lCarry:$sTotal"
+        lCarry=0
+        ;;
+    esac
+    l=$[$l+1]
+  done
+  echo "$sPrefix$(echo "$sTotal" | sed 's/\./'$sDelimMilliseconds'/')"
+}
+
+function fnPositionTimeToNumeric()
+{
+  #convert sPositon string to float  
+
+  sPrefix="$(echo "$1" | sed -n 's/^\([^0-9]\+\).*$/\1/p')"
+  sPos="${1:${#sPrefix}}"
+  [ $(fnPositionTimeValid "$sPos") -eq 0 ] && exit 1
+  IFS='.,:' && sTokens=($(echo "$sPos")) && IFS=$IFSORG
+  lTotal=0
+  lScale=3
+  local l
+  for l in $(seq 0 1 $[${#sTokens[@]}-1]); do
+    sToken=${sTokens[$[${#sTokens[@]}-$l-1]]}
+#    echo "$sToken"
+    case $l in
+      0) lScale=${#sToken}; lTotal=`echo "scale=$lScale;$sToken/(10^${#sToken})" | bc` ;; #milliseconds
+      1) lTotal=`echo "scale=$lScale;$lTotal+$sToken" | bc` ;; #seconds
+      2) lTotal=`echo "scale=$lScale;$lTotal+($sToken*60)" | bc` ;; #minutes
+      3) lTotal=`echo "scale=$lScale;$lTotal+($sToken*3600)" | bc` ;; #hours
+      4) lTotal=`echo "scale=$lScale;$lTotal+($sToken*24*3600)" | bc`;; #days
+    esac
+  done
+  echo $sPrefix$lTotal
+}
+
+function fnPositionAdd()
 {
   #iterate through : delimited array, adding $2 $1 ..carrying an extra 1 iff length of result
   #is greater than the length of either ot the original numbers
 
   base="$1"
   bump="$2"
-  [[ $(fnTimeValid "$base") -eq 0 || $(fnTimeValid "$bump") -eq 0 ]] && echo "$base" &&  return 1
+  [[ $(fnPositionTimeValid "$base") -eq 0 || $(fnPositionTimeValid "$bump") -eq 0 ]] && echo "$base" &&  return 1
 
   IFS=$'\:\,\.'
   aBase=($base)
@@ -293,8 +378,8 @@ fnFilesInfo()
     else
       s=$(fnFileInfo $level "$f")
       echo -e "[$s]  \t$f"
-      #[ $level -ge 3 ] && sLength=$(fnTimeAdd "$sLength" "$(echo "$s" | sed -n 's/^\[\(.*\)|.*$/\1/p')" 2>/dev/null)
-      [ $level -ge 3 ] && sLength=$(fnTimeAdd "$sLength" "$(echo "$s" | cut -d'|' -f1)" 2>/dev/null)
+      #[ $level -ge 3 ] && sLength=$(fnPositionAdd "$sLength" "$(echo "$s" | sed -n 's/^\[\(.*\)|.*$/\1/p')" 2>/dev/null)
+      [ $level -ge 3 ] && sLength=$(fnPositionAdd "$sLength" "$(echo "$s" | cut -d'|' -f1)" 2>/dev/null)
     fi
     l=$[$l+1]
   done
