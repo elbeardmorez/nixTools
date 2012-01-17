@@ -28,6 +28,8 @@ CMDINFOMPLAYER="${CMDINFOMPLAYER:-"mplayer -identify -frames 0 -vc null -vo null
 PLAYLIST="${PLAYLIST:-"/tmp/$CMDPLAY.playlist"}"
 LOG="${LOG:-"/var/log/$SCRIPTNAME"}"
 
+TEST=0
+DEBUG=0
 REGEX=0
 
 OPTION="play"
@@ -56,7 +58,9 @@ function fnLog()
 }
 
 function fnDisplay()
-{  
+{
+  [ $DEBUG -ge 1 ] && echo "[debug fnDisplay]" 1>&2
+
   display="${DISPLAY_:-"$DISPLAY"}"
   echo $display
 }
@@ -70,22 +74,26 @@ function fnDriveStatus()
 
 function fnRegexp()
 {
+  [ $DEBUG -ge 2 ] && echo "[debug fnRegexp]" 1>&2
+
   #escape reserved characters
   sExp="$1" && shift
   sType= && [ $# -gt 0 ] && sType="$1"
-  #echo "sExp: '$sExp', sType: '$sType', CHARSED: '$CHARSED'" 1>&2
+  [ $DEBUG -ge 2 ] && echo "[debug fnRegexp], sExp: '$sExp', sType: '$sType', CHARSED: '$CHARSED'" 1>&2
   case "$sType" in
     "grep") sExp=$(echo "$sExp" | sed 's/\(['$CHARGREP']\)/\\\1/g') ;;
     "sed") sExp=$(echo "$sExp" | sed 's/\(['$CHARSED']\)/\\\1/g') ;;
     *) sExp=$(echo "$sExp" | sed 's/\(['$CHARPOSIX']\)/\\\1/g') ;;
   esac
-  #echo "#2, sExp: '$sExp'" 1>&2 
+  [ $DEBUG -ge 2 ] && echo "[debug fnRegexp] #2, sExp: '$sExp'" 1>&2 
   echo "$sExp"
   exit 1
 }
 
 function fnPositionTimeValid()
 {
+  [ $DEBUG -ge 2 ] && echo "[debug fnPositionTimeValid]" 1>&2
+
   pos="$1"
   if [ "x$(echo "$pos" | sed -n 's|^\([+-/*]\{,1\}\s*[0-9:]*[0-9]\{2\}:[0-9]\{2\}[:,.]\{1\}[0-9]\{1,\}\)$|\1|p')" == "x" ]; then
     echo "illegal position format. require '00:00:00[.,:]0[00...]'" 1>&2
@@ -97,6 +105,8 @@ function fnPositionTimeValid()
 
 function fnPositionNumericValid()
 {
+  [ $DEBUG -ge 2 ] && echo "[debug fnPositionNumericValid]" 1>&2
+
   num="$1"
   [ "x$(echo "$num" | sed -n '/.*[.,:]\{1\}[0-9]\+/p')" == "x" ] && num="$num.0"
   if [ "x$(echo "$num" | sed -n 's|^\([+-/*]\{,1\}\s*[0-9]\+[:,.]\{1\}[0-9]\{1,\}\)$|\1|p')" == "x" ]; then
@@ -110,6 +120,8 @@ function fnPositionNumericValid()
 function fnPositionNumericToTime()
 {
   #convert float to positon string  
+
+  [ $DEBUG -ge 2 ] && echo "[debug fnPositionNumericToTime]" 1>&2
 
   sPrefix="$(echo "$1" | sed -n 's/^\([^0-9]\+\).*$/\1/p')"
   lNum="${1:${#sPrefix}}"
@@ -158,6 +170,7 @@ function fnPositionNumericToTime()
 function fnPositionTimeToNumeric()
 {
   #convert sPositon string to float  
+  [ $DEBUG -ge 2 ] && echo "[debug fnPositionTimeToNumber]" 1>&2
 
   sPrefix="$(echo "$1" | sed -n 's/^\([^0-9]\+\).*$/\1/p')"
   sPos="${1:${#sPrefix}}"
@@ -184,6 +197,8 @@ function fnPositionAdd()
 {
   #iterate through : delimited array, adding $2 $1 ..carrying an extra 1 iff length of result
   #is greater than the length of either ot the original numbers
+
+  [ $DEBUG -ge 2 ] && echo "[debug fnPositionAdd]" 1>&2
 
   base="$1"
   bump="$2"
@@ -231,6 +246,8 @@ function fnPositionAdd()
 
 fnFileStreamInfo()
 {
+  [ $DEBUG -ge 1 ] && echo "[debug fnFileStreamInfo]" 1>&2
+
   #via ffmpeg
   sFile="$1"
   IFS=$'\n'; sInfo=($(ffmpeg -i "file:$sFile" 2>&1 | grep -iP "stream|duration")); IFS=$IFSORG
@@ -257,6 +274,8 @@ fnFileStreamInfo()
 
 fnFileInfo()
 {
+  [ $DEBUG -ge 1 ] && echo "[debug fnFileInfo]" 1>&2
+
   #level
   #0 raw
   #1 vid.aud.ch
@@ -305,10 +324,11 @@ fnFileInfo()
           fi  
         elif [ "x$(echo "$s" | sed -n '/^.*video.*$/Ip')" != "x" ]; then
           if [ "x$sVideo" == "x$sVideoDefault" ]; then
-            #echo "#fnFileInfo, IFS='$IFS'" 1>&2
+            [ $DEBUG -ge 2 ] && echo "#fnFileInfo, IFS='$IFS'" 1>&2
             IFS=$'|'; aCodecs=($(echo "$VIDCODECS")); IFS=$IFSORG 
-            #echo "fnFileInfo #2, IFS='$IFS'" 1>&2
-            #echo "fnFileInfo, codecs: ${#aCodecs[@]}, codecs: '${aCodecs[@]}'" 1>&2
+            [ $DEBUG -ge 2 ] && echo "[debug] fnFileInfo #2, IFS='$IFS'" 1>&2
+            [ $DEBUG -ge 1 ] && echo "[debug] fnFileInfo, codecs: ${#aCodecs[@]}, codecs: '${aCodecs[@]}'" 1>&2
+            #[ $TEST -eq 1 ] && exit 0
             for s2 in "${aCodecs[@]}"; do
               if [ "x$(echo "'$s2'" | sed -n '/\=/p')" == "x" ]; then
                 [ "x$(echo "'$s'" | sed -n '/'"$(fnRegexp "$s2" "sed")"'/Ip')" != "x" ] && sVideo="$s2"        
@@ -334,7 +354,7 @@ fnFileInfo()
             [ "x$sFps2" != "x" ] && sFps2="$(echo "$sFps2" | sed 's/\(\.\+0*\)$//')" 
             [ "x$sFps2" != "x" ] && sFps=$sFps2"fps|"
           fi
-          #echo "fnFileInfo, sFps: '$sFps', sSize: '$sSize'" 1>&2 
+          [ $DEBUG -ge 1 ] && echo "[debug] fnFileInfo, sFps: '$sFps', sSize: '$sSize'" 1>&2 
         elif [ "x$(echo "'$s'" | sed -n '/^.*audio.*$/Ip')" != "x" ]; then
           if [ "x$sAudio" == "x$sAudioDefault" ]; then
             IFS=$'|'; aCodecs=($(echo "$AUDCODECS")); IFS=$IFSORG
@@ -379,6 +399,8 @@ fnFileInfo()
 
 fnFilesInfo()
 {
+  [ $DEBUG -ge 1 ] && echo "[debug fnFilesInfo]" 1>&2
+
   #echo "#args: $#" 1>&2
   [[ $# -gt 0 && "x$(echo "$1" | sed -n '/^[0-9]\+$/p')" != "x" ]] && level=$1 && shift || level=1
   #echo "#args: $#" 1>&2
@@ -620,6 +642,8 @@ fnSearch()
   # optionally 'iterative'ly substring search term and research until success
   # optionally 'interactive'ly search, prompting whether to return when any given path/substring returns valid results
 
+  [ $DEBUG -ge 1 ] && echo "[debug fnSearch]" 1>&2
+
   bVerbose=1
   [ "x$1" == "xsilent" ] && bVerbose=0 && shift
   bIterative=0
@@ -748,6 +772,8 @@ fnSearch()
 
 fnPlay()
 {
+  [ $DEBUG -ge 1 ] && echo "[debug fnPlay]" 1>&2
+
   sSearch="$1" && shift
   display=$(fnDisplay)
 
@@ -961,6 +987,8 @@ fnArchive()
 {
   #list files at target for archive purposes
 
+  [ $DEBUG -ge 1 ] && echo "[debug fnArchive]" 1>&2
+
   CWD="$PWD/"
   target="$PATHARCHIVELISTS"
   level=0
@@ -992,6 +1020,10 @@ fnArchive()
 #args
 [ $# -lt 1 ] && help && exit 1
 
+#TEST
+[[ $# -gt 1 && "x$1" == "xtest" ]] && TEST=1 && shift
+#DEBUG
+[[ $# -gt 1 && "x$1" == "xdebug" ]] && DEBUG=1 && shift && [ "x$(echo "$1" | sed -n '/^[0-9]\+$/p')" != "x" ] && DEBUG=$1 && shift
 #REGEX
 [[ $# -gt 1 && "x$1" == "xregex" ]] && REGEX=1 && shift
 
@@ -1005,10 +1037,17 @@ if [ "x$(echo $1 | sed -n 's/^\('\
   shift
 fi
 
+#TEST
+[[ $# -gt 1 && "x$1" == "xtest" ]] && TEST=1 && shift
+#DEBUG
+[[ $# -gt 1 && "x$1" == "xdebug" ]] && DEBUG=1 && shift && [ "x$(echo "$1" | sed -n '/^[0-9]\+$/p')" != "x" ] && DEBUG=$1 && shift
 #REGEX
 [[ $# -gt 1 && "x$1" == "xregex" ]] && REGEX=1 && shift
 
 args=("$@")
+
+[ $DEBUG -ge 1 ] && echo "[debug $SCRIPTNAME] option: '$OPTION', args: '${args[@]}'" 1>&2
+
 case $OPTION in
   "s"|"search") fnSearch "${args[@]}" ;;
   "p"|"play") fnPlay "${args[@]}" ;;
