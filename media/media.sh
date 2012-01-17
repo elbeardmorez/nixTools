@@ -662,12 +662,14 @@ fnSearch()
   #else
     sSearch="$(fnRegexp "$sSearch")"
   #fi
+  [ $DEBUG -ge 1 ] && echo "[debug fnSearch] sSearch: '$sSearch'" 1>&2
   IFS=$'\n'
 
   bContinue=1
   dirs=("$PATHMEDIA"*/)
   while [ $bContinue -eq 1 ]; do      
     for dir in "${dirs[@]}"; do
+      [ $DEBUG -ge 1 ] && echo "[debug fnSearch] sSearch: '$sSearch', dir: '$dir'" 1>&2 
       if [ "$REGEX" -eq 1 ]; then
         # FIX: video file only filter for globs?
         #arr=($(find "$dir" -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)$'))
@@ -706,6 +708,7 @@ fnSearch()
       else    
         arr=($(grep -rie "$sSearch" "$PATHARCHIVELISTS" 2>/dev/null))
       fi 
+      [ $DEBUG -ge 1 ] && echo "[debug fnSearch] results arr: '${arr[@]}'" 1>&2 
       #filter results
       if [[ ${#arr[@]} -gt 0 && "x$arr" != "x" ]]; then
         arr2=
@@ -720,6 +723,7 @@ fnSearch()
             [ "x${arr2}" == "x" ] && arr2=("$s") || arr2=("${arr2[@]}" "$s")
           fi
         done
+        [ $DEBUG -ge 1 ] && echo "[debug fnSearch] filtered results arr2: '${arr2[@]}'" 1>&2 
         #merge results
         bAdd=1
         if [ $bInteractive -eq 1 ]; then
@@ -764,6 +768,7 @@ fnSearch()
   done
 
   #process list
+  [ $DEBUG -ge 1 ] && echo "[debug fnSearch] processing list: ${files[@]}" 1>&2    
   if [[ ${#files[@]} -gt 0 && ! "x$files" == "x" ]]; then
     printf '%s\n' "${files[@]}" | sort
   fi
@@ -776,12 +781,13 @@ fnPlay()
 
   sSearch="$1" && shift
   display=$(fnDisplay)
+  [ $DEBUG -ge 1 ] && echo "[debug fnPlay] display: '$display', search: '$sSearch'" 1>&2
 
   [[ -d "$sSearch" || -f "$sSearch" ]] && DISPLAY=$display $CMDPLAY $CMDPLAY_OPTIONS "$sSearch" "$@" && exit 0
   IFS=$'\n' sMatched=($(fnSearch $([ $REGEX -eq 1 ] && echo "regex") "$sSearch" 2>/dev/null )); IFS=$IFSORG
 
   play=0
-  cmdplay="$CMDPLAY" 
+  cmdplay="$([ $DEBUG -ge 1 ] && echo 'echo ')$CMDPLAY"
   cmdplay_options="$CMDPLAY_OPTIONS" 
   cmdplay_playlist_options="$CMDPLAY_PLAYLIST_OPTIONS" 
 
@@ -792,6 +798,7 @@ fnPlay()
     #files to play!   
     #iterate results. prepend titles potentially requiring user interation (e.g. using discs)
     ##format type:name[:info] -> title:file[:search]
+    [ $DEBUG -eq 2 ] && echo "[debug fnPlay] sMatched: ${sMatched[@]}"
     sPlaylist=
     for s in "${sMatched[@]}"; do	   
       [ "x$(echo "$s" | grep '|')" == "x" ] && s="file|$s"
@@ -818,11 +825,13 @@ fnPlay()
 
     #iterate list and play      
     ##format title:file[:search]
+    [ $DEBUG -eq 2 ] && echo "[debug fnPlay] sPlaylist: ${sPlaylist[@]}" 1>&2
     sFiles=
     for s in "${sPlaylist[@]}"; do
       title="${s%%|*}" && s=${s:$[${#title}+1]} && title="$(echo ${title##*/} | sed 's/[. ]\[.*$//I')"
       file="${s%%|*}" && s=${s:$[${#file}+1]}
       search="$s" && [ "$search" == "$file" ] && search=""
+      [ $DEBUG -ge 1 ] && echo "[debug fnPlay] title: '$title', file: '$file', search: '$search'" 1>&2
       if [ "x$(echo "$file" | grep "/dev/dvd")" != "x" ]; then
         #play?
         echo -n "play '$title'? [(y)es/(n)o/e(x)it]:  "
@@ -958,6 +967,7 @@ fnPlay()
               fi
             done
             #add to playlist
+            [ $DEBUG -ge 1 ] && echo "[debug fnPlay] file: $file" 1>&2
             if [[ -e "$file" && "x$file" != "x" ]]; then
               [ "x${sFiles[@]}" == "x" ] && sFiles=("$file") || sFiles=("${sFiles[@]}" "$file")
             fi
@@ -968,6 +978,7 @@ fnPlay()
  
     #play remaining files
     if [ "x${sFiles}" != "x" ]; then
+      [ $DEBUG -ge 1 ] && echo "[debug fnPlay] sFiles: ${sFiles[@]}" 1>&2
       for l in $(seq 0 1 $[${#sFiles[@]}-1]); do
         file="${sFiles[$l]}"
         #construct playlist?
