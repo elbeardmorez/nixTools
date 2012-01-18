@@ -1042,7 +1042,8 @@ if [ "x$(echo $1 | sed -n 's/^\('\
 's\|search\|'\
 'p\|play\|'\
 'i\|info\|'\
-'a\|archive'\
+'a\|archive\|'\
+'test'\
 '\)$/\1/p')" != "x" ]; then
   OPTION=$1
   shift
@@ -1064,5 +1065,22 @@ case $OPTION in
   "p"|"play") fnPlay "${args[@]}" ;;
   "i"|"info") fnFilesInfo "${args[@]}" ;;
   "a"|"archive") fnArchive "${args[@]}" ;;  
+  "test")     
+    #custom functionality tests
+    [ ! $# -gt 0 ] && echo "[user] no function name or function args given!" && exit 1
+    func=$1
+    shift
+    case $func in 
+      "fnFiles")
+        #args: [interative] search
+        IFS=$'\n'; files=($($func "$@")); IFS=$IFSORG
+        echo "results: count=${#files[@]}" 1>&2
+        for f in "${files[@]}"; do echo "$f"; done
+        ;;
+      *)
+        $func "$@"
+        ;;
+    esac
+    ;;
   *) help ;;
 esac
