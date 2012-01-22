@@ -17,7 +17,7 @@ CHARPOSIX='][^$?*+'
 CHARSED='][|-'
 CHARGREP=']['
 MINSEARCH=3
-VIDEXT="avi|mpg|mpeg|mkv|mp4"
+VIDEXT="avi|mpg|mpeg|mkv|mp4|flv|webm"
 VIDCODECS="flv=flv,flv1|h264|x264|xvid|divx=divx,dx50,div3,div4,div5,divx\.5\.0|msmpg=msmpeg4|mpeg2"
 AUDCODECS="vbs=vorbis|aac|dts|ac3|mp3=mp3,mpeg-layer-3|wma"
 AUDCHANNELS="1.0ch=mono|2.0ch=2.0,2ch,2 ch,stereo|3.0ch=3.0|4.0ch=4.0|5.0ch=5.0|5.1ch=5.1"
@@ -25,6 +25,7 @@ CMDPLAY="${CMDPLAY:-"mplayer"}"
 CMDPLAY_OPTIONS="${CMDPLAY_OPTIONS:-"-tv"}"
 CMDPLAY_PLAYLIST_OPTIONS="${CMDPLAY_PLAYLIST_OPTIONS:-"-p "}"
 CMDINFOMPLAYER="${CMDINFOMPLAYER:-"mplayer -identify -frames 0 -vc null -vo null -ao null"}"
+CMDFLVFIXER="${CMDFLVFIXER:-"flvfixer.php"}"
 PLAYLIST="${PLAYLIST:-"/tmp/$CMDPLAY.playlist"}"
 LOG="${LOG:-"/var/log/$SCRIPTNAME"}"
 
@@ -45,6 +46,7 @@ function help()
   echo -e "\tsearch  : search for file(s) only"
   echo -e "\tinfo  : output formatted information on file(s)"
   echo -e "\tarchive  : recursively search a directory and list valid media files with their info, writing all output to a file"
+  echo -e "\tfix  : fix a stream container"
   echo ""
   echo "with TARGET:  a target file / directory or a partial file name to search for"
   echo ""
@@ -1028,6 +1030,24 @@ fnArchive()
   cd $CWD
 }
 
+fnFix()
+{
+  [ $DEBUG -ge 1 ] && echo "[debug fnFix]" 1>&2
+
+  [ -f "$CMDFLVFIXER" ] && echo "missing flvfixer.php" 1>&2
+
+  [ $# -ne 1 ] && echo "single source file arg required" && exit 1
+  echo -e "\n[cmd] php $CMDFLVFIXER\n --in '$1'\n --out '$1.fix'"
+  echo -e "[orig] $(ls -al "$1")"
+  php "$CMDFLVFIXER" --in "$1" --out "$1.fix" 2>/dev/null
+  chown --reference "$1" "$1.fix"
+
+  echo -e "\n[cmd] mv file file.dead; mv file.fix file"
+  mv "$1" "$1.dead"
+  mv "$1.fix" "$1"
+  echo -e "[new] $(ls -al "$1")\n"  
+}
+
 #args
 [ $# -lt 1 ] && help && exit 1
 
@@ -1043,6 +1063,7 @@ if [ "x$(echo $1 | sed -n 's/^\('\
 'p\|play\|'\
 'i\|info\|'\
 'a\|archive\|'\
+'f\|fix\|'\
 'test'\
 '\)$/\1/p')" != "x" ]; then
   OPTION=$1
@@ -1065,6 +1086,7 @@ case $OPTION in
   "p"|"play") fnPlay "${args[@]}" ;;
   "i"|"info") fnFilesInfo "${args[@]}" ;;
   "a"|"archive") fnArchive "${args[@]}" ;;  
+  "f"|"fix") fnFix "${args[@]}" ;;
   "test")     
     #custom functionality tests
     [ ! $# -gt 0 ] && echo "[user] no function name or function args given!" && exit 1
