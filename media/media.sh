@@ -18,9 +18,15 @@ CHARSED='][|-'
 CHARGREP=']['
 MINSEARCH=3
 VIDEXT="avi|mpg|mpeg|mkv|mp4|flv|webm"
+VIDXEXT="nfo|srt|idx|sub"
+EXTEXT="rar|txt"
 VIDCODECS="flv=flv,flv1|h264|x264|xvid|divx=divx,dx50,div3,div4,div5,divx\.5\.0|msmpg=msmpeg4|mpeg2"
 AUDCODECS="vbs=vorbis|aac|dts|ac3|mp3=mp3,mpeg-layer-3|wma"
 AUDCHANNELS="1.0ch=mono|2.0ch=2.0,2ch,2 ch,stereo|3.0ch=3.0|4.0ch=4.0|5.0ch=5.0|5.1ch=5.1"
+FILTERS_EXTRA="${FILTERS_EXTRA:-""}"
+
+CMDMD="mkdir -p"
+CMDMV="mv"
 CMDPLAY="${CMDPLAY:-"mplayer"}"
 CMDPLAY_OPTIONS="${CMDPLAY_OPTIONS:-"-tv"}"
 CMDPLAY_PLAYLIST_OPTIONS="${CMDPLAY_PLAYLIST_OPTIONS:-"-p "}"
@@ -32,6 +38,9 @@ LOG="${LOG:-"/var/log/$SCRIPTNAME"}"
 TEST=0
 DEBUG=0
 REGEX=0
+
+TXT_BOLD=$(tput bold)
+TXT_RST=$(tput sgr0)
 
 OPTION="play"
 
@@ -46,6 +55,7 @@ function help()
   echo -e "\tsearch  : search for file(s) only"
   echo -e "\tinfo  : output formatted information on file(s)"
   echo -e "\tarchive  : recursively search a directory and list valid media files with their info, writing all output to a file"
+  echo -e "\tstructure  : standardise location and file structure for files (partially) matching the search term" 
   echo -e "\tfix  : fix a stream container"
   echo ""
   echo "with TARGET:  a target file / directory or a partial file name to search for"
@@ -436,6 +446,152 @@ fnFilesInfo()
     l=$[$l+1]
   done
   [[ $level -ge 3 && $l -gt 1 ]] && echo "[total duration: $sLength]"
+}
+
+fnFileMultiMask()
+{
+  #determine an appropriate default multifile mask for multi-file titles, and optionally set values
+  #passing title: determine type. return default mask 
+  #passing title and target: get mask from target, search for values in title to set mask. return set mask
+
+  [ $DEBUG -ge 1 ] && echo "[debug fnFileMultiMask]" 1>&2
+
+  sTitle="$1" && shift
+  sTarget="$1" && shift
+  sMaskDefault="" && [ $# -gt 0 ] && sMaskDefault="$1" && shift
+  sMaskVal=""
+  sMaskDefault_single="#of#"
+  sMaskDefault_set="s##e##"
+ 
+  #determine type
+  sType=""
+  if [ "$sTarget" ]; then 
+    #look for default mask in target
+    #single?
+    sMask="$(echo "$sTarget" | sed -n 's|^.*\(#of#\+\).*$|\1|p')"
+    if [ "x$sMask" != "x" ]; then
+      sType="single" && sMaskDefault="${sMaskDefault:-$sMask}"
+    else
+      #set?
+      sMask="$(echo "$sTarget" | sed -n 's|^.*\(s#\+e#\+\).*$|\1|p')"
+      if [ "x$sMask" != "x" ]; then
+        sType="set" && sMaskDefault="${sMaskDefault:-$sMask}"
+      fi
+    fi
+  fi
+ 
+  #filters
+  arr=("single #of#"
+       "single cd\([0-9]\+\)"
+       "single cd[-.]\([0-9]\+\)"
+       "single cd\s\([0-9]\+\)"
+       "single \([0-9]\+\)of[0-9]\+"
+       "single \([0-9]\+\)\.of\.[0-9]\+"
+       "set s#\+e#\+"
+       "set s\([0-9]\+\)\.\?e\([0-9]\+\)"
+       "set \(0*[0-9]\)x\([0-9]\{1,2\}\)"
+       "set (\s*\(0*[0-9]\)\.\?\([0-9]\{1,2\}\)\s*)"
+       "set \[\s*\(0*[0-9]\)\.\?\([0-9]\{1,2\}\)\s*\]"
+       "set \.\s*\(0*[0-9]\)\.\?\([0-9]\{1,2\}\)\s*\."
+       "set \-\s*\(0*[0-9]\)\.\?\([0-9]\{1,2\}\)\s*\-"
+       "set \-\.\?ep\?\.\?\([0-9]\+\)\.\?\-"
+       "set \.ep\?\.?\([0-9]\+\)\."
+       "set \.s\.\?\([0-9]\+\)\. \1\|0"
+       "set part\.\?\([0-9]\+\)"
+       "single part\.\?\([0-9]\+\)"
+       "single [-.]\([1-4]\)[-.]")
+  for s in "${arr[@]}"; do
+    IFS=" " && arr2=($s) && IFS=$IFSORG
+#    [[ "x$sType" != "x" && "x$sType" != "x${arr2[0]}" ]] && continue
+    sSearch=${arr2[1]}
+    sReplace="" && [ ${#arr2} -ge 2 ] && sReplace=${arr2[2]}
+    [[ $sReplace == "" && ${arr2[0]} == "single" ]] && sReplace="\1"
+    [[ $sReplace == "" && ${arr2[0]} == "set" ]] && sReplace="\1\|\2"
+    sMaskRaw=$(echo "${sTitle##/}" | sed -n 's|^.*\('"$sSearch"'\).*$|\1|Ip')
+    if [ "x$sMaskRaw" != "x" ]; then 
+      sType="${arr2[0]}"
+      s="sMaskDefault_${sType}" && sMaskDefault=${sMaskDefault:-"${!s}"}
+      sMaskVal=$(echo "${sTitle##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|'$sReplace'|Ip' 2>/dev/null)
+#      case $sType in
+#        "single") sMaskVal=$(echo "${sTitle##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|\1|Ip' 2>/dev/null) ;;
+#        "set")
+#          sMaskVal=$(echo "${sTitle##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|\1\|\2|Ip' 2>/dev/null)
+#          [ "x$sMaskVal" == "x" ] && sMaskVal=$(echo "${sTitle##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|0\|\1|Ip' 2>/dev/null)
+#          ;;
+#      esac
+      break
+    fi
+  done
+
+  sRet="$sTarget" && [ "x$sRet" == "x" ] && sRet="$sMaskDefault"
+  if [ "$sMaskVal" ]; then
+    #set mask
+    IFS=$'|'; arr=($sMaskVal); IFS="$IFSORG"
+    #replacing right to left is impossible to do directly in gnu sed mainly, due to the lack of non-greedy match implementation
+    #work around by collecting mask parts. and creating a padded (if necessary) replacement array of the same dimension. then just replace left to right as normal
+    arr2=()
+    while [ "x$(echo "$sRet" | sed -n '/#\+/p')" != "x" ]; do
+      m="$(echo "$sRet" | sed -n 's/^[^#]*\(#\+\).*$/\1/p')"
+      #arr2[${#arr2[@]}]=$m
+      arr2[${#arr2[@]}]="$(printf "%0"${#m}"d" 0)"
+      #mark the hash occurance
+      sRet="$(echo "$sRet" | sed -n 's/#\+/\^/p')"
+    done
+    l=$[ 0 - ${#arr2[@]} + ${#arr[@]} ]
+    for ll in $( seq 0 1 $[${#arr2[@]}-1] ); do
+      #replace left to right ^ markers
+      v="" 
+      v2="${arr2[$ll]}"
+      [ $l -ge 0 ] && v="${arr[$l]}" && v2="$(printf "%0${#v2}d" "$(echo "$v" | sed 's/^0*//')")"
+      #replace left to right ^ markers
+      sRet=$(echo "$sRet" | sed 's|\^|'$v2'|')
+      l=$[$l+1]
+    done
+  fi
+
+  #prefix
+  [ ! "$sTarget" ] && sRet="$sMaskDefault|$sMaskRaw|$sRet"
+
+  #return
+  echo "$sRet" 
+}
+
+fnFileTarget()
+{
+  #set a target name for a file. attempt to set a mask for multi-file titles. assume no target extention
+
+  [ $DEBUG -ge 1 ] && echo "[debug fnFileTarget]" 1>&2
+
+  sTitle="$(echo "${1##*/}" | awk -F'\n' '{print tolower($1)}')"
+  sTarget="$2"
+  sExtra="$3"
+  sExt="${sTitle##*.}"
+  sTargetExt="$sExt"
+  case "$sTargetExt" in
+    "txt") sTargetExt="nfo" ;;
+    "jpeg") sTargetExt="jpg" ;;
+  esac
+  if [ "x$(echo "$sExt" | grep -iP "^.*($VIDEXT|$VIDXEXT)\$")" != "x" ]; then
+    #multi-file mask?
+    sTarget=$(fnFileMultiMask "$sTitle" "$sTarget")
+#    if [ "x$sMask" != "x" ]; then
+#      #use dynamic mask
+#      sMask2=$(echo $sMask | sed 's|\[#of|\['$n'of|') 
+#      sTarget=$(echo "$sTarget" | sed 's|'$sMask'|'$sMask2'|')
+#      sTarget="$sTarget$sExtra$sExt"
+#    elif [ ! "${sTitle##*.}" == "$sTitle" ]; then
+#      #use static mask and file's extension 
+#      sTarget="$sTarget$sExtra$sExt"
+#    fi
+    [ ! "${sTitle##*.}" == "$sTitle" ] && sTarget="$sTarget.$sExtra.$sExt"
+  elif [ ! "${sTitle##*.}" == "$sTitle" ]; then
+    #use static mask and file's extension 
+    sTarget="$sTarget.$sExt"
+  else
+    #default
+    sTarget=
+  fi
+  echo "$sTarget" | sed 's/\(^\.\|\.$\)//g'
 }
 
 fnFiles()
@@ -1030,6 +1186,203 @@ fnArchive()
   cd $CWD
 }
 
+fnStructure()
+{
+  [ $DEBUG -ge 1 ] && echo "[debug fnStructure]" 1>&2
+
+  cmdmv="$([ $TEST -ge 1 ] && echo 'echo ')$CMDMV"
+  cmdmd="$([ $TEST -ge 1 ] && echo 'echo ')$CMDMD"
+
+  bVerbose=1
+  [ "x$1" == "xsilent" ] && bVerbose=0 && shift
+  bLong=1
+  [ "x$1" == "xlong" ] && bLong=1 && shift
+ 
+  sSearch="$1" && shift
+  sFilters=() && [ $# -gt 0 ] && sFilters=($@)
+
+  IFS=$'\n'
+  sFiles=($(fnFiles interactive "$sSearch"))
+  x=$? && [ $x -ne 0 ] && exit $x
+  IFS=$IFSORG
+  [ ${#sFiles} -eq 0 ] && exit 1
+  [ $DEBUG -ge 1 ] && echo "sFiles: '${sFiles[@]}'" 1>&2
+#    sTitle=$(for f in "${sFiles[@]}"; do [ ! "x$(echo $f | grep -iP .*\.$VIDEXT\$)" == "x" ] && echo "${f##*/}" && break; done)
+  #count video files and set sample title
+  l=0
+  for f in "${sFiles[@]}"; do 
+    if [ "x$(echo $f | grep -iP ".*\.($VIDEXT)\$")" != "x" ]; then
+      [ $l -eq 0 ] && sTitle="$f"
+      l=$[$l+1]
+    fi 
+  done
+
+  lFiles=$l
+  #*IMPLEMENT: potential for mismatch of file information here. dependence on file list order is wrong
+  sTitleInfo="[$(fnFileInfo "$sTitle")]" # use first video file found as template
+#  sTitleInfo="[$(fnFileInfo /dev/null)]" # use default template
+  sTitle=$(echo "$sTitle" | sed 's/'"$(fnRegexp "$sTitleInfo" "sed")"'//')
+  sTitlePath="${sTitle%/*}/"
+  [[ ! -d "$sTitlePath" || x$(cd "$sTitlePath" && pwd) == "x$(pwd)" ]] && sTitlePath="" 
+  sTitle="$(echo ${sTitle##*/} | awk '{gsub(" ",".",$0); print tolower($0)}')"
+  sMaskDefault=""
+  IFS=$'\|'; sMask=($(fnFileMultiMask "$sTitle")); IFS=$IFSORG
+  if [ $sMask ]; then
+#    l=0; for s in "${sMask[@]}"; do echo "$l. '$s'"; l=$[$l+1]; done
+#    l=0; for l in $(seq 0 1 $[${#sMask[@]}-1]); do echo "$l. '${sMask[$l]}'"; l=$[$l+1]; done
+    sMaskDefault=${sMask[0]}
+    #set mask total value
+    sMaskDefault=$(echo "$sMaskDefault" | sed 's/\([0-9]\+of\)#/\1'$lFiles'/')
+  fi
+  if [ ${#sFilters[@]} -gt 0 ]; then
+    for s in "${sFilters[@]}"; do sTitle=$(echo "$sTitle" | sed 's/\(\.\|\-\)*'$s'\(\.\|\-\)*/../Ig'); done
+#  else
+    #clear everything between either delimiters ']','[', or delimiter '[' and end
+  fi
+  sTitle="${sTitle%.*}" # remove extension
+  [ $sMask ] && sTitle=$(echo "$sTitle" | sed 's/\[\?'"$(fnRegexp "${sMask[1]}" "sed")"'\]\?/['$sMaskDefault']/')
+  sTitle="$(echo "$sTitle" | sed 's/\(\s\|\.\|\[\)*[^(]\([0-9]\{4\}\)\(\s\|\.\|\]\)*/.(\2)./')"
+  sTitle="$(echo "$sTitle" | sed 's/'"$FILTERS_EXTRA"'/g')"
+  sTitle="$(echo "$sTitle" | sed 's/\('"$(echo "$VIDCODECS|$AUDCODECS" | sed 's/[,=|]/\\\|/g')"'\)/./Ig')"
+  sTitle="$(echo "$sTitle" | sed 's/_/\./g')"
+  sTitle="$(echo "$sTitle" | sed 's/\.\-\./\./g')"
+  s=""; while [ "x$sTitle" != "x$s" ]; do s="$sTitle"; sTitle="$(echo "$sTitle" | sed 's/\(\[\.*\]\|^\.\|\.$\)//g')"; done
+  s=""; while [ "x$sTitle" != "x$s" ]; do s="$sTitle"; sTitle="$(echo "$sTitle" | sed 's/\.\././g')"; done
+  sTitle="$sTitle.$sTitleInfo"
+  echo -e "set the title template$([ $lFiles -gt 1 ] && echo ". supported multi-file masks: '#of#', 's##e##'"). note ']/[' are fixed title delimiters" 1>&2
+  bRetry=1
+  while [ $bRetry -gt 0 ]; do
+      echo -n $TXT_BOLD 1>&2 && read -e -i "$sTitle" sTitle && echo -n $TXT_RST 1>&2
+    echo -ne "confirm title: '$sTitle'? [(y)es/(n)o/e(x)it] " 1>&2
+    bRetry2=1
+    while [ $bRetry2 -gt 0 ]; do
+      result=
+      read -s -n 1 result 
+      case "$result" in
+        "y"|"Y") echo "$result" 1>&2; bRetry2=0; bRetry=0 ;;
+        "n"|"N") echo "$result" 1>&2; bRetry2=0 ;;
+        "x"|"X") echo "$result" 1>&2; exit 1 ;;
+      esac             
+    done
+  done
+  #deconstruct title
+  sTitle2="$sTitle"
+  if [ ! "x$(echo $sTitle | grep -iP '\[')" == "x" ]; then
+    sTitleExtra=${sTitle##*[}
+    if [ ${#sTitleExtra} -gt 0 ]; then
+      sTitleExtra="[$sTitleExtra"
+      sTitle=$(echo "$sTitle" | sed 's/'"$(fnRegexp "$sTitleExtra" "sed")"'//')
+      [ "x${sTitle:$[${#sTitle}-1]:1}" == "x." ] && sTitle=${sTitle%.}
+    fi
+    #recover (potentially modified) default multi-file mask
+    IFS=$'\|'; sMask=($(fnFileMultiMask "$sTitle")); IFS=$IFSORG
+    if [ $sMask ]; then
+      sMaskRaw=$(echo "$sTitle" | sed -n 's/^[^[]*\(\[*'${sMask[1]}'\]*\).*$/\1/p')  #include formatting around mask raw value
+      sMaskDefault=$(echo "$sMaskRaw" | sed -n 's/'${sMask[1]}'/'${sMask[0]}'/p')   #recover mask with formatting
+      sTitle=$(echo "$sTitle" | sed 's/'"$(fnRegexp "$sMaskRaw" "sed")"'//')
+    fi
+    s=""; while [ "x$sTitle" != "x$s" ]; do s="$sTitle"; sTitle="$(echo "$sTitle" | sed 's/\(\[\.*\]\|(\.*)\|^\.\|\.$\)//g')"; done
+    s=""; while [ "x$sTitle" != "x$s" ]; do s="$sTitle"; sTitle="$(echo "$sTitle" | sed 's/\.\././g')"; done
+  fi
+  #structure files
+  ##move
+  $cmdmd -p "$sTitle"
+  info="$sTitle/info"
+  declare -A fDirs
+  for f in "${sFiles[@]}"; do
+    $cmdmv -i "$f" "$sTitle/" #2>/dev/null
+    #collect dirs
+    f2="${f%/*}"    
+    [[ -d "$f2" && "x$d" != "" &&  x$(cd "$f2" && pwd) != "x$(pwd)" ]] && fDirs["$f2"]="$f2"
+  done
+  #clean up. subdirs needs to be removed first. loop as many times as is directories achieves this, crudely!
+  for l in $(seq 1 1 ${#fDirs[@]}); do
+    for d in "${fDirs[@]}"; do rmdir "$d" >/dev/null 2>&1; done
+  done
+#    [ $DEBUG -eq 0 ] && (cd $sTitle || exit 1)
+  ##rename
+  #trim dummy extra info stub, sent as separate parameter to fnFileTarget function
+  sTitle2="$(echo "${sTitle2%[*}" | sed 's/\(^\.\|\.$\)//g')"
+  
+  #IFSORG=$IFS; IFS=$'\n'; files=($(fnFiles "$n")); IFS=$IFSORG; for f2 in "${files[@]}"; do n2=${f2##*.}; [ ! -e "$n.$n2" ] && mv -i "$f2" "$n.$n2"; done; done
+  IFS=$'\n'; sFiles2=($(find "./$sTitle/" -type f -maxdepth 1 -iregex '^.*\.\('"$(echo $VIDEXT\|$VIDXEXT\|$EXTEXT | sed 's|\||\\\||g')"'\)$')); IFS=$IFSORG
+  if [ $TEST -ge 1 ]; then
+    # use original files as we didn't move any!
+    sFiles2=()
+    for f in "${sFiles[@]}"; do [ "x$(echo "$f" | sed -n '/^.*\.\('"$(echo $VIDEXT\|$VIDXEXT\|$EXTEXT | sed 's|\||\\\||g')"'\)$/p')" != "x" ] && sFiles2[${#sFiles2[@]}]="$f"; done
+  fi
+  [ $DEBUG -gt 0 ] && echo "#sFiles2: ${#sFiles2[@]} sFiles2: ${sFiles2[@]}" 1>&2
+  for f in "${sFiles2[@]}"; do
+    f2="$(echo "${f##*/}" | awk '{gsub(" ",".",$0); print tolower($0)}')" # go lower case, remove spaces, remove path
+    IFS=$'|'; sMask=($(fnFileMultiMask "$f2" "" "$sMaskDefault")); IFS=$IFSORG
+    if [ ${#sFilters[@]} -gt 0 ]; then
+      #we need to manipulate the target (sTitle2) before it goes for its final name fixing (fnFileTarget)
+      #providing filter terms means the sTitle2 contains only the stub
+      for s in "${sFilters[@]}"; do f2=$(echo "$f2" | sed 's/\(\.\|\-\)*'$s'\(\.\|\-\)*/../Ig'); done  # apply filters
+      if [ "x${sMask[1]}" != "x" ]; then
+        sTarget="$sTitle2.$(echo "${f2%.*}" | sed 's/^.*'"$(fnRegexp "${sMask[1]}" "sed")"'\]*//')" # construct dynamic title from template and additional file info i.e post-mask characters
+      else
+        #no delimiter. so we need to use all info in the original filename
+        #we can try and filter any info already present in the template though
+        sFilters2=($(echo "$sTitle2" | sed 's/[][)(-,.]/ /g'))
+        for s in ${sFilters2[@]}; do f2=$(echo "$f2" | sed 's/\(\.\|\-\)*'$s'\(\.\|\-\)*/../Ig'); done
+        sTarget="$sTitle2.${f2%.*}"   
+      fi
+#      sTarget="$(echo "$sTarget" | awk '{gsub(" ",".",$0); print tolower($0)}')" # go lower case now
+      sTarget="$(echo "$sTarget" | sed 's/\(\s\|\.\|\[\)*[^(]\([0-9]\{4\}\)\(\s\|\.\|\]\)*/.(\2)./')"
+      sTarget="$(echo "$sTarget" | sed 's/'"$FILTERS_EXTRA"'/g')"
+      sTarget="$(echo "$sTarget" | sed 's/\('"$(echo "$VIDCODECS|$AUDCODECS" | sed 's/[,=|]/\\\|/g')"'\)/./Ig')"
+      sTarget="$(echo "$sTarget" | sed 's/_/\./g')"
+      sTarget="$(echo "$sTarget" | sed 's/\.\-\./\./g')"
+      s=""; while [ "x$sTarget" != "x$s" ]; do s="$sTarget"; sTarget="$(echo "$sTarget" | sed 's/\(\[\.*\]\|(\.*)\|^\.\|\.$\)//g')"; done
+      s=""; while [ "x$sTarget" != "x$s" ]; do s="$sTarget"; sTarget="$(echo "$sTarget" | sed 's/\.\././g')"; done
+    else
+      #static
+      sTarget="$sTitle2"
+    fi
+    #set fileinfo
+    #*IMPLEMENT: this could be removing additional info set interactively
+    [ "x$(echo "${f##*.}" | sed -n 's/\('$(echo "$VIDEXT" | sed 's/[|]/\\\|/g')'\)/\1/p')" != "x" ] && sTitleExtra="[$(fnFileInfo "$f")]" # update info for video files. potential for mismatch here
+    sTarget=$(fnFileTarget "$f2" "$sTarget" "$sTitleExtra") # should use $f, but more filters would be required to cope with spaces etc.
+    #strip failed multifile suffixes
+    sTarget=$(echo "$sTarget" | sed 's/\([0-9]\+of\)#/\1'$lFiles'/')
+    [ $DEBUG -ge 1 ] && echo "sTarget: '$sTarget' from f: '$f' sTitle2: '$sTitle2' sTitleExtra: '$sTitleExtra'" 1>&2
+
+    if [[ "$sTarget" != "x" && "x$f" != "x./$sTitle/$sTarget" ]]; then
+      #move!
+      if [ $TEST -eq 0 ]; then
+        while [ -f "./$sTitle/$sTarget" ]; do
+          #target already exists
+          if [ "x$(diff -q "$f" "./$sTitle/$sTarget")" == "x" ]; then
+            #dupe file
+            sTarget=""
+            rm "$f"
+            break
+          else
+            echo -e "target file '$sTarget' for '${f##*/}' already exists, rename target or set blank to skip" 1>&2
+            echo -n $TXT_BOLD 1>&2 && read -e -i "$sTarget" sTarget && echo -n $TXT_RST 1>&2
+            [ "x$sTarget" == "x" ] && break
+          fi
+        done
+      fi
+      if [ "x$sTarget" != "x" ]; then
+        #log
+        [ $TEST -eq 0 ] && echo "${f##*/} -> $sTarget" | tee -a "$info"
+        #move
+        $cmdmv -i "$f" "./$sTitle/$sTarget"
+      fi
+    fi    
+  done
+
+  #echo -n "structure '" 1>&2 && echo -n "$sTitle" | tee >(cat - 1>&2) && echo "' created" 1>&2
+  #echo "structure '$sTitle' created" 1>&2
+  #echo "$sTitle"
+  [ $bVerbose -eq 1 ] && echo -n "structure '" 1>&2
+  [ $bLong -eq 1 ] && echo -n "$pwd/$sTitle" || echo -n "$sTitle" 
+  [ $bVerbose -eq 1 ] && echo "' created" 1>&2
+  return 0
+}
+
 fnFix()
 {
   [ $DEBUG -ge 1 ] && echo "[debug fnFix]" 1>&2
@@ -1064,6 +1417,7 @@ if [ "x$(echo $1 | sed -n 's/^\('\
 'i\|info\|'\
 'a\|archive\|'\
 'f\|fix\|'\
+'str\|structure\|'\
 'test'\
 '\)$/\1/p')" != "x" ]; then
   OPTION=$1
@@ -1087,6 +1441,7 @@ case $OPTION in
   "i"|"info") fnFilesInfo "${args[@]}" ;;
   "a"|"archive") fnArchive "${args[@]}" ;;  
   "f"|"fix") fnFix "${args[@]}" ;;
+  "str"|"structure") fnStructure "${args[@]}" ;;
   "test")     
     #custom functionality tests
     [ ! $# -gt 0 ] && echo "[user] no function name or function args given!" && exit 1
@@ -1098,6 +1453,14 @@ case $OPTION in
         IFS=$'\n'; files=($($func "$@")); IFS=$IFSORG
         echo "results: count=${#files[@]}" 1>&2
         for f in "${files[@]}"; do echo "$f"; done
+        ;;
+      "misc")
+        sFiles=($(find . -iregex '^.*\('"$(echo $VIDEXT\|$VIDXEXT\|nfo | sed 's|\||\\\||g')"'\)$'))
+        echo "sFiles: ${sFiles[@]}"
+        sFiles=($(find . -iregex '^.*\('"$VIDEXT\|$VIDXEXT\|nfo"'\)$'))
+        echo "sFiles: ${sFiles[@]}"
+        sFiles=($(find . -iregex '^.*\(avi\|nfo\)$'))
+        echo "sFiles: ${sFiles[@]}"
         ;;
       *)
         $func "$@"
