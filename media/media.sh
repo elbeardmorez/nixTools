@@ -11,6 +11,7 @@ RC_FILE="${RC_FILE:-"$HOME/.nixTools/$SCRIPTNAME"}"
 ROOTDISK="${ROOTDISK:-"/media/"}"
 ROOTISO="${ROOTISO:-"/media/iso/"}"
 PATHMEDIA="${PATHMEDIA:-"$HOME/media/"}"
+PATHRATINGSDEFAULT="${PATHRATINGSDEFAULT:-"${PATHMEDIA}watched/"}"
 PATHARCHIVELISTS="${PATHARCHIVELISTS:-"${PATHMEDIA}/archives/"}"
 
 CHARPOSIX='][^$?*+'
@@ -27,6 +28,8 @@ FILTERS_EXTRA="${FILTERS_EXTRA:-""}"
 
 CMDMD="mkdir -p"
 CMDMV="mv"
+CMDCP="cp -ar"
+CMDRM="rm -rf"
 CMDPLAY="${CMDPLAY:-"mplayer"}"
 CMDPLAY_OPTIONS="${CMDPLAY_OPTIONS:-"-tv"}"
 CMDPLAY_PLAYLIST_OPTIONS="${CMDPLAY_PLAYLIST_OPTIONS:-"-p "}"
@@ -56,6 +59,7 @@ function help()
   echo -e "\tinfo  : output formatted information on file(s)"
   echo -e "\tarchive  : recursively search a directory and list valid media files with their info, writing all output to a file"
   echo -e "\tstructure  : standardise location and file structure for files (partially) matching the search term" 
+  echo -e "\trate  : rate media and move structures to the nearest ratings hierarchy"
   echo -e "\tfix  : fix a stream container"
   echo ""
   echo "with TARGET:  a target file / directory or a partial file name to search for"
@@ -1383,6 +1387,208 @@ fnStructure()
   return 0
 }
 
+fnRate()
+{
+  #move files to the local ratings hierarchy (or default rating hierarchy location if we
+  #cannot find the local hierarchy 'nearby'
+
+  [ $DEBUG -ge 1 ] && echo "[debug fnRate]" 1>&2
+
+  cmdmd="$([ $TEST -gt 0 ] && echo "echo ")$CMDMD"
+  cmdmv="$([ $TEST -gt 0 ] && echo "echo ")$CMDMV"
+  cmdrm="$([ $TEST -gt 0 ] && echo "echo ")$CMDRM"
+  cmdcp="$([ $TEST -gt 0 ] && echo "echo ")$CMDCP"
+
+  #args
+  [ $# -eq 0 ] && echo "[user] search string / target parameter required!" && exit 1
+
+  #rating (optional)
+  [ $# -gt 1 ] && [ "x$(echo $1 | sed -n '/^[0-9]\+$/p')" != "x" ] && lRating="$1" && shift
+  #search  
+  sSearch="$1" && shift
+  #rating (optional)
+  [ $# -gt 0 ] && [ "x$(echo $1 | sed -n '/^[0-9]\+$/p')" != "x" ] && lRating="$1" && shift
+  #path
+  if [ $# -gt 0 ] && [ "x$(echo $1 | sed -n '/^[0-9]\+$/p')" == "x" ]; then
+    [ ! -d "$1" ] && echo "[user] the ratings base path '$1' is invalid" && exit 1
+    sPathBase="$1" && shift
+  fi
+  #rating (optional)
+  [ $# -gt 0 ] && [ "x$(echo $1 | sed -n '/^[0-9]\+$/p')" != "x" ] && lRating="$1" && shift
+ 
+  #source
+  source=""
+  if [ -d "$sSearch" ]; then
+    source="$(cd "$sSearch" && pwd)"
+  elif [ -d $sSearch* ] 2>/dev/null; then
+    source="$(cd $sSearch* && pwd)"
+  else
+    #auto local source
+
+    #get list of associated files in pwd
+    IFS=$'\n'
+    sFiles=($(fnFiles silent "$sSearch"))
+    x=$? && [ $x -ne 0 ] && exit $x
+    [ $DEBUG -ge 1 ] && echo "[debug fnRate] fnFiles results: count=${#sFiles[@]}" 1>&2
+    IFS=$IFSORG
+    #if all are under the same subdirectory then assume that is a source structure, otherwise, structure those files interactively
+    if [ ${#sFiles[@]} -eq 1 ]; then
+      #is it inside a dir structure
+      f="${sFiles[0]}"
+      s0=${f##*/} #file
+      s1=${f%/*} #path
+      s2=${s1##*/} #parent dir
+      if [[ ${#s2} -gt 0 && "x${s0:0:${#s2}}" == "x$s2" ]]; then
+        source="$s1" # structured
+      else
+        #option to structure?
+        echo -n "[user] structure single file '${sFiles[0]}'? [(y)es/(n)o/e(x)it]:  " 1>&2
+        bRetry=1                
+        while [ $bRetry -eq 1 ]; do
+          echo -en '\033[1D\033[K'
+          read -n 1 -s result
+          case "$result" in
+            "y" | "Y") echo -n $result; bRetry=0; source="" ;;
+            "n" | "N") echo -n $result; bRetry=0; source=${sFiles[0]} ;;
+            "x" | "X") echo -n $result; bRetry=0; echo ""; exit 0 ;;
+            *) echo -n " " 1>&2
+          esac
+        done
+        echo ""
+      fi
+    elif [ ${#sFiles[@]} -gt 1 ]; then 
+      for f in "${sFiles[@]}"; do
+        f2=${f%/*}
+        if [ "x$source" == "x" ]; then
+          source="$f2"  
+        else
+          #this disables auto rating when our working directory is the same as the target files. necessary, but also 
+          #defeats use case where we are in a legitimate structure directory
+          [[ ! "x$f2" == "x$source" || "x$(cd "$f2" && pwd)" == "x$PWD" ]] && source="" && break
+        fi
+      done
+    fi
+    #global search
+    lType=0 # 0 auto, 1 interactive
+    while [ $lType -lt 2 ]; do
+      if [ "x$source" == "x" ]; then
+        IFS=$'\n'; sFiles=($(fnSearch iterative $([ $lType -eq 1 ] && echo "interactive") "$sSearch" "$VIDEXT")); IFS=$IFSORG
+        [ $DEBUG -ge 1 ] && echo "[debug fnRate] fnSearch results: count=${#sFiles[@]}" 1>&2
+        #filter valid
+        sFiles2=() 
+        for f in "${sFiles[@]}"; do [ -f "$f" ] && sFiles2[${#sFiles2[@]}]="$f"; done;
+        sFiles=(${sFiles2[@]})
+        if [ ${#sFiles[@]} -eq 1 ]; then
+          #is it inside a dir structure
+          f="${sFiles[0]}"
+          s0=${f##*/} #file
+          s1=${f%/*} #path
+          s2=${s1##*/} #parent dir
+          if [[ ${#s2} -gt 0 && "${s0:0:${#s2}}" == "$s2" ]]; then
+            source="$s1" # structured
+          else
+            #option to structure?
+            echo -n "[user] structure single file '${sFiles[0]}'? [(y)es/(n)o/e(x)it]:  " 1>&2
+            bRetry=1                
+            while [ $bRetry -eq 1 ]; do
+              echo -en '\033[1D\033[K'
+              read -n 1 -s result
+              case "$result" in
+                "y" | "Y") echo -n $result; bRetry=0; source="" ;;
+                "n" | "N") echo -n $result; bRetry=0; source=${sFiles[0]} ;;
+                "x" | "X") echo -n $result; bRetry=0; echo ""; exit 0 ;;
+                *) echo -n " " 1>&2
+              esac
+            done
+            echo ""
+          fi
+          lType+=1
+        elif [ ${#sFiles[@]} -gt 1 ]; then 
+          #if all are under the same subdirectory then assume that is the stucture, otherwise, structure those files interactively
+          for f in "${sFiles[@]}"; do
+            f2=${f%/*}
+            if [ "x$source" == "x" ]; then
+              source="$f2"
+              lType+=1
+            else
+              #this disables auto rating when multiple directories/structures have been found, or our working directory 
+              #is the same as the target files. necessary, but also defeats use case where we are in a legitimate structure directory
+              [[ ! "x$f2" == "x$source" || "x$(cd "$f2" && pwd)" == "x$PWD" ]] && source="" && break
+            fi
+          done
+        fi
+      fi
+      lType+=1
+    done
+
+    [ $DEBUG -ge 1 ] && echo "[debug fnRate] source: '$source'" 1>&2
+
+    #manual local re-structure
+    if [ "x$source" == "x" ]; then
+      source="$(fnStructure silent long "$sSearch")"
+      x=$? && [ $x -ne 0 ] && exit $x
+    fi
+
+  fi
+
+  if [ "x$sPathBase" == "x" ]; then
+    #iterate up file hierarchy looking for 'watched' folder. use a default if failure
+    wd="${source%/*}"
+    bRetry=1
+    while [ $bRetry -eq 1 ]; do
+      if [ -e "$wd/watched/" ]; then
+        bRetry=0
+        sPathBase="$wd/watched/"           
+      elif [ "x$wd" == "x" ]; then
+        bRetry=0
+      else
+        wd="${wd%/*}"
+      fi        
+    done
+    if [ "x$sPathBase" == "x" ]; then
+      sPathBase="$PATHRATINGSDEFAULT"
+      [ ! -d $sPathBase ] && $cmdmd $PATHRATINGSDEFAULT
+    fi
+  fi
+  [ ! -d "$sPathBase" ] && echo "[user] the default ratings base path '$sPathBase' is invalid" 1>&2 && exit 1
+  [ ! "x${sPathBase:$[${#sPathBase}-1]}" == "x/" ] && sPathBase="$sPathBase/"
+
+  if [ ! "$lRating" ]; then
+    bRetry=1
+    while [ $bRetry -eq 1 ]; do
+      echo -en "[user] enter an integer rating between 1 and 10 for '${source##*/}' or leave empty for unrated (where file structure is pushed to the root of the 'watched' dir): " 1>&2
+      read result
+      case "$result" in
+        [1-9]|10|"") bRetry=0; lRating=$result ;;
+#        *) echo -en "\033[u\033[A\033[K" ;;
+        *) echo -en "\033[A\033[2K" ;;
+      esac
+    done
+#    echo -en "\033[7h" 1>&2
+  fi
+  echo -e "source: '$source'\ntarget: '$sPathBase$lRating'"
+  $cmdmd "$sPathBase$lRating" 2>/dev/null 1>&2
+  if [ -e "$sPathBase$lRating/${source##*/}" ]; then
+    echo -en "[user] path '$sPathBase$lRating/${source##*/}' exists, overwrite? [(y)es/(no):  " 1>&2
+    bRetry=1
+    while [ $bRetry -eq 1 ]; do
+      echo -en '\033[1D\033[K'
+      read -n 1 -s result
+      case "$result" in
+        "y" | "Y") echo -n $result; bRetry=0 ;;
+        "n" | "N") echo -n $result; echo "" && exit 1 ;;
+        *) echo -n " " 1>&2
+      esac
+    done
+    echo ""
+  fi
+  $cmdcp "$source" "$sPathBase$lRating/" && $cmdrm "$source" 2>/dev/null 1>&2 &
+  #$cmdmv "$source" "$sPathBase$lRating" 2>/dev/null 1>&2 &
+
+  exit
+  return 0
+}
+
 fnFix()
 {
   [ $DEBUG -ge 1 ] && echo "[debug fnFix]" 1>&2
@@ -1418,6 +1624,7 @@ if [ "x$(echo $1 | sed -n 's/^\('\
 'a\|archive\|'\
 'f\|fix\|'\
 'str\|structure\|'\
+'r\|rate\|'\
 'test'\
 '\)$/\1/p')" != "x" ]; then
   OPTION=$1
@@ -1442,6 +1649,7 @@ case $OPTION in
   "a"|"archive") fnArchive "${args[@]}" ;;  
   "f"|"fix") fnFix "${args[@]}" ;;
   "str"|"structure") fnStructure "${args[@]}" ;;
+  "r"|"rate") fnRate "${args[@]}" ;;
   "test")     
     #custom functionality tests
     [ ! $# -gt 0 ] && echo "[user] no function name or function args given!" && exit 1
