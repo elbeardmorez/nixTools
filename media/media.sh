@@ -60,6 +60,7 @@ function help()
   echo -e "\tarchive  : recursively search a directory and list valid media files with their info, writing all output to a file"
   echo -e "\tstructure  : standardise location and file structure for files (partially) matching the search term" 
   echo -e "\trate  : rate media and move structures to the nearest ratings hierarchy"
+  echo -e "\treconsile  : find media in known locations given a file containing names, and write results to an adjacent file"
   echo -e "\tfix  : fix a stream container"
   echo ""
   echo "with TARGET:  a target file / directory or a partial file name to search for"
@@ -1589,6 +1590,31 @@ fnRate()
   return 0
 }
 
+fnReconsile()
+{
+  [ $DEBUG -ge 1 ] && echo "[debug fnReconsile]" 1>&2
+
+  file="$1"
+  [[ ! -e $file || "x$file" == "x" ]] && echo "invalid source file '$file'" && exit 1 
+  file2="$file"2
+  [ -e $file2 ] && echo "" > "$file2"
+
+  MINSEARCH=5
+  l=0
+  lMax=0
+  while read line; do
+    sSearch="$(echo "${line%%|*}" | sed 's/\s/\./g' | awk -F'\n' '{print tolower($0)}')"
+    IFS=$'\n'; aFound=($(fnSearch silent iterative "$sSearch")); IFS=$IFSORG
+    s="$line"   
+    for s2 in "${aFound[@]}"; do s="$s\t$s2"; done
+    echo -e "$s" >> "$file2"
+    l=$[$l+1]
+    [ $l -eq $lMax ] && break
+  done < $file
+#  sed -i -n '1b;p' "$file2"
+  return 0
+}
+
 fnFix()
 {
   [ $DEBUG -ge 1 ] && echo "[debug fnFix]" 1>&2
@@ -1625,6 +1651,7 @@ if [ "x$(echo $1 | sed -n 's/^\('\
 'f\|fix\|'\
 'str\|structure\|'\
 'r\|rate\|'\
+'rec\|reconsile\|'\
 'test'\
 '\)$/\1/p')" != "x" ]; then
   OPTION=$1
@@ -1650,6 +1677,7 @@ case $OPTION in
   "f"|"fix") fnFix "${args[@]}" ;;
   "str"|"structure") fnStructure "${args[@]}" ;;
   "r"|"rate") fnRate "${args[@]}" ;;
+  "rec"|"reconsile") fnReconsile "${args[@]}" ;;
   "test")     
     #custom functionality tests
     [ ! $# -gt 0 ] && echo "[user] no function name or function args given!" && exit 1
