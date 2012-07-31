@@ -62,6 +62,7 @@ function help()
   echo -e "\trate  : rate media and move structures to the nearest ratings hierarchy"
   echo -e "\treconsile  : find media in known locations given a file containing names, and write results to an adjacent file"
   echo -e "\tfix  : fix a stream container"
+  echo -e "\tkbps  : calculate an approximate vbr for a target file size"
   echo ""
   echo "with TARGET:  a target file / directory or a partial file name to search for"
   echo ""
@@ -1633,6 +1634,25 @@ fnFix()
   echo -e "[new] $(ls -al "$1")\n"  
 }
 
+fnCalcVideoRate()
+{
+  [ $DEBUG -ge 1 ] && echo "[debug fnCalcVideoRate]" 1>&2 
+
+  #output size in kbps
+  [ $# -ne 3 ] && echo "target size, audio size and length args required" && exit 1
+  tSize="$1" && shift
+  ktSize=1 && [ "x${tSize:$[${#tSize}-1]}" == "xM" ] && ktSize="(1024^2)" 
+  tSize="$(echo "$tSize" | sed 's/[Mb]//g')"
+  aSize="$1" && shift
+  kaSize=1 && [ "x${aSize:$[${#aSize}-1]}" == "xM" ] && kaSize="(1024^2)"
+  aSize="$(echo "$aSize" | sed 's/[Mb]//g')"
+  length="$1" && shift
+  kLength=1 && [ "x${length:$[${#length}-1]}" != "xs" ] && kLength="60"
+  length="$(echo "$length" | sed 's/[ms]//g')"
+
+  echo "target: $(math_ "((($tSize*$ktSize)-($aSize*$kaSize))*8/1024)/($length*$kLength)")kbps"
+}
+
 #args
 [ $# -lt 1 ] && help && exit 1
 
@@ -1652,6 +1672,7 @@ if [ "x$(echo $1 | sed -n 's/^\('\
 'str\|structure\|'\
 'r\|rate\|'\
 'rec\|reconsile\|'\
+'kbps\|'\
 'test'\
 '\)$/\1/p')" != "x" ]; then
   OPTION=$1
@@ -1678,6 +1699,7 @@ case $OPTION in
   "str"|"structure") fnStructure "${args[@]}" ;;
   "r"|"rate") fnRate "${args[@]}" ;;
   "rec"|"reconsile") fnReconsile "${args[@]}" ;;
+  "kbps") fnCalcVideoRate "${args[@]}" ;;
   "test")     
     #custom functionality tests
     [ ! $# -gt 0 ] && echo "[user] no function name or function args given!" && exit 1
