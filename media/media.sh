@@ -19,7 +19,7 @@ CHARSED='][|-'
 CHARGREP=']['
 MINSEARCH=3
 VIDEXT="avi|mpg|mpeg|mkv|mp4|flv|webm"
-VIDXEXT="nfo|srt|idx|sub"
+VIDXEXT="nfo|srt|idx|sub|sup|ssa|smi"
 EXTEXT="rar|txt|png|jpg|jpeg|xml"
 VIDCODECS="flv=flv,flv1|h264|x264|xvid|divx=divx,dx50,div3,div4,div5,divx\.5\.0|msmpg=msmpeg4|mpeg2|vpx=vp7,vp8"
 AUDCODECS="vbs=vorbis|aac|dts|ac3|mp3=mp3,mpeg-layer-3|wma"
