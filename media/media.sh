@@ -63,6 +63,7 @@ function help()
   echo -e "\treconsile  : find media in known locations given a file containing names, and write results to an adjacent file"
   echo -e "\tfix  : fix a stream container"
   echo -e "\tkbps  : calculate an approximate vbr for a target file size"
+  echo -e "\tsync  : (re-)synchronise a/v streams given an offset"
   echo ""
   echo "with TARGET:  a target file / directory or a partial file name to search for"
   echo ""
@@ -1634,6 +1635,25 @@ fnFix()
   echo -e "[new] $(ls -al "$1")\n"  
 }
 
+fnSync()
+{
+  [ $DEBUG -ge 1 ] && echo "[debug fnSync]" 1>&2
+
+  [ ${#args[@]} -ne 2 ] && echo "source file and offset args required" && exit 1
+  file="$1"
+  offset="$2" && offset=$(fnPositionNumericToTime $offset 4)
+  target="${file%.*}.sync.${file##*.}"
+
+  echo -e "\n#origial video runtime: $(fnPositionNumericToTime $($CMDINFOMPLAYER "$file" 2>/dev/null | grep "ID_LENGTH=" | cut -d '=' -f2) 4)\n"
+  [ $? -ne 0 ] && exit 1
+  echo command: ffmpeg -y -itsoffset $offset -i "$file" -i "$file" -map 0:v -map 1:a -c copy "$target"
+  ffmpeg -y -itsoffset $offset -i "$file" -i "$file" -map 0:v -map 1:a -c copy "$target"
+  [ $? -ne 0 ] && exit 1
+  echo -e "\n#new video runtime: $(fnPositionNumericToTime $($CMDINFOMPLAYER "$target" 2>/dev/null | grep "ID_LENGTH=" | cut -d '=' -f2) 4)\n"
+  [ $? -ne 0 ] && exit 1
+  chown --reference "$file" "$target"
+}
+
 fnCalcVideoRate()
 {
   [ $DEBUG -ge 1 ] && echo "[debug fnCalcVideoRate]" 1>&2 
@@ -1673,6 +1693,7 @@ if [ "x$(echo $1 | sed -n 's/^\('\
 'r\|rate\|'\
 'rec\|reconsile\|'\
 'kbps\|'\
+'syn\|sync\|'\
 'test'\
 '\)$/\1/p')" != "x" ]; then
   OPTION=$1
@@ -1700,6 +1721,7 @@ case $OPTION in
   "r"|"rate") fnRate "${args[@]}" ;;
   "rec"|"reconsile") fnReconsile "${args[@]}" ;;
   "kbps") fnCalcVideoRate "${args[@]}" ;;
+  "syn"|"sync") fnSync "${args[@]}" ;;
   "test")     
     #custom functionality tests
     [ ! $# -gt 0 ] && echo "[user] no function name or function args given!" && exit 1
