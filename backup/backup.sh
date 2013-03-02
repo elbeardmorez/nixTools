@@ -11,15 +11,23 @@
 BACKUPROOT="/backup"
 RSYNC="/usr/local/bin/rsync"
 RSYNCOPTIONS=( "-varR" "--delete" )
-#-n	: dry run
-#-r	: recursive (implied by -a)
-#-a	: implies -rlptgoD
-#-p	: preserve permissions
-#-o	: preserve owner (super-user only)
-#-g	: preserve group
-#-l	: copy symlinks as symlinks
-#--files-from	: change the meaning of -a  ..need to append --no-R
-#--no-R	: the relative path part of the source directory is not kept
+
+#rsync parameters                                                        
+#-a, --archive  : implies -rlptgoD                                   
+#-r, --recursive  : implied by -a                                    
+#-R, --relative  : use relative path names                           
+#-u, --update  : skip files that are newer on the receiver           
+#-v, --verbose                                                       
+#-t, --times  : preserve modification times                          
+#-p, --perms  : preserve permissions                                 
+#-E, --executability  : preserve executabilit                        
+#-X, --xattrs  : preserve extended attributes                        
+#-o, --owner  : preserve owner (super-user only)                     
+#-g, --group  : preserve group                                       
+#-n, --dry-run  : dont actually copy/move/delete any files           
+#-l, --links  : copy symlinks as symlinks                            
+#--files-from  : change the meaning of -a  ..need to append --no-R  
+#--no-R : the relative path part of the source directory is not kept 
 
 VERBOSE=false
 FORCE=false
