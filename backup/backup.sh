@@ -246,7 +246,12 @@ function performbackup()
     fi
     #if successful, reset the dir structure
     if [[ $? -eq 0 ]]; then
-      if [ -d $BACKUPROOT/$TYPE.5 ]; then rm -Rf $BACKUPROOT/$TYPE.5; fi
+      if [ -d $BACKUPROOT/$TYPE.10 ]; then rm -Rf $BACKUPROOT/$TYPE.10; fi
+      if [ -d $BACKUPROOT/$TYPE.9 ]; then mv $BACKUPROOT/$TYPE.9 $BACKUPROOT/$TYPE.10; fi
+      if [ -d $BACKUPROOT/$TYPE.8 ]; then mv $BACKUPROOT/$TYPE.8 $BACKUPROOT/$TYPE.9; fi
+      if [ -d $BACKUPROOT/$TYPE.7 ]; then mv $BACKUPROOT/$TYPE.7 $BACKUPROOT/$TYPE.8; fi
+      if [ -d $BACKUPROOT/$TYPE.6 ]; then mv $BACKUPROOT/$TYPE.6 $BACKUPROOT/$TYPE.7; fi
+      if [ -d $BACKUPROOT/$TYPE.5 ]; then mv $BACKUPROOT/$TYPE.5 $BACKUPROOT/$TYPE.6; fi
       if [ -d $BACKUPROOT/$TYPE.4 ]; then mv $BACKUPROOT/$TYPE.4 $BACKUPROOT/$TYPE.5; fi
       if [ -d $BACKUPROOT/$TYPE.3 ]; then mv $BACKUPROOT/$TYPE.3 $BACKUPROOT/$TYPE.4; fi
       if [ -d $BACKUPROOT/$TYPE.2 ]; then mv $BACKUPROOT/$TYPE.2 $BACKUPROOT/$TYPE.3; fi
