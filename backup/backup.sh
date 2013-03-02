@@ -8,6 +8,7 @@
 #against slitting directories with spaces in the name!
 #--files-from doesn't work the way i want it to. ..it's files relative to the source directory
 
+SCRIPTNAME=${0##*/}
 BACKUPROOT="/backup"
 RSYNC="/usr/local/bin/rsync"
 RSYNCOPTIONS=( "-varR" "--delete" )
@@ -40,7 +41,7 @@ argsarray=( "$@" )
 
 function help()
 {
-  echo -e "\nusage backup_ -I <sources file> -p <backup period> [OPTIONS]\n
+  echo -e "\nusage: $SCRIPTNAME -I <sources file> -p <backup period> [OPTIONS]\n
     Be aware that forcing a sync will push the backup dirs back one!\n
 \t-h	: help
 \t-v	: verbose
@@ -59,26 +60,26 @@ else
   i=0
   while [ $i -lt ${#argsarray[@]} ]; do
     case ${argsarray[$i]} in
-      "-v")
+      "-v" | "--v")
         VERBOSE=true
         ;;
-      "-f")
+      "-f" | "--f")
         FORCE=true
         ;;
-      "-l")
+      "-l" | "--l")
         LIMIT=true
         ;;
-      "-h")
+      "-h" | "--h")
         help
         exit 0
         ;;
-      "-p")
+      "-p" | "--p")
         if [ $[$i+1] -lt ${#argsarray[@]} ]; then
           PERIOD=${argsarray[$[$i+1]]}
           i=$[$i+1]
         fi
         ;;
-      "-I")
+      "-I" | "--I")
         if [ $[$i+1] -lt ${#argsarray[@]} ]; then
           INCLUDE=${argsarray[$[$i+1]]} 
           i=$[$i+1]
