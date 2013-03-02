@@ -210,14 +210,16 @@ function performbackup()
       else
         mkdir -p $BACKUPROOT/$TYPE.tmp
       fi
-      if ! [ -d $BACKUPROOT/$TYPE.1 ]; then mkdir -p $BACKUPROOT/$TYPE.1; fi
+      #always backup against (hard-linking to) the 'master' copy
+      if ! [ -d $BACKUPROOT/master ]; then mkdir -p $BACKUPROOT/master; fi
+      #refresh master
+      $RSYNC "${RSYNCOPTIONS[@]}" "${SOURCES[@]}" $BACKUPROOT/master
       if [ "$VERBOSE" == "true" ]; then
-	echo '$RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUPROOT/$TYPE.1 "${SOURCES[@]}" $BACKUPROOT/$TYPE.tmp/'
-	echo $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUPROOT/$TYPE.1 "${SOURCES[@]}" $BACKUPROOT/$TYPE.tmp/
-        $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUPROOT/$TYPE.1 "${SOURCES[@]}" $BACKUPROOT/$TYPE.tmp/
+        echo '$RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUPROOT/master "${SOURCES[@]}" $BACKUPROOT/$TYPE.tmp/'
+        echo $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUPROOT/master "${SOURCES[@]}" $BACKUPROOT/$TYPE.tmp/
+        $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUPROOT/master "${SOURCES[@]}" $BACKUPROOT/$TYPE.tmp/
       else
-        $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUPROOT/$TYPE.1 "${SOURCES[@]}" $BACKUPROOT/$TYPE.tmp/ 
-	# > /dev/null
+        $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUPROOT/master "${SOURCES[@]}" $BACKUPROOT/$TYPE.tmp/ # > /dev/null
       fi
       if [[ $? -eq 0 ]]; then success=true; fi
     else
