@@ -252,9 +252,9 @@ function performbackup()
   else
     if [ "$VERBOSE" == "true" ]; then
       if [ "$TYPE" == "$PERIOD" ]; then
-        echo "not performing a $TYPE sync backup"
+        echo "$(date): not performing a $TYPE sync backup"
       else
-        echo "not performing a $TYPE link backup"
+        echo "$(date): not performing a $TYPE link backup"
       fi
     fi
   fi
