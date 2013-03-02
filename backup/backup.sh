@@ -119,10 +119,10 @@ function getsourcelist()
     fi
     if [ "$valid" == "true" ]; then
       #append
-      if [ "${SOURCES[@]}" == "" ]; then
-        SOURCES=( "$src" )
+      if [[ "${#SOURCES[@]}" -eq 0 || "x$SOURCES" == "x" ]]; then
+        SOURCES=("$src")
       else
-        SOURCES=( "${SOURCES[@]}" "$src" )
+        SOURCES=("${SOURCES[@]}" "$src")
       fi
     fi
     i=$[$i+1]
