@@ -122,11 +122,13 @@ function getsourcelist()
 
 if [ "$PERIOD" == "" ]; then
   echo "please specify a period type over which to apply backups"
+  help
   exit 1
 fi
 
 if [ "$INCLUDE" == "" ]; then
   echo "please specify an INCLUDE file"
+  help
   exit 1
 elif ! [ -f $INCLUDE ]; then
   if [ -f $BACKUPROOT/$INCLUDE ]; then
