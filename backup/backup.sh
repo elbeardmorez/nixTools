@@ -128,9 +128,7 @@ fi
 if [ "$INCLUDE" == "" ]; then
   echo "please specify an INCLUDE file"
   exit 1
-else  
-  
-if ! [ -f $INCLUDE ]; then
+elif ! [ -f $INCLUDE ]; then
   if [ -f $BACKUPROOT/$INCLUDE ]; then
     INCLUDE=$BACKUPROOT/$INCLUDE
   fi
@@ -303,4 +301,3 @@ case $PERIOD in
     ;;
 esac
 
-fi
