@@ -278,23 +278,17 @@ function performbackup()
 function performhourlybackup()
 {
   performbackup "hourly"
-  if ! [ "$LIMIT" == "true" ]; then
-    performdailybackup
-  fi
+  [ "$LIMIT" != "true" ] && performdailybackup
 }
 function performdailybackup()
 {
   performbackup "daily"
-  if ! [ "$LIMIT" == "true" ]; then
-    performweeklybackup
-  fi
+  [ "$LIMIT" != "true" ] && performweeklybackup
 }
 function performweeklybackup()
 {
   performbackup "weekly"
-  if ! [ "$LIMIT" == "true" ]; then
-    performmonthlybackup
-  fi
+  [ "$LIMIT" != "true" ] && performmonthlybackup
 }
 function performmonthlybackup()
 {
