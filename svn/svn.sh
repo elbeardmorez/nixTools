@@ -85,6 +85,11 @@ elif [ $option = "clean-repo" ]; then
     fi
   fi
 
+elif [ $option = "amend" ]; then
+
+    revision=$1 && shift
+    svn propedit --revprop -r $revision svn:log
+
 elif [ $option = "ignore" ]; then
 
   if [ ! -d $(pwd)/.svn ]; then
