@@ -9,7 +9,12 @@ if [ $# -eq 0 ]; then
 fi
 
 option=$1
-if [ $option = "add-repo" ]; then
+if [ $option = "log" ]; then
+
+    limit=$1 && shift
+    svn log -l $limit
+
+elif [ $option = "add-repo" ]; then
 
   target=$1
   if [ "$(echo "$target" | awk '{print substr($0, length($0))}')" = "/" ]; then
