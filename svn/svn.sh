@@ -8,14 +8,16 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 
-option=$1
-if [ $option = "log" ]; then
+option=log
+[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(log\|add-repo\|clean-repo\|amend\|ignore\)/p')" != "x" ] && option="$1" && shift
 
+case "$option" in
+  "log")
     limit=$1 && shift
     svn log -l $limit
+    ;;
 
-elif [ $option = "add-repo" ]; then
-
+  "add-repo")
   target=$1
   if [ "$(echo "$target" | awk '{print substr($0, length($0))}')" = "/" ]; then
     target=$(echo "$target" | awk '{print substr($0, 1, length($0) - 1)}')
@@ -60,9 +62,9 @@ elif [ $option = "add-repo" ]; then
   svn mkdir temp/branches temp/tags temp/trunk
   svn ci -m "[add] repository structure" ./temp
   rm -rf temp
+    ;;
 
-elif [ $option = "clean-repo" ]; then
-
+  "clean-repo")
   target=$1
   if ! [ -d $target ]; then
     echo "'$target' is not a directory"
@@ -89,14 +91,14 @@ elif [ $option = "clean-repo" ]; then
       done
     fi
   fi
+    ;;
 
-elif [ $option = "amend" ]; then
-
+  "amend")
     revision=$1 && shift
     svn propedit --revprop -r $revision svn:log
+    ;;
 
-elif [ $option = "ignore" ]; then
-
+  "ignore")
   if [ ! -d $(pwd)/.svn ]; then
     echo $(pwd) is not under source control
     exit 1
@@ -115,7 +117,10 @@ elif [ $option = "ignore" ]; then
   sleep 1
   echo "svn:ignore set:"
   svn propget svn:ignore
+    ;;
 
-else
+  *)
   echo "unsupported option '$option'"
-fi
+    ;;
+
+esac
