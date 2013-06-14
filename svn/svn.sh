@@ -9,7 +9,7 @@ if [ $# -eq 0 ]; then
 fi
 
 option=log
-[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(log\|add-repo\|clean-repo\|amend\|ignore\)/p')" != "x" ] && option="$1" && shift
+[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(log\|add-repo\|clean-repo\|amend\|ignore\|revision\)/p')" != "x" ] && option="$1" && shift
 
 case "$option" in
   "log")
@@ -117,6 +117,10 @@ case "$option" in
     sleep 1
     echo "svn:ignore set:"
     svn propget svn:ignore
+    ;;
+
+  "revision")
+    echo `svn info 2>/dev/null | sed -n 's/^\s*Revision:\s*\([0-9]\+\)\s*/\1/p'`
     ;;
 
   *)
