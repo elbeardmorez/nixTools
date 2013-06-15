@@ -1,7 +1,68 @@
 #!/bin/sh
+DEBUG=${DEBUG:-0}
+IFSORG="$IFS"
 
 SERVER=http://localhost/svn/
 REPO_OWNER_ID=80
+
+function fnLog() {
+  # validate arg(s)
+  rev1=-1 && [ $# -gt 0 ] && rev1="$1" && shift
+  [ "x$(echo $rev1 | sed -n '/^[-+r]\?[0-9]\+$/p')" == "x" ] &&
+    echo "[error] invalid revision arg '$rev1'" && exit 1
+  rev2="" && [ $# -gt 0 ] &&
+    [ "x$(echo "$1" | sed -n '/^[-+r]\?[0-9]\+$/p')" != "x" ] &&
+    rev2="$1" && shift
+
+  # tokenise
+  IFS=$'\n' && tokens=(`echo " $rev1 " | sed -n 's/\(\s*[-+r]\?\|\s*\)\([0-9]\+\)\(.*\)$/\1\n\2\n\3/p'`) && IFS="$IFSORG"
+  rev1prefix=`echo ${tokens[0]} | tr -d ' '`
+  rev1=`echo ${tokens[1]} | tr -d ' '`
+  rev1suffix=`echo ${tokens[2]} | tr -d ' '`
+  tokens=("" "" "")
+  [ "x$rev2" != "x" ] &&
+    IFS=$'\n' && tokens=(`echo " $rev2 " | sed -n 's/\(\s*[-+r]\?\|\s*\)\([0-9]\+\)\(.*\)$/\1\n\2\n\3/p'`) && IFS="$IFSORG"
+  rev2prefix=`echo ${tokens[0]} | tr -d ' '`
+  rev2=`echo ${tokens[1]} | tr -d ' '`
+  rev2suffix=`echo ${tokens[2]} | tr -d ' '`
+  [ $DEBUG -gt 0 ] &&
+    echo "[debug|fnLog] rev1: '$rev1prefix|$rev1|$rev1suffix' `[ "x$rev2" != "x" ] && echo "rev2: '$rev2prefix|$rev2|$rev2suffix'"`" 1>&2
+  # mod
+  if [ "x$rev1prefix" == "x" ]; then
+    [ $rev1 -gt 25 ] && rev1prefix="-r " || rev1prefix="-"
+  fi
+  [[ "x$rev1prefix" == "x" && $rev1 -gt 25 ]] && rev1prefix="-"
+  [ "x$rev1prefix" == "x+" ] && rev1prefix="-r "
+  [ "x$rev1prefix" == "xr" ] && rev1prefix="-r "
+  if [ "x$rev2" != "x" ]; then
+    rev1suffix=":"
+    [[ "x$rev1prefix" != "x-" && $rev1 -gt $rev2 ]] && revX=$rev1 && rev1=$rev2 && rev2=$revX
+    [[ "x$rev1prefix" == "x-" && $rev2 -gt $rev1 ]] && revX=$rev1 && rev1=$rev2 && rev2=$revX
+    rev2prefix=""
+  fi
+  if [ "x$rev2" == "x" ]; then
+    [[ "x$rev1prefix" == "x-" || "x$rev1prefix" == "x" ]] && rev1prefix="-l "
+  else
+    if [ "x$rev1prefix" == "x-" ]; then
+      # convert to revision numbers
+      base=`fnRevision`
+      [ "x$base" == "x" ] && base=0
+      rev2prefix=""
+      rev1=$[$base-$rev1+1]
+      rev2=$[$base-$rev2+1]
+    fi
+    rev1prefix="-r "
+  fi
+  [ $DEBUG -gt 0 ] &&
+    echo "[debug|fnLog] rev1: '$rev1prefix|$rev1|$rev1suffix' `[ "x$rev2" != "x" ] && echo "rev2: '$rev2prefix|$rev2|$rev2suffix'"`" 1>&2
+  [ $DEBUG -gt 0 ] &&
+    echo "[debug|fnLog] svn log $rev1prefix$rev1$rev1suffix$rev2prefix$rev2$rev2suffix" "$@" 1>&2
+  svn log $rev1prefix$rev1$rev1suffix$rev2prefix$rev2$rev2suffix "$@"
+}
+
+function fnRevision() {
+  echo `svn info 2>/dev/null | sed -n 's/^\s*Revision:\s*\([0-9]\+\)\s*/\1/p'`
+}
 
 if [ $# -eq 0 ]; then
   echo no params!
@@ -13,8 +74,7 @@ option=log
 
 case "$option" in
   "log")
-    limit=$1 && shift
-    svn log -l $limit
+    [ $# -eq 0 ] && fnLog 1 || fnLog "$@"
     ;;
 
   "add-repo")
@@ -120,7 +180,7 @@ case "$option" in
     ;;
 
   "revision")
-    echo `svn info 2>/dev/null | sed -n 's/^\s*Revision:\s*\([0-9]\+\)\s*/\1/p'`
+    fnRevision
     ;;
 
   *)
