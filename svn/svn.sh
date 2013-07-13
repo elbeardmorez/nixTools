@@ -5,6 +5,7 @@ IFSORG="$IFS"
 
 SERVER=http://localhost/svn/
 REPO_OWNER_ID=80
+RX_AUTHOR="${RX_AUTHOR:-""}"
 
 function fnLog() {
   # validate arg(s)
@@ -65,6 +66,31 @@ function fnRevision() {
   echo `svn info 2>/dev/null | sed -n 's/^\s*Revision:\s*\([0-9]\+\)\s*/\1/p'`
 }
 
+function fnPatch() {
+  revision=-1 && [ $# -gt 0 ] && revision="$1" && shift
+  target="" && [ $# -gt 0 ] && target="$1" && shift
+  l=1;
+  loglines=()
+
+  while read -r line; do loglines[${#loglines[@]}]="$line"; done << EOF
+`fnLog $revision 2>/dev/null`
+EOF
+  [ $DEBUG -gt 0 ] && echo "[debug|fnPatch] dumping commit message:" &&
+    for l in `seq 0 1 ${#loglines[@]}`; do echo "idx$l: ${loglines[$l]}"; done
+
+  revision=`echo "${loglines[1]}" | cut -d'|' -f1 | sed 's/\s*r\([0-9]*\)\s*/\1/'`
+  author=`echo "${loglines[1]}" | cut -d'|' -f2 | sed 's/\(^\s*\|\s*$\)//g' | sed "$RX_AUTHOR"`
+  date_=`echo "${loglines[1]}" | cut -d'|' -f3 | sed 's/\(^\s*\|\s*$\)//g' | cut -d' ' -f1-3`
+  if [ "x$target" == "x" ]; then
+    target="`echo "${loglines[3]}" | sed 's/\s*\([0-9]\+|\)\s*\(.*\)/\1\2/;s/ /./g;s/^\.//g' | sed 's/^[-.*]*\.//g' | sed 's/[/\`]/./g' | sed 's/\.\././g' | awk '{print tolower($0)}' `"
+    target="`[ $revision -eq -1 ] && echo "0001" || echo "$revision"`.$target.diff"
+  fi
+  message="author: $author\ndate: $date_\nrevision: $revision\nsubject: "
+  for l in `seq 3 1 $[${#loglines[@]}-2]`; do message+="${loglines[$l]}\n"; done
+  echo -e "$message\n" > "$target"
+  fnDiff $revision >> $target
+}
+
 function fnDiff() {
   svn diff -c${1:-"-1"}
 }
@@ -75,7 +101,7 @@ if [ $# -eq 0 ]; then
 fi
 
 option=log
-[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(log\|add-repo\|clean-repo\|amend\|ignore\|revision\|diff\|test\)/p')" != "x" ] && option="$1" && shift
+[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(log\|add-repo\|clean-repo\|amend\|ignore\|revision\|diff\|patch\|test\)/p')" != "x" ] && option="$1" && shift
 
 case "$option" in
   "log")
@@ -190,6 +216,10 @@ case "$option" in
 
   "diff")
     fnDiff "$@"
+    ;;
+
+  "patch")
+    fnPatch "$@"
     ;;
 
   "test")
