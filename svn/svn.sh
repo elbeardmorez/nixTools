@@ -65,13 +65,17 @@ function fnRevision() {
   echo `svn info 2>/dev/null | sed -n 's/^\s*Revision:\s*\([0-9]\+\)\s*/\1/p'`
 }
 
+function fnDiff() {
+  svn diff -c${1:-"-1"}
+}
+
 if [ $# -eq 0 ]; then
   echo no params!
   exit 1
 fi
 
 option=log
-[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(log\|add-repo\|clean-repo\|amend\|ignore\|revision\|test\)/p')" != "x" ] && option="$1" && shift
+[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(log\|add-repo\|clean-repo\|amend\|ignore\|revision\|diff\|test\)/p')" != "x" ] && option="$1" && shift
 
 case "$option" in
   "log")
@@ -182,6 +186,10 @@ case "$option" in
 
   "revision")
     fnRevision
+    ;;
+
+  "diff")
+    fnDiff "$@"
     ;;
 
   "test")
