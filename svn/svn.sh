@@ -101,7 +101,7 @@ if [ $# -eq 0 ]; then
 fi
 
 option=log
-[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(log\|add-repo\|clean-repo\|amend\|ignore\|revision\|diff\|patch\|test\)/p')" != "x" ] && option="$1" && shift
+[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(log\|add-repo\|clean-repo\|amend\|ignore\|revision\|diff\|patch\|status\|test\)/p')" != "x" ] && option="$1" && shift
 
 case "$option" in
   "log")
@@ -212,6 +212,10 @@ case "$option" in
 
   "revision")
     fnRevision
+    ;;
+
+  "status")
+    svn status --show-updates "$@" | grep -vP "\s*\?"
     ;;
 
   "diff")
