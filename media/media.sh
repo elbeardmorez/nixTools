@@ -15,8 +15,8 @@ PATHRATINGSDEFAULT="${PATHRATINGSDEFAULT:-"${PATHMEDIA}watched/"}"
 PATHARCHIVELISTS="${PATHARCHIVELISTS:-"${PATHMEDIA}/archives/"}"
 
 CHARPOSIX='][^$?*+'
-CHARSED='][|-'
-CHARGREP=']['
+CHARSED='][|.-'
+CHARGREP='][.'
 MINSEARCH=3
 VIDEXT="avi|mpg|mpeg|mkv|mp4|flv|webm"
 VIDXEXT="nfo|srt|idx|sub|sup|ssa|smi"
