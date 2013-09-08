@@ -505,8 +505,11 @@ fnFileMultiMask()
        "set \.ep\?\.?\([0-9]\+\)\."
        "set \.s\.\?\([0-9]\+\)\. \1\|0"
        "set part\.\?\([0-9]\+\)"
-       "single part\.\?\([0-9]\+\)"
-       "single [-.]\([1-4]\)[-.]")
+       "single part\.\?\([0-9]\+\)")
+
+       # invalid
+       #"single [-.]\([1-4]\)[-.]"  # false positive for name.#.
+
   for s in "${arr[@]}"; do
     IFS=" " && arr2=($s) && IFS=$IFSORG
 #    [[ "x$sType" != "x" && "x$sType" != "x${arr2[0]}" ]] && continue
