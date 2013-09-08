@@ -475,7 +475,7 @@ fnFileMultiMask()
   if [ "$sTarget" ]; then 
     #look for default mask in target
     #single?
-    sMask="$(echo "$sTarget" | sed -n 's|^.*\(#of#\+\).*$|\1|p')"
+    sMask="$(echo "$sTarget" | sed -n 's|^.*\(#\+of[0-9#]\+\).*$|\1|p')"
     if [ "x$sMask" != "x" ]; then
       sType="single" && sMaskDefault="${sMaskDefault:-$sMask}"
     else
@@ -543,7 +543,7 @@ fnFileMultiMask()
     while [ "x$(echo "$sRet" | sed -n '/#\+/p')" != "x" ]; do
       m="$(echo "$sRet" | sed -n 's/^[^#]*\(#\+\).*$/\1/p')"
       #arr2[${#arr2[@]}]=$m
-      arr2[${#arr2[@]}]="$(printf "%0"${#m}"d" 0)"
+      arr2[${#arr2[@]}]="$(printf "%0"${#m}"d" 0)"  # record mask length
       #mark the hash occurance
       sRet="$(echo "$sRet" | sed -n 's/#\+/\^/p')"
     done
