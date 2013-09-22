@@ -18,7 +18,7 @@ CHARPOSIX='][^$?*+'
 CHARSED='][|.-'
 CHARGREP='][.'
 MINSEARCH=3
-VIDEXT="avi|mpg|mpeg|mkv|mp4|flv|webm"
+VIDEXT="avi|mpg|mpeg|mkv|mp4|flv|webm|m4v"
 VIDXEXT="srt|idx|sub|sup|ssa|smi"
 EXTEXT="nfo|rar|txt|png|jpg|jpeg|xml"
 VIDCODECS="flv=flv,flv1|h264|x264|xvid|divx=divx,dx50,div3,div4,div5,divx\.5\.0|msmpg=msmpeg4|mpeg2|vpx=vp7,vp8"
