@@ -1229,6 +1229,8 @@ fnStructure()
 
   lFiles=$l
   #*IMPLEMENT: potential for mismatch of file information here. dependence on file list order is wrong
+  [ $lFiles -lt 1 ] && echo "[error] no recognised video extention for any of the selected files" 2>&1 && exit 1
+
   sTitleInfo="[$(fnFileInfo "$sTitle")]" # use first video file found as template
 #  sTitleInfo="[$(fnFileInfo /dev/null)]" # use default template
   sTitle=$(echo "$sTitle" | sed 's/'"$(fnRegexp "$sTitleInfo" "sed")"'//')
