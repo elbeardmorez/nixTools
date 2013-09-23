@@ -1679,6 +1679,22 @@ fnCalcVideoRate()
   echo "target: $(math_ "((($tSize*$ktSize)-($aSize*$kaSize))*8/1024)/($length*$kLength)")kbps"
 }
 
+fnTestFiles()
+{
+  types=("single" "set")
+  target="$PWD"
+
+  declare -A files
+  files["single"]="i.jpeg|xt-xvid-tx.nfo|the.2011.dummy.xvid-cd1.avi|the.2011.dummy.xvid-cd2.avi"
+  files["set"]="tiesto.s01e00.special.1.avi|tiesto.1x00.special.2.(1996).avi|tiesto-S1E0.special.3.xt.avi|tiesto.2005.S02e10.exit.avi|tiesto.[s01e02].mask-xt.avi"
+
+  for type in "${types[@]}"; do
+    mkdir -p ./$type 2>/dev/null
+    IFS=$'|'; af=(${files[$type]}); IFS="$IFSORG"
+    for f in "${af[@]}"; do touch "./$type/$f"; done
+  done
+}
+
 #args
 [ $# -lt 1 ] && help && exit 1
 
