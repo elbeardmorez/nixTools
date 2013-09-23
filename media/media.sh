@@ -596,11 +596,12 @@ fnFileTarget()
     [ ! "${sTitle##*.}" == "$sTitle" ] && sTarget="$sTarget.$sExtra.$sExt"
   elif [ ! "${sTitle##*.}" == "$sTitle" ]; then
     #use static mask and file's extension 
-    sTarget="$sTarget.$sExt"
+    sTarget="$sTarget.$sTargetExt"
   else
     #default
     sTarget=
   fi
+  [ $DEBUG -ge 1 ] && echo "[debug fnFileTarget] sTarget: '$sTarget'" 1>&2
   echo "$sTarget" | sed 's/\(^\.\|\.$\)//g'
 }
 
