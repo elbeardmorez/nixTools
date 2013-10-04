@@ -822,16 +822,22 @@ fnSearch()
   
   [ "x$args" == "x" ] && help && exit 1
   sSearch="$1"
-  #if [ "$REGEX" -eq 0 ]; then
-  #  # escape posix regex characters
-  #  sSearch=${sSearch//\\//\\\\}
-  #  for c in \[ \] \. \^ \$ \? \* \+; do
-  #    sSearch=${sSearch//"$c"/"\\$c"}
-  #   done
-  #else
-    sSearch="$(fnRegexp "$sSearch")"
-  #fi
-  [ $DEBUG -ge 1 ] && echo "[debug fnSearch] sSearch: '$sSearch'" 1>&2
+  if [ "$REGEX" -eq 0 ]; then
+    # basic escapes only
+    # \[ \] \. \^ \$ \? \* \+
+    for c in \' \"; do
+      sSearch=${sSearch//"$c"/"\\$c"}
+    done
+    # replace white-space with wild-card
+    [ $DEBUG -ge 1 ] && echo "[debug fnSearch] sSearch (pre-basic-escape): '$sSearch'" 1>&2
+    sSearch=${sSearch//" "/"?"}
+    [ $DEBUG -ge 1 ] && echo "[debug fnSearch] sSearch (post-basic-escape): '$sSearch'" 1>&2
+  else
+    # escape posix regex characters
+    [ $DEBUG -ge 1 ] && echo "[debug fnSearch] sSearch (pre-regexp-esacape): '$sSearch'" 1>&2
+    sSearch="$(fnRegexp "$sSearch")" 
+    [ $DEBUG -ge 1 ] && echo "[debug fnSearch] sSearch (post-regexp-esacape): '$sSearch'" 1>&2
+  fi
   IFS=$'\n'
 
   bContinue=1
