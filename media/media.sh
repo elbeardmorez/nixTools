@@ -1246,13 +1246,7 @@ fnStructure()
   sTitle="$(echo ${sTitle##*/} | awk '{gsub(" ",".",$0); print tolower($0)}')"
   sMaskDefault=""
   IFS=$'\|'; sMask=($(fnFileMultiMask "$sTitle")); IFS=$IFSORG
-  if [ $sMask ]; then
-#    l=0; for s in "${sMask[@]}"; do echo "$l. '$s'"; l=$[$l+1]; done
-#    l=0; for l in $(seq 0 1 $[${#sMask[@]}-1]); do echo "$l. '${sMask[$l]}'"; l=$[$l+1]; done
-    sMaskDefault=${sMask[0]}
-    #set mask total value
-    sMaskDefault=$(echo "$sMaskDefault" | sed 's/\([0-9]\+of\)#/\1'$lFiles'/')
-  fi
+  [ $sMask ] && sMaskDefault=${sMask[0]}
   if [ ${#sFilters[@]} -gt 0 ]; then
     for s in "${sFilters[@]}"; do sTitle=$(echo "$sTitle" | sed 's/\(\.\|\-\)*'$s'\(\.\|\-\)*/../Ig'); done
 #  else
@@ -1294,15 +1288,26 @@ fnStructure()
       [ "x${sTitle:$[${#sTitle}-1]:1}" == "x." ] && sTitle=${sTitle%.}
     fi
     #recover (potentially modified) default multi-file mask
+    [ $DEBUG -ge 1 ] && echo "sMask: '${sMask[@]}', sMaskDefault: '$sMaskDefault'" 1>&2
     IFS=$'\|'; sMask=($(fnFileMultiMask "$sTitle")); IFS=$IFSORG
-    if [ $sMask ]; then
-      sMaskRaw=$(echo "$sTitle" | sed -n 's/^[^[]*\(\[*'${sMask[1]}'\]*\).*$/\1/p')  #include formatting around mask raw value
-      sMaskDefault=$(echo "$sMaskRaw" | sed -n 's/'${sMask[1]}'/'${sMask[0]}'/p')   #recover mask with formatting
-      sTitle=$(echo "$sTitle" | sed 's/'"$(fnRegexp "$sMaskRaw" "sed")"'//')
+    [ $DEBUG -ge 1 ] && echo "sMask: '${sMask[@]}', sMaskDefault: '$sMaskDefault'" 1>&2
+    # correct default mask to be based on total files (where necessary)
+    if [[ $sMask && "x$(echo "${sMask[0]}" | sed -n '/of/p')" != "x" ]]; then
+      sMaskDefault=$(echo "$sMaskDefault" | sed 's/\(#\+of\)#/\1'$lFiles'/')
+      [ $DEBUG -ge 1 ] && echo "sMask: '${sMask[@]}', sMaskDefault: '$sMaskDefault'" 1>&2
+      IFS=$'\|'; sMask=($(fnFileMultiMask "$sTitle" $sMaskDefault)); IFS=$IFSORG
+      [ $DEBUG -ge 1 ] && echo "sMask: '${sMask[@]}', sMaskDefault: '$sMaskDefault'" 1>&2
+      # remember to update the title too, ensuring the modified default mask is there for templated replacement in the latter files loop
+      sTitle=$(echo "$sTitle" | sed 's/\(#\+of\)#/\1'$lFiles'/')
+      [ $DEBUG -gt 0 ] && echo "#sTitle: '$sTitle'" 1>&2
     fi
+
     s=""; while [ "x$sTitle" != "x$s" ]; do s="$sTitle"; sTitle="$(echo "$sTitle" | sed 's/\(\[\.*\]\|(\.*)\|^\.\|\.$\)//g')"; done
     s=""; while [ "x$sTitle" != "x$s" ]; do s="$sTitle"; sTitle="$(echo "$sTitle" | sed 's/\.\././g')"; done
   fi
+
+  [ $DEBUG -gt 0 ] && echo "#sTitle: '$sTitle'" 1>&2
+
   #structure files
   ##move
   $cmdmd -p "$sTitle"
@@ -1334,12 +1339,13 @@ fnStructure()
   for f in "${sFiles2[@]}"; do
     f2="$(echo "${f##*/}" | awk '{gsub(" ",".",$0); print tolower($0)}')" # go lower case, remove spaces, remove path
     IFS=$'|'; sMask=($(fnFileMultiMask "$f2" "" "$sMaskDefault")); IFS=$IFSORG
+    [ $DEBUG -gt 0 ] && echo "sMask: '${sMask[@]}'" 1>&2
     if [ ${#sFilters[@]} -gt 0 ]; then
       #we need to manipulate the target (sTitle2) before it goes for its final name fixing (fnFileTarget)
       #providing filter terms means the sTitle2 contains only the stub
       for s in "${sFilters[@]}"; do f2=$(echo "$f2" | sed 's/\(\.\|\-\)*'$s'\(\.\|\-\)*/../Ig'); done  # apply filters
       if [ "x${sMask[1]}" != "x" ]; then
-        sTarget="$sTitle2.$(echo "${f2%.*}" | sed 's/^.*'"$(fnRegexp "${sMask[1]}" "sed")"'\]*//')" # construct dynamic title from template and additional file info i.e post-mask characters
+        sTarget="$sTitle2.[$sMaskDefault].$(echo "${f2%.*}" | sed 's/^.*'"$(fnRegexp "${sMask[1]}" "sed")"'\]*//')" # construct dynamic title from template and additional file info i.e post-mask characters
       else
         #no delimiter. so we need to use all info in the original filename
         #we can try and filter any info already present in the template though
@@ -1364,8 +1370,8 @@ fnStructure()
     [ "x$(echo "${f##*.}" | sed -n 's/\('$(echo "$VIDEXT" | sed 's/[|]/\\\|/g')'\)/\1/p')" != "x" ] && sTitleExtra="[$(fnFileInfo "$f")]" # update info for video files. potential for mismatch here
     sTarget=$(fnFileTarget "$f2" "$sTarget" "$sTitleExtra") # should use $f, but more filters would be required to cope with spaces etc.
     #strip failed multifile suffixes
-    sTarget=$(echo "$sTarget" | sed 's/\([0-9]\+of\)#/\1'$lFiles'/')
-    [ $DEBUG -ge 1 ] && echo "sTarget: '$sTarget' from f: '$f' sTitle2: '$sTitle2' sTitleExtra: '$sTitleExtra'" 1>&2
+    sTarget=$(echo "$sTarget" | sed 's/\.*\(\.\['$sMaskDefault'\]\)\.*//')
+    [ $DEBUG -ge 1 ] && echo "sTarget: '$sTarget' from f: '$f', sTitle2: '$sTitle2', sTitleExtra: '$sTitleExtra', sMaskDefault: $sMaskDefault" 1>&2
 
     if [[ "$sTarget" != "x" && "x$f" != "x./$sTitle/$sTarget" ]]; then
       #move!
