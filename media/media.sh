@@ -1310,11 +1310,12 @@ fnStructure()
 
   #structure files
   ##move
-  $cmdmd -p "$sTitle"
-  info="$sTitle/info"
+  sShortTitle=${sTitle%%[*} && sShortTitle=${sShortTitle%.}
+  $cmdmd -p "$sShortTitle"
+  info="$sShortTitle/info"
   declare -A fDirs
   for f in "${sFiles[@]}"; do
-    $cmdmv -i "$f" "$sTitle/" #2>/dev/null
+    $cmdmv -i "$f" "$sShortTitle/" #2>/dev/null
     #collect dirs
     f2="${f%/*}"    
     [[ -d "$f2" && "x$d" != "" &&  x$(cd "$f2" && pwd) != "x$(pwd)" ]] && fDirs["$f2"]="$f2"
@@ -1329,7 +1330,7 @@ fnStructure()
   sTitle2="$(echo "${sTitle2%[*}" | sed 's/\(^\.\|\.$\)//g')"
   
   #IFSORG=$IFS; IFS=$'\n'; files=($(fnFiles "$n")); IFS=$IFSORG; for f2 in "${files[@]}"; do n2=${f2##*.}; [ ! -e "$n.$n2" ] && mv -i "$f2" "$n.$n2"; done; done
-  IFS=$'\n'; sFiles2=($(find "./$sTitle/" -type f -maxdepth 1 -iregex '^.*\.\('"$(echo $VIDEXT\|$VIDXEXT\|$EXTEXT | sed 's|\||\\\||g')"'\)$')); IFS=$IFSORG
+  IFS=$'\n'; sFiles2=($(find "./$sShortTitle/" -type f -maxdepth 1 -iregex '^.*\.\('"$(echo $VIDEXT\|$VIDXEXT\|$EXTEXT | sed 's|\||\\\||g')"'\)$')); IFS=$IFSORG
   if [ $TEST -ge 1 ]; then
     # use original files as we didn't move any!
     sFiles2=()
@@ -1373,12 +1374,12 @@ fnStructure()
     sTarget=$(echo "$sTarget" | sed 's/\.*\(\.\['$sMaskDefault'\]\)\.*//')
     [ $DEBUG -ge 1 ] && echo "sTarget: '$sTarget' from f: '$f', sTitle2: '$sTitle2', sTitleExtra: '$sTitleExtra', sMaskDefault: $sMaskDefault" 1>&2
 
-    if [[ "$sTarget" != "x" && "x$f" != "x./$sTitle/$sTarget" ]]; then
+    if [[ "$sTarget" != "x" && "x$f" != "x./$sShortTitle/$sTarget" ]]; then
       #move!
       if [ $TEST -eq 0 ]; then
-        while [ -f "./$sTitle/$sTarget" ]; do
+        while [ -f "./$sShortTitle/$sTarget" ]; do
           #target already exists
-          if [ "x$(diff -q "$f" "./$sTitle/$sTarget")" == "x" ]; then
+          if [ "x$(diff -q "$f" "./$sShortTitle/$sTarget")" == "x" ]; then
             #dupe file
             sTarget=""
             rm "$f"
@@ -1394,7 +1395,7 @@ fnStructure()
         #log
         [ $TEST -eq 0 ] && echo "${f##*/} -> $sTarget" | tee -a "$info"
         #move
-        $cmdmv -i "$f" "./$sTitle/$sTarget"
+        $cmdmv -i "$f" "./$sShortTitle/$sTarget"
       fi
     fi    
   done
@@ -1403,7 +1404,7 @@ fnStructure()
   #echo "structure '$sTitle' created" 1>&2
   #echo "$sTitle"
   [ $bVerbose -eq 1 ] && echo -n "structure '" 1>&2
-  [ $bLong -eq 1 ] && echo -n "$pwd/$sTitle" || echo -n "$sTitle" 
+  [ $bLong -eq 1 ] && echo -n "$pwd/$sShortTitle" || echo -n "$sShortTitle"
   [ $bVerbose -eq 1 ] && echo "' created" 1>&2
   return 0
 }
