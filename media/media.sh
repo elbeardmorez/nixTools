@@ -1279,7 +1279,6 @@ fnStructure()
     done
   done
   #deconstruct title
-  sTitle2="$sTitle"
   if [ ! "x$(echo $sTitle | grep -iP '\[')" == "x" ]; then
     sTitleExtra=${sTitle##*[}
     if [ ${#sTitleExtra} -gt 0 ]; then
@@ -1327,7 +1326,7 @@ fnStructure()
 #    [ $DEBUG -eq 0 ] && (cd $sTitle || exit 1)
   ##rename
   #trim dummy extra info stub, sent as separate parameter to fnFileTarget function
-  sTitle2="$(echo "${sTitle2%[*}" | sed 's/\(^\.\|\.$\)//g')"
+  sTitle2="$(echo "${sTitle%[*}" | sed 's/\(^\.\|\.$\)//g')"
   
   #IFSORG=$IFS; IFS=$'\n'; files=($(fnFiles "$n")); IFS=$IFSORG; for f2 in "${files[@]}"; do n2=${f2##*.}; [ ! -e "$n.$n2" ] && mv -i "$f2" "$n.$n2"; done; done
   IFS=$'\n'; sFiles2=($(find "./$sShortTitle/" -type f -maxdepth 1 -iregex '^.*\.\('"$(echo $VIDEXT\|$VIDXEXT\|$EXTEXT | sed 's|\||\\\||g')"'\)$')); IFS=$IFSORG
