@@ -1374,7 +1374,7 @@ fnStructure()
     sTarget=$(echo "$sTarget" | sed 's/\.*\(\.\['$sMaskDefault'\]\)\.*//')
     [ $DEBUG -ge 1 ] && echo "sTarget: '$sTarget' from f: '$f', sTitle2: '$sTitle2', sTitleExtra: '$sTitleExtra', sMaskDefault: $sMaskDefault" 1>&2
 
-    if [[ "$sTarget" != "x" && "x$f" != "x./$sShortTitle/$sTarget" ]]; then
+    if [[ "x$sTarget" != "x" && "x$f" != "x./$sShortTitle/$sTarget" ]]; then
       #move!
       if [ $TEST -eq 0 ]; then
         while [ -f "./$sShortTitle/$sTarget" ]; do
