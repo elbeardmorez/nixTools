@@ -1363,7 +1363,7 @@ fnStructure()
       s=""; while [ "x$sTarget" != "x$s" ]; do s="$sTarget"; sTarget="$(echo "$sTarget" | sed 's/\.\././g')"; done
     else
       #static
-      sTarget="$sTitle2"
+      sTarget="$sTitle"
     fi
     #set fileinfo
     #*IMPLEMENT: this could be removing additional info set interactively
