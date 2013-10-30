@@ -20,13 +20,21 @@ NAME=""
 
 function help()
 {
-  echo "usage: $SCRIPTNAME [options]"
+  echo "usage: $SCRIPTNAME [mode] [type] [options] [archive(s)]"
+  echo -e "\nmode:"
+  echo -e "\n add:  creation / addition [tar only]"
+
   echo -e "\noptions:"
   echo -e "\t --split\tsize (MB) to use for splitting archive into multiple volumes"
-  echo -e "\t --type\t\tuse default option set for archive operation type 'add'|'update'|'extract'"
   echo -e "\t --name\t\tarchive name"
+  echo -e "\n update:  [tar only]"
+  echo -e "\n extract:  extract [multiple] archive files"
+  echo -e "\n  options:"
+  echo -e "\t   [-t 'target directory']  : extract to target directory"
+  echo -e "\t  'archive(s)  : archive files / directory containing archive files'\n"
 }
-
+function tarmv()
+{
 #parse args
 args=("$@")
 args2=""
@@ -197,3 +205,116 @@ fi
 
 #tar
 tar "${args2[@]}"
+}
+function extractiso()
+{
+  result=1
+  set +e
+  file=$(tempfile) && rm $file && mkdir -p $file || return 1
+  if [ -d $file ]; then
+    mount -t iso9660 -o ro "$1" $file
+    result=$( cp -R $file/* . )
+    umount $file && rmdir $file
+  fi
+  set -e
+  echo $result  
+}
+function extractdeb()
+{
+  CWD=$PWD/
+  if [ ! "x$(ar t $1 | sed -n '/^debian-binary$/p')" == "x" ]; then
+    #shift to prevent semi-bomb
+    file=$(echo "${1##*/}" | sed 's|.deb$||') 
+    mkdir "$file" 2>/dev/null
+    cd "$file"
+  fi
+  ar xv "$CWD$1"
+  if [ -f data.tar.* ]; then extract_ data.tar.*; fi  
+}
+function extracttype ()
+{
+  case "$1" in
+   *.tar.xz)        xz -dk "$1" | tar xvf - ;;
+   *.tar.bz2|*.tbz) tar xjf "$1" ;;
+   *.tar.gz)        tar xzf "$1" ;;
+   *.bz2)           bunzip2 "$1" ;;
+   *.rar)           unrar x "$1" ;;
+   *.gz)            gunzip "$1" ;;
+   *.tar)           tarmv --extract --multi --name "$1" ;;
+   *.txz)           xz -dk "$1" | tar xvf - ;;
+   *.tbz2)          tar xjf "$1" ;;
+   *.tgz)           tar xzf "$1" ;;
+   *.zip)           unzip "$1" ;;
+   *.Z)             uncompress "$1" ;;
+   *.7z)            7za x "$1" ;;
+   *.rpm)           rpm2cpio "$1" | cpio -idmv ;;
+   *.ace)	          unace x "$1" ;;
+   *.lzma)	        lzma -d -v "$1" ;;
+   *.iso)	          extractiso "$1" ;;
+   *.deb)           extractdeb "$1" ;;
+   *.jar)           jar xvf "$1" ;;
+   *) echo "unsupported archive type '$1'" ;;
+  esac
+}
+function extract()
+{
+  dirorig="$(pwd)"
+  dirtarget=""
+  if [ "$1" == "-t" ]; then
+    shift
+    if [ $# -lt 2 ]; then
+      echo not enough args!
+      help
+      exit 1
+    else
+      if ! [ -d "$1" ]; then
+        if ! [ -f "$1" ]; then
+          mkdir -p "$1"
+        fi
+      fi
+      if [ -d "$1" ]; then   
+        dirtarget="$1"
+        shift
+        echo "target directory: '$dirtarget'"
+      else
+        echo "invalid target directory: '$1'"
+        help
+        exit 1
+      fi
+    fi
+  fi
+  files=("$@")
+  for file in "${files[@]}"; do
+    if [ -f "$file" ] ; then
+      if [ "x$dirtarget" == "x" ]; then
+        dirtarget=$(echo "$file" | sed 's|\(.*\)/.*|\1|')
+      fi
+      if [ -d "$dirtarget" ]; then
+        if ! [ "$dirtarget" == $(pwd) ]; then 	  
+          cd "$dirtarget"
+          if ! [ -f "$file" ] ; then
+            #obviously it was a file in the old pwd
+            file=$dirorig/$file	
+          fi
+        fi
+      fi
+      echo extracting "$file"
+      extracttype "$file"
+    else
+      echo "'$file' is not a valid file"
+    fi
+    cd "$dirorig"
+  done
+}
+
+if [ $# -lt 2 ]; then
+  echo not enough args!
+  help
+  exit 1
+fi
+case "$1" in
+  "add"|"update") tarmv --type "$@" ;;
+  "extract") shift; extract "$@" ;;
+   *) help; echo "unsupported mode '$1'" ;;
+esac
+echo done
