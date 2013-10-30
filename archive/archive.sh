@@ -24,9 +24,9 @@ function help()
   echo -e "\nmode:"
   echo -e "\n add:  creation / addition [tar only]"
 
-  echo -e "\noptions:"
-  echo -e "\t --split\tsize (MB) to use for splitting archive into multiple volumes"
-  echo -e "\t --name\t\tarchive name"
+  echo -e "\n  options:"
+  echo -e "\t   --split\tsize (MB) to use for splitting archive into multiple volumes"
+  echo -e "\t   --name\t\tarchive name"
   echo -e "\n update:  [tar only]"
   echo -e "\n extract:  extract [multiple] archive files"
   echo -e "\n  options:"
@@ -35,119 +35,119 @@ function help()
 }
 function tarmv()
 {
-#parse args
-args=("$@")
-args2=""
-l=0
-while [ $l -lt "${#args[@]}" ]; do
-  OPT="${args[l]}"
-  echo "opt $l: $OPT"
-  case $OPT in
-    "-C"|"--target")
-      #test and set target if specified
-      if [ $[l+1] -lt ${#args[@]} ]; then
-        OPT="${args[$[l+1]]}"
-        if [ ! "${OPT:0:1}" == "-" ]; then
-          #consume arg
-          l=$[$l+1]
-          #assume directory
-          if [ -d "$OPT" ]; then
-            TARGET="$OPT"
-            args2=( "${args2[@]}" "--directory" $TARGET )
-          else
-            echo -n "create TARGET directory '$OPT'?"
-            result
-            read -n 1 result
-            if [[ "$result" == "y" || "$result" == "Y" ]]; then
-              echo $result
+  #parse args
+  args=("$@")
+  args2=""
+  l=0
+  while [ $l -lt "${#args[@]}" ]; do
+    OPT="${args[l]}"
+    echo "opt $l: $OPT"
+    case $OPT in
+      "-C"|"--target")
+        #test and set target if specified
+        if [ $[l+1] -lt ${#args[@]} ]; then
+          OPT="${args[$[l+1]]}"
+          if [ ! "${OPT:0:1}" == "-" ]; then
+            #consume arg
+            l=$[$l+1]
+            #assume directory
+            if [ -d "$OPT" ]; then
               TARGET="$OPT"
-              mkdir -p "$TARGET"
               args2=( "${args2[@]}" "--directory" $TARGET )
             else
-              echo ""
+              echo -n "create TARGET directory '$OPT'?"
+              result
+              read -n 1 result
+              if [[ "$result" == "y" || "$result" == "Y" ]]; then
+                echo $result
+                TARGET="$OPT"
+                mkdir -p "$TARGET"
+                args2=( "${args2[@]}" "--directory" $TARGET )
+              else
+                echo ""
+              fi
             fi
           fi
         fi
-      fi
-      ;;
-    "-F"|"--info-script"|"-M"|"--multi-volume"|"--multi")
-      MULTIVOLUME=1
-      ;;
-    "-L"|"--tape-length")
-      l=$[$l+1]
-      MULTIVOLUME=1
-      SIZE=${args[l]}
-      #echo size $SIZE
-      ;;
-    "--split")
-      l=$[$l+1]
-      OPT="${args[l]}"
-      MULTIVOLUME=1
-      #size in MB
-      SIZE=$(echo $OPT*1024 | bc)
-      SIZE=${SIZE%%.*}
-      ;;
-    "-u"|"--update")
-      REMOVEINVALID=1
-      ;;
-    "-x"|"--extract")
-      EXTRACT=1
-      args2=( "${args2[@]}" "$OPT" )
-      ;;
-    "--name")
-      l=$[$l+1]
-      OPT="${args[l]}"
-      if [ ! "${OPT:$[${#OPT}-4]:4}" == ".tar" ]; then
-        OPT="$OPT.tar"
-      fi
-      NAME=$OPT
-      args2=( "${args2[@]}" "--file" $OPT )
-      ;;
-    "--type")
-      echo type
-      DEFAULTS=1
-      l=$[$l+1]
-      OPT="${args[l]}"
-      case $OPT in
-        "add")
-          args2=( "${args2[@]}" "--create" )
-          ;;
-        "update")
-          REMOVEINVALID=1
-          args2=( "${args2[@]}" "--update" )
-          ;;
-        "extract")
-          EXTRACT=1
-          args2=( "${args2[@]}" "--extract" )
-          ;;
-        *)
-          echo "error: unsupported option arg '$OPT' for option '--type'"
-          help
-          exit 1
-          ;;
-      esac
-      ;;
-    "-f"|"--file")
-      ;;
-    *)
-      args2=( "${args2[@]}" "$OPT" )
-      ;;
-  esac
-  l=$[$l+1]
-done
-#trim initial empty arg
-args2=( ${args2[@]:1:${#args2[@]}} )
+        ;;
+      "-F"|"--info-script"|"-M"|"--multi-volume"|"--multi")
+        MULTIVOLUME=1
+        ;;
+      "-L"|"--tape-length")
+        l=$[$l+1]
+        MULTIVOLUME=1
+        SIZE=${args[l]}
+        #echo size $SIZE
+        ;;
+      "--split")
+        l=$[$l+1]
+        OPT="${args[l]}"
+        MULTIVOLUME=1
+        #size in MB
+        SIZE=$(echo $OPT*1024 | bc)
+        SIZE=${SIZE%%.*}
+        ;;
+      "-u"|"--update")
+        REMOVEINVALID=1
+        ;;
+      "-x"|"--extract")
+        EXTRACT=1
+        args2=( "${args2[@]}" "$OPT" )
+        ;;
+      "--name")
+        l=$[$l+1]
+        OPT="${args[l]}"
+        if [ ! "${OPT:$[${#OPT}-4]:4}" == ".tar" ]; then
+          OPT="$OPT.tar"
+        fi
+        NAME=$OPT
+        args2=( "${args2[@]}" "--file" $OPT )
+        ;;
+      "--type")
+        echo type
+        DEFAULTS=1
+        l=$[$l+1]
+        OPT="${args[l]}"
+        case $OPT in
+          "add")
+            args2=( "${args2[@]}" "--create" )
+            ;;
+          "update")
+            REMOVEINVALID=1
+            args2=( "${args2[@]}" "--update" )
+            ;;
+          "extract")
+            EXTRACT=1
+            args2=( "${args2[@]}" "--extract" )
+            ;;
+          *)
+            echo "error: unsupported option arg '$OPT' for option '--type'"
+            help
+            exit 1
+            ;;
+        esac
+        ;;
+      "-f"|"--file")
+        ;;
+      *)
+        args2=( "${args2[@]}" "$OPT" )
+        ;;
+    esac
+    l=$[$l+1]
+  done
+  #trim initial empty arg
+  args2=( ${args2[@]:1:${#args2[@]}} )
 
-#ensure non-optional parameters were set
-if [ "x$NAME" == "x" ]; then 
-  help
-  echo error: non-optional parameter 'NAME' missing
-  exit 1
-fi
+  #ensure non-optional parameters were set
+  if [ "x$NAME" == "x" ]; then 
+    help
+    echo error: non-optional parameter 'NAME' missing
+    exit 1
+  fi
 
-#create tar multi-volume script
-MVTARSCRIPT=/tmp/tar.multi.volume
-cat > $MVTARSCRIPT << EOF
+  #create tar multi-volume script
+  MVTARSCRIPT=/tmp/tar.multi.volume
+  cat > $MVTARSCRIPT << EOF
 #!/bin/sh
 TAR_NAME=\${name:-\$TAR_ARCHIVE}
 if [ "\${TAR_NAME:\$[\${#TAR_NAME}-4]:4}" == ".tar" ]; then
@@ -171,40 +171,40 @@ case \$TAR_SUBCOMMAND in
 esac
 echo \$TAR_BASE-\$TAR_VOLUME".tar" >&\$TAR_FD
 EOF
-chmod +x "$MVTARSCRIPT"
+  chmod +x "$MVTARSCRIPT"
 
-if [ $DEFAULTS -eq 1 ]; then
-  args2=( "--verbose" "--seek" "${args2[@]}" )
-  if [ "x$TARGET" == "x" ]; then
-    TARGET=/
-  fi
-  args2=( "${args2[@]}" "--directory" $TARGET )
-fi
-if [ $MULTIVOLUME -eq 1 ]; then
-  if [[ $DEFAULTS -eq 1 && $EXTRACT -eq 0 ]]; then
-    if [ "x$SIZE" == "x" ]; then
-      SIZE=10240
+  if [ $DEFAULTS -eq 1 ]; then
+    args2=( "--verbose" "--seek" "${args2[@]}" )
+    if [ "x$TARGET" == "x" ]; then
+      TARGET=/
     fi
-    args2=( "--tape-length" "$SIZE" "${args2[@]}" )
+    args2=( "${args2[@]}" "--directory" $TARGET )
   fi
-  args2=( "--multi-volume" "--info-script" "$MVTARSCRIPT" "${args2[@]}" )
-fi
-
-#updating..
-if [ $REMOVEINVALID -eq 1 ]; then
-  #get invalid
-  TEMP=$(tempfile)
-  echo tar "--diff" "${args2[@]}"
-  tar "--diff" "${args2[@]}" 2>&1 | grep -i 'no such file' | awk -F: '{gsub(" ","",$2); print $2}' > $TEMP
-  if [ $(wc -l $TEMP | sed 's|^[ ]*\([0-9]*\).*$|\1|g') -gt 0 ]; then
-    #delete invalid (non-existent on host) files from archive
-    tar "--delete" "--files-from" "$TEMP" "${args2[@]}"
+  if [ $MULTIVOLUME -eq 1 ]; then
+    if [[ $DEFAULTS -eq 1 && $EXTRACT -eq 0 ]]; then
+      if [ "x$SIZE" == "x" ]; then
+        SIZE=10240
+      fi
+      args2=( "--tape-length" "$SIZE" "${args2[@]}" )
+    fi
+    args2=( "--multi-volume" "--info-script" "$MVTARSCRIPT" "${args2[@]}" )
   fi
-  rm $TEMP
-fi
 
-#tar
-tar "${args2[@]}"
+  #updating..
+  if [ $REMOVEINVALID -eq 1 ]; then
+    #get invalid
+    TEMP=$(tempfile)
+    echo tar "--diff" "${args2[@]}"
+    tar "--diff" "${args2[@]}" 2>&1 | grep -i 'no such file' | awk -F: '{gsub(" ","",$2); print $2}' > $TEMP
+    if [ $(wc -l $TEMP | sed 's|^[ ]*\([0-9]*\).*$|\1|g') -gt 0 ]; then
+      #delete invalid (non-existent on host) files from archive
+      tar "--delete" "--files-from" "$TEMP" "${args2[@]}"
+    fi
+    rm $TEMP
+  fi
+
+  #tar
+  tar "${args2[@]}"
 }
 function extractiso()
 {
