@@ -234,14 +234,14 @@ function extractdeb()
 function extracttype ()
 {
   case "$1" in
-   *.tar.xz)        xz -dk "$1" | tar xvf - ;;
+   *.tar.xz)        tar xvJf "$1" ;;
    *.tar.bz2|*.tbz) tar xjf "$1" ;;
    *.tar.gz)        tar xzf "$1" ;;
    *.bz2)           bunzip2 "$1" ;;
    *.rar)           unrar x "$1" ;;
    *.gz)            gunzip "$1" ;;
    *.tar)           tarmv --extract --multi --name "$1" ;;
-   *.txz)           xz -dk "$1" | tar xvf - ;;
+   *.txz)           tar xvJf "$1" ;;
    *.tbz2)          tar xjf "$1" ;;
    *.tgz)           tar xzf "$1" ;;
    *.zip)           unzip "$1" ;;
