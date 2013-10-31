@@ -1714,6 +1714,17 @@ fnTestFiles()
   done
 }
 
+fnTestFileInfo()
+{
+  target="."
+  [ $# -gt 0 ] && target="$1" && shift
+  [ ! -d "$target" ] && echo "[error] invalid target directory: '$target'" && exit 1
+  for f in "$target"/*; do
+    arr=($(fnFileInfo i 4 "$f/" | sed -n 's/^\[.*|\(.*\)\]\s\+.*\[\(.*\)\].*$/\1 \2/p'));
+    [ "${arr[0]}" != "${arr[1]}" ] && echo "'$f': ${arr[@]}";
+  done
+}
+
 #args
 [ $# -lt 1 ] && help && exit 1
 
