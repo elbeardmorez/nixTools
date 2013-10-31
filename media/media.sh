@@ -1335,7 +1335,7 @@ fnStructure()
     sFiles2=()
     for f in "${sFiles[@]}"; do [ "x$(echo "$f" | sed -n '/^.*\.\('"$(echo $VIDEXT\|$VIDXEXT\|$EXTEXT | sed 's|\||\\\||g')"'\)$/p')" != "x" ] && sFiles2[${#sFiles2[@]}]="$f"; done
   fi
-  [ $DEBUG -gt 0 ] && echo "#sFiles2: ${#sFiles2[@]} sFiles2: ${sFiles2[@]}" 1>&2
+  [ $DEBUG -gt 0 ] && echo "#sFiles2: ${#sFiles2[@]}, sFiles2: '${sFiles2[@]}'" 1>&2
   for f in "${sFiles2[@]}"; do
     f2="$(echo "${f##*/}" | awk '{gsub(" ",".",$0); print tolower($0)}')" # go lower case, remove spaces, remove path
     IFS=$'|'; sMask=($(fnFileMultiMask "$f2" "" "$sMaskDefault")); IFS=$IFSORG
