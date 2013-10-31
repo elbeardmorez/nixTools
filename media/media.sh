@@ -1380,6 +1380,7 @@ fnStructure()
           #target already exists
           if [ "x$(diff -q "$f" "./$sShortTitle/$sTarget")" == "x" ]; then
             #dupe file
+            [ $DEBUG -ge 1 ] && echo "file: '$f' is identical to pre-existing target: '$sTarget'. assuming duplicate and removing file" 1>&2
             sTarget=""
             rm "$f"
             break
