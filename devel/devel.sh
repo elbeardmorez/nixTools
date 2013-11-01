@@ -47,6 +47,11 @@ function process()
       done
       ;;
 
+    "fix-c")
+      file="$1"
+      indent -bap -bbb -br -brs -cli2 -i2 -sc -sob -nut -ce -cdw -saf -sai -saw -ss -nprs -npcs -l120 "$file"
+      ;;
+
     "debug")
       LANGUAGEDEFAULT=c
       declare -A type
