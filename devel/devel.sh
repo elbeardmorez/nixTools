@@ -99,6 +99,34 @@ function process()
 
       $DEBUGGER $DEBUGGERARGS
       ;;
+
+    "changelog")
+      target="." && [ $# -gt 0 ] && [ -d "$1" ] && target="$1" && shift
+      vcs=git && [ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(git\|svn\|bzr\)/p')" != "x" ] && vcs="$1" && shift
+
+      cd "$target"
+      #*IMPLEMENT repo test or die
+      fTmp=$(tempfile)
+      case $vcs in
+        "git")
+          if [ -f ./ChangeLog ]; then
+            commit=$(head -n1 ChangeLog | sed -n 's/.*version \(\S*\).*/\1/p')
+            git log -n 1 $commit 2>/dev/null 1>&2
+            [ $? -eq 0 ] && commits=(-n $(git log --pretty=oneline $commit.. | wc -l))
+          else
+            touch ./ChangeLog
+            commits=(-n $(git log --pretty=oneline | wc -l))
+          fi
+          [ ${#commits[@]} -lt 2 ] && echo "[user] no commits to add" && exit 0
+
+          git log ${commits[@]} --pretty=format:"%ct version %H%n - %s (%an)" | awk '{if ($1 ~ /[0-9]+/) {printf strftime("%Y%b%d",$1); $1=""}; print $0}' | cat - ChangeLog > $fTmp && mv $fTmp ChangeLog
+          cd ->/dev/null
+          ;;
+        *)
+         echo "[user] vcs type: '$vcs' not implemented" && exit 1
+         ;;
+      esac
+      ;;
   esac
 }
 
