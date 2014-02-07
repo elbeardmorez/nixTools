@@ -18,4 +18,10 @@ case "$command" in
     bzr log -c$revision | sed 's/^/#/' > $target
     bzr.sh diff $revision >> $target
     ;;
+  "commits")
+    search="$1" && shift
+    search_type="message"
+    [ $# -gt 0 ] && search_type="$1"
+    bzr log --match-$search_type=".*$search.*" | sed -n '/^revno:.*/,/^-\+$/{/^revno:.*/{s/^revno: \([0-9]\+\)/\1|/;H;b};/^message:.*/,/^-\+$/{/^message:.*/b;/^-\+$/{x;s/\(\s\+\|\n\)/ /g;p;s/.*//;x;b};H}};${x;s/\(\s\+\|\n\)/ /g;p}' | sed 's/\s*\([0-9]\+|\)\s*\(.*\)/r\1\2/;s/ /./g' | awk '{print tolower($0)}'
+    ;;
 esac
