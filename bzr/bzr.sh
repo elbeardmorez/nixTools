@@ -24,4 +24,17 @@ case "$command" in
     [ $# -gt 0 ] && search_type="$1"
     bzr log --match-$search_type=".*$search.*" | sed -n '/^revno:.*/,/^-\+$/{/^revno:.*/{s/^revno: \([0-9]\+\)/\1|/;H;b};/^message:.*/,/^-\+$/{/^message:.*/b;/^-\+$/{x;s/\(\s\+\|\n\)/ /g;p;s/.*//;x;b};H}};${x;s/\(\s\+\|\n\)/ /g;p}' | sed 's/\s*\([0-9]\+|\)\s*\(.*\)/r\1\2/;s/ /./g' | awk '{print tolower($0)}'
     ;;
+  "commits-dump")
+    target="$1" && shift
+    echo "target: '$target'"
+    [ ! -d "$target" ] && mkdir -p "$target" 2>/dev/null
+    commits=($(bzr.sh commits $1))
+    for c in "${commits[@]}"; do
+      revision="${c%%|*}"
+      message="${c:$[${#revision}+1]:maxmessagelength}"
+      file=${revision}.${message}.diff
+      echo "revision: '$revision', file: '$file'"
+      bzr.sh format-patch "${revision#r}" "$target/$file"
+    done
+    ;;
 esac
