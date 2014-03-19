@@ -33,6 +33,11 @@ if [ $result -eq 0 ]; then
     for file in "${docs[@]}"; do
       if [[ -f "$file" || -h "$file" ]]; then
         case "$OPTION" in
+          "uniq")
+            fTemp=$(tempfile)
+            uniq "$file" > "$fTemp"
+            mv "$fTemp" > "$file"
+            ;;
           "edit") echo "[user] editing file: '$file'" && sleep 1 && $EDITOR "$file" ;;
           "dump"|"cat") echo "[user] dumping contents of file: '$file'" 1>&2 && sleep 1 && cat "$file" ;;
           "grep"|"find"|"search") echo "[user] searching contents of file: '$file'" && sleep 1 && grep "$1" "$file" ;;
