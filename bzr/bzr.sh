@@ -2,8 +2,20 @@
 
 maxmessagelength=100
 
-command=log && [ $# -gt 0 ] && command="$1" && shift
+function help() {
+  echo 'SYNTAX: bzr.sh [OPTION]
+  with OPTION:
+    log X  : output log information for commit(s) X:
+      with X as:
+        1 - 9 or -1 - -*  : last x commits
+       +1 - +9            : revisions 1 - 9
+       10 - *             : revisions 10 - *
+'
+}
+
+command=help && [ $# -gt 0 ] && command="$1" && shift
 case "$command" in
+  "help") help ;;
   "diff") bzr diff -c${1:-"-1"} ;;
   "log")
     rev=-1 && [ $# -gt 0 ] && rev="$1" && shift
