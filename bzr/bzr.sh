@@ -5,7 +5,20 @@ maxmessagelength=100
 command=log && [ $# -gt 0 ] && command="$1" && shift
 case "$command" in
   "diff") bzr diff -c${1:-"-1"} ;;
-  "log") bzr log $([ ${1:-"1"} -lt 100 ] && echo " -r-${1:-"1"}.." || echo " -c${1:-"-1"}") | cat ;;
+  "log")
+    rev=-1 && [ $# -gt 0 ] && rev="$1" && shift
+    [ "x$(echo $rev | sed -n '/^[-+]\?[0-9]\+$/p')" = "x" ] &&
+      echo "[error] invalid revision(s) arg '$rev'" && exit 1
+    rev2="" && [ $# -gt 0 ] && rev2="$1" && shift
+    [ "x$rev2" != "x" ] && [ "x$(echo $rev | sed -n '/^[-+]\?[0-9]\+$/p')" = "x" ] &&
+      echo "[error] invalid revision(s) arg '$rev2'" && exit 1
+    [[ "x$rev" == "x${rev#+}" && $rev -gt 0 && $rev -lt 10 ]] && rev="-$rev.."
+    rev=${rev#+}
+
+    [ "x$rev2" != "x" ] && rev2="${rev2#+}" && rev2="${rev2#-}"
+    echo bzr log -r$rev$rev2
+    bzr log -r$rev$rev2
+    ;;
   "patch"|"formatpatch"|"format-patch")
     revision=-1 && [ $# -gt 0 ] && revision="$1" && shift
     target=""
