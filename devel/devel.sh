@@ -8,26 +8,36 @@ function process()
   option="$1" && shift
   case "$option" in
     "find")
-      target="$1" && shift
-      [ ! -e "$target" ] &&  echo "[error] invalid target file/dir: '$target'" && exit 1
-      file="$1"
+      target="." && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift
+      filter=".*" && [ $# -gt 0 ] && filter="$1" && shift
+      sFiles=()
+      IFS=$'\n'
+      if [ -f "$target" ]; then
+        sFiles=("$target")
+      elif [ -d "$target" ]; then
+        sFiles=($(find "$target" -iregex "$filter"))
+      fi
+      IFS="$IFSORG"
+
+      SEDCMD="$([ $TEST -gt 0 ] && echo "echo ")sed"
+      for f in "${sFiles[@]}"; do
       echo -e "\n##########"
-      echo -e "#searching for 'braces after new line' in file '$file'\n"
-      sed -n 'H;x;/.*)\s*\n\+\s*{.*/p' "$file"
+        echo -e "#searching for 'braces after new line' in file '$f'\n"
+        sed -n 'H;x;/.*)\s*\n\+\s*{.*/p' "$f"
       echo -e "\n##########"
-      echo -e "#searching for 'tab' character' in file '$file'\n"
-      sed -n 's/\t/<TAB>/gp' "$file"
+        echo -e "#searching for 'tab' character' in file '$f'\n"
+        sed -n 's/\t/<TAB>/gp' "$f"
       echo -e "\n##########"
-      echo -e "#searching for 'trailing white-space' in file '$file'\n"
-      IFS=$'\n'; lines=$(sed -n '/\s$/p' "$file"); IFS=$IFSORG
+        echo -e "#searching for 'trailing white-space' in file '$f'\n"
+        IFS=$'\n'; lines=$(sed -n '/\s$/p' "$f"); IFS=$IFSORG
       for line in "${lines[@]}"; do
         echo "$line" | sed -n ':1;s/^\(.*\S\)\s\(\s*$\)/\1·\2/;t1;p'
+      done
       done
       ;;
 
     "fix")
-      target="$1" && shift
-      [ ! -e "$target" ] &&  echo "[error] invalid target file/dir: '$target'" && exit 1
+      target="." && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift
       filter=".*" && [ $# -gt 0 ] && filter="$1" && shift
       sFiles=()
       IFS=$'\n'
