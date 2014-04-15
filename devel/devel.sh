@@ -21,18 +21,18 @@ function process()
 
       SEDCMD="$([ $TEST -gt 0 ] && echo "echo ")sed"
       for f in "${sFiles[@]}"; do
-      echo -e "\n##########"
+        echo -e "\n##########"
         echo -e "#searching for 'braces after new line' in file '$f'\n"
         sed -n 'H;x;/.*)\s*\n\+\s*{.*/p' "$f"
-      echo -e "\n##########"
+        echo -e "\n##########"
         echo -e "#searching for 'tab' character' in file '$f'\n"
         sed -n 's/\t/<TAB>/gp' "$f"
-      echo -e "\n##########"
+        echo -e "\n##########"
         echo -e "#searching for 'trailing white-space' in file '$f'\n"
         IFS=$'\n'; lines=$(sed -n '/\s$/p' "$f"); IFS=$IFSORG
-      for line in "${lines[@]}"; do
-        echo "$line" | sed -n ':1;s/^\(.*\S\)\s\(\s*$\)/\1·\2/;t1;p'
-      done
+        for line in "${lines[@]}"; do
+          echo "$line" | sed -n ':1;s/^\(.*\S\)\s\(\s*$\)/\1·\2/;t1;p'
+        done
       done
       ;;
 
