@@ -10,12 +10,13 @@ function process()
     "find")
       target="." && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift
       filter=".*" && [ $# -gt 0 ] && filter="$1" && shift
+      maxdepth=1 && [ $# -gt 0 ] && maxdepth="$1" && shift
       sFiles=()
       IFS=$'\n'
       if [ -f "$target" ]; then
         sFiles=("$target")
       elif [ -d "$target" ]; then
-        sFiles=($(find "$target" -iregex "$filter"))
+        sFiles=($(find "$target" -iregex "$filter" -maxdepth $maxdepth))
       fi
       IFS="$IFSORG"
 
@@ -39,12 +40,13 @@ function process()
     "fix")
       target="." && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift
       filter=".*" && [ $# -gt 0 ] && filter="$1" && shift
+      maxdepth=1 && [ $# -gt 0 ] && maxdepth="$1" && shift
       sFiles=()
       IFS=$'\n'
       if [ -f "$target" ]; then
         sFiles=("$target")
       elif [ -d "$target" ]; then
-        sFiles=($(find "$target" -iregex "$filter"))
+        sFiles=($(find "$target" -iregex "$filter" -maxdepth $maxdepth))
       fi
       IFS="$IFSORG"
 
