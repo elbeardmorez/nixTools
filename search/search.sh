@@ -131,7 +131,7 @@ else #use search paths
   fi
 fi  
 
-if [ "x$found" == "xFALSE" ]; then
+if [[ "x$found" == "xFALSE" || "x$results" == "x" ]]; then
   echo ""
 else
   echo -e ${results:0:$[${#results}-2]}
