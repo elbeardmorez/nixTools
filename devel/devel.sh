@@ -3,10 +3,32 @@ SCRIPTNAME="${0##*/}"
 IFSORG=$IFS
 TEST=${TEST:-0}
 
+#defaults
+option='find'
+
+function help() {
+  echo -e "
+syntax: $SCRIPTNAME [option] [option-arg1 [option-arg2 .. ]]
+\noption:
+  find\t\t: find extraneous whitespace
+  \t\t  args:
+  \t\t    target file/dir: target
+  \t\t    filter\t: regexp filter for files to test, defaulting to '.*'
+  \t\t    max-depth\t: limit target files to within given hierarchy level. defaulting to '1'
+  fix
+  fix-c
+  debug
+  changelog
+"
+}
+
 function process()
 {
-  option="$1" && shift
   case "$option" in
+    "help"|"--help"|"-h")
+      help
+      ;;
+
     "find")
       target="." && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift
       filter=".*" && [ $# -gt 0 ] && filter="$1" && shift
@@ -142,6 +164,6 @@ function process()
   esac
 }
 
-[ $# -lt 2 ] && echo "[error] arguments 'option' 'option-arg1 ['option-arg2 .. ]" && exit 1
+# args
 option="$1" && shift
-process "$option" "$@"
+process "$@"
