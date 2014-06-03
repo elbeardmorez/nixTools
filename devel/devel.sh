@@ -165,5 +165,6 @@ function process()
 }
 
 # args
-option="$1" && shift
+[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(help\|--help\|-h\|find\|fix\|fix-c\|debug\|changelog\)/p')" != "x" ] && option="$1" && shift
+
 process "$@"
