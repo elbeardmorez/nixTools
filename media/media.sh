@@ -2,6 +2,8 @@
 
 SCRIPTNAME=${0##*/}
 IFSORG=$IFS
+DEBUG=${DEBUG:-0}
+TEST=${TEST:-0}
 
 CWD="$PWD/"
 
@@ -38,13 +40,10 @@ CMDFLVFIXER="${CMDFLVFIXER:-"flvfixer.php"}"
 PLAYLIST="${PLAYLIST:-"/tmp/$CMDPLAY.playlist"}"
 LOG="${LOG:-"/var/log/$SCRIPTNAME"}"
 
-TEST=0
-DEBUG=0
-REGEX=0
-
 TXT_BOLD=$(tput bold)
 TXT_RST=$(tput sgr0)
 
+REGEX=0
 OPTION="play"
 
 function help()
