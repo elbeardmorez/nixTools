@@ -1374,7 +1374,8 @@ fnStructure()
     [ "x$(echo "${f##*.}" | sed -n 's/\('$(echo "$VIDEXT" | sed 's/[|]/\\\|/g')'\)/\1/p')" != "x" ] && sTitleExtra="[$(fnFileInfo "$f")]" # update info for video files. potential for mismatch here
     sTarget=$(fnFileTarget "$f2" "$sTarget" "$sTitleExtra") # should use $f, but more filters would be required to cope with spaces etc.
     #strip failed multifile suffixes
-    sTarget=$(echo "$sTarget" | sed 's/\.*\(\.\['$sMaskDefault'\]\)\.*//')
+    sTarget=$(echo "$sTarget" | sed 's/\.*\(\.\['$sMaskDefault'\]\)\.*/./')
+
     [ $DEBUG -ge 1 ] && echo "sTarget: '$sTarget' from f: '$f', sTitle2: '$sTitle2', sTitleExtra: '$sTitleExtra', sMaskDefault: $sMaskDefault" 1>&2
 
     if [[ "x$sTarget" != "x" && "x$f" != "x./$sShortTitle/$sTarget" ]]; then
