@@ -63,6 +63,7 @@ function help()
   echo -e "\tfix  : fix a stream container"
   echo -e "\tkbps  : calculate an approximate vbr for a target file size"
   echo -e "\tsync  : (re-)synchronise a/v streams given an offset"
+  echo -e "\tedit  : demux / remux routine"
   echo ""
   echo "with TARGET:  a target file / directory or a partial file name to search for"
   echo ""
@@ -1698,6 +1699,42 @@ fnCalcVideoRate()
   echo "target: $(math_ "((($tSize*$ktSize)-($aSize*$kaSize))*8/1024)/($length*$kLength)")kbps"
 }
 
+fnEdit()
+{
+  [ $DEBUG -ge 1 ] && echo "[debug fnEdit]" 1>&2
+
+  target="$(pwd)" && [ $# -gt 0 ] && target="$1" && shift
+  filter=".*" && [ $# -gt 0 ] && filter="$1" && shift
+
+  [ ! -d "$target" ] && echo "[error] invalid target directory '$target'"
+  target=$(cd "$target" && echo "$PWD")
+
+  IFS=$'\n'; files=($(find "$target" -maxdepth 1 -iregex '^.*\(mp4\|mkv\|avi\)$')); IFS=$IFSORG
+  for f in "${files[@]}"; do
+    # short-circuit with filter
+    [ "x$(echo "$f" | sed -n '/'$filter'/p')" == "x" ] && continue
+
+    echo "#source: $f"
+    n="${f%.*}"; n="${n##*/}"
+
+    [ ! -d "$target/$n" ] && mkdir -p "$target/$n"
+
+    [ ! -f "$target/$n/$n.vid" ] && ffmpeg -y -i "$f" -map 0:v:0 -c:v huffyuv -f avi "$target/$n/$n.vid";
+    [ ! -f "$target/$n/$n.aud" ] && ffmpeg -y -i "$f" -map 0:a:0 -c:a copy -f mp4 "$target/$n/$n.aud";
+
+    IFS=$'\n'; mp4s=($(find $target/$n/ -maxdepth 1 -iregex '^.*mp4$' | sort)); IFS=$IFSORG
+    if [ ${#mp4s[@]} -gt 0 ]; then
+      rm $target/$n/files
+      echo "converting part files to transport stream format"
+      for v in "${mp4s[@]}"; do ts="${v%.*}.ts"; [ ! -f "$ts" ] && ffmpeg -i "$v" -map 0:v -c:v copy -bsf h264_mp4toannexb -f mpegts "$ts"; echo "file '$(echo "$ts" | sed "s/'/'\\\''/g")'" >> $target/$n/files; done;
+      echo "concatenating video streams"
+      ffmpeg -y -f concat -i $target/$n/files -map 0:v -c:v copy -f mp4 $target/$n/$n.mp4.concat || exit 1
+      echo "re-muxing a/v"
+      ffmpeg -y -i $target/$n/$n.mp4.concat -i $f -map 0:v -c:v copy -map 1:a -c:a copy -f mp4 $f.mod || exit 1
+    fi
+  done
+}
+
 fnTestFiles()
 {
   types=("single" "set")
@@ -1746,6 +1783,7 @@ if [ "x$(echo $1 | sed -n 's/^\('\
 'rec\|reconsile\|'\
 'kbps\|'\
 'syn\|sync\|'\
+'e\|edit\|'\
 'test'\
 '\)$/\1/p')" != "x" ]; then
   OPTION=$1
@@ -1774,6 +1812,7 @@ case $OPTION in
   "rec"|"reconsile") fnReconsile "${args[@]}" ;;
   "kbps") fnCalcVideoRate "${args[@]}" ;;
   "syn"|"sync") fnSync "${args[@]}" ;;
+  "e"|"edit") fnEdit "${args[@]}" ;;
   "test")
     #custom functionality tests
     [ ! $# -gt 0 ] && echo "[user] no function name or function args given!" && exit 1
