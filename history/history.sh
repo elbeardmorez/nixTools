@@ -33,6 +33,7 @@ for command in "${commands[@]}"; do
   command=$(echo $command | sed 's|^\s*[0-9]*\s*\(.*\)$|\1|g') 
   if [ ! "x$command" == "x" ]; then
     bRetry=1
+    bAdd=0
     while [ "$bRetry" -eq 1 ]; do
       if [[ "x$result" == "xa" || "x$result" == "xA" ]]; then
         bRetry=0; bAdd=1
