@@ -1,6 +1,7 @@
 #!/bin/sh
 SCRIPTNAME="${0##*/}"
 IFSORG=$IFS
+DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
 
 #defaults
@@ -19,7 +20,84 @@ syntax: $SCRIPTNAME [option] [option-arg1 [option-arg2 .. ]]
   fix-c
   debug
   changelog
+  commits  dump a set of commits from a repository and prepare them for addition
+           to 'fix'/'mod'/'hack' repos with supporting README entries
 "
+}
+
+function fnCommits() {
+
+  target=. && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift 1
+  [ $# -lt 1 ] &&  echo "[error] missing 'prog name' argument" && exit 1
+  prog="$1" && shift
+  vcs=git && [ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(git\|svn\|bzr\)/p')" != "x" ] && vcs="$1" && shift
+  count=1 && [ $# -gt 0 ] && count=$1 && shift
+
+  case $vcs in
+    "git")
+      base="xxx"
+      if [ $count -gt 0 ]; then
+        cd "$target"
+        git format-patch -$count HEAD
+        base=`git log --format=oneline | head -n$[$count+1] | tail -n1 | cut -d' ' -f1`
+        cd -
+      fi
+      mkdir -p commits/{fix,mod,hack}
+      mv "$target"/00*patch commits/
+      # process patches
+      cd commits
+      for p in 00*patch; do
+        # name
+        subject=`sed -n 's|Subject: \[PATCH[^]]*\] \(.*\)|\1|p' "$p"`
+        name="$subject"
+        name=`echo "$name" | sed 's|[ ]|.|g'`
+        name=`echo "$name" | sed 's|[\/:]|_|g'`
+        p2="`echo "$name" | awk '{print tolower($0)}'`.diff"
+        [ $DEBUG -gt 0 ] && echo "moving '$p' -> '$p2'" 1>&2
+        mv "$p" "$p2"
+        # clean subject
+        sed -i 's|^Subject: \[PATCH [^]]*\]|Subject:|' "$p2"
+        # get patch type
+        type=""
+        echo "# prog: $prog | patch: '$p2'"
+        echo -ne "set patch type [f]ix/[m]od/[h]ack/e[x]it: " 1>&2
+        bRetry=1
+        while [ $bRetry -gt 0 ]; do
+          result=
+          read -s -n 1 result
+          case "$result" in
+            "f"|"F") echo "$result" 1>&2; bRetry=0; type="fix" ;;
+            "m"|"M") echo "$result" 1>&2; bRetry=0; type="mod" ;;
+            "h"|"H") echo "$result" 1>&2; bRetry=0; type="hack" ;;
+            "x"|"X") echo "$result" 1>&2; return 1 ;;
+          esac
+        done
+        mkdir -p "$type/$prog"
+        mv "$p2" "$type/$prog/"
+        # append patch to repo readme
+        entry="$p2 [git sha:$base | pending]"
+        if [ -e $type/README ]; then
+          # search for existing program entry
+          if [ "x`sed -n '/^### '$prog'$/p' "$type/README"`" == "x" ]; then
+            echo -e "### '$prog\n-$entry\n" >> $type/README
+          else
+            # insert entry
+            sed -n -i '/^### '$prog'$/,/^$/{/^$/{x;s/\n\(.*\)/\1\n'-"$entry"'\n/p;b;};H;b;};p;' "$type/README"
+          fi
+        else
+          echo -e "\n### $prog\n-$entry\n" >> "$type/README"
+        fi
+        # append patch details to program specific readme
+        comments=`sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$type/$prog/$p2"`
+        echo -e "\n# $entry" >> "$type/$prog/README"
+        [ "x$comments" != "x" ] && echo "$comments" >> "$type/$prog/README"
+      done
+      cd -
+      ;;
+    *)
+      echo "[user] vcs type: '$vcs' not implemented" && exit 1
+      ;;
+  esac
 }
 
 function fnChangelog() {
@@ -195,11 +273,14 @@ function fnProcess() {
 }
 
 # args
-[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(help\|--help\|-h\|find\|fix\|fix-c\|debug\|changelog\)/p')" != "x" ] && option="$1" && shift
+[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(help\|--help\|-h\|find\|fix\|fix-c\|debug\|changelog\|commits\)/p')" != "x" ] && option="$1" && shift
 
 case "$option" in
   "help"|"--help"|"-h")
     help
+    ;;
+  "commits")
+    fnCommits "$@"
     ;;
   "changelog")
     fnChangelog "$@"
