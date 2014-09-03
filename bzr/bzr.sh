@@ -1,6 +1,7 @@
 #!/bin/sh
 
 DEBUG=${DEBUG:-0}
+TEST=${TEST:-0}
 IFSORG="$IFS"
 
 maxmessagelength=100
@@ -61,7 +62,7 @@ function fnLog() {
     echo "[debug|fnLog] rev1: '$rev1prefix|$rev1|$rev1suffix' `[ "x$rev2" != "x" ] && echo "rev2: '$rev2prefix|$rev2|$rev2suffix'"`" 1>&2
 
   echo bzr log -r$rev1prefix$rev1$rev1suffix$rev2prefix$rev2$rev2suffix
-  bzr log -r$rev1prefix$rev1$rev1suffix$rev2prefix$rev2$rev2suffix
+  [ $TEST -eq 0 ] && bzr log -r$rev1prefix$rev1$rev1suffix$rev2prefix$rev2$rev2suffix
 }
 
 function fnDiff() {
@@ -102,6 +103,24 @@ function fnCommitsDump() {
   done
 }
 
+function fnTest() {
+  type=${1:-log}
+  case "$type" in
+    "log")
+      TEST=1
+      echo ">log r12 r15" && fnLog r12 r15
+      echo ">log r15 r12" && fnLog r15 r12
+      echo ">log 12 15" && fnLog 12 15
+      echo ">log -12 -15" && fnLog -12 -15
+      echo ">log -15 -12" && fnLog -15 -12
+      echo ">log -10" && fnLog -10
+      echo ">log 10" && fnLog 10
+      echo ">log +10" && fnLog +10
+      echo ">log r10" && fnLog r10
+      ;;
+  esac
+}
+
 command=help && [ $# -gt 0 ] && command="$1" && shift
 case "$command" in
   "help") help ;;
@@ -110,4 +129,5 @@ case "$command" in
   "patch"|"formatpatch"|"format-patch") fnPatch "$@" ;;
   "commits") fnCommits "$@" ;;
   "commits-dump") fnCommitsDump "$@" ;;
+  "test") fnTest "$@" ;;
 esac
