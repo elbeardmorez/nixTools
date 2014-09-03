@@ -78,8 +78,8 @@ function fnPatch() {
     target=$(fnLog $revision | sed -n '/^message:.*/,/^-\+$/{/^message:.*/b;/^-\+$/{x;s/\(\s\+\|\n\)/ /g;p;s/.*//;x;b};H};${x;s/\(\s\+\|\n\)/ /g;p}' | sed 's/\s*\([0-9]\+|\)\s*\(.*\)/\1\2/;s/ /./g;s/^\.//g' | sed 's/^[-.*]*\.//g' | sed 's/[/`]/./g' | sed 's/\.\././g' | awk '{print tolower($0)}')
     target="$([ $revision -eq -1 ] && echo "0001" || echo "$revision").${target:0:maxmessagelength}.diff"
   fi
-  bzr log -c$revision | sed 's/^/#/' > $target
-  fnDiff $revision >> $target
+  bzr log -c$revision | sed 's/^/#/' > "$target"
+  fnDiff $revision >> "$target"
 }
 
 function fnCommits() {
