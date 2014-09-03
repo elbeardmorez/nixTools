@@ -56,7 +56,7 @@ function fnCommitsDump() {
   target="$1" && shift
   echo "target: '$target'"
   [ ! -d "$target" ] && mkdir -p "$target" 2>/dev/null
-  commits=($(fnCommits $1))
+  commits=($(fnCommits "$@"))
   for c in "${commits[@]}"; do
     revision="${c%%|*}"
     message="${c:$[${#revision}+1]:maxmessagelength}"
