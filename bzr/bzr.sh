@@ -4,7 +4,7 @@ DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
 IFSORG="$IFS"
 
-maxmessagelength=100
+maxmessagelength=150
 
 function help() {
   echo "SYNTAX: bzr.sh [OPTION]
