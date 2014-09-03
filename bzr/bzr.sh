@@ -1,31 +1,67 @@
 #!/bin/sh
 
+DEBUG=${DEBUG:-0}
+IFSORG="$IFS"
+
 maxmessagelength=100
 
 function help() {
-  echo 'SYNTAX: bzr.sh [OPTION]
+  echo "SYNTAX: bzr.sh [OPTION]
   with OPTION:
     log X  : output log information for commit(s) X:
-      with X as:
-        1 - 9 or -1 - -*  : last x commits
-       +1 - +9            : revisions 1 - 9
-       10 - *             : revisions 10 - *
-'
+      with supported X:
+        [X : 1 <= X <= 25]  : last x commits    : -r-X..
+        [X : X > 25]        : revision X        : -rX
+        [+X : 1 <= X <= ..] : revision X        : -rX
+        [rX : 1 <= X <= ..] : revision X        : -rX
+        [-X : X <= -1]      : last X commits    : -r-X..
+        [rX_1 rX_2 : 1 <= X_1 <= .., 1 <= X_2 <= ..]
+          : commits between revision X_1 and revision X_2 inclusive
+          : -r'min(X_1,X_2)'..'max(X_1,X_2)'
+        [-X_1 -X_2 : 1 <= X_1 <= .., 1 <= X_2 <= ..]
+          : commits between revision 'HEAD - X_1' and revision
+            'HEAD - X_2' inclusive
+          : -r'-min(X_1,X_2)'..-'max(X_1,X_2)'
+"
 }
 
 function fnLog() {
-  rev=-1 && [ $# -gt 0 ] && rev="$1" && shift
-  [ "x$(echo $rev | sed -n '/^[-+]\?[0-9]\+$/p')" = "x" ] &&
-    echo "[error] invalid revision(s) arg '$rev'" && exit 1
+  # validate arg(s)
+  rev1=-1 && [ $# -gt 0 ] && rev1="$1" && shift
+  [ "x$(echo $rev1 | sed -n '/^[-+r]\?[0-9]\+$/p')" == "x" ] &&
+    echo "[error] invalid revision arg '$rev1'" && exit 1
   rev2="" && [ $# -gt 0 ] && rev2="$1" && shift
-  [ "x$rev2" != "x" ] && [ "x$(echo $rev | sed -n '/^[-+]\?[0-9]\+$/p')" = "x" ] &&
-    echo "[error] invalid revision(s) arg '$rev2'" && exit 1
-  [[ "x$rev" == "x${rev#+}" && $rev -gt 0 && $rev -lt 10 ]] && rev="-$rev.."
-  rev=${rev#+}
+  [ "x$rev2" != "x" ] && [ "x$(echo $rev2 | sed -n '/^[-+r]\?[0-9]\+$/p')" == "x" ] &&
+    echo "[error] invalid revision arg '$rev2'" && exit 1
 
-  [ "x$rev2" != "x" ] && rev2="${rev2#+}" && rev2="${rev2#-}"
-  echo bzr log -r$rev$rev2
-  bzr log -r$rev$rev2
+  # tokenise
+  IFS=$'\n' && tokens=(`echo " $rev1 " | sed -n 's/\(\s*[-+r]\?\|\s*\)\([0-9]\+\)\(.*\)$/\1\n\2\n\3/p'`) && IFS="$IFSORG"
+  rev1prefix=`echo ${tokens[0]} | tr -d ' '`
+  rev1=`echo ${tokens[1]} | tr -d ' '`
+  rev1suffix=`echo ${tokens[2]} | tr -d ' '`
+  tokens=("" "" "")
+  [ "x$rev2" != "x" ] &&
+    IFS=$'\n' && tokens=(`echo " $rev2 " | sed -n 's/\(\s*[-+r]\?\|\s*\)\([0-9]\+\)\(.*\)$/\1\n\2\n\3/p'`) && IFS="$IFSORG"
+  rev2prefix=`echo ${tokens[0]} | tr -d ' '`
+  rev2=`echo ${tokens[1]} | tr -d ' '`
+  rev2suffix=`echo ${tokens[2]} | tr -d ' '`
+  [ $DEBUG -gt 0 ] &&
+    echo "[debug|fnLog] rev1: '$rev1prefix|$rev1|$rev1suffix' `[ "x$rev2" != "x" ] && echo "rev2: '$rev2prefix|$rev2|$rev2suffix'"`" 1>&2
+  # mod
+  [[ "x$rev1prefix" == "x" && $rev -le 25 ]] && rev1prefix="-"
+  [ "x$rev1prefix" == "x+" ] && rev1prefix=""
+  [ "x$rev1prefix" == "xr" ] && rev1prefix=""
+  if [ "x$rev2" != "x" ]; then
+    rev1suffix=".."
+    [[ "x$rev1prefix" == "x" && $rev1 -gt $rev2 ]] && revX=$rev1 && rev1=$rev2 && rev2=$revX
+    [[ "x$rev1prefix" == "x-" && $rev2 -gt $rev1 ]] && revX=$rev1 && rev1=$rev2 && rev2=$revX
+    rev2prefix=$rev1prefix
+  fi
+  [ $DEBUG -gt 0 ] &&
+    echo "[debug|fnLog] rev1: '$rev1prefix|$rev1|$rev1suffix' `[ "x$rev2" != "x" ] && echo "rev2: '$rev2prefix|$rev2|$rev2suffix'"`" 1>&2
+
+  echo bzr log -r$rev1prefix$rev1$rev1suffix$rev2prefix$rev2$rev2suffix
+  bzr log -r$rev1prefix$rev1$rev1suffix$rev2prefix$rev2$rev2suffix
 }
 
 function fnDiff() {
