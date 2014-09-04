@@ -101,7 +101,7 @@ if [ $# -eq 0 ]; then
 fi
 
 option=log
-[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(log\|add-repo\|clean-repo\|amend\|ignore\|revision\|diff\|patch\|status\|test\)/p')" != "x" ] && option="$1" && shift
+[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(log\|add-repo\|clean-repo\|amend\|ignore\|revision\|diff\|patch\|status\|clone\|test\)/p')" != "x" ] && option="$1" && shift
 
 case "$option" in
   "log")
@@ -224,6 +224,18 @@ case "$option" in
 
   "patch")
     fnPatch "$@"
+    ;;
+
+  "clone")
+    source="$1" && shift
+    target="$1" && shift
+    [ ! -d "$target" ] && mkdir -p "$target"
+    target=`cd $target; pwd;`
+    svnadmin create "$target"
+    echo -e '#!/bin/sh\nexit 0' > "${target}/hooks/pre-revprop-change"
+    chmod 755 "${target}/hooks/pre-revprop-change"
+    svnsync init "file://$target" "$source" || exit 1
+    svnsync sync "file://$target" || exit 1
     ;;
 
   "test")
