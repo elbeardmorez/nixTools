@@ -11,17 +11,23 @@ function help() {
   echo -e "
 syntax: $SCRIPTNAME [option] [option-arg1 [option-arg2 .. ]]
 \noption:
-  find\t\t: find extraneous whitespace
-  \t\t  args:
-  \t\t    target file/dir: target
-  \t\t    filter\t: regexp filter for files to test, defaulting to '.*'
-  \t\t    max-depth\t: limit target files to within given hierarchy level. defaulting to '1'
+  find  : find extraneous whitespace
+    [args]
+    target file/dir  : target
+    filter  : regexp filter for files to test (default: '.*')
+    max-depth  : limit target files to within given hierarchy level
+                 (default: 1)
   fix
   fix-c
   debug
   changelog
-  commits  dump a set of commits from a repository and prepare them for addition
-           to 'fix'/'mod'/'hack' repos with supporting README entries
+  commits  : process diffs into fix/mod/hack repo structure
+    [args]
+    target  : location of repository to extract/use patch set from
+              (default: '.')
+    prog    : program name (default: target directory name)
+    vcs     : version control type, git, svn, bzr, cvs (default: git)
+    [count] : number of patches to process (default: 1)
 "
 }
 
@@ -288,7 +294,10 @@ case "$option" in
   "debug")
     fnDebug "$@"
     ;;
-  *)
+  "find"|"fix"|"fix-c")
     fnProcess "$@"
+    ;;
+  *)
+    help
     ;;
 esac
