@@ -80,7 +80,7 @@ function fnCommits() {
         mkdir -p "$type/$prog"
         mv "$p2" "$type/$prog/"
         # append patch to repo readme
-        entry="$p2 [git sha:$base | pending]"
+        entry="$p2 [git sha:$base | `[ "x$type" == "xhack" ] && echo "unsubmitted" || echo "pending"`]"
         if [ -e $type/README ]; then
           # search for existing program entry
           if [ "x`sed -n '/^### '$prog'$/p' "$type/README"`" == "x" ]; then
