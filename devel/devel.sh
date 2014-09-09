@@ -34,8 +34,7 @@ syntax: $SCRIPTNAME [option] [option-arg1 [option-arg2 .. ]]
 function fnCommits() {
 
   target=. && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift 1
-  [ $# -lt 1 ] &&  echo "[error] missing 'prog name' argument" && exit 1
-  prog="$1" && shift
+  prog=`cd "$target"; pwd` && prog="${prog##*/}" && [ $# -gt 0 ] && prog="$1" && shift
   vcs=git && [ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(git\|svn\|bzr\)/p')" != "x" ] && vcs="$1" && shift
   count=1 && [ $# -gt 0 ] && count=$1 && shift
 
