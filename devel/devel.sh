@@ -61,7 +61,7 @@ function fnCommits() {
         [ $DEBUG -gt 0 ] && echo "moving '$p' -> '$p2'" 1>&2
         mv "$p" "$p2"
         # clean subject
-        sed -i 's|^Subject: \[PATCH [^]]*\]|Subject:|' "$p2"
+        sed -i 's|^Subject: \[PATCH[^]]*\]|Subject:|' "$p2"
         # get patch type
         type=""
         echo "# prog: $prog | patch: '$p2'"
