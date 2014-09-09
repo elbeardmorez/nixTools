@@ -45,7 +45,7 @@ function fnCommits() {
         cd "$target"
         git format-patch -$count HEAD
         base=`git log --format=oneline | head -n$[$count+1] | tail -n1 | cut -d' ' -f1`
-        cd -
+        cd - >/dev/null
       fi
       mkdir -p commits/{fix,mod,hack}
       mv "$target"/00*patch commits/
@@ -97,7 +97,7 @@ function fnCommits() {
         echo -e "\n# $entry" >> "$type/$prog/README"
         [ "x$comments" != "x" ] && echo "$comments" >> "$type/$prog/README"
       done
-      cd -
+      cd - >/dev/null
       ;;
     *)
       echo "[user] vcs type: '$vcs' not implemented" && exit 1
