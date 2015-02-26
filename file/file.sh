@@ -49,6 +49,9 @@ if [ $result -eq 0 ]; then
               file2="${file:0:$[${#file}-$size]}"
             fi
             echo "# stripping file: '$file', side: '$side', size: '$size', file2: '$file2'"
+            [[ -e "file2" || "x${file2}" == "x" ]] &&
+              echo "skipping mv '$file' -> '$file2'" && continue
+            mv -i "$file" "$file2"
             ;;
           "uniq")
             fTemp=$(tempfile)
