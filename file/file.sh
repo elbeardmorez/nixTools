@@ -4,6 +4,7 @@ TEST=0
 
 OPTION=edit
 EDITOR=vim
+IFSORG="$IFS"
 
 function help
 {
@@ -18,11 +19,13 @@ fi
 
 [ $# -gt 1 ] && OPTION="$1" && shift
 search="$1" && shift
-OLDIFS=$IFS  
 IFS=$'\t\n'
-docs=($(search_ "$search")) #interactive nested script working as long as stdout is only used for the output
+if [ -d "$search" ]; then
+  IFS=$'\n'; docs=(`find "$search" -type f`); IFS="$IFSORG"
+else
+  docs=($(search_ "$search")) #interactive nested script working as long as stdout is only used for the output
+fi
 result=$?
-IFS=$OLDIFS
 
 cmdmv="$([ $TEST -eq 1 ] && echo "echo ")mv"
 
