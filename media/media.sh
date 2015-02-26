@@ -29,7 +29,7 @@ AUDCHANNELS="1.0ch=mono|2.0ch=2.0,2ch,2 ch,stereo|3.0ch=3.0|4.0ch=4.0|5.0ch=5.0|
 FILTERS_EXTRA="${FILTERS_EXTRA:-""}"
 
 CMDMD="mkdir -p"
-CMDMV="mv"
+CMDMV="mv -i"
 CMDCP="cp -ar"
 CMDRM="rm -rf"
 CMDPLAY="${CMDPLAY:-"mplayer"}"
@@ -1316,7 +1316,7 @@ fnStructure()
   info="$sShortTitle/info"
   declare -A fDirs
   for f in "${sFiles[@]}"; do
-    $cmdmv -i "$f" "$sShortTitle/" #2>/dev/null
+    $cmdmv "$f" "$sShortTitle/" #2>/dev/null
     #collect dirs
     f2="${f%/*}"
     [[ -d "$f2" && "x$d" != "" &&  x$(cd "$f2" && pwd) != "x$(pwd)" ]] && fDirs["$f2"]="$f2"
@@ -1401,7 +1401,7 @@ fnStructure()
         #log
         [ $TEST -eq 0 ] && echo "${f##*/} -> $sTarget" | tee -a "$info"
         #move
-        $cmdmv -i "$f" "./$sShortTitle/$sTarget"
+        $cmdmv "$f" "./$sShortTitle/$sTarget"
       fi
     fi
   done
