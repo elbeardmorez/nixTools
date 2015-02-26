@@ -33,6 +33,23 @@ if [ $result -eq 0 ]; then
     for file in "${docs[@]}"; do
       if [[ -f "$file" || -h "$file" ]]; then
         case "$OPTION" in
+          "strip")
+            strip=${1:-"r1"}
+            side=`echo "$strip" | sed -n 's/^\([lr]\?\)\([0-9]\?\)$/\1/p'`
+            [ "x$side" == "x" ] && side="r" && strip="$side$strip"
+            [ ${#strip} -eq 1 ] && strip="${strip}1"
+            size=`echo "$strip" | sed -n 's/^\([lr]\?\)\([0-9]\+\)$/\2/p'`
+
+            [ "x${size}" == "x" ] &&
+              echo "[error] args [l|r]x" && exit 1
+
+            if [ "x$side" == "xl" ]; then
+              file2="${file:$size}"
+            else
+              file2="${file:0:$[${#file}-$size]}"
+            fi
+            echo "# stripping file: '$file', side: '$side', size: '$size', file2: '$file2'"
+            ;;
           "uniq")
             fTemp=$(tempfile)
             uniq "$file" > "$fTemp"
