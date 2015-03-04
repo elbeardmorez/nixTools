@@ -17,7 +17,7 @@ PATHRATINGSDEFAULT="${PATHRATINGSDEFAULT:-"${PATHMEDIA}watched/"}"
 PATHARCHIVELISTS="${PATHARCHIVELISTS:-"${PATHMEDIA}/archives/"}"
 
 CHARPOSIX='][^$?*+'
-CHARSED='].[|-'
+CHARSED='].[|/-'
 CHARGREP='].['
 MINSEARCH=3
 VIDEXT="avi|mpg|mpeg|mkv|mp4|flv|webm|m4v|wmv"
@@ -98,7 +98,7 @@ function fnRegexp()
   #escape reserved characters
   sExp="$1" && shift
   sType= && [ $# -gt 0 ] && sType="$1"
-  [ $DEBUG -ge 2 ] && echo "[debug fnRegexp], sExp: '$sExp', sType: '$sType', CHARSED: '$CHARSED'" 1>&2
+  [ $DEBUG -ge 2 ] && echo "[debug fnRegexp], sExp: '$sExp', sType: '$sType', CHAR${sType^^}: '`eval 'echo $CHAR'${sType^^}`'" 1>&2
   case "$sType" in
     "grep") sExp=$(echo "$sExp" | sed 's/\(['$CHARGREP']\)/\\\1/g') ;;
     "sed") sExp=$(echo "$sExp" | sed 's/\(['$CHARSED']\)/\\\1/g') ;;
