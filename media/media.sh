@@ -1790,13 +1790,6 @@ if [ "x$(echo $1 | sed -n 's/^\('\
   shift
 fi
 
-#TEST
-[[ $# -gt 1 && "x$1" == "xtest" ]] && TEST=1 && shift
-#DEBUG
-[[ $# -gt 1 && "x$1" == "xdebug" ]] && DEBUG=1 && shift && [ "x$(echo "$1" | sed -n '/^[0-9]\+$/p')" != "x" ] && DEBUG=$1 && shift
-#REGEX
-[[ $# -gt 1 && "x$1" == "xregex" ]] && REGEX=1 && shift
-
 args=("$@")
 
 [ $DEBUG -ge 1 ] && echo "[debug $SCRIPTNAME] option: '$OPTION', args: '${args[@]}'" 1>&2
