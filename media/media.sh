@@ -97,12 +97,12 @@ function fnRegexp()
 
   #escape reserved characters
   sExp="$1" && shift
-  sType= && [ $# -gt 0 ] && sType="$1"
+  sType="${1:-"posix"}"
   [ $DEBUG -ge 2 ] && echo "[debug fnRegexp], sExp: '$sExp', sType: '$sType', CHAR${sType^^}: '`eval 'echo $CHAR'${sType^^}`'" 1>&2
   case "$sType" in
     "grep") sExp=$(echo "$sExp" | sed 's/\(['$CHARGREP']\)/\\\1/g') ;;
     "sed") sExp=$(echo "$sExp" | sed 's/\(['$CHARSED']\)/\\\1/g') ;;
-    *) sExp=$(echo "$sExp" | sed 's/\(['$CHARPOSIX']\)/\\\1/g') ;;
+    "posix") sExp=$(echo "$sExp" | sed 's/\(['$CHARPOSIX']\)/\\\1/g') ;;
   esac
   [ $DEBUG -ge 2 ] && echo "[debug fnRegexp] #2, sExp: '$sExp'" 1>&2
   echo "$sExp"
