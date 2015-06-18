@@ -25,7 +25,7 @@ VIDXEXT="srt|idx|sub|sup|ssa|smi"
 EXTEXT="nfo|rar|txt|png|jpg|jpeg|xml"
 VIDCODECS="flv=flv,flv1|h264|x264|xvid|divx=divx,dx50,div3,div4,div5,divx\.5\.0|msmpg=msmpeg4|mpeg2|vpx=vp7,vp8|wvc1"
 AUDEXT="mp3|ogg|flac|ape|mpc|wav"
-AUDCODECS="vbs=vorbis|aac|dts|ac3|mp3=mp3,mpeg-layer-3|mp2|wma"
+AUDCODECS="opus|vbs=vorbis|aac|dts|ac3|mp3=mp3,mpeg-layer-3|mp2|wma"
 AUDCHANNELS="1.0ch=mono|2.0ch=2.0,2ch,2 ch,stereo|3.0ch=3.0|4.0ch=4.0|5.0ch=5.0|5.1ch=5.1"
 FILTERS_EXTRA="${FILTERS_EXTRA:-""}"
 
