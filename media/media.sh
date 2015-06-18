@@ -24,6 +24,7 @@ VIDEXT="avi|mpg|mpeg|mkv|mp4|flv|webm|m4v|wmv"
 VIDXEXT="srt|idx|sub|sup|ssa|smi"
 EXTEXT="nfo|rar|txt|png|jpg|jpeg|xml"
 VIDCODECS="flv=flv,flv1|h264|x264|xvid|divx=divx,dx50,div3,div4,div5,divx\.5\.0|msmpg=msmpeg4|mpeg2|vpx=vp7,vp8|wvc1"
+AUDEXT="mp3|ogg|flac|ape|mpc|wav"
 AUDCODECS="vbs=vorbis|aac|dts|ac3|mp3=mp3,mpeg-layer-3|mp2|wma"
 AUDCHANNELS="1.0ch=mono|2.0ch=2.0,2ch,2 ch,stereo|3.0ch=3.0|4.0ch=4.0|5.0ch=5.0|5.1ch=5.1"
 FILTERS_EXTRA="${FILTERS_EXTRA:-""}"
@@ -331,7 +332,13 @@ fnFileInfo()
     [ "x${sFileInfo}" != "x" ] && echo "${sFileInfo#*|}" || echo "$sVideo$sAudio$sChannels"
     return
   fi
-  IFS=$'\n'; sInfo=($(fnFileStreamInfo $sFile)); IFS=$IFSORG
+
+  #filetype
+  audioTypes="`echo "$AUDCODECS" | sed 's/[,.=|]/\\\|/g'`"
+  sType="video" && [ "x`echo "${sFile##*.}" | sed -n '/'$audioTypes'/p'`" != "x" ] && sType="audio"
+
+  sFileStreamInfo="$(fnFileStreamInfo "$sFile")"
+  IFS=$'\n'; sInfo=(`echo -e "$sFileStreamInfo"`); IFS=$IFSORG
   for s in "${sInfo[@]}"; do
     case $level in
       0)
@@ -416,6 +423,7 @@ fnFileInfo()
   [ $level -lt 2 ] && sLength=""
   [ $level -lt 3 ] && sSize=""
   [ $level -lt 2 ] && sFps=""
+  [ $sType == "audio" ] && sSize="" && sFps="" && sVideo="" && sAudio="${sAudio#.}"
   [ $level -gt 0 ] && echo "$sLength$sFps$sSize$sVideo$sAudio$sChannels"
 }
 
@@ -433,17 +441,17 @@ fnFilesInfo()
     if [ -f "$sSearch" ]; then
       sFiles=("$sSearch")
     elif [ -d "$sSearch" ]; then
-      IFS=$'\n'; sFiles=($(find "$sSearch" -type f -maxdepth 1 -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)$' | sort)); IFS=$IFSORG
+      IFS=$'\n'; sFiles=($(find "$sSearch" -type f -maxdepth 1 -iregex '^.*\.\('"$(echo $VIDEXT\|$AUDEXT | sed 's|\||\\\||g')"'\)$' | sort)); IFS=$IFSORG
       x=$? && [ $x -ne 0 ] && return $x
     else
-      IFS=$'\n'; sFiles=($(fnSearch "$sSearch" "$VIDEXT")); IFS=$IFSORG
+      IFS=$'\n'; sFiles=($(fnSearch "$sSearch" "$VIDEXT\|$AUDEXT")); IFS=$IFSORG
       x=$? && [ $x -ne 0 ] && return $x
     fi
   fi
   sLength="00:00:00.00"
   l=0
   for f in "${sFiles[@]}"; do
-    [ "x$(echo "$f" | grep -iP "\||(\.($VIDEXT)$)")" == "x" ] && continue # allow archive strings through (match '|')
+    [ "x$(echo "$f" | grep -iP "\||(\.($VIDEXT|$AUDEXT)$)")" == "x" ] && continue # allow archive strings through (match '|')
     #echo -ne "#$f$([ $level -gt 2 ] && echo '\n' || echo ' | ')"
     if [ $level -eq 0 ]; then
       echo "#$f" && fnFileInfo $level "$f"
@@ -1233,6 +1241,16 @@ fnStructure()
     fi
   done
   lFiles=$l
+  if [ $lFiles -lt 1 ]; then
+    l=0
+    for f in "${sFiles[@]}"; do
+      if [ "x$(echo $f | grep -iP ".*\.($AUDEXT)\$")" != "x" ]; then
+        [ $l -eq 0 ] && sTitle="$f"
+        l=$[$l+1]
+      fi
+    done
+    lFiles=$l
+  fi
   [ $lFiles -lt 1 ] && echo "[error] no recognised video or audio extention for any of the selected files" 2>&1 && exit 1
   # *IMPLEMENT: potential for mismatch of file information here. dependence on file list order is wrong
 
