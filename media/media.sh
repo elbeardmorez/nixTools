@@ -293,6 +293,13 @@ fnFileStreamInfo()
     [ ${#sInfo[@]} -eq 0 ] && sInfo="${sInfo2[@]}" || sInfo=("${sInfo[@]}" "${sInfo2[@]}")
   fi
 
+  # via mkvtools
+  if [ "x${sFile##*.}" == "xmkv" ]; then
+    IFS=$'\n'; sInfo2=(`mkvmerge --identify "$sFile" 2>&1`); IFS=$IFSORG
+    [ ${#sInfo2[@]} -gt 0 ] && sInfo2=("# mkvtools #" "${sInfo2[@]}")
+    [ ${#sInfo[@]} -eq 0 ] && sInfo="${sInfo2[@]}" || sInfo=("${sInfo[@]}" "${sInfo2[@]}")
+  fi
+
   for s in "${sInfo[@]}"; do echo "$s"; done
 }
 
