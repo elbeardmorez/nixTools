@@ -272,24 +272,25 @@ fnFileStreamInfo()
   # via ffmpeg
   sFile="$1"
   IFS=$'\n'; sInfo=($(ffmpeg -i "file:$sFile" 2>&1 | grep -iP "stream|duration")); IFS=$IFSORG
+  [ ${#sInfo[@]} -gt 0 ] && sInfo=("# ffmpeg #" "${sInfo[@]}")
 
   # via mplayer
   #ID_VCD_TRACK_1_MSF=00:16:63.0
-  if [ ${#sInfo[@]} -eq 0 ]; then
-    IFS=$'\n'; sInfo=($($CMDINFOMPLAYER "$sFile" 2>/dev/null | sed -n '/^\(VIDEO\|AUDIO\).*$/p')); IFS=$IFSORG
-    IFS=$'\n'; sTracks=($($CMDINFOMPLAYER "$sFile" 2>/dev/null | sed -n 's/^ID_VCD_TRACK_\([0-9]\)_MSF=\([0-9:]*\)$/\1|\2/p')); IFS=$IFSORG
-    if [ ${#sTracks[@]} -gt 0 ]; then
-      sTrackTime2=
-      for s in "${sTracks[@]}"; do
-        sTrackTime2=$(fnPositionTimeToNumeric "${s##*|}")
-        if [[ "x$sTrack" == "x" || $(math_ "\$gt($sTrackTime2, $sTrackTime)") -eq 1 ]]; then
-          sTrack="${s%%|*}"
-          sTrackTime="$sTrackTime2"
-        fi
-      done
-      s="duration: $(fnPositionNumericToTime $sTrackTime),"
-      [ ${#sInfo[@]} -eq 0 ] && sInfo=("$s") || sInfo=("${sInfo[@]}" "$s")
-    fi
+  IFS=$'\n'; sInfo2=($($CMDINFOMPLAYER "$sFile" 2>/dev/null | sed -n '/^\(VIDEO\|AUDIO\).*$/p')); IFS=$IFSORG
+  [ ${#sInfo2[@]} -gt 0 ] && sInfo2=("# mplayer #" "${sInfo2[@]}")
+  IFS=$'\n'; sTracks=($($CMDINFOMPLAYER "$sFile" 2>/dev/null | sed -n 's/^ID_VCD_TRACK_\([0-9]\)_MSF=\([0-9:]*\)$/\1|\2/p')); IFS=$IFSORG
+  if [ ${#sTracks[@]} -gt 0 ]; then
+    sTrackTime2=
+    for s in "${sTracks[@]}"; do
+      sTrackTime2=$(fnPositionTimeToNumeric "${s##*|}")
+      if [[ "x$sTrack" == "x" || $(math_ "\$gt($sTrackTime2, $sTrackTime)") -eq 1 ]]; then
+        sTrack="${s%%|*}"
+        sTrackTime="$sTrackTime2"
+      fi
+    done
+    s="duration: $(fnPositionNumericToTime $sTrackTime),"
+    [ ${#sInfo2[@]} -eq 0 ] && sInfo2=("# mplayer #" "$s") || sInfo2=("${sInfo2[@]}" "$s" "${sInfo2[@]}")
+    [ ${#sInfo[@]} -eq 0 ] && sInfo="${sInfo2[@]}" || sInfo=("${sInfo[@]}" "${sInfo2[@]}")
   fi
 
   for s in "${sInfo[@]}"; do echo "$s"; done
