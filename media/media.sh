@@ -427,12 +427,16 @@ fnFileInfo()
         ;;
     esac
   done
+
+  sFileSizeBytes=`stat "$sFile" | sed -n 's/[ ]*Size: \([0-9]\+\).*/\1/p'`
+  sFileSize="`echo "scale=2; $sFileSizeBytes/1024^2" | bc`MB|"
+
   [[ "x$sAudio" == "x$sAudioDefault" && "x$sVideo" == "xmpeg2" ]] && sAudio=""
-  [ $level -lt 2 ] && sLength=""
+  [ $level -lt 2 ] && sFileSize="" && sLength=""
   [ $level -lt 3 ] && sSize=""
   [ $level -lt 4 ] && sFps=""
   [ $sType == "audio" ] && sSize="" && sFps="" && sVideo="" && sAudio="${sAudio#.}"
-  [ $level -gt 0 ] && echo "$sLength$sFps$sSize$sVideo$sAudio$sChannels"
+  [ $level -gt 0 ] && echo "$sFileSize$sLength$sFps$sSize$sVideo$sAudio$sChannels"
 }
 
 fnFilesInfo()
