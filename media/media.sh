@@ -430,7 +430,7 @@ fnFileInfo()
   [[ "x$sAudio" == "x$sAudioDefault" && "x$sVideo" == "xmpeg2" ]] && sAudio=""
   [ $level -lt 2 ] && sLength=""
   [ $level -lt 3 ] && sSize=""
-  [ $level -lt 2 ] && sFps=""
+  [ $level -lt 4 ] && sFps=""
   [ $sType == "audio" ] && sSize="" && sFps="" && sVideo="" && sAudio="${sAudio#.}"
   [ $level -gt 0 ] && echo "$sLength$sFps$sSize$sVideo$sAudio$sChannels"
 }
