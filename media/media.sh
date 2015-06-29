@@ -319,14 +319,18 @@ fnFileInfo()
   sFpsDefault="x.xfps|"
   sSizeDefault="0x0|"
   sVideoDefault="vidxxx"
+  sVideoBitrateDefault=".0kb/s"
   sAudioDefault=".audxxx"
+  sAudioBitrateDefault=".0kb/s"
   sChannelsDefault=".x.xch"
 
   sLength="$sLengthDefault"
   sFps="$sFpsDefault"
   sSize="$sSizeDefault"
   sVideo="$sVideoDefault"
+  sVideoBitrate="$sVideoBitrateDefault"
   sAudio="$sAudioDefault"
+  sAudioBitrate="$sAudioBitrateDefault"
   sChannels="$sChannelsDefault"
 
   [[ $# -gt 0 && "x$(echo "$1" | sed -n '/^[0-9]\+$/p')" != "x" ]] && level=$1 && shift || level=1
@@ -428,6 +432,9 @@ fnFileInfo()
     esac
   done
 
+  _sAudioBitrate=`echo -e "$sFileStreamInfo" | sed -n 's/^[ ]*Stream\ .*Audio.* \([0-9]\+\)\ kb\/s/\1kb\/s/p'`
+  [ "x$_sAudioBitrate" != "x" ] && sAudioBitrate=".$_sAudioBitrate"
+
   sFileSizeBytes=`stat "$sFile" | sed -n 's/[ ]*Size: \([0-9]\+\).*/\1/p'`
   sFileSize="`echo "scale=2; $sFileSizeBytes/1024^2" | bc`MB|"
 
@@ -435,8 +442,9 @@ fnFileInfo()
   [ $level -lt 2 ] && sFileSize="" && sLength=""
   [ $level -lt 3 ] && sSize=""
   [ $level -lt 4 ] && sFps=""
-  [ $sType == "audio" ] && sSize="" && sFps="" && sVideo="" && sAudio="${sAudio#.}"
-  [ $level -gt 0 ] && echo "$sFileSize$sLength$sFps$sSize$sVideo$sAudio$sChannels"
+  [ $level -lt 5 ] && sAudioBitrate="" && sVideoBitrate=""
+  [ $sType == "audio" ] && sSize="" && sFps="" && sVideo="" && sVideoBitrate="" && sAudio="${sAudio#.}"
+  [ $level -gt 0 ] && echo "$sFileSize$sLength$sFps$sSize$sVideo$sVideoBitrate$sAudio$sChannels$sAudioBitrate"
 }
 
 fnFilesInfo()
