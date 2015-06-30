@@ -1649,8 +1649,18 @@ fnRate()
     done
     echo ""
   fi
-  $cmdcp "$source" "$sPathBase$lRating/" && $cmdrm "$source" 2>/dev/null 1>&2 &
-  #$cmdmv "$source" "$sPathBase$lRating" 2>/dev/null 1>&2 &
+
+  target="$sPathBase$lRating"
+
+  devSource=`stat --format '%d' $source`
+  devTarget=`stat --format '%d' $target`
+  if [ "$devSource" = "$devTarget" ]; then
+    [ $DEBUG -ge 1 ] && echo "[debug fnRate] local move" 1>&2
+    $cmdmv "$source" "$target" 2>/dev/null 1>&2 &
+  else
+    [ $DEBUG -ge 1 ] && echo "[debug fnRate] safe copy/delete move" 1>&2
+    $cmdcp "$source" "$target/" && $cmdrm "$source" 2>/dev/null 1>&2 &
+  fi
 
   exit
   return 0
