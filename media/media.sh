@@ -1571,18 +1571,88 @@ fnRate()
           fi
           lType+=1
         elif [ ${#sFiles[@]} -gt 1 ]; then
-          #if all are under the same subdirectory then assume that is the stucture, otherwise, structure those files interactively
+          # if all files are under the same subdirectory then assume that is the
+          # stucture
+          # if there are multiple subdirectories all under a common subdirectory,
+          # find and use the common root and structure those files interactively
+          # if there are multi subdirectories, choose the desired base
+          sources=()
+          lastbase=""
           for f in "${sFiles[@]}"; do
-            f2=${f%/*}
-            if [ "x$source" == "x" ]; then
-              source="$f2"
+            d=${f%/*}
+            if [ "x$lastbase" == "x" ]; then
+              sources=("$d")
               lType+=1
             else
-              #this disables auto rating when multiple directories/structures have been found, or our working directory
-              #is the same as the target files. necessary, but also defeats use case where we are in a legitimate structure directory
-              [[ ! "x$f2" == "x$source" || "x$(cd "$f2" && pwd)" == "x$PWD" ]] && source="" && break
+              # disables auto rating when multiple directories/structures have
+              # been found, or our working directory is the same as the target
+              # files. necessary, but also defeats use case where we are in a
+              # legitimate structure directory
+              [ "x$d" == "x$lastbase" ] && continue
+              sources=("${sources[@]}" "$d")
             fi
+            [ $DEBUG -ge 1 ] && echo "[debug fnRate] found files in: '$d'" 1>&2
+            lastbase="$d"
           done
+          [ $DEBUG -ge 1 ] && echo "[debug fnRate] found ${#sources[@]} source dir`[ ${#sources[@]} -ne 1 ] && echo "s"` with file(s) containing search term" 1>&2
+          if [ ${#sources[@]} -eq 1 ]; then
+            source="${sources[0]}"
+            [ $DEBUG -ge 1 ] && echo "[debug fnRate] source dir set to '$source'" 1>&2
+          else
+            #strip same subdirectory roots?
+            sources2=()
+            for d2 in "${sources[@]}"; do
+              if [ ${#sources2[@]} -eq 0 ]; then
+                [ $DEBUG -ge 1 ] && echo -e "[debug fnRate] adding d2: '$d2'" 1>&2
+                sources2=("$d2")
+              else
+                lidx=0
+                for d3 in "${sources2[@]}"; do
+                  #if d2 is a base of d3 then ignore d3, else add it!
+                  #if d3 is a base of d2 then replace d2 with d3, else add it!
+                  [ $DEBUG -ge 1 ] && echo -e "[debug fnRate] testing\nd2: '$d2'\nd3: '$d3'" 1>&2
+                  if [ ${#d2} -gt ${#d3} ]; then
+                    #d2 could be a subdirectory of d3..
+                    [ "x`echo "$d2" | sed -n '/.*'"$(fnRegexp "$d3" "sed")"'.*/p'`" == "x" ] &&
+                      { sources2=("${sources2[@]}" "$d2") &&
+                        [ $DEBUG -ge 1 ] && echo -e "[debug fnRate] adding d2: '$d2'" 1>&2; }
+                  else
+                    #d3 could be a subdirectory of d2..
+                    [ "x`echo "$d3" | sed -n '/.*'"$(fnRegexp "$d3" "sed")"'.*/p'`" != "x" ] &&
+                      { sources2[$lidx]="$d2" &&
+                        [ $DEBUG -ge 1 ] && echo -e "[debug fnRate] replacing d3 with d2: '$d2'" 1>&2; } ||
+                      { sources2=("${sources2[@]}" "$d3") &&
+                        [ $DEBUG -ge 1 ] && echo -e "[debug fnRate] adding d2: '$d2'" 1>&2; }
+                  fi
+                  lidx+=1
+                done
+              fi
+            done
+            [ $DEBUG -ge 1 ] && echo "[debug fnRate] stripped $[${#sources[@]}-${#sources2[@]}] subdirectories from sources list" 1>&2
+            if [ ${#sources[@]} -eq 1 ]; then
+              source="${sources[0]}"
+              [ $DEBUG -ge 1 ] && echo "[debug fnRate] source dir set to '$source'" 1>&2
+            else
+              # choose!
+              lidx=0
+              bRetry=1
+              while [[ $bRetry -eq 1 && $lidx -lt ${#sources2[@]} ]]; do
+                echo -n "[user] multiple source dirs found, use '${sources2[$lidx]}'? [(y)es/(n)o/e(x)it]:  " 1>&2
+                bRetry2=1
+                while [ $bRetry2 -eq 1 ]; do
+                  echo -en '\033[1D\033[K'
+                  read -n 1 -s result
+                  case "$result" in
+                    "y" | "Y") echo -n $result; bRetry2=0; bRetry=0; source="${sources2[$lidx]}" ;;
+                    "n" | "N") echo -n $result; bRetry2=0; lidx+=1 ;;
+                    "x" | "X") echo -n $result; bRetry2=0; echo ""; exit 0 ;;
+                    *) echo -n " " 1>&2
+                  esac
+                done
+                echo ""
+              done
+            fi
+          fi
         fi
       fi
       lType+=1
