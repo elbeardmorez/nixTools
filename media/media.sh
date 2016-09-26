@@ -65,6 +65,7 @@ function help()
   echo -e "\tkbps  : calculate an approximate vbr for a target file size"
   echo -e "\tsync  : (re-)synchronise a/v streams given an offset"
   echo -e "\tedit  : demux / remux routine"
+  echo -e "\tnames  : reconsile and fix-up set of file names from a file containing lines of '#|name' templates"
   echo ""
   echo "with TARGET:  a target file / directory or a partial file name to search for"
   echo ""
@@ -1854,6 +1855,57 @@ fnEdit()
   done
 }
 
+fnNames()
+{
+  [ $DEBUG -ge 1 ] && echo "[debug fnNames]" 1>&2
+
+  cmdmv=$(echo `[ $TEST -gt 0 ] && echo "echo "`$CMDMV)
+
+  [ $# -lt 1 ] && \
+    echo "missing set name" && exit 1
+  set="$1" && shift
+
+  source="names"
+  ROOTSUFFIX="./"
+  [ ! -e "$source" ] && \
+    [ -e "../$source" ] && ROOTSUFFIX="../"
+  [ ! -e "$ROOTSUFFIX$source" ] && \
+    echo "missing names list" && exit 1
+
+  source=$PWD/$ROOTSUFFIX$source
+  if [ "x`head -n 1 $source | cut -d'|' -f3`" != "x" ]; then
+    set_no="*"
+    [ $# -gt 0 ] && set_no=$1 && shift
+    set_dirs=`echo ${ROOTSUFFIX}$set_no`
+    set_dirs=($set_dirs)
+    for s in ${set_dirs[@]}; do
+      cd $s 2>/dev/null || continue  # dir only
+      while read line; do
+        [ "x`echo "$line" | awk -F'|' '{print $1}'`" != "x${s##*.}" ] && continue;
+        item=`echo $line | cut -d'|' -f2` && [ ${#item} -lt 2 ] && item="0$item";
+        name=$(echo ${line##*|} | awk '{gsub(/ /,".",$0); print tolower($0)}');
+        mf=(*e$item*)
+        for f in "${mf[@]}"; do
+          [ ! -f "$f" ] && f=(*e$item*)
+          [ ! -f "$f" ] && echo "missing item '$item|$name', aborting!" && exit 1
+          $cmdmv "$f" "$set.[`echo "$f" | sed -n 's/.*\[\(.*\)\].*\[.*\].*/\1/p'`].$name.[${f##*[}";
+        done
+      done < $source
+      cd - 1>&2 2>/dev/null
+    done
+
+  elif [ "x`head -n 1 | cut -d'|' -f2`" != "x" ]; then
+    while read line; do
+      item=${line%%|*};
+      name=$(echo ${line#*|} | awk '{gsub(/ /,".",$0); print tolower($0)}');
+      f=(*e0$item*)
+      [ ! -f "$f" ] && f=(*e$item*)
+      [ ! -f "$f" ] && echo "missing item '$item|$name', aborting!" && exit 1
+      $cmdmv "$f" "$set.["$(echo "$f" | sed -n 's/.*\[\(.*\)\].*\[.*\].*/\1/p')"].$name.[${f##*[}";
+    done < $source
+  fi
+}
+
 fnTestFiles()
 {
   types=("single" "set")
@@ -1903,6 +1955,7 @@ if [ "x$(echo $1 | sed -n 's/^\('\
 'kbps\|'\
 'syn\|sync\|'\
 'e\|edit\|'\
+'n\|names\|'\
 'test'\
 '\)$/\1/p')" != "x" ]; then
   OPTION=$1
@@ -1925,6 +1978,7 @@ case $OPTION in
   "kbps") fnCalcVideoRate "${args[@]}" ;;
   "syn"|"sync") fnSync "${args[@]}" ;;
   "e"|"edit") fnEdit "${args[@]}" ;;
+  "n"|"names") fnNames "${args[@]}" ;;
   "test")
     #custom functionality tests
     [ ! $# -gt 0 ] && echo "[user] no function name or function args given!" && exit 1
