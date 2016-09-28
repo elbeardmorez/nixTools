@@ -66,6 +66,7 @@ function help()
   echo -e "\tsync  : (re-)synchronise a/v streams given an offset"
   echo -e "\tedit  : demux / remux routine"
   echo -e "\tnames  : reconsile and fix-up set of file names from a file containing lines of '#|name' templates"
+  echo -e "\tplaylist  : interactively cycle a list of filenames"
   echo ""
   echo "with TARGET:  a target file / directory or a partial file name to search for"
   echo ""
@@ -978,6 +979,72 @@ fnSearch()
     printf '%s\n' "${files[@]}" | sort
   fi
   IFS=$IFSORG
+}
+
+fnPlayList()
+{
+  [ $DEBUG -ge 1 ] && echo "[debug fnPlayList]" 1>&2
+
+  list="$1" && shift
+  [ ! -e $list ] && echo "[error] no playlist argument!" && exit 1
+
+  IFS=$'\n' items=(`cat $list`); IFS=$IFSORG
+
+  current=${items[0]};
+  if [ -e $list.current ]; then
+    current=`cat $list.current`
+  fi
+
+  idx=0
+  for li in "${items[@]}"; do
+    [ "x$li" == "x$current" ] && break;
+    idx=$[$idx+1]
+  done
+
+  # select from here
+
+  file="$current"
+
+  if [[ ${#file} -gt 0 && -f "$file" ]]; then
+    path="${file%/*}/"
+    result=
+    bRetry=1
+    echo -en '\033[2K\012\033[2K\012\033[2K\012\033[2K\012\033[2K\033[A\033[A\033[A\033[A\033[s\033[B'
+    while [ $bRetry -gt 0 ]; do
+      echo -en '\033[u\033[s\033[2K\012\033[2K\012\033[2K\012\033[2K\033[u\033[s\012'
+      echo -n "play '$file'? [(y)es/(n)o/(u)p/(d)own] "
+      read -n 1 -s c1
+      read -sN1 -t 0.0001 c2
+      read -sN1 -t 0.0001 c3
+      read -sN1 -t 0.0001 c4
+      result=$c1$c2$c3$c4
+      case "$result" in
+
+        "u"|$'\e[A') [ ${#items[@]} -gt $idx ] && idx=$[$idx+1] && file="${items[$idx]}" ;;
+
+        "d"|$'\e[B') [ $idx -gt 0 ] && idx=$[$idx-1] && file="${items[$idx]}" ;;
+
+        "n"|"N") echo $result; bRetry=0 ;;
+
+        "y"|"Y")
+          echo $result
+          # write current
+          echo "$file" > "$list".current
+          # create playlist from remaining items
+          last=$[${#items[@]}-$idx]
+          tail -n $last $list > $PLAYLIST
+          # play list
+          $cmdplay $cmdplay_options $cmdplay_playlist_options$PLAYLIST $@
+          bRetry=0
+          ;;
+
+        *)
+          echo "result: $result"
+          ;;
+
+      esac
+    done
+  fi
 }
 
 fnPlay()
@@ -1946,6 +2013,7 @@ fnTestFileInfo()
 if [ "x$(echo $1 | sed -n 's/^\('\
 's\|search\|'\
 'p\|play\|'\
+'pl\|playlist\|'\
 'i\|info\|'\
 'a\|archive\|'\
 'f\|fix\|'\
@@ -1969,6 +2037,7 @@ args=("$@")
 case $OPTION in
   "s"|"search") fnSearch "${args[@]}" ;;
   "p"|"play") fnPlay "${args[@]}" ;;
+  "pl"|"playlist") fnPlayList "${args[@]}" ;;
   "i"|"info") fnFilesInfo "${args[@]}" ;;
   "a"|"archive") fnArchive "${args[@]}" ;;
   "f"|"fix") fnFix "${args[@]}" ;;
