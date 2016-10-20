@@ -2068,6 +2068,15 @@ case $OPTION in
         sFiles=($(find . -iregex '^.*\(avi\|nfo\)$'))
         echo "sFiles: ${sFiles[@]}"
         ;;
+      "undo")
+        IFSORIG="$IFS"; IFS=$'\n'; moves=(`cat info`); IFS="$IFSORIG"
+        for s in "${moves[@]}"; do
+          f1=${s% -> *}
+          f2=${s#* \-\> }
+          echo "$f2 -> $f1"
+          mv "$f2" "$f1"
+        done
+        ;;
       *)
         $func "$@"
         ;;
