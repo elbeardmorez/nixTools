@@ -188,13 +188,16 @@ function fnDebug() {
     case "$arg" in
       "PID")
         PID=${PID:-$(pgrep -x "$NAME")}
+        [ -z "$PID" ] && PID="$(pidof $NAME)"
         if [ "x$PID" != "x" ]; then
-          DEBUGGERARGS=$(echo "$DEBUGGERARGS" | sed 's|\$'$arg'|'$PID'|')
+          DEBUGGERARGS="$(echo "$DEBUGGERARGS" | sed 's|\$'$arg'|'$PID'|')"
         else
-          DEBUGGERARGS=$(echo "$DEBUGGERARGS" | sed 's|--pid=\$PID||')
+          DEBUGGERARGS="$(echo "$DEBUGGERARGS" | sed 's|\$'"$arg"'|'"$PID"'|')"
         fi
         ;;
-      *) DEBUGGERARGS=$(echo "$DEBUGGERARGS" | sed 's|\$'$arg'|'${!arg}'|') ;;
+      *)
+        DEBUGGERARGS="$(echo "$DEBUGGERARGS" | sed 's|\$'"$arg"'|'"${!arg}"'|')"
+        ;;
     esac
   done
 
