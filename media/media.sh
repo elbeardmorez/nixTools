@@ -63,6 +63,7 @@ function help()
   echo -e "\treconsile  : find media in known locations given a file containing names, and write results to an adjacent file"
   echo -e "\tfix  : fix a stream container"
   echo -e "\tkbps  : calculate an approximate vbr for a target file size"
+  echo -e "\tremux  : ffmpeg wrapper for changing video dimensions and a/v codecs / rates"
   echo -e "\tsync  : (re-)synchronise a/v streams given an offset"
   echo -e "\tedit  : demux / remux routine"
   echo -e "\tnames  : reconsile and fix-up set of file names from a file containing lines of '#|name' templates"
@@ -1924,6 +1925,117 @@ fnEdit()
   done
 }
 
+fnCalcDimension()
+{
+  [ $DEBUG -ge 1 ] && echo "[debug fnCalcDimension]" 1>&2
+
+  [ $# -ne 3 ] && echo "syntax: fnCalcDimension original_dimensions=1920x1080 scale_dimension=height|width target_dimension_other=x" && exit 1
+  original_dimensions=$1
+  scale_dimension=$2
+  target_dimension_other=$3
+
+  [[ "x$scale_dimension" != "xwidth" && "x$scale_dimension" != "xheight" ]] &&
+    echo invalid scaled dimension && exit 1
+  if [ "x$scale_dimension" == "xwidth" ]; then
+    original_dimension=${original_dimensions%x*}
+    original_dimension_other=${original_dimensions#*x}
+  else
+    original_dimension=${original_dimensions#*x}
+    original_dimension_other=${original_dimensions%x*}
+  fi
+
+  scaled_dimension=`math_ $target_dimension_other/$original_dimension_other*$original_dimension 0`
+
+  int=0
+  while [ $int -ne 1 ]; do
+     divisor=`math_ $scaled_dimension/4 2`
+     [ "x${divisor##*.}" == "x00" ] && int=1 || scaled_dimension=$[ $scaled_dimension + 1 ]
+  done
+  echo $scaled_dimension
+}
+
+fnRemux()
+{
+  [ $DEBUG -ge 1 ] && echo "[debug fnRemux]" 1>&2
+
+  [ $# -lt 1 ] && echo "syntax: remux source_file [profile=2p6ch] [width=auto] [height=auto] [vbr=1750k] [abr=320k] [passes=1] [vstream=0] [astream=0]" && exit 1
+
+  cmdffmpeg=ffmpeg
+  cmdffmpeg=$(echo $([ $TEST -gt 0 ] && echo "echo ")$cmdffmpeg)
+
+  source="$1" && shift
+  target=${source%.*}.remux.mp4
+
+  profile=2p6ch
+  [ $# -gt 0 ] && [[ "x$1" == "x2p6ch" || "x$1" == "x1p2ch" ]] && profile=$1 && shift
+
+  [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^\([0-9]\+\|auto\)$/p'`" != "x" ] && width=$1 && shift
+  [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^\([0-9]\+\|auto\)$/p'`" != "x" ] && height=$1 && shift
+  [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^[0-9]\+[kK]$/p'`" != "x" ] && vbr=$1 && shift
+  [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^[0-9]\+[kK]$/p'`" != "x" ] && abr=$1 && shift
+
+  passes=1
+  [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^[1-2]$/p'`" != "x" ] && passes=$1 && shift
+
+  vstream=0
+  [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^[0-9]$/p'`" != "x" ] && vstream=$1 && shift
+  astream=0
+  [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^[0-9]$/p'`" != "x" ] && astream=$1 && shift
+
+  case $profile in
+     "2p6ch")
+       vcdc=hevc
+       vbr=${vbr:-1750k}
+       acdc=aac
+       abr=${abr:-320k}
+       channels=6
+       preset=medium
+       defheight=720
+       ;;
+     "1p2ch")
+       vcdc=hevc
+       vbr=${vbr:-1250k}
+       acdc=aac
+       abr=${abr:-256k}
+       channels=2
+       af="aresample=matrix_encoding=dplii"
+       preset=veryfast
+       defwidth=1280
+       ;;
+     *)
+       echo unknown profile
+       exit 1
+       ;;
+  esac
+
+  dimensions=`fnFileInfo 3 $source | cut -d'|' -f 3`
+
+  [[ "x$height" == "x" && "x$width" == "x" ]] && height=$defheight && width=$defwidth
+  [[ "x$height" == "x" || "x$height" == "xauto" ]] && height=`fnCalcDimension $dimensions height ${width:-$defwidth}`
+  [[ "x$width" == "x" || "x$width" == "xauto" ]] && width=`fnCalcDimension $dimensions width ${height:-$defheight}`
+  scale="$width:$height"
+
+  case $passes in
+    1)
+      cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset $preset -vcodec $vcdc -b:v $vbr -vf crop=$crop,scale=$scale -threads:0 9 -map 0:a:$astream -acodec $acdc -b:a $abr -ac $channels `[ "x$af" != "x" ] && echo -af $af` -f ${target##*.} file:$target"
+      echo "[$profile (pass 1)] $cmd"
+      exec $cmd
+      [ $? -eq 0 ] && echo "# pass complete" || (echo "# pass failed" && exit 1)
+      ;;
+    2)
+      cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset veryfast -vf crop=$crop,scale=$scale -b:v $vBitrate -vcodec $vcdc -pass 1 -threads:0 9 -f ${target##*.} /dev/null"
+      echo "[$profile (pass 1)] $cmd"
+      exec $cmd
+      [ $? -eq 0 ] && echo "# pass 1 complete" || (echo "# pass 1 failed" && exit 1)
+
+      cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset veryfast -vf crop=$crop,scale=$scale -b:v $vBitrate -vcodec $vcdc -pass 2 -map 0:a:$astream -acodec $acdc -ab $aBitrate -ac $channels `[ "x$af" != "x" ] && echo -af $af` -threads:0 9 -f ${target##*.} file:$target"
+      echo "[$profile (pass 1)] $cmd"
+      exec $cmd
+      [ $? -eq 0 ] && echo "# pass 2 complete" || (echo "# pass 2 failed" && exit 1)
+      ;;
+  esac
+}
+
 fnNames()
 {
   [ $DEBUG -ge 1 ] && echo "[debug fnNames]" 1>&2
@@ -2023,6 +2135,7 @@ if [ "x$(echo $1 | sed -n 's/^\('\
 'r\|rate\|'\
 'rec\|reconsile\|'\
 'kbps\|'\
+'rmx\|remux\|'\
 'syn\|sync\|'\
 'e\|edit\|'\
 'n\|names\|'\
@@ -2049,6 +2162,7 @@ case $OPTION in
   "kbps") fnCalcVideoRate "${args[@]}" ;;
   "syn"|"sync") fnSync "${args[@]}" ;;
   "e"|"edit") fnEdit "${args[@]}" ;;
+  "rmx"|"remux") fnRemux "${args[@]}" ;;
   "n"|"names") fnNames "${args[@]}" ;;
   "test")
     #custom functionality tests
