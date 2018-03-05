@@ -35,7 +35,7 @@ function fnCommits() {
 
   target=. && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift 1
   prog=`cd "$target"; pwd` && prog="${prog##*/}" && [ $# -gt 0 ] && prog="$1" && shift
-  vcs=git && [ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(git\|svn\|bzr\)/p')" != "x" ] && vcs="$1" && shift
+  vcs=git && [ $# -gt 0 ] && [ "x`echo "$(cd "$source"; pwd)" | sed -n '/\(git\|svn\|bzr\)/p'`" != "x" ] && vcs="$1" && shift
   count=1 && [ $# -gt 0 ] && count=$1 && shift
 
   case $vcs in
