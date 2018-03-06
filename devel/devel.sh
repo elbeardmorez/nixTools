@@ -33,8 +33,9 @@ syntax: $SCRIPTNAME [option] [option-arg1 [option-arg2 .. ]]
 
 function fnCommits() {
 
-  target=. && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift 1
-  prog=`cd "$target"; pwd` && prog="${prog##*/}" && [ $# -gt 0 ] && prog="$1" && shift
+  target="$PWD" && [ $# -gt 0 ] && [ -e "$1" ] && target="`cd "$1"; pwd`" && shift
+  source="$target" && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift
+  prog=`cd "$source"; pwd` && prog="${prog##*/}" && [ $# -gt 0 ] && prog="$1" && shift
   vcs=git && [ $# -gt 0 ] && [ "x`echo "$(cd "$source"; pwd)" | sed -n '/\(git\|svn\|bzr\)/p'`" != "x" ] && vcs="$1" && shift
   count=1 && [ $# -gt 0 ] && count=$1 && shift
 
@@ -42,15 +43,22 @@ function fnCommits() {
     "git")
       base="xxx"
       if [ $count -gt 0 ]; then
-        cd "$target"
+        cd "$source"
         git format-patch -$count HEAD
         base=`git log --format=oneline | head -n$[$count+1] | tail -n1 | cut -d' ' -f1`
         cd - >/dev/null
       fi
-      mkdir -p commits/{fix,mod,hack}
-      mv "$target"/00*patch commits/
+      if [[ ! -e "$target"/fix ||
+           ! -e "$target"/mod ||
+           ! -e "$target"/hack ]]; then
+        mkdir -p commits/{fix,mod,hack}
+        cd commits
+      else
+        cd "$target"
+      fi
+
+      mv "$source"/00*patch ./
       # process patches
-      cd commits
       for p in 00*patch; do
         # name
         subject=`sed -n 's|Subject: \[PATCH[^]]*\] \(.*\)|\1|p' "$p"`
