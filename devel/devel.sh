@@ -41,11 +41,10 @@ function fnCommits() {
 
   case $vcs in
     "git")
-      base="xxx"
+      commithash="xxx"
       if [ $count -gt 0 ]; then
         cd "$source"
         git format-patch -$count HEAD
-        base=`git log --format=oneline | head -n$[$count+1] | tail -n1 | cut -d' ' -f1`
         cd - >/dev/null
       fi
       if [[ ! -e "$target"/fix ||
@@ -60,6 +59,8 @@ function fnCommits() {
       mv "$source"/00*patch ./
       # process patches
       for p in 00*patch; do
+        #commithash=`cd $source; git log --format=oneline | head -n$[$count] | tail -n1 | cut -d' ' -f1; cd - 1>/dev/null`
+        commithash=`head -n1 "$p" | cut -d' ' -f2`
         # name
         subject=`sed -n 's|Subject: \[PATCH[^]]*\] \(.*\)|\1|p' "$p"`
         name="$subject"
@@ -88,7 +89,7 @@ function fnCommits() {
         mkdir -p "$type/$prog"
         mv "$p2" "$type/$prog/"
         # append patch to repo readme
-        entry="$p2 [git sha:$base | `[ "x$type" == "xhack" ] && echo "unsubmitted" || echo "pending"`]"
+        entry="$p2 [git sha:$commithash | `[ "x$type" == "xhack" ] && echo "unsubmitted" || echo "pending"`]"
         if [ -e $type/README ]; then
           # search for existing program entry
           if [ "x`sed -n '/^### '$prog'$/p' "$type/README"`" == "x" ]; then
