@@ -62,7 +62,7 @@ function fnCommits() {
         #commithash=`cd $source; git log --format=oneline | head -n$[$count] | tail -n1 | cut -d' ' -f1; cd - 1>/dev/null`
         commithash=`head -n1 "$p" | cut -d' ' -f2`
         # name
-        subject=`sed -n 's|Subject: \[PATCH[^]]*\] \(.*\)|\1|p' "$p"`
+        subject=`sed -n '/^Subject/{N;s/\n//;s|^Subject: \[PATCH[^]]*\] \(.*\)|\1|p}' "$p"`
         name="$subject"
         name=`echo "$name" | sed 's|[ ]|.|g'`
         name=`echo "$name" | sed 's|[\/:]|_|g'`
