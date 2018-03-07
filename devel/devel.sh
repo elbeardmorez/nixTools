@@ -61,6 +61,7 @@ function fnCommits() {
       for p in 00*patch; do
         #commithash=`cd $source; git log --format=oneline | head -n$[$count] | tail -n1 | cut -d' ' -f1; cd - 1>/dev/null`
         commithash=`head -n1 "$p" | cut -d' ' -f2`
+        date=`head -n3 "$p" | sed '$!d;s/Date: //'`
         # name
         subject=`sed -n '/^Subject/{N;s/\n//;s|^Subject: \[PATCH[^]]*\] \(.*\)|\1|p}' "$p"`
         name="$subject"
@@ -105,7 +106,13 @@ function fnCommits() {
         comments=`sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$type/$prog/$p2"`
         echo -e "\n# $entry" >> "$type/$prog/README"
         [ "x$comments" != "x" ] && echo "$comments" >> "$type/$prog/README"
+
+        # commit commands
+        echo "commit: git add .; GIT_AUTHOR_DATE='$date' GIT_COMMITTER_DATE='$date' git commit"
       done
+
+      echo "# patches added to fix/mod/hack hierarchy at '$target'"
+
       cd - >/dev/null
       ;;
     *)
