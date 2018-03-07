@@ -93,7 +93,7 @@ function fnCommits() {
         if [ -e $type/README ]; then
           # search for existing program entry
           if [ "x`sed -n '/^### '$prog'$/p' "$type/README"`" == "x" ]; then
-            echo -e "### '$prog\n-$entry\n" >> $type/README
+            echo -e "### $prog\n-$entry\n" >> $type/README
           else
             # insert entry
             sed -n -i '/^### '$prog'$/,/^$/{/^$/{x;s/\n\(.*\)/\1\n'-"$entry"'\n/p;b;};H;b;};p;' "$type/README"
