@@ -97,7 +97,7 @@ function fnCommits() {
             echo -e "### $prog\n-$entry\n" >> $type/README
           else
             # insert entry
-            sed -n -i '/^### '$prog'$/,/^$/{/^$/{x;s/\n\(.*\)/\1\n'-"$entry"'\n/p;b;};H;b;};p;' "$type/README"
+            sed -n -i '/^### '$prog'$/,/^$/{/^### '$prog'$/{h;b};/^$/{x;s/\(.*\)/\1\n-'"$entry"'\n/p;b;}; H;$!b};${x;/^### '$prog'/{s/\(.*\)/\1\n-'"$entry"'/p;b;};x;p;b;};p' "$type/README"
           fi
         else
           echo -e "\n### $prog\n-$entry\n" >> "$type/README"
