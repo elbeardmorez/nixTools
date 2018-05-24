@@ -555,49 +555,87 @@ function slackbuild()
 function build()
 {
   #simple build
+
+  CONFIG=1
+  BUILD=1
+  INSTALL=1
+
+  # args
+  args=$@
+
+  ## pkg name
+  [[ ${#args[@]} -gt 0 && "x`echo "${args[0]}" | sed -n '/\(user\|system\|noconfig\|nobuild\|noinstall|\uninstall\|clean\|distclean\|vala-clean\)/p'`" == "x" ]] && pkg="$args1" && args="${args[@]:1}"
+
+  ## build
+  if [ $# -gt 0 ]; then
+    args2=()
+    for arg in "${args[@]}"; do
+      case "$arg" in
+        "user"|"system") BUILDTYPE=$1 && shift ;;
+        "noconfig") CONFIG=0 && shift ;;
+        "nobuild") BUILD=0 && shift ;;
+        "noinstall") INSTALL=0 && shift ;;
+        *) args2=("${args2[@]}" "$arg") ;;
+      esac
+    done
+    args="${args2[@]}"
+  fi
+  [ $DEBUG -ge 1 ] && echo "buildtype: '$BUILDTYPE', force: '$FORCE', compat: '$COMPAT'"
+
+  ## build prep
+  args2=()
+  for arg in "${args[@]}"; do
+    if [ "x`echo "$arg" | sed -n '/\(uninstall\|clean\|distclean\|vala-clean\)/p'`" != "x" ]; then
+      make "$arg"
+    else
+      args2=("${args2[@]}" "$arg")
+    fi
+  done
+  args="${args2[@]}"
+
   target=/usr/local
+  [ "x$BUILDTYPE" == "xsystem" ] && target="/usr"
+
   arch2=$ARCH && [ "x${arch2:$[${#arch2}-2]}" == "x86" ] && arch2=x86
+  [ "x${pkg:$[${#pkg}-${#arch2}-1]}" == "x-$arch2" ] && pkg=${pkg%-$arch2}
+  [ ! -d $pkg-$arch2 ] && _extract $pkg.tar.* && mv $pkg $pkg-$arch2
+  [ -d $pkg-$arch2 ] && cd $pkg-$arch2
 
   CFLAGS="-O0 -ggdb3 $CFLAGS"
   CXXFLAGS="-O0 -ggdb3 $CXXFLAGS"
 
-  pkg="$1" && shift
-  [ $# -gt 0 ] && [ "x$1" == "xsystem" ] && target="/usr" && shift
-  [ "x${pkg:$[${#pkg}-${#arch2}-1]}" == "x-$arch2" ] && pkg=${pkg%-$arch2}
-  [ ! -d $pkg-$arch2 ] && _extract $pkg.tar.* && mv $pkg $pkg-$arch2
-  cd $pkg-$arch2
-  while [ "x$1" != "x" ]; do
-    if [ "x$(echo "$1" | sed -n '/\(uninstall\|clean\|distclean\|vala-clean\)/p')" != "x" ]; then
-      make "$1"
-      shift
-    else
-      break
-    fi
-  done
-  [[ ! -f configure && -f autogen.sh ]] && ./autogen.sh
-  echo CFLAGS=$CFLAGS CXXFLAGS=$CXXFLAGS LDFLAGS=$LDFLAGS \
-    ./configure \
-      --prefix=$target \
-      --libdir=$target/lib`[ ${arch2#*_} == "64" ] && echo 64` \
-      --sysconfdir=/etc \
-      --localstatedir=/var \
-      --build=$ARCH-slackware-linux-gnu \
-      $@
-  CFLAGS=$CFLAGS CXXFLAGS=$CXXFLAGS LDFLAGS=$LDFLAGS \
-    ./configure \
-      --prefix=$target \
-      --libdir=$target/lib`[ ${arch2#*_} == "64" ] && echo 64` \
-      --sysconfdir=/etc \
-      --localstatedir=/var \
-      --build=$ARCH-slackware-linux-gnu \
-      $@
+  if [ $CONFIG -eq 1 ]; then
+    [[ ! -f configure && -f autogen.sh ]] && ./autogen.sh
+    echo CFLAGS=$CFLAGS CXXFLAGS=$CXXFLAGS LDFLAGS=$LDFLAGS \
+      ./configure \
+        --prefix=$target \
+        --libdir=$target/lib`[ ${arch2#*_} == "64" ] && echo 64` \
+        --sysconfdir=/etc \
+        --localstatedir=/var \
+        --build=$ARCH-slackware-linux-gnu \
+        "${args[@]}"
+    CFLAGS=$CFLAGS CXXFLAGS=$CXXFLAGS LDFLAGS=$LDFLAGS \
+      ./configure \
+        --prefix=$target \
+        --libdir=$target/lib`[ ${arch2#*_} == "64" ] && echo 64` \
+        --sysconfdir=/etc \
+        --localstatedir=/var \
+        --build=$ARCH-slackware-linux-gnu \
+        "${args[@]}"
 
-  ret=$? && [ $ret -ne 0 ] && exit $ret
-  make -j 8 V=1
-  ret=$? && [ $ret -ne 0 ] && exit $ret
-  make install
-  ret=$? && [ $ret -ne 0 ] && exit $ret
-  ldconfig && ldconfig -p | grep -i ${pkg%%-*}
+    ret=$? && [ $ret -ne 0 ] && exit $ret
+  fi
+
+  if [ $BUILD -eq 1 ]; then
+    make -j 8 V=1
+    ret=$? && [ $ret -ne 0 ] && exit $ret
+  fi
+
+  if [ $BUILD -eq 1 ]; then
+    make install
+    ret=$? && [ $ret -ne 0 ] && exit $ret
+    ldconfig && ldconfig -p | grep -i ${pkg%%-*}
+  fi
 }
 
 function convert()
