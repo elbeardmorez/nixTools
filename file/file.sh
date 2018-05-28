@@ -5,6 +5,9 @@ TEST=0
 OPTION=edit
 EDITOR=vim
 IFSORG="$IFS"
+CHARSED='].[|.'
+CHARGREP='].[' # '[.' is invalid syntax to sed
+RENAME_OPTIONS="lower|spaces|underscores"
 
 function help
 {
@@ -12,6 +15,19 @@ function help
   echo -e "\nwhere 'option':\t supported values are 'edit', 'dump', 'grep'"
   echo -e "\n\t'file':\tfile (partial) name to search for via 'search.sh'"
 }
+
+function fnRegexp()
+{
+  #escape reserved characters
+  sExp="$1" && shift
+  sType= && [ $# -gt 0 ] && sType="$1"
+  case "$sType" in
+    "grep") sExp=$(echo "$sExp" | sed 's/\(['$CHARGREP']\)/\\\1/g') ;;
+    *) sExp=$(echo "$sExp" | sed 's/\(['$CHARSED']\)/\\\1/g') ;;
+  esac
+  echo "$sExp"
+}
+
 if [ $# -lt 1 ]; then
   help
   exit 1
@@ -99,6 +115,28 @@ if [ $result -eq 0 ]; then
                   exit 0
                   ;;
                 *) echo -n " " 1>&2 ;;
+              esac
+            done
+            ;;
+          "rename")
+            [ $# -gt 0 ] && FILTER="$1" && shift
+            file="$(echo "$file" | grep -vP '(^\.{1,2}$|'"$(fnRegexp "$FILTER" grep)"'\/$)')"
+            [ -z "$file" ] && continue
+            [ $# -gt 0 ] && RENAME_OPTIONS="$1" && shift
+            IFS='|, '; options=($RENAME_OPTIONS); IFS=$IFSORG
+            for option in "${options[@]}"; do
+              case "$option" in
+                "lower"|"upper"|"spaces"|"underscores")
+                  dir="$(dirname "$file")/"
+                  file=${file##*/}
+                  case "$option" in
+                    "lower"|"upper") file2="$(echo $file | awk -F'\n' '{print to'$option'($1)}')" ;;
+                    "spaces") file2="$(echo $file | awk -F'\n' '{gsub("[[:space:]]","."); print}')" ;;
+                    "underscores") file2="$(echo $file | awk -F'\n' '{gsub("_","."); print}')" ;;
+                  esac
+                  if [ ! -e "$dir$file2" ]; then $cmdmv -i "$dir$file" "$dir$file2" 2>/dev/null; fi
+                  ;; 
+                *) echo "[info] unsupported rename option '$option'" ;;
               esac
             done
             ;;
