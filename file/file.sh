@@ -7,7 +7,7 @@ EDITOR=vim
 IFSORG="$IFS"
 CHARSED='].[|.'
 CHARGREP='].[' # '[.' is invalid syntax to sed
-RENAME_OPTIONS="lower|spaces|underscores"
+RENAME_OPTIONS="lower|spaces|underscores|dashes"
 
 function help
 {
@@ -126,13 +126,14 @@ if [ $result -eq 0 ]; then
             IFS='|, '; options=($RENAME_OPTIONS); IFS=$IFSORG
             for option in "${options[@]}"; do
               case "$option" in
-                "lower"|"upper"|"spaces"|"underscores")
+                "lower"|"upper"|"spaces"|"underscores"|"dashes")
                   dir="$(dirname "$file")/"
                   file=${file##*/}
                   case "$option" in
                     "lower"|"upper") file2="$(echo $file | awk -F'\n' '{print to'$option'($1)}')" ;;
                     "spaces") file2="$(echo $file | awk -F'\n' '{gsub("[[:space:]]","."); print}')" ;;
                     "underscores") file2="$(echo $file | awk -F'\n' '{gsub("_","."); print}')" ;;
+                    "dashes") file2="$(echo $file | awk -F'\n' '{gsub("-","."); print}')" ;;
                   esac
                   if [ ! -e "$dir$file2" ]; then $cmdmv -i "$dir$file" "$dir$file2" 2>/dev/null; fi
                   ;; 
