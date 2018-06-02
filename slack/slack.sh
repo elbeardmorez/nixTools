@@ -56,7 +56,7 @@ function sSearch()
   if [ ! -f $PKGLIST ]; then slackpkg update; fi
   if [ ! $? -eq 0 ]; then return 1; fi
 
-  sed -n '/^PACKAGE NAME:[ ]*.*'"$1"'.*/{N;s/^PACKAGE NAME:[ ]*\(.*'"$1"'[^-]*\)-\([0-9._]\+\)\-.*x86.*-.*LOCATION:[ ]*\.\/.*\/\([a-z]\).*/[\3] \1 \2/ip}' /var/lib/slackpkg/PACKAGES.TXT
+  sed -n '/^PACKAGE NAME:[ ]*.*'"$1"'.*/{N;s/^PACKAGE NAME:[ ]*\(.*'"$1"'[^-]*\)-\([0-9._]\+[a-z]\?\)\-.*x86.*-.*LOCATION:[ ]*\.\/.*\/\([a-z]\).*/[\3] \1 \2/ip}' /var/lib/slackpkg/PACKAGES.TXT
 
 }
 
