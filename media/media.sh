@@ -1971,8 +1971,14 @@ fnRemux()
 
   [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^\([0-9]\+\|auto\)$/p'`" != "x" ] && width=$1 && shift
   [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^\([0-9]\+\|auto\)$/p'`" != "x" ] && height=$1 && shift
-  [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^[0-9]\+[kK]$/p'`" != "x" ] && vbr=$1 && shift
-  [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^[0-9]\+[kK]$/p'`" != "x" ] && abr=$1 && shift
+  if [[ $# -gt 0 && "x`echo $1 | sed -n '/^\([0-9]\+[kK]\|auto\|copy\)$/p'`" != "x" ]]; then
+     [ "x$1" != "xauto" ] && vbr=$1
+     shift
+  fi
+  if [[ $# -gt 0 && "x`echo $1 | sed -n '/^\([0-9]\+[kK]\|auto\|copy\)$/p'`" != "x" ]]; then
+    [ "x$1" != "xauto" ] && abr=$1
+    shift
+  fi
 
   passes=1
   [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^[1-2]$/p'`" != "x" ] && passes=$1 && shift
@@ -1985,8 +1991,10 @@ fnRemux()
   case $profile in
      "2p6ch")
        vcdc=hevc
+       [ "x$vbr" == "xcopy" ] && vcdc=copy
        vbr=${vbr:-1750k}
        acdc=aac
+       [ "x$abr" == "xcopy" ] && acdc=copy
        abr=${abr:-320k}
        channels=6
        preset=medium
@@ -1994,8 +2002,10 @@ fnRemux()
        ;;
      "1p2ch")
        vcdc=hevc
+       [ "x$vbr" == "xcopy" ] && vcdc=copy
        vbr=${vbr:-1250k}
        acdc=aac
+       [ "x$abr" == "xcopy" ] && acdc=copy
        abr=${abr:-256k}
        channels=2
        af="aresample=matrix_encoding=dplii"
@@ -2017,18 +2027,27 @@ fnRemux()
 
   case $passes in
     1)
-      cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset $preset -vcodec $vcdc -b:v $vbr -vf crop=$crop,scale=$scale -threads:0 9 -map 0:a:$astream -acodec $acdc -b:a $abr -ac $channels `[ "x$af" != "x" ] && echo -af $af` -f ${target##*.} file:$target"
+      cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset $preset -vcodec $vcdc"
+      [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $vbr -vf crop=$crop,scale=$scale -threads:0 9 -map 0:a:$astream -acodec $acdc"
+      [ "x$acdc" != "xcopy" ] && cmd="$cmd -b:a $abr -ac $channels `[ "x$af" != "x" ] && echo -af $af`"
+      cmd="$cmd -f ${target##*.} file:$target"
       echo "[$profile (pass 1)] $cmd"
       exec $cmd
       [ $? -eq 0 ] && echo "# pass complete" || (echo "# pass failed" && exit 1)
       ;;
     2)
-      cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset veryfast -vf crop=$crop,scale=$scale -b:v $vBitrate -vcodec $vcdc -pass 1 -threads:0 9 -f ${target##*.} /dev/null"
+      cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset veryfast -vcodec $vcdc"
+      [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $vBitrate -vf crop=$crop,scale=$scale"
+      cmd="$cmd -pass 1 -threads:0 9 -f ${target##*.} /dev/null"
       echo "[$profile (pass 1)] $cmd"
       exec $cmd
       [ $? -eq 0 ] && echo "# pass 1 complete" || (echo "# pass 1 failed" && exit 1)
 
-      cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset veryfast -vf crop=$crop,scale=$scale -b:v $vBitrate -vcodec $vcdc -pass 2 -map 0:a:$astream -acodec $acdc -ab $aBitrate -ac $channels `[ "x$af" != "x" ] && echo -af $af` -threads:0 9 -f ${target##*.} file:$target"
+      cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset veryfast -vcodec $vcdc"
+      [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $vBitrate -vf crop=$crop,scale=$scale"
+      cmd="$cmd -pass 2 -map 0:a:$astream -acodec $acdc"
+      [ "x$acdc" != "xcopy" ] && cmd="$cmd -ab $aBitrate -ac $channels `[ "x$af" != "x" ] && echo -af $af`"
+      cmd="$cmd -threads:0 9 -f ${target##*.} file:$target"
       echo "[$profile (pass 1)] $cmd"
       exec $cmd
       [ $? -eq 0 ] && echo "# pass 2 complete" || (echo "# pass 2 failed" && exit 1)
