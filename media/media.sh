@@ -2003,7 +2003,7 @@ fnRemux()
      "1p2ch")
        vcdc=hevc
        [ "x$vbr" == "xcopy" ] && vcdc=copy
-       vbr=${vbr:-1250k}
+       vbr=${vbr:-1500k}
        acdc=aac
        [ "x$abr" == "xcopy" ] && acdc=copy
        abr=${abr:-256k}
