@@ -2053,14 +2053,14 @@ fnRemux()
       [ $? -eq 0 ] && echo "# pass complete" || (echo "# pass failed" && exit 1)
       ;;
     2)
-      cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset veryfast -vcodec $vcdc"
+      cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset $preset -vcodec $vcdc"
       [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $vBitrate -vf crop=$crop`[ "x$scale" != "x" ] && echo ,scale=$scale`"
       cmd="$cmd -pass 1 -threads:0 9 -f ${target##*.} /dev/null"
       echo "[$profile (pass 1)] $cmd"
       exec $cmd
       [ $? -eq 0 ] && echo "# pass 1 complete" || (echo "# pass 1 failed" && exit 1)
 
-      cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset veryfast -vcodec $vcdc"
+      cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset $preset -vcodec $vcdc"
       [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $vBitrate -vf crop=$crop`[ "x$scale" != "x" ] && echo ,scale=$scale`"
       cmd="$cmd -pass 2 -map 0:a:$astream -acodec $acdc"
       [ "x$acdc" != "xcopy" ] && cmd="$cmd -ab $aBitrate -ac $channels `[ "x$af" != "x" ] && echo -af $af`"
