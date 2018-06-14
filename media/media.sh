@@ -1967,7 +1967,7 @@ fnRemux()
   target=${source%.*}.remux.mp4
 
   profile=2p6ch
-  [ $# -gt 0 ] && [[ "x$1" == "x2p6ch" || "x$1" == "x1p2ch" ]] && profile=$1 && shift
+  [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^\(2p6ch[0-9]\?\|1p2ch[0-9]\?\)$/p'`" != "x" ] && profile=$1 && shift
 
   [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^\([0-9]\+\|auto\)$/p'`" != "x" ] && width=$1 && shift
   [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^\([0-9]\+\|auto\)$/p'`" != "x" ] && height=$1 && shift
@@ -1988,8 +1988,9 @@ fnRemux()
   astream=0
   [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^[0-9]$/p'`" != "x" ] && astream=$1 && shift
 
+  # profile base
   case $profile in
-     "2p6ch")
+     2p6ch*)
        vcdc=hevc
        [ "x$vbr" == "xcopy" ] && vcdc=copy
        vbr=${vbr:-1750k}
@@ -1998,9 +1999,10 @@ fnRemux()
        abr=${abr:-320k}
        channels=6
        preset=medium
+       defwidth=auto
        defheight=720
        ;;
-     "1p2ch")
+     1p2ch*)
        vcdc=hevc
        [ "x$vbr" == "xcopy" ] && vcdc=copy
        vbr=${vbr:-1500k}
@@ -2010,6 +2012,7 @@ fnRemux()
        channels=2
        af="aresample=matrix_encoding=dplii"
        preset=veryfast
+       defheight=auto
        defwidth=1280
        ;;
      *)
@@ -2018,17 +2021,31 @@ fnRemux()
        ;;
   esac
 
-  dimensions=`fnFileInfo 3 $source | cut -d'|' -f 3`
+  # profile tweaks
+  case $profile in
+     "2p6ch2")
+       defheight=auto
+       ;;
+     "1p2ch2")
+       defwidth=auto
+       ;;
+  esac
 
-  [[ "x$height" == "x" && "x$width" == "x" ]] && height=$defheight && width=$defwidth
-  [[ "x$height" == "x" || "x$height" == "xauto" ]] && height=`fnCalcDimension $dimensions height ${width:-$defwidth}`
-  [[ "x$width" == "x" || "x$width" == "xauto" ]] && width=`fnCalcDimension $dimensions width ${height:-$defheight}`
-  scale="$width:$height"
+
+  scale=""
+  if [[ "x$height" != "x" || "x$width" != "x" ]] ||
+     [[ "x$defheight" != "xauto" || "x$defwidth" != "xauto" ]]; then
+    dimensions=`fnFileInfo 3 $source | cut -d'|' -f 3`
+    [[ "x$height" == "x" && "x$width" == "x" ]] && height=$defheight && width=$defwidth
+    [[ "x$height" == "x" || "x$height" == "xauto" ]] && height=`fnCalcDimension $dimensions height ${width:-$defwidth}`
+    [[ "x$width" == "x" || "x$width" == "xauto" ]] && width=`fnCalcDimension $dimensions width ${height:-$defheight}`
+    scale="$width:$height"
+  fi
 
   case $passes in
     1)
       cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset $preset -vcodec $vcdc"
-      [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $vbr -vf crop=$crop,scale=$scale -threads:0 9 -map 0:a:$astream -acodec $acdc"
+      [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $vbr -vf crop=$crop`[ "x$scale" != "x" ] && echo ,scale=$scale` -threads:0 9 -map 0:a:$astream -acodec $acdc"
       [ "x$acdc" != "xcopy" ] && cmd="$cmd -b:a $abr -ac $channels `[ "x$af" != "x" ] && echo -af $af`"
       cmd="$cmd -f ${target##*.} file:$target"
       echo "[$profile (pass 1)] $cmd"
@@ -2037,14 +2054,14 @@ fnRemux()
       ;;
     2)
       cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset veryfast -vcodec $vcdc"
-      [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $vBitrate -vf crop=$crop,scale=$scale"
+      [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $vBitrate -vf crop=$crop`[ "x$scale" != "x" ] && echo ,scale=$scale`"
       cmd="$cmd -pass 1 -threads:0 9 -f ${target##*.} /dev/null"
       echo "[$profile (pass 1)] $cmd"
       exec $cmd
       [ $? -eq 0 ] && echo "# pass 1 complete" || (echo "# pass 1 failed" && exit 1)
 
       cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset veryfast -vcodec $vcdc"
-      [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $vBitrate -vf crop=$crop,scale=$scale"
+      [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $vBitrate -vf crop=$crop`[ "x$scale" != "x" ] && echo ,scale=$scale`"
       cmd="$cmd -pass 2 -map 0:a:$astream -acodec $acdc"
       [ "x$acdc" != "xcopy" ] && cmd="$cmd -ab $aBitrate -ac $channels `[ "x$af" != "x" ] && echo -af $af`"
       cmd="$cmd -threads:0 9 -f ${target##*.} file:$target"
