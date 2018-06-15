@@ -1947,9 +1947,11 @@ fnCalcDimension()
   scaled_dimension=`math_ $target_dimension_other/$original_dimension_other*$original_dimension 0`
 
   int=0
+  inc=1
+  [ `echo "scale=0; $scaled_dimension % 8 < 4" | bc` -eq ] && inc=-1
   while [ $int -ne 1 ]; do
-     divisor=`math_ $scaled_dimension/4 2`
-     [ "x${divisor##*.}" == "x00" ] && int=1 || scaled_dimension=$[ $scaled_dimension + 1 ]
+     divisor=`math_ $scaled_dimension/8 2`
+     [ "x${divisor##*.}" == "x00" ] && int=1 || scaled_dimension=$[ $scaled_dimension + $inc ]
   done
   echo $scaled_dimension
 }
