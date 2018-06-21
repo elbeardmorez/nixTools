@@ -42,7 +42,7 @@ function sSearch()
         echo "no package found" 1>&2
         return 1
       else
-        echo $results | sed -n 's/.*\.\/\([a-zA-Z]\)\/[^ ]*\/\(.*\)-\([^ ]*\)\.tar.\(xz\|gz\).*/[\1] \2 \3/p'
+        echo $results | sed -n 's/.*\.\/\([a-zA-Z]\+\)\/[^ ]*\/\(.*\)-\([^ ]*\)\.tar.\(xz\|gz\).*/[\1] \2 \3/p'
         return
       fi
     else
@@ -67,7 +67,7 @@ function sSearch()
         echo "no package found" 1>&2
         return 1
       else
-        echo $results | sed -n 's/.*\.\/\([a-zA-Z]\)\/\([^-]*\)-\([^-]*\)-.*\.t\(xz\|gz\).*/[\1] \2 \3/p'
+        echo $results | sed -n 's/.*\.\/\([a-zA-Z]\+\)\/\([^-]*\)-\([^-]*\)-.*\.t\(xz\|gz\).*/[\1] \2 \3/p'
         return
       fi
     else
@@ -117,7 +117,7 @@ function sDownload()
 
   for PKG in "${PKGS[@]}"; do
     PKG=(`echo $PKG`)
-    type=${PKG[0]} && type=${type:1:1}
+    type=${PKG[0]} && type=${type:1:$[${#type} - 2]}
     pkg=${PKG[1]} && [ "x$pkg" == "x" ] && return 1
     version=${PKG[2]}
 
