@@ -36,7 +36,6 @@ function sSearch()
 
     # search source iso
     SOURCE=/mnt/iso/slackware-$REPOSOURCE-source/source
-    SOURCEPKG=/mnt/iso/slackware$ARCHSUFFIX-$REPOSOURCE/slackware
     if [ -d $SOURCE ]; then
       cd $SOURCE
       results=`find . -name "*$search*z" | grep "/.*$search.*/"`
@@ -51,6 +50,32 @@ function sSearch()
     else
       echo "invalid source location: '$SOURCE'" 1>&2
     fi
+
+    # local sample package
+
+    ## input
+    ## ./l/giflib-5.1.1-x86_64-1.txz
+
+    ## output
+    ## [l] giflib 5.1.1
+
+    # search package iso
+    SOURCEPKG=/mnt/iso/slackware$ARCHSUFFIX-$REPOSOURCE/slackware$ARCHSUFFIX
+    if [ -d $SOURCEPKG ]; then
+      cd $SOURCEPKG
+      results=`find . -name "*$search*z"`
+      cd - 2>&1 > /dev/null
+      if [ "x$results" == "x" ]; then
+        echo "no package found" 1>&2
+        return 1
+      else
+        echo $results | sed -n 's/.*\.\/\([a-zA-Z]\)\/\([^-]*\)-\([^-]*\)-.*\.t\(xz\|gz\).*/[\1] \2 \3/p'
+        return
+      fi
+    else
+      echo "invalid package location: '$SOURCEPKG'" 1>&2
+    fi
+
   else
     # remote sample
 
