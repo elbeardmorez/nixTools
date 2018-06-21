@@ -24,40 +24,49 @@ function sSearch()
 {
   PKGLIST=/var/lib/slackpkg/PACKAGES.TXT
 
-  #local
-
-  #sample
-  #./n/cyrus-sasl/cyrus-sasl-2.1.26-null-crypt.patch.gz ./n/cyrus-sasl/cyrus-sasl-2.1.26-size_t.patch.gz ./n/cyrus-sasl/cyrus-sasl-2.1.26.tar.xz
-
+  search="$1" && shift
   if [ "$REPOSOURCE" != "current" ]; then
+    # local sample source
+
+    ## input
+    ##./n/cyrus-sasl/cyrus-sasl-2.1.26-null-crypt.patch.gz ./n/cyrus-sasl/cyrus-sasl-2.1.26-size_t.patch.gz ./n/cyrus-sasl/cyrus-sasl-2.1.26.tar.xz
+
+    ## output
+    ##[n] cyrus-sasl 2.1.26
+
+    # search source iso
     SOURCE=/mnt/iso/slackware-$REPOSOURCE-source/source
     SOURCEPKG=/mnt/iso/slackware$ARCHSUFFIX-$REPOSOURCE/slackware
-    [ ! -d $SOURCE ] &&
-      echo "invalid source location: '$SOURCE'" && exit 1
-    cd $SOURCE
-    results=`find . -name "*$1*z" | grep "/.*$1.*/"`
-    cd - 2>&1 > /dev/null
-    if [ "x$results" == "x" ]; then
-      echo "no package found" 1>&2
-      return 1
+    if [ -d $SOURCE ]; then
+      cd $SOURCE
+      results=`find . -name "*$search*z" | grep "/.*$search.*/"`
+      cd - 2>&1 > /dev/null
+      if [ "x$results" == "x" ]; then
+        echo "no package found" 1>&2
+        return 1
+      else
+        echo $results | sed -n 's/.*\.\/\([a-zA-Z]\)\/[^ ]*\/\(.*\)-\([^ ]*\)\.tar.\(xz\|gz\).*/[\1] \2 \3/p'
+        return
+      fi
     else
-      echo $results | sed -n 's/.*\.\/\([a-zA-Z]\)\/[^ ]*\/\(.*\)-\([^ ]*\)\.tar.\(xz\|gz\).*/[\1] \2 \3/p'
-      return
+      echo "invalid source location: '$SOURCE'" 1>&2
     fi
+  else
+    # remote sample
+
+    ## input
+    ## PACKAGE NAME:  ConsoleKit2-1.0.0-x86_64-3.txz
+    ## PACKAGE LOCATION:  ./slackware64/l
+
+    ## output
+    ## [l] ConsoleKit2 1.0.0
+
+    #ensure list
+    if [ ! -f $PKGLIST ]; then slackpkg update; fi
+    if [ ! $? -eq 0 ]; then return 1; fi
+
+    sed -n '/^PACKAGE NAME:[ ]*.*'"$search"'.*/{N;s/^PACKAGE NAME:[ ]*\(.*'"$search"'[^-]*\)-\([0-9._]\+[a-z]\?\)\-.*x86.*-.*LOCATION:[ ]*\.\/.*\/\([a-z]\).*/[\3] \1 \2/ip}' /var/lib/slackpkg/PACKAGES.TXT
   fi
-
-  #remote
-
-  #sample
-  #PACKAGE NAME:  ConsoleKit2-1.0.0-x86_64-3.txz
-  #PACKAGE LOCATION:  ./slackware64/l
-
-  #ensure list
-  if [ ! -f $PKGLIST ]; then slackpkg update; fi
-  if [ ! $? -eq 0 ]; then return 1; fi
-
-  sed -n '/^PACKAGE NAME:[ ]*.*'"$1"'.*/{N;s/^PACKAGE NAME:[ ]*\(.*'"$1"'[^-]*\)-\([0-9._]\+[a-z]\?\)\-.*x86.*-.*LOCATION:[ ]*\.\/.*\/\([a-z]\).*/[\3] \1 \2/ip}' /var/lib/slackpkg/PACKAGES.TXT
-
 }
 
 function sDownload()
