@@ -42,7 +42,7 @@ function sSearch()
         echo "no package found" 1>&2
         return 1
       else
-        echo $results | sed -n 's/.*\.\/\([a-zA-Z]\+\)\/[^ ]*\/\(.*\)-\([^ ]*\)\.tar.\(xz\|gz\).*/[\1] \2 \3/p'
+        echo $results | sed -n 's/.*\.\/\([a-zA-Z]\+\)\/[^ ]*\/\([^ ]*\)-\([0-9]\+\.[0-9.]\+[.0-9]*[a-zA-Z]\?\)\([_-][0-9]*\)\?\.tar.\(xz\|gz\).*/[\1] \2 \3/p'
         return
       fi
     else
@@ -67,7 +67,7 @@ function sSearch()
         echo "no package found" 1>&2
         return 1
       else
-        echo $results | sed -n 's/.*\.\/\([a-zA-Z]\+\)\/\([^-]*\)-\([^-]*\)-.*\.t\(xz\|gz\).*/[\1] \2 \3/p'
+        echo $results | sed -n 's/.*\.\/\([a-zA-Z]\+\)\/\([^ ]*\)-\([0-9]\+\.[0-9.]\+[.0-9]*[a-zA-Z]\?\)\([_-][0-9]*\)\?.*\.t\(xz\|gz\).*/[\1] \2 \3/p'
         return
       fi
     else
@@ -157,7 +157,7 @@ function sDownload()
         SOURCE=/mnt/iso/slackware-$REPOSOURCE-source/source
         SOURCEPKG=/mnt/iso/slackware$ARCHSUFFIX-$REPOSOURCE/slackware$ARCHSUFFIX
         cp -a $SOURCE/$type/$pkg/ ./$pkg
-        cp $SOURCEPKG/$type/$pkg-$version-*z ./$pkg/
+        cp $SOURCEPKG/$type/$pkg-$version*z ./$pkg/
         return
       else
         #remote
