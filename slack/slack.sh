@@ -127,7 +127,7 @@ function sDownload()
       echo "found package: $pkg, version: $version, type: [$type]" 1>&2
 
     result=
-    echo -n "[user] download source for package: '$pkg'? [y/n/c] "
+    echo -n "[user] download package / source: '$pkg'? [y/n/c] "
 
     cancel=0
     download=1
