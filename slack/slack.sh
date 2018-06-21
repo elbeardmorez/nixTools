@@ -85,8 +85,8 @@ function sSearch()
     ## [l] ConsoleKit2 1.0.0
 
     #ensure list
-    if [ ! -f $PKGLISTLOCAL ]; then slackpkg update; fi
-    if [ ! $? -eq 0 ]; then return 1; fi
+    [ ! -f $PKGLISTLOCAL ] && slackpkg update
+    [ ! $? ] && return 1
 
     sed -n '/^PACKAGE NAME:[ ]*.*'"$search"'.*/{N;s/^PACKAGE NAME:[ ]*\(.*'"$search"'[^-]*\)-\([0-9._]\+[a-z]\?\)\-.*x86.*-.*LOCATION:[ ]*\.\/.*\/\([a-z]\).*/[\3] \1 \2/ip}' $PKGLISTLOCAL
   fi
