@@ -33,7 +33,7 @@ function sSearch()
     SOURCE=/mnt/iso/slackware-$REPOSOURCE-source/source
     SOURCEPKG=/mnt/iso/slackware$ARCHSUFFIX-$REPOSOURCE/slackware
     [ ! -d $SOURCE ] &&
-      echo "invalid source location: '$source'" && exit 1
+      echo "invalid source location: '$SOURCE'" && exit 1
     cd $SOURCE
     results=`find . -name "*$1*z" | grep "/.*$1.*/"`
     cd - 2>&1 > /dev/null
