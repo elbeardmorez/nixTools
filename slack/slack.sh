@@ -13,7 +13,7 @@ URLSLACKBUILDS=http://slackbuilds.org/slackbuilds/
 REPOSOURCE=${REPOSOURCE:-current}
 ARCH2=${ARCH:-"$(uname -m)"} && [ ${ARCH2:$[${#ARCH2}-2]:2} == 64 ] && ARCHSUFFIX=64 && ARCH2=_x86_64
 URLSOURCE=https://mirror.slackbuilds.org/slackware/slackware$ARCHSUFFIX-$REPOSOURCE/source
-
+PKGLISTLOCAL=/var/lib/slackpkg/PACKAGES.TXT
 
 function help()
 {
@@ -22,8 +22,6 @@ function help()
 
 function sSearch()
 {
-  PKGLIST=/var/lib/slackpkg/PACKAGES.TXT
-
   search="$1" && shift
   if [ "$REPOSOURCE" != "current" ]; then
     # local sample source
@@ -87,10 +85,10 @@ function sSearch()
     ## [l] ConsoleKit2 1.0.0
 
     #ensure list
-    if [ ! -f $PKGLIST ]; then slackpkg update; fi
+    if [ ! -f $PKGLISTLOCAL ]; then slackpkg update; fi
     if [ ! $? -eq 0 ]; then return 1; fi
 
-    sed -n '/^PACKAGE NAME:[ ]*.*'"$search"'.*/{N;s/^PACKAGE NAME:[ ]*\(.*'"$search"'[^-]*\)-\([0-9._]\+[a-z]\?\)\-.*x86.*-.*LOCATION:[ ]*\.\/.*\/\([a-z]\).*/[\3] \1 \2/ip}' /var/lib/slackpkg/PACKAGES.TXT
+    sed -n '/^PACKAGE NAME:[ ]*.*'"$search"'.*/{N;s/^PACKAGE NAME:[ ]*\(.*'"$search"'[^-]*\)-\([0-9._]\+[a-z]\?\)\-.*x86.*-.*LOCATION:[ ]*\.\/.*\/\([a-z]\).*/[\3] \1 \2/ip}' $PKGLISTLOCAL
   fi
 }
 
@@ -163,10 +161,8 @@ function sDownload()
         return
       else
         #remote
-        PKGLIST=/var/lib/slackpkg/PACKAGES.TXT
-
         if [ $DEBUG -eq 1 ]; then echo -e "PKG: \n$pkg"; fi
-        PKGINFO=$(grep -B1 -A3 "^PACKAGE NAME:[ ]*$pkg-[0-9]\+.*" "$PKGLIST")
+        PKGINFO=$(grep -B1 -A3 "^PACKAGE NAME:[ ]*$pkg-[0-9]\+.*" "$PKGLISTLOCAL")
         if [ $DEBUG -eq 1 ]; then echo -e "PKGINFO: \n$PKGINFO"; fi
         PKG=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)/\1/p')
         PKGNAME=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)-[0-9]\+.*\-.*x86.*-.*/\1/p')
