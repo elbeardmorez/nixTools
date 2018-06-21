@@ -38,7 +38,7 @@ function sSearch()
     SOURCE=/mnt/iso/slackware-$REPOSOURCE-source/source
     if [ -d $SOURCE ]; then
       cd $SOURCE
-      results=`find . -name "*$search*z" | grep "/.*$search.*/"`
+      results=`find . -iname "*$search*z" | grep "/.*$search.*/"`
       cd - 2>&1 > /dev/null
       if [ "x$results" == "x" ]; then
         echo "no package found" 1>&2
@@ -63,7 +63,7 @@ function sSearch()
     SOURCEPKG=/mnt/iso/slackware$ARCHSUFFIX-$REPOSOURCE/slackware$ARCHSUFFIX
     if [ -d $SOURCEPKG ]; then
       cd $SOURCEPKG
-      results=`find . -name "*$search*z"`
+      results=`find . -iname "*$search*z"`
       cd - 2>&1 > /dev/null
       if [ "x$results" == "x" ]; then
         echo "no package found" 1>&2
