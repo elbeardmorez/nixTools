@@ -2140,8 +2140,8 @@ fnRip() {
     for t in ${audio[@]}; do
       idx=${t%|*}
       lang=${t#*|}
-      mplayer -dvd-device . dvd://1 -aid 128 -dumpaudio -dumpfile "$target".ac3 2>/dev/null 1>&2
       echo "# extracting audio track $idx: $lang"
+      mplayer -dvd-device . dvd://1 -aid 128 -dumpaudio -dumpfile "$target".ac3 2>/dev/null 1>&2
     done
   fi
   if [ $SUBS -gt 0 ]; then
