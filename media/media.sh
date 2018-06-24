@@ -68,6 +68,7 @@ function help()
   echo -e "\tedit  : demux / remux routine"
   echo -e "\tnames  : reconsile and fix-up set of file names from a file containing lines of '#|name' templates"
   echo -e "\tplaylist  : interactively cycle a list of filenames"
+  echo -e "\trip  : extract streams from dvd media"
   echo ""
   echo "with TARGET:  a target file / directory or a partial file name to search for"
   echo ""
@@ -2125,6 +2126,42 @@ fnNames()
   fi
 }
 
+fnRip() {
+  target="${1:-title}"
+  VIDEO=${VIDEO:-1}
+  AUDIO=${AUDIO:-1}
+  SUBS=${SUBS:-1}
+  if [ $VIDEO -eq 1 ]; then
+    echo "# extracting video track 0"
+    mplayer -dvd-device . dvd://1 -dumpvideo -dumpfile "$target".vob
+  fi
+  if [ $AUDIO -eq 1 ]; then
+    audio=(`$CMDINFOMPLAYER -dvd-device . dvd://1 2>/dev/null | grep ID_AID | tr _= '|' | cut -d'|' -f 3,5`)
+    for t in ${audio[@]}; do
+      idx=${t%|*}
+      lang=${t#*|}
+      mplayer -dvd-device . dvd://1 -aid 128 -dumpaudio -dumpfile "$target".ac3 2>/dev/null 1>&2
+      echo "# extracting audio track $idx: $lang"
+    done
+  fi
+  if [ $SUBS -gt 0 ]; then
+    subs=(`$CMDINFOMPLAYER -dvd-device . dvd://1 2>/dev/null | grep ID_SID | tr _= '|' | cut -d'|' -f 3,5 | grep 'en'`)
+    stargetidx=0
+    for t in ${subs[@]}; do
+      idx=${t%|*}
+      lang=${t#*|}
+      echo "# extracting subtitle track $idx: $lang"
+      starget="$target"
+      if [ $SUBS -gt 1 ]; then
+        stargetidx=0
+        starget="$target.$lang$idx"
+      fi
+      mencoder -dvd-device . dvd://1 -nosound -ovc frameno -o /dev/null -sid $idx -vobsubout $starget -vobsuboutindex $stargetidx 2>/dev/null 1>&2
+      stargetidx=$[$stargetidx + 1]
+    done
+  fi
+}
+
 fnTestFiles()
 {
   types=("single" "set")
@@ -2177,6 +2214,7 @@ if [ "x$(echo $1 | sed -n 's/^\('\
 'syn\|sync\|'\
 'e\|edit\|'\
 'n\|names\|'\
+'rip\|'\
 'test'\
 '\)$/\1/p')" != "x" ]; then
   OPTION=$1
@@ -2202,6 +2240,7 @@ case $OPTION in
   "e"|"edit") fnEdit "${args[@]}" ;;
   "rmx"|"remux") fnRemux "${args[@]}" ;;
   "n"|"names") fnNames "${args[@]}" ;;
+  "rip") fnRip "${args[@]}" ;;
   "test")
     #custom functionality tests
     [ ! $# -gt 0 ] && echo "[user] no function name or function args given!" && exit 1
