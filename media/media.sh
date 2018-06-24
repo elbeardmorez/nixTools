@@ -1324,12 +1324,18 @@ fnStructure()
   IFS=$IFSORG
   [ ${#sFiles} -eq 0 ] && exit 1
   [ $DEBUG -ge 1 ] && echo "sFiles: '${sFiles[@]}'" 1>&2
-#    sTitle=$(for f in "${sFiles[@]}"; do [ ! "x$(echo $f | grep -iP .*\.$VIDEXT\$)" == "x" ] && echo "${f##*/}" && break; done)
-  #count video files and set sample title
+  # count type files
+  # set type template file
+  # set title
   l=0
+  sTemplateFile=""
+  sTitle=""
   for f in "${sFiles[@]}"; do
-    if [ "x$(echo $f | grep -iP ".*\.($VIDEXT)\$")" != "x" ]; then
-      [ $l -eq 0 ] && sTitle="$f"
+    if [ "x$(echo "$f" | grep -iP ".*\.($VIDEXT)\$")" != "x" ]; then
+      #set video template file
+      [ $l -eq 0 ] && sTemplateFile="$f"
+      #set title to video file iff it contains the search string
+      [[ "x$sTitle" == "x" && "x`echo "$f" | grep -i "$sSearch"`" != "x" ]] && sTitle="${f%.*}"
       l=$[$l+1]
     fi
   done
@@ -1337,17 +1343,22 @@ fnStructure()
   if [ $lFiles -lt 1 ]; then
     l=0
     for f in "${sFiles[@]}"; do
-      if [ "x$(echo $f | grep -iP ".*\.($AUDEXT)\$")" != "x" ]; then
-        [ $l -eq 0 ] && sTitle="$f"
+      if [ "x$(echo "$f" | grep -iP ".*\.($AUDEXT)\$")" != "x" ]; then
+        #set audio template file
+        [ $l -eq 0 ] && sTemplateFile="$f"
+        #set title to audio file iff it contains the search string
+        [[ "x$sTitle" == "x" && "x`echo "$f" | grep -i "$sSearch"`" != "x" ]] && sTitle="${f%.*}"
         l=$[$l+1]
       fi
     done
     lFiles=$l
   fi
+  [ "x$sTitle" == "x" ] && sTitle="$sSearch"
+
   [ $lFiles -lt 1 ] && echo "[error] no recognised video or audio extention for any of the selected files" 2>&1 && exit 1
   # *IMPLEMENT: potential for mismatch of file information here. dependence on file list order is wrong
 
-  sTitleInfo="[$(fnFileInfo "$sTitle")]" # use first video file found as template
+  sTitleInfo="[$(fnFileInfo "$sTemplateFile")]" # use first video file found as template
 #  sTitleInfo="[$(fnFileInfo /dev/null)]" # use default template
   sTitle=$(echo "$sTitle" | sed 's/'"$(fnRegexp "$sTitleInfo" "sed")"'//')
   sTitlePath="${sTitle%/*}/"
@@ -1355,7 +1366,7 @@ fnStructure()
   sTitle="$(echo ${sTitle##*/} | awk '{gsub(" ",".",$0); print tolower($0)}')"
 
   sMaskDefault=""
-  IFS=$'\|'; sMask=($(fnFileMultiMask "$sTitle")); IFS=$IFSORG
+  IFS=$'\|'; sMask=(`fnFileMultiMask "$sTitle"`); IFS=$IFSORG
 
   [ $sMask ] && sMaskDefault=${sMask[0]}
 
@@ -1364,7 +1375,6 @@ fnStructure()
 #  else
     #clear everything between either delimiters ']','[', or delimiter '[' and end
   fi
-  sTitle="${sTitle%.*}" # remove extension
   [ $sMask ] && sTitle=$(echo "$sTitle" | sed 's/\[\?'"$(fnRegexp "${sMask[1]}" "sed")"'\]\?/['$sMaskDefault']/')
 
   sTitle="$(echo "$sTitle" | sed 's/\(\s\|\.\|\[\)*[^(]\([0-9]\{4\}\)\(\s\|\.\|\]\)*/.(\2)./')"
