@@ -2137,11 +2137,15 @@ fnRip() {
   fi
   if [ $AUDIO -eq 1 ]; then
     audio=(`$CMDINFOMPLAYER -dvd-device . dvd://1 2>/dev/null | grep ID_AID | tr _= '|' | cut -d'|' -f 3,5`)
+    declare -A lang_streams
     for t in ${audio[@]}; do
       idx=${t%|*}
       lang=${t#*|}
+      starget="$target" && [ ${#audio[@]} -gt 1 ] && starget="$starget.$lang"
+      [ "x${lang_streams[$lang]}" == "x" ] && lang_streams[$lang]=1 || lang_streams[$lang]=$[${lang_streams[$lang]} + 1]
+      [ ${lang_streams[$lang]} -gt 1 ] && starget=$starget${lang_streams[$lang]}
       echo "# extracting audio track $idx: $lang"
-      mplayer -dvd-device . dvd://1 -aid 128 -dumpaudio -dumpfile "$target".ac3 2>/dev/null 1>&2
+      mplayer -dvd-device . dvd://1 -aid 128 -dumpaudio -dumpfile "$starget".ac3 2>/dev/null 1>&2
     done
   fi
   if [ $SUBS -gt 0 ]; then
