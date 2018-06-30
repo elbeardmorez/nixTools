@@ -1335,7 +1335,7 @@ fnStructure()
       #set video template file
       [ $l -eq 0 ] && sTemplateFile="$f"
       #set title to video file iff it contains the search string
-      [[ "x$sTitle" == "x" && "x`echo "$f" | grep -i "$sSearch"`" != "x" ]] && sTitle="${f%.*}"
+      [[ "x$sTitle" == "x" && "x`echo "$f" | grep -i "$(fnRegexp "$sSearch" "grep")"`" != "x" ]] && sTitle="${f%.*}"
       l=$[$l+1]
     fi
   done
@@ -1347,7 +1347,7 @@ fnStructure()
         #set audio template file
         [ $l -eq 0 ] && sTemplateFile="$f"
         #set title to audio file iff it contains the search string
-        [[ "x$sTitle" == "x" && "x`echo "$f" | grep -i "$sSearch"`" != "x" ]] && sTitle="${f%.*}"
+        [[ "x$sTitle" == "x" && "x`echo "$f" | grep -i "$(fnRegexp "$sSearch" "grep")"`" != "x" ]] && sTitle="${f%.*}"
         l=$[$l+1]
       fi
     done
