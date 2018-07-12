@@ -1371,7 +1371,7 @@ fnStructure()
   [ $sMask ] && sMaskDefault=${sMask[0]}
 
   if [ ${#sFilters[@]} -gt 0 ]; then
-    for s in "${sFilters[@]}"; do sTitle=$(echo "$sTitle" | sed 's/\(\.\|\-\)\+'$s'\(\.\|\-\)\+/../Ig'); done
+    for s in "${sFilters[@]}"; do sTitle=$(echo "$sTitle" | sed 's/\(\.\|\-\)\+'$s'\(\.\|\-\|$\)\+/../Ig'); done
 #  else
     #clear everything between either delimiters ']','[', or delimiter '[' and end
   fi
