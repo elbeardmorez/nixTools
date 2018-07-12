@@ -25,15 +25,15 @@ where <command> is:
   logx [n]  : print last n log entries, extended log format
   addws     : add all files, ignoring white-space changes
   addb      : add all files, ignoring space changes
-  fp|formatpatch <ID>  : format a patch by commit description
-  rb|rebase <ID>       : interactively rebase by commit description
-  cl|clone <REPO>     : clone repo
-  co|checkout         : checkout files / branches
-  c|commit            : add updated and commit
-  ca|commitamend      : add updated and commit, amending last commit
-  a|amend             : amend previous commit
-  an|amendnoedit      : amend previous commit without editing commit message
-  ff|fast-forward     : identify current 'branch' and fast-forward to HEAD of 'linked'
+  fp|formatpatch <ID> [n] : format n patch(es) by commit description
+  rb|rebase <ID>          : interactively rebase by commit description
+  cl|clone <REPO>         : clone repo
+  co|checkout             : checkout files / branches
+  c|commit                : add updated and commit
+  ca|commitamend          : add updated and commit, amending last commit
+  a|amend                 : amend previous commit
+  an|amendnoedit          : amend previous commit without editing commit message
+  ff|fast-forward         : identify current 'branch' and fast-forward to HEAD of 'linked'
 "
 }
 
@@ -61,11 +61,14 @@ function process {
       ;;
     "fp"|"formatpatch"|"format-patch")
       [ $# -lt 1 ] && echo "[error] not enough args" && exit
-      commit=`fnCommitByName "$@"`
+      id="$1" && shift
+      n=1 && [ $# -gt 0 ] && n="$1" && shift
+      [ "x`echo "$n" | sed -n '/^[0-9]\+$/p'`" == "x" ] && echo "invalid number of patches: '$n'" && exit 1
+      commit=`fnCommitByName "$id"`
       if [ "x$commit" != "x" ]; then
         sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
         echo "formatting patch for rebasing from commit '$commit'"
-        git format-patch -1 $sha
+        git format-patch -k -$n $sha
       fi
       ;;
     "rb"|"rebase")
