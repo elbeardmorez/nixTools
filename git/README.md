@@ -1,0 +1,28 @@
+# git.sh
+
+## description
+git wrapper
+
+## usage
+```
+USAGE: git.sh <command> [command-args}
+
+where <command> is:
+
+  help      : print this text
+  diff      : output diff to stdout
+  log [n]   : print last n log entries, simple log format
+  log1 [n]  : print last n log entries, single line log format
+  logx [n]  : print last n log entries, extended log format
+  addws     : add all files, ignoring white-space changes
+  addb      : add all files, ignoring space changes
+  fp|formatpatch <ID>  : format a patch by commit description
+  rb|rebase <ID>       : interactively rebase by commit description
+  cl|clone <REPO>     : clone repo
+  co|checkout         : checkout files / branches
+  c|commit            : add updated and commit
+  ca|commitamend      : add updated and commit, amending last commit
+  a|amend             : amend previous commit
+  an|amendnoedit      : amend previous commit without editing commit message
+  ff|fast-forward     : identify current 'branch' and fast-forward to HEAD of 'linked'
+```
