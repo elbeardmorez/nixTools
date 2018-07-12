@@ -117,4 +117,4 @@ function process {
   esac
 }
 
-[ "$0" = "$BASH_SOURCE" ] && process $@
+[ "${0##*/}" = "${BASH_SOURCE##*/}" ] && process $@
