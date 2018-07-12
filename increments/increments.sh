@@ -24,7 +24,7 @@ done
 
 files=()
 for s in "${search[@]}"; do
-  IFS=$'\n'; files2=("`find "$target" -iname "$s"`"); IFS="$IFSORG"
+  IFS=$'\n'; files2=(`find "$target" -iname "$s"`); IFS="$IFSORG"
   [ $DEBUG -gt 1 ] && echo "[debug] searched target for '$s', found ${files2[@]} file(s)" 1>&2
   files=("${files[@]}" "${files2[@]}")
 done
