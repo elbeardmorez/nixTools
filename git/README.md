@@ -16,8 +16,8 @@ where <command> is:
   logx [n]  : print last n log entries, extended log format
   addws     : add all files, ignoring white-space changes
   addb      : add all files, ignoring space changes
-  fp|formatpatch <ID> [n] : format n patch(es) by commit description
-  rb|rebase <ID>          : interactively rebase by commit description
+  fp|formatpatch <ID> [n] : format n patch(es) by commit / description
+  rb|rebase <ID>          : interactively rebase by commit / description
   cl|clone <REPO>         : clone repo
   co|checkout             : checkout files / branches
   c|commit                : add updated and commit

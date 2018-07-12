@@ -2,6 +2,19 @@
 
 IFSORIG="$IFS"
 
+function fnCommit {
+  [ $# -lt 1 ] && echo "[fnCommit] id arg missing" && exit
+  id="$1" && shift
+  cmd_sha="git log -n1 --oneline $id"
+  $cmd_sha > /dev/null 2>&1
+  if [ $? -eq 0 ]; then
+    sha=`$cmd_sha | cut -d' ' -f1`
+  else
+    sha=`fnCommitByName "$id"`
+  fi
+  echo "$sha"
+}
+
 function fnCommitByName {
   [ $# -lt 1 ] && echo "[fnCommitByName] search arg missing" && exit
   search="$1" && shift
@@ -25,8 +38,8 @@ where <command> is:
   logx [n]  : print last n log entries, extended log format
   addws     : add all files, ignoring white-space changes
   addb      : add all files, ignoring space changes
-  fp|formatpatch <ID> [n] : format n patch(es) by commit description
-  rb|rebase <ID>          : interactively rebase by commit description
+  fp|formatpatch <ID> [n] : format n patch(es) by commit / description
+  rb|rebase <ID>          : interactively rebase by commit / description
   cl|clone <REPO>         : clone repo
   co|checkout             : checkout files / branches
   c|commit                : add updated and commit
@@ -64,7 +77,7 @@ function process {
       id="$1" && shift
       n=1 && [ $# -gt 0 ] && n="$1" && shift
       [ "x`echo "$n" | sed -n '/^[0-9]\+$/p'`" == "x" ] && echo "invalid number of patches: '$n'" && exit 1
-      commit=`fnCommitByName "$id"`
+      commit=`fnCommit "$id"`
       if [ "x$commit" != "x" ]; then
         sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
         echo "formatting patch for rebasing from commit '$commit'"
@@ -73,7 +86,7 @@ function process {
       ;;
     "rb"|"rebase")
       [ $# -lt 1 ] && echo "[error] not enough args" && exit
-      commit=`fnCommitByName "$@"`
+      commit=`fnCommit "$@"`
       if [ "x$commit" != "x" ]; then
         sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
         echo "rebasing from commit '$commit'"
