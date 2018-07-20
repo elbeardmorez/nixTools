@@ -36,6 +36,7 @@ where <command> is:
   log [n]   : print last n log entries, simple log format
   log1 [n]  : print last n log entries, single line log format
   logx [n]  : print last n log entries, extended log format
+  st|status : show status with untracked in column format
   addws     : add all files, ignoring white-space changes
   addb      : add all files, ignoring space changes
   fp|formatpatch <ID> [n] : format n patch(es) by commit / description
@@ -64,6 +65,9 @@ function process {
         format="fuller" && [ "x$command" == "xlog1" ] && format="oneline"
         TERM=linux git log --format="$format" -n $count "$@" | cat
       fi
+      ;;
+    "st"|"status")
+      git status --col
       ;;
     "addws")
       echo "git: adding all files, ignoring white-space changes"

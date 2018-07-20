@@ -14,6 +14,7 @@ where <command> is:
   log [n]   : print last n log entries, simple log format
   log1 [n]  : print last n log entries, single line log format
   logx [n]  : print last n log entries, extended log format
+  st|status : show status with untracked in column format
   addws     : add all files, ignoring white-space changes
   addb      : add all files, ignoring space changes
   fp|formatpatch <ID> [n] : format n patch(es) by commit / description
