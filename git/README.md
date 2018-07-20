@@ -1,7 +1,7 @@
 # git.sh
 
 ## description
-git wrapper
+git wrapper adding several features and various customised calls to the underlying binary using minimal aliases
 
 ## usage
 ```
