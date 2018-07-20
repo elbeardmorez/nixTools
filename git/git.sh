@@ -107,7 +107,7 @@ function process {
       git add -u .
       git commit
       ;;
-    "ca"|"commit")
+    "ca"|"commitamend")
       git add -u .
       git commit --amend
       ;;
