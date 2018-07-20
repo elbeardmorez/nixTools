@@ -134,6 +134,9 @@ function process {
         esac
       done
       ;;
+    *)
+      git $command "$@"
+      ;;
   esac
 }
 
