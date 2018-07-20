@@ -45,6 +45,7 @@ where <command> is:
   co|checkout             : checkout files / branches
   c|commit                : add updated and commit
   ca|commitamend          : add updated and commit, amending last commit
+  can|commitamendnoedit   : add updated and commit, amending last commit without editing commit message
   a|amend                 : amend previous commit
   an|amendnoedit          : amend previous commit without editing commit message
   ff|fast-forward         : identify current 'branch' and fast-forward to HEAD of 'linked'
@@ -110,6 +111,10 @@ function process {
     "ca"|"commitamend")
       git add -u .
       git commit --amend
+      ;;
+    "can"|"commitamendnoedit")
+      git add -u .
+      git commit --amend --no-edit "$@"
       ;;
     "a"|"amend")
       git commit --amend "$@"
