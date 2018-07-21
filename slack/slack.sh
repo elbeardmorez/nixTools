@@ -158,7 +158,6 @@ function sDownload()
         SOURCEPKG=/mnt/iso/slackware$ARCHSUFFIX-$REPOSOURCE/slackware$ARCHSUFFIX
         cp -a $SOURCE/$type/$pkg/ ./$pkg
         cp $SOURCEPKG/$type/$pkg-$version*z ./$pkg/
-        return
       else
         #remote
         if [ $DEBUG -eq 1 ]; then echo -e "PKG: \n$pkg"; fi
