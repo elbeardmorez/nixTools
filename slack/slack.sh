@@ -152,12 +152,14 @@ function sDownload()
     [ $cancel -eq 1 ] && break
 
     if [ $download -eq 1 ]; then
+      target="$pkg-$version"
+      mkdir -p "$target"
       if [ "$REPOSOURCE" != "current" ]; then
         #local
         SOURCE=/mnt/iso/slackware-$REPOSOURCE-source/source
         SOURCEPKG=/mnt/iso/slackware$ARCHSUFFIX-$REPOSOURCE/slackware$ARCHSUFFIX
-        cp -a $SOURCE/$type/$pkg/ ./$pkg
-        cp $SOURCEPKG/$type/$pkg-$version*z ./$pkg/
+        cp -a $SOURCE/$type/$pkg/ "$target"
+        cp $SOURCEPKG/$type/$pkg-$version*z "$target"
       else
         #remote
         if [ $DEBUG -eq 1 ]; then echo -e "PKG: \n$pkg"; fi
@@ -166,7 +168,7 @@ function sDownload()
         PKG=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)/\1/p')
         PKGNAME=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)-[0-9]\+.*\-.*x86.*-.*/\1/p')
         if [ $DEBUG -eq 1 ]; then echo -e "PKGNAME: \n$PKGNAME"; fi
-        PKGLOCATION=$(echo -e "$PKGINFO" |   sed -n 's|^.*LOCATION:[ ]*.*/\(.*\).*$|\1|p')/
+        PKGLOCATION=$(echo -e "$PKGINFO" |   sed -n 's|^.*LOCATION:[ ]*.*/\(.*\).*$|\1|p')
         if [ $DEBUG -eq 1 ]; then echo -e "#downloading package data:"; fi
         #download
 
@@ -174,7 +176,7 @@ function sDownload()
         PKGLOCATION_BUILD="`sed -n /^[^#]/p /etc/slackpkg/mirrors`slackware$ARCHSUFFIX/$PKGLOCATION"
         PKGARCH="x86_64"
         if [ "x$ARCHSUFFIX" = "x64" ]; then
-          PKGURL="${PKGLOCATION_BUILD}${PKG}"
+          PKGURL="${PKGLOCATION_BUILD}/${PKG}"
         else
           PKGLOCATION_BUILD="`echo "$PKGLOCATION_BUILD" | sed -n 's/slackware64/slackware/p'`"
           # test url to find correct x86 arch
@@ -184,15 +186,15 @@ function sDownload()
           done
         fi
         if [ "x$PKGURL" != "x" ]; then
-          wget $WGETOPTS "$PKGURL"
+          wget --directory-prefix="$target" $WGETOPTS "$PKGURL"
         else
           echo "no package build found for arch '$ARCH'!"
         fi
 
         if [ $SOURCE -eq 1 ]; then
           ## source
-          wget -P . -r --no-host-directories --cut-dirs=4 --no-parent --level=2 --reject="index.html*" $WGETOPTS $URLSOURCE/$PKGLOCATION/$PKGNAME/
-          [ -e robots.txt ] && `rm robots.txt`
+          wget -P . -r --directory-prefix="$target" --no-host-directories --cut-dirs=5 --no-parent --level=2 --reject="index.html*" $WGETOPTS $URLSOURCE/$PKGLOCATION/$PKGNAME/
+          [ -e "$target"/robots.txt ] && `rm "$target"/robots.txt`
           if [ $? -ne 0 ]; then return $?; fi
         fi
       fi
