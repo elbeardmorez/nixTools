@@ -71,7 +71,7 @@ function process {
       ;;
     "addnws")
       echo "git: adding all files, ignoring white-space changes"
-      git diff --ignore-all-space --no-color --unified=0 | git apply --cached --ignore-whitespace --unidiff-zero
+      git diff --ignore-all-space --no-color --unified=0 "$@" | git apply --cached --ignore-whitespace --unidiff-zero
       ;;
     "fp"|"formatpatch"|"format-patch")
       [ $# -lt 1 ] && echo "[error] not enough args" && exit
