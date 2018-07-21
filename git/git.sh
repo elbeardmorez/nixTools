@@ -37,8 +37,7 @@ where <command> is:
   log1 [n]  : print last n log entries, single line log format
   logx [n]  : print last n log entries, extended log format
   st|status : show status with untracked in column format
-  addws     : add all files, ignoring white-space changes
-  addb      : add all files, ignoring space changes
+  addnws    : add all files, ignoring white-space changes
   fp|formatpatch <ID> [n] : format n patch(es) by commit / description
   rb|rebase <ID>          : interactively rebase by commit / description
   cl|clone <REPO>         : clone repo
@@ -70,12 +69,9 @@ function process {
     "st"|"status")
       git status --col
       ;;
-    "addws")
+    "addnws")
       echo "git: adding all files, ignoring white-space changes"
       git diff --ignore-all-space --no-color --unified=0 | git apply --cached --ignore-whitespace --unidiff-zero
-      ;;
-    "addb") echo "git: adding all files, ignoring space changes";
-      git diff --ignore-all-space --no-color --unified=0 | git apply --cached --ignore-space-change --unidiff-zero
       ;;
     "fp"|"formatpatch"|"format-patch")
       [ $# -lt 1 ] && echo "[error] not enough args" && exit
