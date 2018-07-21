@@ -1,5 +1,6 @@
 #!/bin/sh
 
+SCRIPTNAME=${0##*/}
 IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
 
@@ -13,6 +14,13 @@ type_exts['c']="c"
 type_exts['c++']="cpp"
 
 cwd="$PWD"
+
+fn_help() {
+  echo -e "USAGE: $SCRIPTNAME TYPE CATEGORY[ CATEGORY2 [CATEGORY3 ..]] NAME
+\nwhere TYPE is:
+  hackerrank  : requires challenge description pdf and testcases zip archive files
+"
+}
 
 type="$1" && shift
 case "$type" in
@@ -77,5 +85,8 @@ case "$type" in
       vim -p ${files[@]}
     fi
     exec bash
+    ;;
+  *)
+    fn_help && echo "unsupported type '$type'" && exit 1
     ;;
 esac
