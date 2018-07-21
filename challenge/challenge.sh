@@ -13,7 +13,16 @@ type_exts['bash']="sh"
 type_exts['c']="c"
 type_exts['c++']="cpp"
 
-# structure
+cwd="$PWD"
+
+type="$1" && shift
+case "$type" in
+  "hackerrank")
+    # ensure structure
+    if [ ! "x`basename $PWD`" == "x$type" ]; then
+      [ ! -d ./"$type" ] && mkdir "$type"
+      cd "$type"
+    fi
 args=(`echo $@ | tr "-" "."`)
 name="${args[$[$# - 1]]}"
 target="`echo "${args[@]}" | sed 's/ /.-./g'`"
@@ -21,8 +30,9 @@ target="`echo "${args[@]}" | sed 's/ /.-./g'`"
 cd $target || exit 1
 IFS=$'\n'; files=(`find ./ -maxdepth 1 -iregex ".*$name.*\(pdf\|zip\)"`); IFS=$IFSORG
 if [ ${#files[@]} -eq 0 ]; then
+      # move files
   search="$name"
-  IFS=$'\n'; files=(`find ../ -maxdepth 1 -iregex ".*$search.*\(pdf\|zip\)"`); IFS=$IFSORG
+      IFS=$'\n'; files=(`find "$cwd" -maxdepth 1 -iregex ".*$search.*\(pdf\|zip\)"`); IFS=$IFSORG
   while [ ${#files[@]} -ne 2 ]; do
     len=${#search}
     search="${search%.*}"
@@ -69,3 +79,5 @@ if [ $lexts -gt 0 ]; then
   vim -p ${files[@]}
 fi
 exec bash
+    ;;
+esac
