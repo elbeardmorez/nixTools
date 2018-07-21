@@ -194,8 +194,9 @@ function sDownload()
         if [ $SOURCE -eq 1 ]; then
           ## source
           wget -P . -r --directory-prefix="$target" --no-host-directories --cut-dirs=5 --no-parent --level=2 --reject="index.html*" $WGETOPTS $URLSOURCE/$PKGLOCATION/$PKGNAME/
+          res=$?
           [ -e "$target"/robots.txt ] && `rm "$target"/robots.txt`
-          if [ $? -ne 0 ]; then return $?; fi
+          [ $res -ne 0 ] && echo "wget returned non-zero exit code ($res), aborting" && return $res
         fi
       fi
     fi
