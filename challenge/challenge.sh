@@ -14,6 +14,7 @@ type_exts['c']="c"
 type_exts['c++']="cpp"
 
 cwd="$PWD"
+editor="${EDITOR:-vim}"
 
 fn_help() {
   echo -e "USAGE: $SCRIPTNAME TYPE CATEGORY[ CATEGORY2 [CATEGORY3 ..]] NAME
@@ -82,7 +83,7 @@ case "$type" in
         [ ! -f $edit ] && touch $edit
         files[${#files[@]}]="$edit"
       done
-      vim -p ${files[@]}
+      $editor -p ${files[@]}
     fi
     exec bash
     ;;
