@@ -20,3 +20,4 @@ with supported OPTION(s):
 
 ## dependencies
 - diff
+- meld (or other diff viewer specified through DIFF_VIEWER environment variable)

@@ -6,6 +6,7 @@ TEST=${TEST:-0}
 
 striptype_default=lines
 diff_options_default="-uE"
+diff_viewer=${DIFF_VIEWER:-meld}
 excludes=""
 option=diff
 
@@ -30,7 +31,7 @@ function dirdiff() {
   [ -f "$excludes" ] && $(while read line; do sed -i '/'$line'/d' /tmp/_dirdiff2; shift; done < "$fExcludes")
 
   diff $diff_options /tmp/_dirdiff1 /tmp/_dirdiff2 > /tmp/_dirdiff
-  meld /tmp/_dirdiff1 /tmp/_dirdiff2 >/dev/null 2>&1 &  # more /tmp/_dirdiff
+  $diff_viewer /tmp/_dirdiff1 /tmp/_dirdiff2 >/dev/null 2>&1 &
 }
 
 #args
