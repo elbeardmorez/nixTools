@@ -28,7 +28,20 @@ for s in "${search[@]}"; do
   [ $DEBUG -gt 1 ] && echo "[debug] searched target for '$s', found ${#files2[@]} file(s)" 1>&2
   files=("${files[@]}" "${files2[@]}")
 done
+[ $DEBUG -gt 0 ] && echo "[debug] searched target '$target', found ${#files[@]} file(s)" 1>&2
 
-for f in "${files[@]}"; do
+[ ${#files[@]} -eq 0 ] && echo "no files found" && exit
+
+s=""
+for f in ${files[@]}; do
+  ts=`stat "$f" | grep Modify | cut -d' ' -f2- | xargs -I '{}' date -d '{}' '+%s'`
+  s="$s\n$ts\t$f"
+done
+
+IFS=$'\n'; sorted=(`echo -e "$s" | sort -t$'\t' -k1`); IFS="$IFSORG"
+for r in "${sorted[@]}"; do
+  IFS=$'\t'; fields=($r); IFS="$IFSORG"
+  dt=${fields[0]}
+  f="${fields[1]}"
   echo "$f"
 done
