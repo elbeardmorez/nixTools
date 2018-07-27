@@ -50,7 +50,7 @@ case "$type" in
         [ $DEBUG -gt 0 ] && echo "[debug] files#: '${#files[@]}'" 1>&2
         [ ${#files[@]} -eq 2 ] && echo "located challenge description / testcase files" && break
       done
-      [ ${#files[@]} -eq 0 ] && echo "cannot locate challenge description / testcase files" &&  exit 1
+      [ ${#files[@]} -ne 2 ] && echo "cannot locate challenge both description and testcase files" && exit 1
       for f in "${files[@]}"; do
         ext="${f##*.}"
         f2=""
