@@ -3,6 +3,7 @@
 IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
 
+name="incremental"
 target=${INCREMENTS_TARGET:-}
 search=(${INCREMENTS_SEARCH:-})
 
@@ -18,7 +19,7 @@ while [ $i -lt ${#args[@]} ]; do
   i=$[$i+1]  
 done
 
-[ $DEBUG -gt 0 ] && echo "[debug] target: $target, search: [${search[@]}]" 1>&2
+[ $DEBUG -gt 0 ] && echo "[debug] name: $name, target: `basename $target`, search: [${search[@]}]" 1>&2
 
 [[ $target == "" || ! -d "$target" ]] && echo "search target not set, exiting!" && exit 1
 
@@ -34,14 +35,24 @@ done
 
 s=""
 for f in ${files[@]}; do
-  ts=`stat "$f" | grep Modify | cut -d' ' -f2- | xargs -I '{}' date -d '{}' '+%s'`
-  s="$s\n$ts\t$f"
+  i=`stat -L "$f"`
+  ts=`echo -e "$i" | grep "Modify" | cut -d' ' -f2- | xargs -I '{}' date -d '{}' '+%s'`
+  sz=`echo -e "$i" | sed -n 's/.*Size: \([0-9]\+\).*/\1/p'`
+  s="$s\n$ts\t$sz\t$f"
 done
+s="${s:2}"
+echo -e "$s" | sort -t$'\t' -k1
 
+[ ! -d "$name" ] && mkdir "$name"
 IFS=$'\n'; sorted=(`echo -e "$s" | sort -t$'\t' -k1`); IFS="$IFSORG"
+last="/dev/null"
 for r in "${sorted[@]}"; do
+  [ $DEBUG -gt 2 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
   IFS=$'\t'; fields=($r); IFS="$IFSORG"
-  dt=${fields[0]}
-  f="${fields[1]}"
-  echo "$f"
+  ts=${fields[0]}
+  sz=${fields[1]}
+  f="${fields[2]}"
+  [ $DEBUG -gt 1 ] && echo "[debug] diff '$last <-> $f'"
+  diff -u "$last" "$f" > "$name/$ts.diff"
+  last="$f"
 done
