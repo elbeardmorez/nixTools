@@ -1,10 +1,11 @@
 #!/bin/sh
 
+SCRIPTNAME=${0##*/}
 DEBUG=${DEBUG:-0}
 IFSORIG="$IFS"
 
 help() {
-  echo -e "USAGE: _git <command> [command-args}
+  echo -e "USAGE: $SCRIPTNAME <command> [command-args}
 
 where <command> is:
 
