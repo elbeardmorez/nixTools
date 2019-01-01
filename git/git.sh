@@ -92,8 +92,11 @@ fnProcess() {
       commit=`fnCommit "$@"`
       if [ "x$commit" != "x" ]; then
         sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
+        # ensure parent exists, else assume root
+        git rev-parse --verify "$sha^1"
+        root=$([ $? -ne 0 ] && echo 1 || echo 0)
         echo "rebasing from commit '$commit'"
-        git rebase -i $sha~1
+        [ $root -eq 1 ] && git rebase -i --root || git rebase -i $sha~1
       fi
       ;;
     "co"|"checkout")
