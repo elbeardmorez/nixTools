@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
+DEBUG=${DEBUG:-0}
 IFSORIG="$IFS"
 
 help() {
@@ -141,4 +142,12 @@ fnProcess() {
   esac
 }
 
-[ "${0##*/}" = "${BASH_SOURCE##*/}" ] && fnProcess "$@"
+fnSourced() {
+  # support for being 'sourced' limited to bash and zsh
+  [ $DEBUG -gt 0 ] && echo "[info] \$0: '$0', ZSH_VERSION: '$ZSH_VERSION', ZSH_EVAL_CONTEXT: '$ZSH_EVAL_CONTEXT', BASH_VERSION: '$BASH_VERSION', BASH_SOURCE[0]: '${BASH_SOURCE[0]}'" 1>&2
+  [ -n "$BASH_VERSION" ] && ([[ "${0##*/}" == "${BASH_SOURCE##*/}" ]] &&  echo 0 || echo 1) && return
+  [ -n "$ZSH_VERSION" ] && ([[ "$ZSH_EVAL_CONTEXT" =~ ":file" ]] && echo 1 || echo 0) && return
+  echo 0
+}
+
+[ $(fnSourced) -eq 0 ] && fnProcess "$@"
