@@ -31,23 +31,23 @@ function help {
 
 where <command> is:
 
-  help      : print this text
-  diff      : output diff to stdout
+  help  : print this text
+  diff  : output diff to stdout
   log [n]   : print last n log entries, simple log format
   log1 [n]  : print last n log entries, single line log format
   logx [n]  : print last n log entries, extended log format
   st|status : show status with untracked in column format
-  addnws    : add all files, ignoring white-space changes
-  fp|formatpatch <ID> [n] : format n patch(es) by commit / description
-  rb|rebase <ID>          : interactively rebase by commit / description
-  cl|clone <REPO>         : clone repo
-  co|checkout             : checkout files / branches
-  c|commit                : add updated and commit
-  ca|commitamend          : add updated and commit, amending last commit
-  can|commitamendnoedit   : add updated and commit, amending last commit without editing commit message
-  a|amend                 : amend previous commit
-  an|amendnoedit          : amend previous commit without editing commit message
-  ff|fast-forward         : identify current 'branch' and fast-forward to HEAD of 'linked'
+  addnws  : add all files, ignoring white-space changes
+  fp|formatpatch <ID> [n]  : format n patch(es) by commit / description
+  rb|rebase <ID>  : interactively rebase by commit / description
+  cl|clone <REPO>  : clone repo
+  co|checkout      : checkout files / branches
+  ca|commitamend         : commit, amending previous
+  can|commitamendnoedit  : commit, amending previous without editing message
+  ac|addcommit               : add updated and commit
+  aca|addcommitamend         : add updated and commit, amending previous
+  acan|addcommitamendnoedit  : add updated and commit, amending previous without editing message
+  ff|fast-forward  : identify current 'branch' and fast-forward to HEAD of 'linked'
 "
 }
 
@@ -100,22 +100,22 @@ function process {
     "cl"|"clone")
       git clone "$@"
       ;;
-    "c"|"commit")
+    "ca"|"commitamend")
+      git commit --amend "$@"
+      ;;
+    "can"|"commitamendnoedit")
+      git commit --amend --no-edit "$@"
+      ;;
+    "ac"|"addcommit")
       git add -u .
       git commit
       ;;
-    "ca"|"commitamend")
+    "aca"|"addcommitamend")
       git add -u .
       git commit --amend
       ;;
-    "can"|"commitamendnoedit")
+    "acan"|"addcommitamendnoedit")
       git add -u .
-      git commit --amend --no-edit "$@"
-      ;;
-    "a"|"amend")
-      git commit --amend "$@"
-      ;;
-    "an"|"amendnoedit")
       git commit --amend --no-edit "$@"
       ;;
     "ff"|"fast-forward")
