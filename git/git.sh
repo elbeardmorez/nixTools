@@ -2,31 +2,7 @@
 
 IFSORIG="$IFS"
 
-function fnCommit {
-  [ $# -lt 1 ] && echo "[fnCommit] id arg missing" && exit
-  id="$1" && shift
-  cmd_sha="git log -n1 --oneline $id"
-  $cmd_sha > /dev/null 2>&1
-  if [ $? -eq 0 ]; then
-    sha=`$cmd_sha | cut -d' ' -f1`
-  else
-    sha=`fnCommitByName "$id"`
-  fi
-  echo "$sha"
-}
-
-function fnCommitByName {
-  [ $# -lt 1 ] && echo "[fnCommitByName] search arg missing" && exit
-  search="$1" && shift
-  last=50 && [ $# -gt 0 ] && last=$1 && shift
-  IFS=$'\n'; commits=(`git log -n$last --oneline | grep "$search"`); IFS="$IFSORIG"
-  [[ ${#commits[@]} -ne 1 || ${commits[0]} == "" ]] &&
-    echo "be more precise in your search string or up the 'search last' arg" 1>&2 && exit
-  commit="${commits[0]}"
-  echo "$commit"
-}
-
-function help {
+help() {
   echo -e "USAGE: _git <command> [command-args}
 
 where <command> is:
@@ -51,7 +27,31 @@ where <command> is:
 "
 }
 
-function process {
+fnCommit() {
+  [ $# -lt 1 ] && echo "[fnCommit] id arg missing" && exit
+  id="$1" && shift
+  cmd_sha="git log -n1 --oneline $id"
+  $cmd_sha > /dev/null 2>&1
+  if [ $? -eq 0 ]; then
+    sha=`$cmd_sha | cut -d' ' -f1`
+  else
+    sha=`fnCommitByName "$id"`
+  fi
+  echo "$sha"
+}
+
+fnCommitByName() {
+  [ $# -lt 1 ] && echo "[fnCommitByName] search arg missing" && exit
+  search="$1" && shift
+  last=50 && [ $# -gt 0 ] && last=$1 && shift
+  IFS=$'\n'; commits=(`git log -n$last --oneline | grep "$search"`); IFS="$IFSORIG"
+  [[ ${#commits[@]} -ne 1 || ${commits[0]} == "" ]] &&
+    echo "be more precise in your search string or up the 'search last' arg" 1>&2 && exit
+  commit="${commits[0]}"
+  echo "$commit"
+}
+
+fnProcess() {
   command="help" && [ $# -gt 0 ] && command="$1" && shift
   case "$command" in
     "help") help ;;
@@ -141,4 +141,4 @@ function process {
   esac
 }
 
-[ "${0##*/}" = "${BASH_SOURCE##*/}" ] && process "$@"
+[ "${0##*/}" = "${BASH_SOURCE##*/}" ] && fnProcess "$@"
