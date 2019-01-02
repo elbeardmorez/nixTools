@@ -24,6 +24,6 @@ case "$direction" in
   "out")
     file="$1"
     [ ! -f "$file" ] && echo "[error] no push data" && exit 1
-    nc $SERVER $PORT < "$file"
+    nc -c $SERVER $PORT < "$file"
     ;;
 esac
