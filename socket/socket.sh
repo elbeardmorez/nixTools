@@ -40,8 +40,23 @@ case "$direction" in
     ;;
   "out")
     # client side
-    file="$1"
-    [ ! -f "$file" ] && echo "[error] no push data" && exit 1
-    nc -c $SERVER $PORT < "$file"
+    declare -a files
+    if [ "$#" -gt 0 ]; then
+      while [ -n "$1" ]; do
+        case "$1" in
+          "-s"|"--server") shift && SERVER="$1" ;;
+          *)
+            if [ -f "$1" ]; then
+              files[${#files[@]}]="$1"
+            else
+              echo "[user] invalid file specified '$1', ignoring"
+            fi
+        esac
+        shift
+      done
+    fi
+    [ ${#files[@]} -eq 0 ] && echo "[error] no push data" && exit 1
+    echo "[user] pushing ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s") to '$SERVER:$PORT'"
+    for f in "${files[@]}"; do nc -c $SERVER $PORT < "$f"; done
     ;;
 esac
