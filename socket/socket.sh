@@ -4,7 +4,9 @@ SERVER=${SERVER:-localhost}
 SERVER_TIMEOUT=${SERVER_TIMEOUT:-60}
 PORT=${PORT:-666}
 
-direction="$1" && shift
+direction="out"
+
+[ "x$(echo "$1" | sed -n '/\(in\|out\)/p')" != "x" ] && direction="$1" && shift
 
 case "$direction" in
   "in")
