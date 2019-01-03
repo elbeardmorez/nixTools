@@ -40,9 +40,9 @@ case "$direction" in
       done
     fi
     [ $persistent -eq 0 ] && args[${#args}]="--wait=$SERVER_TIMEOUT"
-    echo [info]$([ $persistent -eq 1 ] && echo " persistent") socket opened
+    echo "[info]$([ $persistent -eq 1 ] && echo " persistent") socket opened"
     file="data"
-    while [ 1 == 1 ]; do
+    while [[ 1 == 1 ]]; do
       nc "${args[@]}" > socket
       size=`du -h socket | cut -d'	' -f1`
       if [ "$size" != "0" ]; then
