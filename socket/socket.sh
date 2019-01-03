@@ -21,6 +21,18 @@ fnNextFile() {
   echo $file
 }
 
+fnSend() {
+  d="$1"
+  verbose=${2:-1}
+  raw=$([ -e "$d" ] && echo 1 || echo 0)
+  [ $raw -eq 1 ] && (nc -c $SERVER $PORT < "$d") \
+                 || (echo "$d" | nc -c $SERVER $PORT)
+  res=$?
+  [[ $res -ne 0 && $verbose -eq 1 ]] &&
+    echo "[info] failed to push $([ $raw -eq 1 ] && echo "data" || echo "file") '$d'"
+  return $res
+}
+
 direction="out"
 
 [ "x$(echo "$1" | sed -n '/\(in\|out\)/p')" != "x" ] && direction="$1" && shift
@@ -59,32 +71,35 @@ case "$direction" in
     ;;
   "out")
     # client side
-    declare -a files
+    raw=0
+    declare -a data
     if [ "$#" -gt 0 ]; then
       while [ -n "$1" ]; do
         case "$1" in
           "-s"|"--server") shift && SERVER="$1" ;;
           "-r"|"--retries") shift && RETRIES="$1" ;;
+          "-a"|"--any") raw=1 ;;
           *)
-            if [ -f "$1" ]; then
-              files[${#files[@]}]="$1"
+            if [[ -e "$1" || "$raw" -eq 1 ]]; then
+              data[${#data[@]}]="$1"
             else
-              echo "[user] invalid file specified '$1', ignoring"
+              dd="$1"
+              [[ ${#dd[@]} -gt 20 ]] && dd="${data:0:20}.."
+              echo "[user] invalid file / dir specified. use '-a' / '--any' switch to push '$1' raw. ignoring"
             fi
         esac
         shift
       done
     fi
-    [ ${#files[@]} -eq 0 ] && echo "[error] no push data" && exit 1
-    echo "[user] pushing ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s") to '$SERVER:$PORT'"
-    for f in "${files[@]}"; do
-      nc -c $SERVER $PORT < "$f"
+    [ ${#data[@]} -eq 0 ] && echo "[error] no push data" && exit 1
+    echo "[user] pushing ${#data[@]} blob$([ ${#data[@]} -ne 1 ] && echo "s") to '$SERVER:$PORT'"
+    for d in "${data[@]}"; do
+      fnSend "$d"
       if [ $? -ne 0 ]; then
-        echo "[info] failed to push file '$f', retrying"
         success=0
         for x in `seq 1 1 $RETRIES`; do
           sleep 0.1
-          nc -c $SERVER $PORT < "$f"
+          fnSend "$d" 0 # quietly
           [ $? -eq 0 ] && success=1 && echo "[info] success on retry attempt ${x}" && break
         done
         [ $success -eq 0 ] && echo "[error] pushing data failed, check server side process" && exit 1
