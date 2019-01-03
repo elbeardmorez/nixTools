@@ -65,11 +65,13 @@ case "$direction" in
         echo "[info] failed to push file '$f', retrying"
         success=0
         for x in `seq 1 1 $RETRIES`; do
+          sleep 0.1
           nc -c $SERVER $PORT < "$f"
           [ $? -eq 0 ] && success=1 && echo "[info] success on retry attempt ${x}" && break
         done
         [ $success -eq 0 ] && echo "[error] pushing data failed, check server side process" && exit 1
       fi
+      sleep 0.1
     done
     ;;
 esac
