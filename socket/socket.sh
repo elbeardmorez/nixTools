@@ -5,6 +5,22 @@ SERVER_TIMEOUT=${SERVER_TIMEOUT:-60}
 PORT=${PORT:-666}
 RETRIES=10
 
+fnNextFile() {
+  file=$1
+  delim="${2:-"_"}"
+  if [ -e "$file" ]; then
+    postfix="$(echo "$file" | sed -n 's/.*_\([0-9]*\)$/\1/p')"
+    if [[ "x$postfix" == "x" ]]; then
+      file="${file}${delim}2"
+    else
+      file="${file:0:$((${#file} - ${#postfix} - 1))}"
+      while [ -e ${file}${delim}${postfix} ]; do postfix=$((postfix + 1)); done
+      file="${file}${delim}${postfix}"
+    fi
+  fi
+  echo $file
+}
+
 direction="out"
 
 [ "x$(echo "$1" | sed -n '/\(in\|out\)/p')" != "x" ] && direction="$1" && shift
@@ -25,12 +41,14 @@ case "$direction" in
     fi
     [ $persistent -eq 0 ] && args[${#args}]="--wait=$SERVER_TIMEOUT"
     echo [info]$([ $persistent -eq 1 ] && echo " persistent") socket opened
+    file="data"
     while [ 1 == 1 ]; do
       nc "${args[@]}" > socket
       size=`du -h socket | cut -d'	' -f1`
       if [ "$size" != "0" ]; then
-        echo "[info] $size bytes dumped"
-        mv socket data
+        file=$(fnNextFile $file "_")
+        mv socket $file
+        echo "[info] $size bytes dumped to '$file'"
         [ $persistent -eq 0 ] && exit 0
       else
         # non persistent mode only
