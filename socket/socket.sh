@@ -5,6 +5,7 @@ if [ -n "$BASH_VERSION" ]; then
   CMDARGS_READ_SINGLECHAR=("-s" "-n1")
 elif [ -n "$ZSH_VERSION" ]; then
   CMDARGS_READ_SINGLECHAR=("-s" "-k1")
+  setopt KSH_ARRAYS
 fi
 
 SERVER=${SERVER:-localhost}
