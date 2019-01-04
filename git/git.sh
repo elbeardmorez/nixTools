@@ -4,6 +4,12 @@ SCRIPTNAME=${0##*/}
 DEBUG=${DEBUG:-0}
 IFSORIG="$IFS"
 
+if [ -n "$BASH_VERSION" ]; then
+  CMDARGS_READ_SINGLECHAR=("-s" "-n1")
+elif [ -n "$ZSH_VERSION" ]; then
+  CMDARGS_READ_SINGLECHAR=("-s" "-k1")
+fi
+
 help() {
   echo -e "USAGE: $SCRIPTNAME <command> [command-args}
 
@@ -132,11 +138,10 @@ fnProcess() {
       echo -n "fast-forwarding $num commits, '$sha_current' -> '$sha_target' on branch '$target', ok? [y/n]: "
       retry=1
       while [ $retry -gt 0 ]; do
-        result=
-        read -s -n 1 result
-        case "$result" in
-          "y"|"Y") echo "$result" 1>&2; retry=0; git checkout $sha_target ;;
-          "n"|"N") echo "$result" 1>&2; exit 0 ;;
+        read "${CMDARGS_READ_SINGLECHAR[@]}"
+        case "$REPLY" in
+          "y"|"Y") echo "$REPLY" 1>&2; retry=0; git checkout $sha_target ;;
+          "n"|"N") echo "$REPLY" 1>&2; exit 0 ;;
         esac
       done
       ;;
