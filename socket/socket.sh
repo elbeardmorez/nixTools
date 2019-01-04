@@ -1,5 +1,12 @@
 #!/bin/sh
 
+# compatibility
+if [ -n "$BASH_VERSION" ]; then
+  CMDARGS_READ_SINGLECHAR=("-s" "-n1")
+elif [ -n "$ZSH_VERSION" ]; then
+  CMDARGS_READ_SINGLECHAR=("-s" "-k1")
+fi
+
 SERVER=${SERVER:-localhost}
 SERVER_TIMEOUT=${SERVER_TIMEOUT:-60}
 PORT=${PORT:-666}
@@ -33,6 +40,28 @@ fnSend() {
   return $res
 }
 
+fnClean() {
+  file="$1"
+  IFS=$'\n'; files=($(find . -regex '.*/data\(\_[0-9]+\)?$')); IFS="$IFSORG"
+  if [ ${#files[@]} -gt 0 ]; then
+    echo -n "[user] default cleaning, purge ${#files[@]} blob$([ ${#files[@]} -ne 1 ] && echo "s")? [y/n]: "
+    while [ 1 -eq 1 ]; do
+      read ${CMDARGS_READ_SINGLECHAR[@]}
+      case "$REPLY" in
+        "y"|"Y")
+          echo "$REPLY"
+          for f in "${files[@]}"; do rm "$f"; done
+          break
+          ;;
+        "n"|"N")
+          echo $REPLY
+          break
+          ;;
+      esac
+    done
+  fi
+}
+
 direction="out"
 
 [ "x$(echo "$1" | sed -n '/\(in\|out\)/p')" != "x" ] && direction="$1" && shift
@@ -42,18 +71,21 @@ case "$direction" in
     # server side
     args=("--listen" "--local-port=$PORT")
     persistent=0
+    clean=1
     if [ "$#" -gt 0 ]; then
       while [ -n "$1" ]; do
         case "$1" in
           "-ps"|"--persistent") persistent=1 ;;
+          "-nc"|"--noclean") clean=0 ;;
           *) echo "[user] unrecognised option arg '$1', dropped"
         esac
         shift
       done
     fi
     [ $persistent -eq 0 ] && args[${#args}]="--wait=$SERVER_TIMEOUT"
-    echo "[info]$([ $persistent -eq 1 ] && echo " persistent") socket opened"
     file="data"
+    [ $clean -eq 1 ] && fnClean "$file"
+    echo "[info]$([ $persistent -eq 1 ] && echo " persistent") socket opened"
     while [[ 1 == 1 ]]; do
       nc "${args[@]}" > socket
       size=`du -h socket | cut -d'	' -f1`
