@@ -4,10 +4,12 @@ SCRIPTNAME=${0##*/}
 DEBUG=${DEBUG:-0}
 IFSORIG="$IFS"
 
+# compatibility
 if [ -n "$BASH_VERSION" ]; then
   CMDARGS_READ_SINGLECHAR=("-s" "-n1")
 elif [ -n "$ZSH_VERSION" ]; then
   CMDARGS_READ_SINGLECHAR=("-s" "-k1")
+  setopt KSH_ARRAYS
 fi
 
 help() {
@@ -53,7 +55,7 @@ fnCommitByName() {
   search="$1" && shift
   last=50 && [ $# -gt 0 ] && last=$1 && shift
   IFS=$'\n'; commits=(`git log -n$last --oneline | grep "$search"`); IFS="$IFSORIG"
-  [[ ${#commits[@]} -ne 1 || ${commits[0]} == "" ]] &&
+  [[ ${#commits[@]} -ne 1 || "${commits[0]}" == "" ]] &&
     echo "be more precise in your search string or up the 'search last' arg" 1>&2 && exit
   commit="${commits[0]}"
   echo "$commit"
