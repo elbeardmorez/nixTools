@@ -9,6 +9,11 @@ elif [ -n "$ZSH_VERSION" ]; then
   CMDARGS_READ_SINGLECHAR=("-s" "-k1")
   setopt KSH_ARRAYS
 fi
+if [ "x$(nc -h 2>&1 | grep '\-c, --close')" != "x" ]; then
+  CMDARGS_NC_CLOSE=("-c")
+elif [ "x$(nc -h 2>&1 | grep '\-q secs')" != "x" ]; then
+  CMDARGS_NC_CLOSE=("-q" 0)
+fi
 
 SERVER=${SERVER:-localhost}
 SERVER_TIMEOUT=${SERVER_TIMEOUT:-60}
@@ -73,8 +78,8 @@ fnSend() {
   d="$1"
   verbose=${2:-1}
   raw=$([ -e "$d" ] && echo 0 || echo 1)
-  [ $raw -eq 0 ] && (tar --label="socket_" -c "$d" | nc -c $SERVER $PORT) \
-                 || (echo "$d" | nc -c $SERVER $PORT)
+  [ $raw -eq 0 ] && (tar --label="socket_" -c "$d" | nc ${CMDARGS_NC_CLOSE[@]} $SERVER $PORT) \
+                 || (echo "$d" | nc ${CMDARGS_NC_CLOSE[@]} $SERVER $PORT)
   res=$?
   [[ $res -ne 0 && $verbose -eq 1 ]] &&
     echo "[info] failed to push $([ $raw -eq 1 ] && echo "data" || echo "file") '$d'"
