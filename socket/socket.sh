@@ -38,8 +38,8 @@ where OPTION can be:
     -a, --any  : process non-file/dir args as valid raw data strings
                  to be push to the server
 
-  and DATA args are either file paths or raw data (where '--any'
-  switch is given)
+  and DATA args are either file / directory paths, or raw data (using
+  '-a' / '--any' switch)
 
   environment variables:
   'SERVER' (client)  : as detailed above
@@ -70,8 +70,8 @@ fnNextFile() {
 fnSend() {
   d="$1"
   verbose=${2:-1}
-  raw=$([ -e "$d" ] && echo 1 || echo 0)
-  [ $raw -eq 1 ] && (nc -c $SERVER $PORT < "$d") \
+  raw=$([ -e "$d" ] && echo 0 || echo 1)
+  [ $raw -eq 0 ] && (tar --label="socket_" -c "$d" | nc -c $SERVER $PORT) \
                  || (echo "$d" | nc -c $SERVER $PORT)
   res=$?
   [[ $res -ne 0 && $verbose -eq 1 ]] &&
@@ -131,6 +131,12 @@ fnProcess() {
           file=$(fnNextFile $file "_")
           mv socket $file
           echo "[info] $size bytes dumped to '$file'"
+          if [[ "x$(file --brief --mime-type "$file")" == "xapplication/x-tar" ]]; then
+            # socket_ archive?
+            [[ "x$(tar --test-label -f "$file")" == "xsocket_" ]] && \
+              echo "[info] exploding archive in background" && \
+              (tar -xvf "$file" && rm $file) &
+          fi
           [ $persistent -eq 0 ] && exit 0
         else
           # non persistent mode only

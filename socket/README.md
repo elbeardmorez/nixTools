@@ -27,8 +27,8 @@ where OPTION can be:
     -a, --any  : process non-file/dir args as valid raw data strings
                  to be push to the server
 
-  and DATA args are either file paths or raw data (where '--any'
-  switch is given)
+  and DATA args are either file / directory paths, or raw data (using
+  '-a' / '--any' switch)
 
   environment variables:
  'SERVER' (client)  : as detailed above
@@ -42,3 +42,5 @@ where OPTION can be:
 - Bourne-like shell (various non-POSIX shell features)
 - GNU netcat
 - sed
+- tar
+- file
