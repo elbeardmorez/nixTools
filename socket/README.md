@@ -24,6 +24,8 @@ where OPTION can be:
                             (default: localhost)
     -r, --retries COUNT  : set the number retries when a push fails
                            (default: 10)
+    -rd, --retry-delay SECONDS  : period to wait between retries
+                                  (default: 0.1)
     -a, --any  : process non-file/dir args as valid raw data strings
                  to be push to the server
 

@@ -35,6 +35,8 @@ where OPTION can be:
                             (default: localhost)
     -r, --retries COUNT  : set the number retries when a push fails
                            (default: 10)
+    -rd, --retry-delay SECONDS  : period to wait between retries
+                                  (default: 0.1)
     -a, --any  : process non-file/dir args as valid raw data strings
                  to be push to the server
 
@@ -148,12 +150,14 @@ fnProcess() {
     "out")
       # client side
       raw=0
+      retry_delay=0.1
       declare -a data
       if [ "$#" -gt 0 ]; then
         while [ -n "$1" ]; do
           case "$1" in
             "-s"|"--server") shift && SERVER="$1" ;;
             "-r"|"--retries") shift && RETRIES="$1" ;;
+            "-rd"|"--retry-delay") shift && retry_delay=$1 ;;
             "-a"|"--any") raw=1 ;;
             *)
               if [[ -e "$1" || "$raw" -eq 1 ]]; then
@@ -174,7 +178,7 @@ fnProcess() {
         if [ $? -ne 0 ]; then
           success=0
           for x in `seq 1 1 $RETRIES`; do
-            sleep 0.1
+            sleep $retry_delay
             fnSend "$d" 0 # quietly
             [ $? -eq 0 ] && success=1 && echo "[info] success on retry attempt ${x}" && break
           done
