@@ -31,11 +31,11 @@ where OPTION can be:
   '-a' / '--any' switch)
 
   environment variables:
- 'SERVER' (client)  : as detailed above
- 'PORT' (server / client)  : set communication port (default: 666)
- 'SERVER_TIMEOUT'  : in non-persistent mode, the server side will
-                     automatically terminate after this interval
-                     where no packets are received (default: 60)
+  'SERVER' (client)  : as detailed above
+  'PORT' (server / client)  : set communication port (default: 666)
+  'SERVER_TIMEOUT'  : in non-persistent mode, the server side will
+                      automatically terminate after this interval
+                      where no packets are received (default: 60)
 ```
 
 ## dependencies
