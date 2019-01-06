@@ -24,6 +24,8 @@ where OPTION can be:
                             (default: localhost)
     -r, --retries COUNT  : set the number retries when a push fails
                            (default: 10)
+    -pp, --preserve-paths  : don't strip paths from files /
+                             directories
     -rd, --retry-delay SECONDS  : period to wait between retries
                                   (default: 0.1)
     -a, --any  : process non-file/dir args as valid raw data strings

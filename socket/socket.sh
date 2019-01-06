@@ -19,6 +19,7 @@ SERVER=${SERVER:-localhost}
 SERVER_TIMEOUT=${SERVER_TIMEOUT:-60}
 PORT=${PORT:-666}
 RETRIES=10
+PRESERVE_PATHS=0
 
 help() {
   echo -e "
@@ -40,6 +41,8 @@ where OPTION can be:
                             (default: localhost)
     -r, --retries COUNT  : set the number retries when a push fails
                            (default: 10)
+    -pp, --preserve-paths  : don't strip paths from files /
+                             directories
     -rd, --retry-delay SECONDS  : period to wait between retries
                                   (default: 0.1)
     -a, --any  : process non-file/dir args as valid raw data strings
@@ -78,8 +81,16 @@ fnSend() {
   d="$1"
   verbose=${2:-1}
   raw=$([ -e "$d" ] && echo 0 || echo 1)
-  [ $raw -eq 0 ] && (tar --label="socket_" -c "$d" | nc ${CMDARGS_NC_CLOSE[@]} $SERVER $PORT) \
-                 || (echo "$d" | nc ${CMDARGS_NC_CLOSE[@]} $SERVER $PORT)
+  if [ $raw -eq 0 ]; then
+    root="." &&
+    if [[ -f "$d" && $PRESERVE_PATHS -ne 1 ]]; then
+      root="$(dirname "$d")"
+      d="$(basename "$d")"
+    fi
+    tar --label="socket_" -C $root -c "$d" | nc ${CMDARGS_NC_CLOSE[@]} $SERVER $PORT
+  else
+    echo "$d" | nc ${CMDARGS_NC_CLOSE[@]} $SERVER $PORT
+  fi
   res=$?
   [[ $res -ne 0 && $verbose -eq 1 ]] &&
     echo "[info] failed to push $([ $raw -eq 1 ] && echo "data" || echo "file") '$d'"
@@ -162,6 +173,7 @@ fnProcess() {
           case "$1" in
             "-s"|"--server") shift && SERVER="$1" ;;
             "-r"|"--retries") shift && RETRIES="$1" ;;
+            "-pp"|"--preserve-paths") PRESERVE_PATHS=1 ;;
             "-rd"|"--retry-delay") shift && retry_delay=$1 ;;
             "-a"|"--any") raw=1 ;;
             *)
