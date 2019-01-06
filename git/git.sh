@@ -148,14 +148,9 @@ fnProcess() {
       sha_current=`git log --oneline -n1 | cut -d' ' -f1`
       sha_target=`git log --oneline $target | grep $sha_current -B $num | head -n1 | cut -d' ' -f1`
       echo -n "fast-forwarding $num commits, '$sha_current' -> '$sha_target' on branch '$target', ok? [y/n]: "
-      retry=1
-      while [ $retry -gt 0 ]; do
-        read "${CMDARGS_READ_SINGLECHAR[@]}"
-        case "$REPLY" in
-          "y"|"Y") echo "$REPLY" 1>&2; retry=0; git checkout $sha_target ;;
-          "n"|"N") echo "$REPLY" 1>&2; exit 0 ;;
-        esac
-      done
+      res=$(fnDecision)
+      [ "x$res" = "x1" ] && \
+        git checkout $sha_target
       ;;
     "rd"|"rescue-dangling")
       IFS=$'\n'; commits=($(git fsck --no-reflog | awk '/dangling commit/ {print $3}')); IFS="$IFSORG"
