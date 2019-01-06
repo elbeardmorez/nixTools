@@ -157,8 +157,8 @@ fnProcess() {
           fi
           [ $persistent -eq 0 ] && exit 0
         else
-          # non persistent mode only
-          echo "[info] socket closed"
+          echo "[info] socket closed, removing socket"
+          [ -f socket ] && rm socket
           exit 0
         fi
       done
