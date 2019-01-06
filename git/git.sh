@@ -61,6 +61,16 @@ fnCommitByName() {
   echo "$commit"
 }
 
+fnDecision() {
+  while [ 1 -eq 1 ]; do
+    read "${CMDARGS_READ_SINGLECHAR[@]}"
+    case "$REPLY" in
+      "y"|"Y") echo "$REPLY" 1>&2; echo 1; break ;;
+      "n"|"N") echo "$REPLY" 1>&2; echo 0; break ;;
+    esac
+  done
+}
+
 fnProcess() {
   command="help" && [ $# -gt 0 ] && command="$1" && shift
   case "$command" in
@@ -146,6 +156,18 @@ fnProcess() {
           "n"|"N") echo "$REPLY" 1>&2; exit 0 ;;
         esac
       done
+      ;;
+    "rd"|"rescue-dangling")
+      IFS=$'\n'; commits=($(git fsck --no-reflog | awk '/dangling commit/ {print $3}')); IFS="$IFSORG"
+      if [ ${#commits[@]} -eq 0 ]; then
+        echo "[info] no dangling commits found in repo"
+      else
+        echo -n "[info] rescue ${#commits[@]} dangling commit$([ ${#commits[@]} -ne 1 ] && echo "s") found in repo? [y/n]: "
+        res=$(fnDecision)
+        [ "x$res" = "x1" ] && \
+          mkdir commits && \
+          for c in ${commits[@]}; do git log -n1 -p $c > commits/$c.diff; done
+      fi
       ;;
     *)
       git $command "$@"
