@@ -4,113 +4,121 @@ SCRIPTNAME=${0##*/}
 DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
 
-striptype_default=lines
-diff_options=""
-diff_options_default="-uE"
+filelist_changedonly=0
+declare -a diff_options
+diff_options_default=("-uE")
 diff_viewer=${DIFF_VIEWER:-meld}
-excludes=""
+f_excludes=""
 
 help() {
   echo -e "
-usage: $SCRIPTNAME [TYPE [TYPE_ARGS]] [OPTION [OPTION_ARGS] ..] dir|file dir2|file2
-\nwhere TYPE is:
-  diff     : unified diff (default)
-  dir      : force directory comparison
-  changed  : list modified files
-\nwith supported OPTION(s):
-  stripfiles FILE [FILE2 ..]     : ignore specified files
-  striplines STRING [STRING2 ..] : ignore lines (regexp format)
-  whitespace                     : ignore whitespace changes
+SYNTAX: $SCRIPTNAME [MODE] [OPTION [ARG] ..] dir|file dir2|file2
+\nwhere MODE is:
+  diff      : (default) unified diff output for targets
+  changed   : list modified common files in targets (dirs only)
+  filelist  : comparison of file attributes in targets (dirs only)
+\nand OPTION can be:
+  stripfiles FILE [FILE2 ..]      : ignore specified files
+  striplines STRING [STRING2 ..]  : ignore lines (regexp format)
+  whitespace  : ignore whitespace changes
 "
 }
 
+fnCleanUp() {
+  [ -n $f_excludes ] && [ -e $f_excludes ] && rm $f_excludes >/dev/null 2>&1
+}
+
 fnProcess() {
-  option="$1" && shift
+  mode="$1" && shift
+  type="$1" && shift
 
-  # diff
-  if [[ -f "$file1" && -f "$file2" ]]; then
-    # file diff
-    [ $DEBUG -ge 1 ] && echo "[debug] diff $diff_options $diff_options_default \"$file1\" \"$file2\" | grep -ve \"^Only in\" | grep -ve \"^[Bb]inary\" | tee /tmp/_diff"
-    if [ $TEST -eq 0 ]; then
-      diff $diff_options_default $diff_options $diff_options_default "$file1" "$file2" | grep -ve "^Only in" | grep -ve "^[Bb]inary" | tee /tmp/_diff
-      rm $f_excludes >/dev/null 2>&1 #cleanup
-    fi
-
-  elif [[ -d "$file1" && -d "$file2" ]]; then
-    # directory diff
-    if [ "x$mode" == "xdir" ]; then
+  case "$mode" in
+    "diff")
+      [ "x$type" = "xdir" ] && diff_options[${#diff_options[@]}]="-r"
+      [ $DEBUG -ge 1 ] && echo "[debug] diff  ${diff_options_default[@]} ${diff_options[@]} \"$file1\" \"$file2\" | grep -ve \"^Only in\" | grep -ve \"^[Bb]inary\" | tee /tmp/_diff"
+      if [ $TEST -eq 0 ]; then
+        diff ${diff_options_default[@]} ${diff_options[@]} "$file1" "$file2" | grep -ve "^Only in" | grep -ve "^[Bb]inary" > /tmp/_diff
+        if [[ "x$type" == "xdir" && $filelistchangedonly -eq 1 ]]; then
+          echo -e "\n#changes found for the following file(s)"
+          cat /tmp/_diff | grep -P "^diff -" | sed 's/.*\/\(.*$\)/\1/'
+        else
+          cat /tmp/_diff
+        fi
+      fi
+      ;;
+    "filelist")
+      [ "x$type" != "xdir" ] && echo "[user] filelist mode unsupported for type '$type'" && fnCleanUp && exit 1
+      # compare files in directories
       cd "$file1"; find . -name "*" -printf "%p\t%s\n" | sort > /tmp/_dirdiff1; cd "$OLDPWD"
       cd "$file2"; find . -name "*" -printf "%p\t%s\n" | sort > /tmp/_dirdiff2; cd "$OLDPWD"
-      [ -f "$excludes" ] && $(while read line; do sed -i '/'$line'/d' /tmp/_dirdiff1; shift; done < "$fExcludes")
-      [ -f "$excludes" ] && $(while read line; do sed -i '/'$line'/d' /tmp/_dirdiff2; shift; done < "$fExcludes")
-      diff $diff_options /tmp/_dirdiff1 /tmp/_dirdiff2 > /tmp/_dirdiff
+      [ -f "$f_excludes" ] && $(while read line; do sed -i '/'$line'/d' /tmp/_dirdiff1; shift; done < "$fExcludes")
+      [ -f "$f_excludes" ] && $(while read line; do sed -i '/'$line'/d' /tmp/_dirdiff2; shift; done < "$fExcludes")
+      diff ${diff_options[@]} /tmp/_dirdiff1 /tmp/_dirdiff2 > /tmp/_dirdiff
       $diff_viewer /tmp/_dirdiff1 /tmp/_dirdiff2 >/dev/null 2>&1 &
-    else
-      diff_options_default+=" -r "
-      [ $DEBUG -ge 1 ] && echo "[debug] diff $diff_options $diff_options_default \"$file1\" \"$file2\" | grep -ve \"^Only in\" | grep -ve \"^[Bb]inary\" | tee /tmp/_diff"
-      if [ $TEST -eq 0 ]; then
-        diff $diff_options_default $diff_options "$file1" "$file2" | grep -ve "^Only in" | grep -ve "^[Bb]inary" | tee /tmp/_diff
-        rm $f_excludes >/dev/null 2>&1 #cleanup
-      fi
-    fi
-  else
-    help && echo "[error] args must be a homogenous pair, either directories or files" 1>&2 && exit 1
-  fi
-
-  if [ "x$option" == "xchanged" ]; then
-    echo -e "\n#changes found for the following file(s)"
-    cat /tmp/_diff | grep -P "^diff -" | sed 's/.*\/\(.*$\)/\1/'
-  fi
+      ;;
+  esac
+  fnCleanUp
 }
 
 # args
-option=diff
-while [ "x`echo "$1" | sed -n '/^\([\-]*h\(elp\)\?\|test\|dir\|changed\)$/p'`" != "x" ]; do
-  case "$1" in
-    "h"|"-h"|"help"|"-help"|"--help") help && exit ;;
+declare -a excludes
+mode=diff
+while [ -n "$1" ]; do
+  arg="$(echo "$1" | awk -v "arg=$1" '{gsub(/^-*/,"",arg);print tolower(arg);}')"
+  case "$arg" in
+    "diff"|"filelist") mode=$arg ;;
+    "changed") filelist_changedonly=1 ;;
+    strip*)
+      shift
+      while [[ "x$(echo "$1" | sed -n '\(diff\|filelist\|changed\|whitespace\|striplines\|stripfiles\)/p')" == "x" && $# -gt 2 ]]; do
+        excludes[${#excludes[@]}]="$1" && shift
+      done
+      case $arg in
+        "stripfiles")
+          f_excludes="$(tempfile)"
+          for s in "${excludes[@]}"; do echo "$s" >> "$f_excludes"; done
+          diff_options[${#diff_options[@]}]="--exclude-from=\"$f_excludes\""
+          ;;
+        "striplines")
+          for s in "${excludes[@]}"; do diff_options[${#diff_options[@]}]="--ignore-matching-lines=$s"; done
+          ;;
+      esac
+      ;;
+    "whitespace") diff_options[${#diff_options[@]}]="-w" ;;
+    "--") shift && while [ -n "$1" ]; do diff_options[${#diff_options[@]}]="$1"; done ;;
     "test") TEST=1 ;;
-    "dir"|"changed") option="$1" ;;
+    "h"|"help") help && exit ;;
+    *)
+      [ $# -le 2 ] && break
+      help && echo "[error] unrecognised arg '$arg'" && exit 1
+      ;;
   esac
   shift
 done
 
- while [ $# -gt 2 ]; do
-  case "$1" in
-    strip*)
-      strip_type=`echo "${1#strip}" | awk '{print tolower($0)}'` && shift
-      [ "x$strip_type" == "x" ] && strip_type=$strip_type_default
-      while [ "x`echo "$1" | sed -n '/^\(whitespace\|strip.*\)$/p'`" == "x" ]; do
-        excludes[${#excludes[@]}]=$1 && shift
-      done
-      ;;
-    "whitespace") diff_options+=" -w" && shift ;;
-    *) diff_options+="$1" ;;
-  esac
-done
-
-[ $# -lt 2 ] && help && echo "[error] two or more args required" && exit 1
+[ $# -lt 2 ] && help && echo "[error] missing target file/dir arg(s)" && exit 1
 
 file1="$1" && shift
 file2="$1" && shift
 
+# type
+if [[ -f "$file1" && -f "$file2" ]]; then
+  type="file"
+elif [[ -d "$file1" && -d "$file2" ]]; then
+  type="dir"
+else
+  help && echo "[error] file/dir args must be homogenous" && exit 1
+fi
+
 if [ $DEBUG -gt 0 ]; then
   echo "[debug] debug: $DEBUG, test: '$TEST'" 1>&2
-  echo "[debug] option: '$option', strip: '$strip_type', whitespace: '$whitespace'" 1>&2
-  echo "[debug] diff_options: '$diff_options', diff_options_default: '$diff_options_default'" 1>&2
+  echo "[debug] mode: '$mode', type: '$type', whitespace: '$whitespace'" 1>&2
+  echo "[debug] diff_options_default: '${diff_options_default[@]}', diff_options: '${diff_options[@]}'" 1>&2
   echo -e "[debug]\nfile1: '$file1'\nfile2: '$file2'" 1>&2
   if [ ${#excludes[@]} -gt 0 ]; then
-    echo "[debug] excludes:" 1>&2
+    echo "[debug] strip excludes:" 1>&2
     for s in "${excludes[@]}"; do echo "$s" 1>&2; done
   fi
 fi
 
-case $strip_type in
-  "files")
-    f_excludes="$(tempfile)"
-    for s in "${excludes[@]}"; do echo "$s" >> "$f_excludes"; done
-    diff_options+=" -X \"$f_excludes\""
-    ;;
-  "lines") for s in "${excludes[@]}"; do diff_options+=" -I $s "; done ;;
-esac
-
-fnProcess "$option" "$@"
+fnProcess "$mode" "$type"
