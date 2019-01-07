@@ -5,12 +5,12 @@ DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
 
 striptype_default=lines
+diff_options=""
 diff_options_default="-uE"
 diff_viewer=${DIFF_VIEWER:-meld}
 excludes=""
-option=diff
 
-function help() {
+help() {
   echo -e "
 usage: $SCRIPTNAME [TYPE [TYPE_ARGS]] [OPTION [OPTION_ARGS] ..] dir|file dir2|file2
 \nwhere TYPE is:
@@ -24,17 +24,47 @@ usage: $SCRIPTNAME [TYPE [TYPE_ARGS]] [OPTION [OPTION_ARGS] ..] dir|file dir2|fi
 "
 }
 
-function dirdiff() {
-  cd "$file1"; find . -name "*" -printf "%p\t%s\n" | sort > /tmp/_dirdiff1; cd "$OLDPWD"
-  cd "$file2"; find . -name "*" -printf "%p\t%s\n" | sort > /tmp/_dirdiff2; cd "$OLDPWD"
-  [ -f "$excludes" ] && $(while read line; do sed -i '/'$line'/d' /tmp/_dirdiff1; shift; done < "$fExcludes")
-  [ -f "$excludes" ] && $(while read line; do sed -i '/'$line'/d' /tmp/_dirdiff2; shift; done < "$fExcludes")
+fnProcess() {
+  option="$1" && shift
 
-  diff $diff_options /tmp/_dirdiff1 /tmp/_dirdiff2 > /tmp/_dirdiff
-  $diff_viewer /tmp/_dirdiff1 /tmp/_dirdiff2 >/dev/null 2>&1 &
+  # diff
+  if [[ -f "$file1" && -f "$file2" ]]; then
+    # file diff
+    [ $DEBUG -ge 1 ] && echo "[debug] diff $diff_options $diff_options_default \"$file1\" \"$file2\" | grep -ve \"^Only in\" | grep -ve \"^[Bb]inary\" | tee /tmp/_diff"
+    if [ $TEST -eq 0 ]; then
+      diff $diff_options_default $diff_options $diff_options_default "$file1" "$file2" | grep -ve "^Only in" | grep -ve "^[Bb]inary" | tee /tmp/_diff
+      rm $f_excludes >/dev/null 2>&1 #cleanup
+    fi
+
+  elif [[ -d "$file1" && -d "$file2" ]]; then
+    # directory diff
+    if [ "x$mode" == "xdir" ]; then
+      cd "$file1"; find . -name "*" -printf "%p\t%s\n" | sort > /tmp/_dirdiff1; cd "$OLDPWD"
+      cd "$file2"; find . -name "*" -printf "%p\t%s\n" | sort > /tmp/_dirdiff2; cd "$OLDPWD"
+      [ -f "$excludes" ] && $(while read line; do sed -i '/'$line'/d' /tmp/_dirdiff1; shift; done < "$fExcludes")
+      [ -f "$excludes" ] && $(while read line; do sed -i '/'$line'/d' /tmp/_dirdiff2; shift; done < "$fExcludes")
+      diff $diff_options /tmp/_dirdiff1 /tmp/_dirdiff2 > /tmp/_dirdiff
+      $diff_viewer /tmp/_dirdiff1 /tmp/_dirdiff2 >/dev/null 2>&1 &
+    else
+      diff_options_default+=" -r "
+      [ $DEBUG -ge 1 ] && echo "[debug] diff $diff_options $diff_options_default \"$file1\" \"$file2\" | grep -ve \"^Only in\" | grep -ve \"^[Bb]inary\" | tee /tmp/_diff"
+      if [ $TEST -eq 0 ]; then
+        diff $diff_options_default $diff_options "$file1" "$file2" | grep -ve "^Only in" | grep -ve "^[Bb]inary" | tee /tmp/_diff
+        rm $f_excludes >/dev/null 2>&1 #cleanup
+      fi
+    fi
+  else
+    help && echo "[error] args must be a homogenous pair, either directories or files" 1>&2 && exit 1
+  fi
+
+  if [ "x$option" == "xchanged" ]; then
+    echo -e "\n#changes found for the following file(s)"
+    cat /tmp/_diff | grep -P "^diff -" | sed 's/.*\/\(.*$\)/\1/'
+  fi
 }
 
-#args
+# args
+option=diff
 while [ "x`echo "$1" | sed -n '/^\([\-]*h\(elp\)\?\|test\|dir\|changed\)$/p'`" != "x" ]; do
   case "$1" in
     "h"|"-h"|"help"|"-help"|"--help") help && exit ;;
@@ -43,8 +73,8 @@ while [ "x`echo "$1" | sed -n '/^\([\-]*h\(elp\)\?\|test\|dir\|changed\)$/p'`" !
   esac
   shift
 done
-diff_options=""
-while [ $# -gt 2 ]; do
+
+ while [ $# -gt 2 ]; do
   case "$1" in
     strip*)
       strip_type=`echo "${1#strip}" | awk '{print tolower($0)}'` && shift
@@ -83,29 +113,4 @@ case $strip_type in
   "lines") for s in "${excludes[@]}"; do diff_options+=" -I $s "; done ;;
 esac
 
-#diff
-if [[ -f "$file1" && -f "$file2" ]]; then
-  [ $DEBUG -ge 1 ] && echo "[debug] diff $diff_options $diff_options_default \"$file1\" \"$file2\" | grep -ve \"^Only in\" | grep -ve \"^[Bb]inary\" | tee /tmp/_diff"
-  if [ $TEST -eq 0 ]; then
-    diff $diff_options_default $diff_options $diff_options_default "$file1" "$file2" | grep -ve "^Only in" | grep -ve "^[Bb]inary" | tee /tmp/_diff
-    rm $f_excludes >/dev/null 2>&1 #cleanup
-  fi
-elif [[ -d "$file1" && -d "$file2" ]]; then
-  if [ "x$option" == "xdir" ]; then
-    dirdiff
-  else
-    diff_options_default+=" -r "
-    [ $DEBUG -ge 1 ] && echo "[debug] diff $diff_options $diff_options_default \"$file1\" \"$file2\" | grep -ve \"^Only in\" | grep -ve \"^[Bb]inary\" | tee /tmp/_diff"
-    if [ $TEST -eq 0 ]; then
-      diff $diff_options_default $diff_options "$file1" "$file2" | grep -ve "^Only in" | grep -ve "^[Bb]inary" | tee /tmp/_diff
-      rm $f_excludes >/dev/null 2>&1 #cleanup
-    fi
-  fi
-else
-  help && echo "[error] args must be a homogenous pair, either directories or files" 1>&2 && exit 1
-fi
-
-if [ "x$option" == "xchanged" ]; then
-  echo -e "\n#changes found for the following file(s)"
-  cat /tmp/_diff | grep -P "^diff -" | sed 's/.*\/\(.*$\)/\1/'
-fi
+fnProcess "$option" "$@"
