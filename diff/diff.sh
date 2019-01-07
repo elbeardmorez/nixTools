@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 SCRIPTNAME=${0##*/}
 DEBUG=${DEBUG:-0}
