@@ -208,6 +208,7 @@ fnProcess() {
 }
 
 option="out"
+[ $# -eq 0 ] && help && exit
 [[ "x$(echo "$1" | sed -n 's/[-]*\(in\|out\|h\|help\)/\1/p')" != "x" ]] && option="$(echo "$1" | sed 's/^-*//g')" && shift
 case $option in
   "in"|"out") fnProcess $option "$@" ;;
