@@ -9,7 +9,7 @@ if [ -n "$ZSH_VERSION" ]; then
   setopt KSH_ARRAYS
 fi
 
-filelist_changedonly=0
+changed_only=0
 declare -a diff_options
 diff_options_default=("-uE" "--color=always")
 diff_viewer=${DIFF_VIEWER:-meld}
@@ -46,7 +46,7 @@ fnProcess() {
       [ $DEBUG -ge 1 ] && echo "[debug] diff  ${diff_options_default[@]} ${diff_options[@]} \"$file1\" \"$file2\" | grep -ve \"^Only in\" | grep -ve \"^[Bb]inary\" | tee /tmp/_diff"
       if [ $TEST -eq 0 ]; then
         diff ${diff_options_default[@]} ${diff_options[@]} "$file1" "$file2" | grep -ve "^Only in" | grep -ve "^[Bb]inary" > /tmp/_diff
-        if [[ "x$type" == "xdir" && $filelistchangedonly -eq 1 ]]; then
+        if [[ "x$type" == "xdir" && $changed_only -eq 1 ]]; then
           echo -e "\n#changes found for the following file(s)"
           cat /tmp/_diff | grep -P "^diff -" | sed 's/.*\/\(.*$\)/\1/'
         else
@@ -77,7 +77,7 @@ while [ -n "$1" ]; do
   arg="$(echo "$1" | awk -v "arg=$1" '{gsub(/^-\([^-]+\)*/,"\1",arg);print tolower(arg);}')"
   case "$arg" in
     "diff"|"filelist") mode=$arg ;;
-    "changed") filelist_changedonly=1 ;;
+    "changed") changed_only=1 ;;
     strip*)
       shift
       while [[ "x$(echo "$1" | sed -n '/^\('$option_list'\)$/p')" == "x" && $# -gt 2 ]]; do
