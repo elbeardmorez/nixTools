@@ -16,6 +16,10 @@ and OPTION can be:
   stripfiles FILE [FILE2 ..]      : ignore specified files
   striplines STRING [STRING2 ..]  : ignore lines (regexp format)
   whitespace  : ignore whitespace changes
+
+note: advanced diff options can be passed to the diff binary
+      directly using the '--' switch. any unrecognised options which
+      follow will be treated as diff binary options
 ```
 
 ## dependencies

@@ -21,6 +21,9 @@ SYNTAX: $SCRIPTNAME [MODE] [OPTION [ARG] ..] dir|file dir2|file2
   stripfiles FILE [FILE2 ..]      : ignore specified files
   striplines STRING [STRING2 ..]  : ignore lines (regexp format)
   whitespace  : ignore whitespace changes
+\nnote: advanced diff options can be passed to the diff binary
+      directly using the '--' switch. any unrecognised options which
+      follow will be treated as diff binary options
 "
 }
 
@@ -61,16 +64,18 @@ fnProcess() {
 }
 
 # args
+option_list='diff\|filelist\|changed\|whitespace\|striplines\|stripfiles\|--'
+
 declare -a excludes
 mode=diff
 while [ -n "$1" ]; do
-  arg="$(echo "$1" | awk -v "arg=$1" '{gsub(/^-*/,"",arg);print tolower(arg);}')"
+  arg="$(echo "$1" | awk -v "arg=$1" '{gsub(/^-\([^-]+\)*/,"\1",arg);print tolower(arg);}')"
   case "$arg" in
     "diff"|"filelist") mode=$arg ;;
     "changed") filelist_changedonly=1 ;;
     strip*)
       shift
-      while [[ "x$(echo "$1" | sed -n '\(diff\|filelist\|changed\|whitespace\|striplines\|stripfiles\)/p')" == "x" && $# -gt 2 ]]; do
+      while [[ "x$(echo "$1" | sed -n '/^\('$option_list'\)$/p')" == "x" && $# -gt 2 ]]; do
         excludes[${#excludes[@]}]="$1" && shift
       done
       case $arg in
@@ -83,9 +88,16 @@ while [ -n "$1" ]; do
           for s in "${excludes[@]}"; do diff_options[${#diff_options[@]}]="--ignore-matching-lines=$s"; done
           ;;
       esac
+      continue
       ;;
     "whitespace") diff_options[${#diff_options[@]}]="-w" ;;
-    "--") shift && while [ -n "$1" ]; do diff_options[${#diff_options[@]}]="$1"; done ;;
+    "--")
+      shift
+      while [[ "x$(echo "$1" | sed -n '/^\('$option_list'\)$/p')" == "x" && $# -gt 2 ]]; do
+        diff_options[${#diff_options[@]}]="$1" && shift
+      done
+      continue
+      ;;
     "test") TEST=1 ;;
     "h"|"help") help && exit ;;
     *)
