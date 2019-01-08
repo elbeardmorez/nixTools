@@ -208,8 +208,8 @@ fnProcess() {
 }
 
 option="out"
-[[ "x$(echo "$1" | sed -n '/\(in\|out\|help\)/p')" != "x" ]] && option="$1" && shift
+[[ "x$(echo "$1" | sed -n 's/[-]*\(in\|out\|h\|help\)/\1/p')" != "x" ]] && option="$(echo "$1" | sed 's/^-*//g')" && shift
 case $option in
   "in"|"out") fnProcess $option "$@" ;;
-  "help") help ;;
+  "h"|"help") help ;;
 esac
