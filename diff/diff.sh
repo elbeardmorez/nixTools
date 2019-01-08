@@ -19,13 +19,16 @@ help() {
   echo -e "
 SYNTAX: $SCRIPTNAME [MODE] [OPTION [ARG] ..] dir|file dir2|file2
 \nwhere MODE is:
-  diff      : (default) unified diff output for targets
-  changed   : list modified common files in targets (dirs only)
-  filelist  : comparison of file attributes in targets (dirs only)
+  -d, --diff      : (default) unified diff output for targets
+  -ch, --changed   : list modified common files in targets (dirs
+                     only)
+  -fl, --filelist  : comparison of file attributes in targets (dirs
+                     only)
 \nand OPTION can be:
-  stripfiles FILE [FILE2 ..]      : ignore specified files
-  striplines STRING [STRING2 ..]  : ignore lines (regexp format)
-  whitespace  : ignore whitespace changes
+  -sf, --strip-files FILE [FILE2 ..]      : ignore specified files
+  -sl, --strip-lines STRING [STRING2 ..]  : ignore lines (regexp
+                                            format)
+  -nw, --no-whitespace  : ignore whitespace changes
 \nnote: advanced diff options can be passed to the diff binary
       directly using the '--' switch. any unrecognised options which
       follow will be treated as diff binary options
@@ -76,26 +79,27 @@ mode=diff
 while [ -n "$1" ]; do
   arg="$(echo "$1" | awk -v "arg=$1" '{;print tolower(gensub(/^[-]+([^-]+)/,"\\1","g",arg));}')"
   case "$arg" in
-    "diff"|"filelist") mode=$arg ;;
-    "changed") changed_only=1 ;;
-    strip*)
+    "d"|"diff") mode=$arg ;;
+    "ch"|"changed") changed_only=1 ;;
+    "fl"|"filelist") mode=$arg ;;
+    "sf"|"sl"|strip*)
       shift
       while [[ "x$(echo "$1" | sed -n '/^\('$option_list'\)$/p')" == "x" && $# -gt 2 ]]; do
         excludes[${#excludes[@]}]="$1" && shift
       done
       case $arg in
-        "stripfiles")
+        "sf"|"strip-files")
           f_excludes="$(tempfile)"
           for s in "${excludes[@]}"; do echo "$s" >> "$f_excludes"; done
           diff_options[${#diff_options[@]}]="--exclude-from=\"$f_excludes\""
           ;;
-        "striplines")
+        "sl"|"strip-lines")
           for s in "${excludes[@]}"; do diff_options[${#diff_options[@]}]="--ignore-matching-lines=$s"; done
           ;;
       esac
       continue
       ;;
-    "whitespace") diff_options[${#diff_options[@]}]="-w" ;;
+    "nw"|"no-whitespace") diff_options[${#diff_options[@]}]="-w" ;;
     "--")
       shift
       while [[ "x$(echo "$1" | sed -n '/^\('$option_list'\)$/p')" == "x" && $# -gt 2 ]]; do
