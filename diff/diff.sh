@@ -74,7 +74,7 @@ option_list='diff\|filelist\|changed\|whitespace\|striplines\|stripfiles\|--'
 declare -a excludes
 mode=diff
 while [ -n "$1" ]; do
-  arg="$(echo "$1" | awk -v "arg=$1" '{gsub(/^-\([^-]+\)*/,"\1",arg);print tolower(arg);}')"
+  arg="$(echo "$1" | awk -v "arg=$1" '{;print tolower(gensub(/^[-]+([^-]+)/,"\\1","g",arg));}')"
   case "$arg" in
     "diff"|"filelist") mode=$arg ;;
     "changed") changed_only=1 ;;

@@ -24,4 +24,5 @@ note: advanced diff options can be passed to the diff binary
 
 ## dependencies
 - diff
+- gawk
 - meld (or other diff viewer specified through DIFF_VIEWER environment variable)
