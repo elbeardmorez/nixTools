@@ -122,6 +122,9 @@ done
 file1="$1" && shift
 file2="$1" && shift
 
+[ ! -e "$file1" ] && help && echo "[error] invalid target '$file1'" && exit 1
+[ ! -e "$file2" ] && help && echo "[error] invalid target '$file2'" && exit 1
+
 # type
 if [[ -f "$file1" && -f "$file2" ]]; then
   type="file"
