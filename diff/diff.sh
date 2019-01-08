@@ -4,6 +4,11 @@ SCRIPTNAME=${0##*/}
 DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
 
+# compatibility
+if [ -n "$ZSH_VERSION" ]; then
+  setopt KSH_ARRAYS
+fi
+
 filelist_changedonly=0
 declare -a diff_options
 diff_options_default=("-uE" "--color=always")
