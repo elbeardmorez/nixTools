@@ -79,9 +79,9 @@ mode=diff
 while [ -n "$1" ]; do
   arg="$(echo "$1" | awk -v "arg=$1" '{;print tolower(gensub(/^[-]+([^-]+)/,"\\1","g",arg));}')"
   case "$arg" in
-    "d"|"diff") mode=$arg ;;
+    "d"|"diff") mode="diff" ;;
     "ch"|"changed") changed_only=1 ;;
-    "fl"|"filelist") mode=$arg ;;
+    "fl"|"filelist") mode="filelist" ;;
     "sf"|"sl"|strip*)
       shift
       while [[ "x$(echo "$1" | sed -n '/^\('$option_list'\)$/p')" == "x" && $# -gt 2 ]]; do
