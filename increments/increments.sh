@@ -4,7 +4,7 @@ IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
 
 mode="list"
-dump="incremental"
+dump="increments"
 target=${INCREMENTS_TARGET:-}
 search=(${INCREMENTS_SEARCH:-})
 
