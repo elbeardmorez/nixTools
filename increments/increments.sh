@@ -48,7 +48,7 @@ case "$mode" in
     echo -e "$s" | sort -t$'\t' -k1
     ;;
   "diffs")
-    [ ! -d "$dump" ] && mkdir "$dump"
+    [ ! -d "$dump" ] && mkdir -p "$dump"
     IFS=$'\n'; sorted=(`echo -e "$s" | sort -t$'\t' -k1`); IFS="$IFSORG"
     last="/dev/null"
     for r in "${sorted[@]}"; do
