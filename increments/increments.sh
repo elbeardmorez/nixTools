@@ -32,7 +32,7 @@ for s in "${search[@]}"; do
 done
 [ $DEBUG -gt 0 ] && echo "[debug] searched target '$target', found ${#files[@]} file(s)" 1>&2
 
-[ ${#files[@]} -eq 0 ] && echo "no files found" && exit
+[ ${#files[@]} -eq 0 ] && echo "[info] no files found" && exit
 
 s=""
 for f in ${files[@]}; do
