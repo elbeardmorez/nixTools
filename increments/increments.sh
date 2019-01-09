@@ -19,7 +19,7 @@ while [ $i -lt ${#args[@]} ]; do
     "-d"|"--diffs") i=$[$i+1] && diffs=1 ;;
     *) search[${#search[@]}]="$arg" ;;
   esac
-  i=$[$i+1]  
+  i=$[$i+1]
 done
 
 [ $DEBUG -gt 0 ] && echo "[debug] name: $name, target: `basename $target`, search: [${search[@]}]" 1>&2
