@@ -3,26 +3,24 @@
 IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
 
-name="incremental"
+mode="list"
+dump="incremental"
 target=${INCREMENTS_TARGET:-}
 search=(${INCREMENTS_SEARCH:-})
 
-diffs=0
-
-args=("$@")
-i=0
-while [ $i -lt ${#args[@]} ]; do
-  arg="${args[$i]}"
-  case "$arg" in
-    "-n"|"--name") i=$[$i+1] && name="${args[$i]}" ;;
-    "-t"|"--target") i=$[$i+1] && target="${args[$i]}" ;;
-    "-d"|"--diffs") i=$[$i+1] && diffs=1 ;;
-    *) search[${#search[@]}]="$arg" ;;
+mode="list"
+while [ -n "$1" ]; do
+  s="$(echo "$1" | sed -n 's/^-*//gp')"
+  case "$s" in
+    "list"|"diffs") mode="$s" ;;
+    "t"|"target") shift; target="$1" ;;
+    "d"|"dump") shift; dump="$1" ;;
+    *) search[${#search[@]}]="$1" ;;
   esac
-  i=$[$i+1]
+  shift
 done
 
-[ $DEBUG -gt 0 ] && echo "[debug] name: $name, target: `basename $target`, search: [${search[@]}]" 1>&2
+[ $DEBUG -gt 0 ] && echo "[debug] mode: $mode, search: [${search[@]}], target: `basename $target`, dump: $dump, ]" 1>&2
 
 [[ $target == "" || ! -d "$target" ]] && echo "[error] invalid search target set '$target'. exiting!" && exit 1
 
@@ -44,20 +42,24 @@ for f in ${files[@]}; do
   s="$s\n$ts\t$sz\t$f"
 done
 s="${s:2}"
-echo -e "$s" | sort -t$'\t' -k1
 
-[ $diffs -eq 0 ] && exit
-
-[ ! -d "$name" ] && mkdir "$name"
-IFS=$'\n'; sorted=(`echo -e "$s" | sort -t$'\t' -k1`); IFS="$IFSORG"
-last="/dev/null"
-for r in "${sorted[@]}"; do
-  [ $DEBUG -gt 2 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
-  IFS=$'\t'; fields=($r); IFS="$IFSORG"
-  ts=${fields[0]}
-  sz=${fields[1]}
-  f="${fields[2]}"
-  [ $DEBUG -gt 1 ] && echo "[debug] diff '$last <-> $f'"
-  diff -u "$last" "$f" > "$name/$ts.diff"
-  last="$f"
-done
+case "$mode" in
+  "list")
+    echo -e "$s" | sort -t$'\t' -k1
+    ;;
+  "diffs")
+    [ ! -d "$dump" ] && mkdir "$dump"
+    IFS=$'\n'; sorted=(`echo -e "$s" | sort -t$'\t' -k1`); IFS="$IFSORG"
+    last="/dev/null"
+    for r in "${sorted[@]}"; do
+      [ $DEBUG -gt 2 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
+      IFS=$'\t'; fields=($r); IFS="$IFSORG"
+      ts=${fields[0]}
+      sz=${fields[1]}
+      f="${fields[2]}"
+      [ $DEBUG -gt 1 ] && echo "[debug] diff '$last <-> $f'"
+      diff -u "$last" "$f" > "$dump/$ts.diff"
+      last="$f"
+    done
+    ;;
+esac
