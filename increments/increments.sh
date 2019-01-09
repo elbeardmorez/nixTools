@@ -34,23 +34,51 @@ done
 
 [ ${#files[@]} -eq 0 ] && echo "[info] no files found" && exit
 
+maxlen_path=4
+maxlen_size=4
 s=""
 for f in ${files[@]}; do
+  [ ${#f} -gt $maxlen_path ] && maxlen_path=${#f}
   i=`stat -L "$f"`
   ts=`echo -e "$i" | grep "Modify" | cut -d' ' -f2- | xargs -I '{}' date -d '{}' '+%s'`
   sz=`echo -e "$i" | sed -n 's/.*Size: \([0-9]\+\).*/\1/p'`
+  [ ${#sz} -gt $maxlen_size ] && maxlen_size=${#sz}
   s="$s\n$ts\t$sz\t$f"
 done
 s="${s:2}"
 
+IFS=$'\n'; sorted=(`echo -e "$s" | sort -t$'\t' -k1`); IFS="$IFSORG"
+
 case "$mode" in
   "list")
     echo "[info] matched ${#files[@]} files" 1>&2
-    echo -e "$s" | sort -t$'\t' -k1
+    date_format="%Y%b%d %H:%M:%S %z"
+    field_date=0; field_size=1; field_path=2
+    field_widths=(25 $(($maxlen_size+1)) $(($maxlen_path+1)))
+    field_order=(2 1 0)
+    # header
+    printf "\n%s%$((${field_widths[$field_path]}-4))s%$((${field_widths[$field_size]}-4))s%s%$((${field_widths[$field_date]}-4))s%s\n" "path" " " " " "size" " " "date"
+    # rows
+    for r in "${sorted[@]}"; do
+      [ $DEBUG -gt 2 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
+      IFS=$'\t'; fields=($r); IFS="$IFSORG"
+      for l in ${field_order[@]}; do
+        f="${fields[$l]}"
+        if [ $l -eq $field_path ]; then
+          # align left
+          printf "%s%$((${field_widths[$l]}-${#f}))s" "$f" " "
+        elif [ $l -eq $field_date ]; then
+          d=$(date --date "@$f" "+$date_format")
+          printf "%${field_widths[$l]}s" "$d"
+        else
+          printf "%${field_widths[$l]}s" "$f"
+        fi
+      done
+      printf '\n'
+    done
     ;;
   "diffs")
     [ ! -d "$dump" ] && mkdir -p "$dump"
-    IFS=$'\n'; sorted=(`echo -e "$s" | sort -t$'\t' -k1`); IFS="$IFSORG"
     last="/dev/null"
     for r in "${sorted[@]}"; do
       [ $DEBUG -gt 2 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
