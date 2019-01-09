@@ -1,7 +1,7 @@
 # increments.sh
 
 ## description
-given a search set and a target, find all files satisfying the search under the target location and return a match list ordered by modification date to represent an incremental set, from which a dump of ordered incremental diffs is then created
+given a search set and a target, find all files satisfying the search under the target location and return a match list ordered by modification date to represent an incremental set, from which a dump of ordered incremental diffs is optionally created
 
 ## examples
 ```

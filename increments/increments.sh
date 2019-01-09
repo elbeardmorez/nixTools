@@ -7,6 +7,8 @@ name="incremental"
 target=${INCREMENTS_TARGET:-}
 search=(${INCREMENTS_SEARCH:-})
 
+diffs=0
+
 args=("$@")
 i=0
 while [ $i -lt ${#args[@]} ]; do
@@ -14,6 +16,7 @@ while [ $i -lt ${#args[@]} ]; do
   case "$arg" in
     "-n"|"--name") i=$[$i+1] && name="${args[$i]}" ;;
     "-t"|"--target") i=$[$i+1] && target="${args[$i]}" ;;
+    "-d"|"--diffs") i=$[$i+1] && diffs=1 ;;
     *) search[${#search[@]}]="$arg" ;;
   esac
   i=$[$i+1]  
@@ -42,6 +45,8 @@ for f in ${files[@]}; do
 done
 s="${s:2}"
 echo -e "$s" | sort -t$'\t' -k1
+
+[ $diffs -eq 0 ] && exit
 
 [ ! -d "$name" ] && mkdir "$name"
 IFS=$'\n'; sorted=(`echo -e "$s" | sort -t$'\t' -k1`); IFS="$IFSORG"
