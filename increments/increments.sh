@@ -21,7 +21,7 @@ done
 
 [ $DEBUG -gt 0 ] && echo "[debug] name: $name, target: `basename $target`, search: [${search[@]}]" 1>&2
 
-[[ $target == "" || ! -d "$target" ]] && echo "search target not set, exiting!" && exit 1
+[[ $target == "" || ! -d "$target" ]] && echo "[error] invalid search target set '$target'. exiting!" && exit 1
 
 files=()
 for s in "${search[@]}"; do
