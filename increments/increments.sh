@@ -45,6 +45,7 @@ s="${s:2}"
 
 case "$mode" in
   "list")
+    echo "[info] matched ${#files[@]} files" 1>&2
     echo -e "$s" | sort -t$'\t' -k1
     ;;
   "diffs")
@@ -61,5 +62,6 @@ case "$mode" in
       diff -u "$last" "$f" > "$dump/$ts.diff"
       last="$f"
     done
+    echo "[info] dumped ${#sorted[@]} diffs to '$dump'" 1>&2
     ;;
 esac
