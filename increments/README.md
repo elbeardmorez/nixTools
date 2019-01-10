@@ -14,7 +14,9 @@ where MODE can be:
       -d, --dump TARGET  : target path for diffs (default: increments)
 where OPTIONS can be:
   -t, --target TARGET:  search path
-
+  -v, --variants VARIANTS  : consider search variants given by
+                             application of (sed) regexp
+                             transformations in VARIANTS file
 environment variables:
   INCREMENTS_TARGET:  as detailed above
   INCREMENTS_SEARCH:  as detailed above
@@ -31,6 +33,17 @@ test/source/2/x.cpp    29 2018Jul14 16:06:33 +0100
 ```
 
 ```
+$ ./increments.sh --target test/source/ --variants ./variants x.cpp
+[info] matched 4 files
+
+path                  size                     date
+test/source/x.cpp~      14 2018Jul14 15:56:38 +0100
+test/source/x.cpp       21 2018Jul14 16:05:47 +0100
+test/source/2/x.cpp~    21 2018Jul14 16:06:17 +0100
+test/source/2/x.cpp     29 2018Jul14 16:06:33 +0100
+```
+
+```
 $ increments.sh diffs -t test/source/ x.cpp
 [info] dumped 2 diffs to 'increments'
 
@@ -40,4 +53,4 @@ $ ls -1 increments
 ```
 
 ## todo
-- search versions set
+- match target precedence

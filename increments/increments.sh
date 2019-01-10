@@ -24,6 +24,9 @@ SYNTAX: $SCRIPTNAME [MODE] [OPTIONS] search [search2 ..]
       -d, --dump TARGET  : target path for diffs (default: increments)
 where OPTIONS can be:
   -t, --target TARGET:  search path
+  -v, --variants VARIANTS  : consider search variants given by
+                             application of (sed) regexp
+                             transformations in VARIANTS file
 \nenvironment variables:
   INCREMENTS_TARGET  : as detailed above
   INCREMENTS_SEARCH  : as detailed above
@@ -39,6 +42,7 @@ while [ -n "$1" ]; do
     "list"|"diffs") mode="$s" ;;
     "t"|"target") shift; target="$1" ;;
     "d"|"dump") shift; dump="$1" ;;
+    "v"|"variants") shift; variants="$1" ;;
     *) search[${#search[@]}]="$1" ;;
   esac
   shift
@@ -48,6 +52,23 @@ done
 
 [ ! -d "$target" ] && echo "[error] invalid search target set '$target'. exiting!" && exit 1
 
+if [ -n "$variants" ]; then
+  if [ ! -f "$variants" ]; then
+    echo "[error] invalid variants file set '$variants'. ignoring!"
+  else
+    declare -a search2
+    search2=""
+    while read line; do
+      for s in ${search}; do
+        search2+="$s\n"
+        v=$(echo "$s" | sed "s$line")
+        [ -n "${v}" ] && search2+="$v\n"
+      done
+    done < $variants
+    # unique only
+    IFS=$'\n'; search=($(echo -e "$search2" | sort -u)); IFS="$IFSORG"
+  fi
+fi
 
 # search regexp
 rx=""
