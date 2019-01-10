@@ -46,7 +46,7 @@ done
 
 [ $DEBUG -gt 0 ] && echo "[debug] mode: $mode, search: [${search[@]}], target: `basename $target`, dump: $dump, ]" 1>&2
 
-[[ $target == "" || ! -d "$target" ]] && echo "[error] invalid search target set '$target'. exiting!" && exit 1
+[ ! -d "$target" ] && echo "[error] invalid search target set '$target'. exiting!" && exit 1
 
 files=()
 for s in "${search[@]}"; do
