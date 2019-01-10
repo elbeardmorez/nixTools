@@ -52,5 +52,9 @@ $ ls -1 increments
 1531580793.diff
 ```
 
+## dependencies
+- sed
+
 ## todo
 - match target precedence
+- remove duplicates
