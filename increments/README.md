@@ -3,6 +3,23 @@
 ## description
 given a search set and a target, find all files satisfying the search under the target location and return a match list ordered by modification date to represent an incremental set, from which a dump of ordered incremental diffs is optionally created
 
+## usage
+```
+SYNTAX: increments.sh [MODE] [OPTIONS] search [search2 ..]
+
+where MODE can be:
+  list  : list search matches in incremental order
+  diffs  : create a set of diffs from matches
+    where OPTIONS can be:
+      -d, --dump TARGET  : target path for diffs (default: increments)
+where OPTIONS can be:
+  -t, --target TARGET:  search path
+
+environment variables:
+  INCREMENTS_TARGET:  as detailed above
+  INCREMENTS_SEARCH:  as detailed above
+```
+
 ## examples
 ```
 $ increments.sh -t test/source/ x.cpp

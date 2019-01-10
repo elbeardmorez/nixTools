@@ -1,5 +1,6 @@
 #!/bin/sh
 
+SCRIPTNAME=${0##*/}
 IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
 
@@ -13,10 +14,28 @@ dump="increments"
 target=${INCREMENTS_TARGET:-}
 search=(${INCREMENTS_SEARCH:-})
 
-mode="list"
+help() {
+  echo -e "
+SYNTAX: $SCRIPTNAME [MODE] [OPTIONS] search [search2 ..]
+\nwhere MODE can be:
+  list  : list search matches in incremental order
+  diffs  : create a set of diffs from matches
+    where OPTIONS can be:
+      -d, --dump TARGET  : target path for diffs (default: increments)
+where OPTIONS can be:
+  -t, --target TARGET:  search path
+\nenvironment variables:
+  INCREMENTS_TARGET  : as detailed above
+  INCREMENTS_SEARCH  : as detailed above
+"
+}
+
+[ $# -lt 1 ] && help && echo "[error] not enough args" &&  exit 1
+
 while [ -n "$1" ]; do
   s="$(echo "$1" | sed -n 's/^-*//gp')"
   case "$s" in
+    "h"|"help") help && exit ;;
     "list"|"diffs") mode="$s" ;;
     "t"|"target") shift; target="$1" ;;
     "d"|"dump") shift; dump="$1" ;;
