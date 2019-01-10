@@ -48,16 +48,17 @@ done
 
 [ ! -d "$target" ] && echo "[error] invalid search target set '$target'. exiting!" && exit 1
 
-files=()
-for s in "${search[@]}"; do
-  IFS=$'\n'; files2=(`find "$target" -iname "$s"`); IFS="$IFSORG"
-  [ $DEBUG -gt 1 ] && echo "[debug] searched target for '$s', found ${#files2[@]} file(s)" 1>&2
-  files=("${files[@]}" "${files2[@]}")
-done
-[ $DEBUG -gt 0 ] && echo "[debug] searched target '$target', found ${#files[@]} file(s)" 1>&2
+
+# search regexp
+rx=""
+for s in "${search[@]}"; do rx+="\|$s"; done
+rx="^.*/?\(${rx:2}\)$"
+
+# search
+IFS=$'\n'; files=(`find "$target" -iregex "$rx"`); IFS="$IFSORG"
+[ $DEBUG -gt 0 ] && echo "[debug] searched target '$target' for '${search[@]}', found ${#files[@]} file(s)" 1>&2
 
 [ ${#files[@]} -eq 0 ] && echo "[info] no files found" && exit
-
 maxlen_path=4
 maxlen_size=4
 s=""
