@@ -1,7 +1,12 @@
-#!/bin/bash
+#!/bin/sh
 
 IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
+
+# compatibility
+if [ -n "$ZSH_VERSION" ]; then
+  setopt KSH_ARRAYS
+fi
 
 mode="list"
 dump="increments"
