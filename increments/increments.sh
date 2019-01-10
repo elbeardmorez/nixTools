@@ -13,6 +13,7 @@ mode="list"
 dump="increments"
 target=${INCREMENTS_TARGET:-}
 search=(${INCREMENTS_SEARCH:-})
+variants=${INCREMENTS_VARIANTS:-}
 
 help() {
   echo -e "
@@ -30,6 +31,7 @@ where OPTIONS can be:
 \nenvironment variables:
   INCREMENTS_TARGET  : as detailed above
   INCREMENTS_SEARCH  : as detailed above
+  INCREMENTS_VARIANTS  : as detailed above
 "
 }
 
