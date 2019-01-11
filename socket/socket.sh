@@ -125,7 +125,7 @@ fnProcess() {
   case "$direction" in
     "in")
       # server side
-      args=("--listen" "--local-port=$PORT")
+      args=("-l" "-p" $PORT)
       persistent=0
       clean=1
       if [ "$#" -gt 0 ]; then
@@ -138,7 +138,7 @@ fnProcess() {
           shift
         done
       fi
-      [ $persistent -eq 0 ] && args[${#args}]="--wait=$SERVER_TIMEOUT"
+      [ $persistent -eq 0 ] && args=("${args[@]}" "-w" $SERVER_TIMEOUT)
       file="data"
       [ $clean -eq 1 ] && fnClean "$file"
       echo "[info]$([ $persistent -eq 1 ] && echo " persistent") socket opened"
