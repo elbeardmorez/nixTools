@@ -62,6 +62,16 @@ where OPTION can be:
 "
 }
 
+fnRandom() {
+  len=${1:-10}; s=""; while [ ${#s} -lt $len ]; do s+="$(head -c10 /dev/random | tr -dc '[[:alnum:]]')"; done; echo "${s:0:$len}";
+}
+
+fnTempFile() {
+  f="$TMP/$SCRIPTNAME.$(fnRandom 10)"
+  while [ -e "$f" ]; do f="$TMP/$SCRIPTNAME.$(fnRandom 10)"; done
+  echo "$f"
+}
+
 fnNextFile() {
   file=$1
   delim="${2:-"_"}"
@@ -147,7 +157,7 @@ fnProcess() {
       file="data"
       [ $clean -eq 1 ] && fnClean "$file"
       echo "[info]$([ $persistent -eq 1 ] && echo " persistent") socket opened"
-      SOCKET="$(tempfile)"
+      SOCKET="$(fnTempFile)"
       while [[ 1 == 1 ]]; do
         nc "${args[@]}" > "$SOCKET"
         size=`du -h $SOCKET | cut -d'	' -f1`

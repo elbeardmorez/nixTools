@@ -48,3 +48,4 @@ where OPTION can be:
 - sed
 - tar
 - file
+- tr
