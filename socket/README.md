@@ -44,7 +44,7 @@ where OPTION can be:
 
 ## dependencies
 - Bourne-like shell (various non-POSIX shell features)
-- GNU netcat
+- netcat
 - sed
 - tar
 - file
