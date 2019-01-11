@@ -19,6 +19,7 @@ SERVER=${SERVER:-localhost}
 SERVER_TIMEOUT=${SERVER_TIMEOUT:-60}
 PORT=${PORT:-666}
 RETRIES=10
+RETRY_DELAY=0.1
 PRESERVE_PATHS=0
 SOCKET=""
 
@@ -182,7 +183,7 @@ fnProcess() {
     "out")
       # client side
       raw=0
-      retry_delay=0.1
+      retry_delay=$RETRY_DELAY
       declare -a data
       if [ "$#" -gt 0 ]; then
         while [ -n "$1" ]; do
