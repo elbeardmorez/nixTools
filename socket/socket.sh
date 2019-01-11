@@ -20,6 +20,7 @@ SERVER_TIMEOUT=${SERVER_TIMEOUT:-60}
 PORT=${PORT:-666}
 RETRIES=10
 PRESERVE_PATHS=0
+SOCKET=""
 
 help() {
   echo -e "
@@ -119,6 +120,10 @@ fnClean() {
   fi
 }
 
+fnCleanUp() {
+  [ -n $SOCKET ] && [ -e $SOCKET ] && rm $SOCKET >/dev/null 2>&1
+}
+
 fnProcess() {
   direction="$1" && shift
 
@@ -142,12 +147,13 @@ fnProcess() {
       file="data"
       [ $clean -eq 1 ] && fnClean "$file"
       echo "[info]$([ $persistent -eq 1 ] && echo " persistent") socket opened"
+      SOCKET="$(tempfile)"
       while [[ 1 == 1 ]]; do
-        nc "${args[@]}" > socket
-        size=`du -h socket | cut -d'	' -f1`
+        nc "${args[@]}" > "$SOCKET"
+        size=`du -h $SOCKET | cut -d'	' -f1`
         if [ "$size" != "0" ]; then
           file=$(fnNextFile $file "_")
-          mv socket $file
+          mv "$SOCKET" $file
           echo "[info] $size bytes dumped to '$file'"
           if [[ "x$(file --brief --mime-type "$file")" == "xapplication/x-tar" ]]; then
             # socket_ archive?
@@ -155,13 +161,13 @@ fnProcess() {
               echo "[info] exploding archive in background" && \
               (tar -xvf "$file" && rm $file) &
           fi
-          [ $persistent -eq 0 ] && exit 0
+          [ $persistent -eq 0 ] && break
         else
-          echo "[info] socket closed, removing socket"
-          [ -f socket ] && rm socket
-          exit 0
+          echo "[info] socket closed"
+          break
         fi
       done
+      fnCleanUp
       ;;
     "out")
       # client side
