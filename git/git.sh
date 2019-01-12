@@ -46,7 +46,7 @@ fnCommit() {
   if [ $? -eq 0 ]; then
     sha=`$cmd_sha | cut -d' ' -f1`
   else
-    sha=`fnCommitByName "$id"`
+    sha=`fnCommitByName "$id" "$@"`
   fi
   echo "$sha"
 }
