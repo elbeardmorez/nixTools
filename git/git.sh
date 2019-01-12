@@ -88,7 +88,15 @@ fnProcess() {
       fi
       ;;
     "st"|"status")
-      git -c 'color.ui=always' status --col | awk 'BEGIN{test=0}; {if (!test) { if (/[ ]*Untracked files:[ ]*/) { print "Untracked files in local path only:"; test=1; } else { print; } } else { print; } }'
+      gitstatus=(git -c color.ui=always status)
+      gitcolumn=(git column --mode=column --indent=$'\t')
+      m="Untracked files:"
+      # pre
+      "${gitstatus[@]}" | sed -n '1,/^'"$m"'/{/^'"$m"'/{s/\(.*\):/\1 [local dir only]:/;N;N;p;b};p;}'
+      # filtered
+      "${gitstatus[@]}" | sed -n '/^'"$m"'/,/^*$/{/'"$m"'/{N;N;d;};/^$/{N;N;d;};/\//d;s/^[ \t]*//g;p;}' | "${gitcolumn[@]}"
+      # post
+      "${gitstatus[@]}" | sed -n '/^'"$m"'/,${/^'"$m"'/{N;N;d;};/^$/,${p;};}'
       ;;
     "sta"|"status-all")
       git status --col
