@@ -22,7 +22,8 @@ where <command> is:
   log [n]   : print last n log entries, simple log format
   log1 [n]  : print last n log entries, single line log format
   logx [n]  : print last n log entries, extended log format
-  st|status : show status with untracked in column format
+  st|status      : show column format status with untracked local path files only
+  sta|status-all : show column format status
   addnws  : add all files, ignoring white-space changes
   fp|formatpatch <ID> [n]  : format n patch(es) by commit / description
   rb|rebase <ID>  : interactively rebase by commit / description
@@ -87,6 +88,9 @@ fnProcess() {
       fi
       ;;
     "st"|"status")
+      git -c 'color.ui=always' status --col | awk 'BEGIN{test=0}; {if (!test) { if (/[ ]*Untracked files:[ ]*/) { print "Untracked files in local path only:"; test=1; } else { print; } } else { print; } }'
+      ;;
+    "sta"|"status-all")
       git status --col
       ;;
     "addnws")
