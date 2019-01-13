@@ -22,6 +22,9 @@ where <OPTION> can be:
   log [N]   : print last N log entries, simple log format
   log1 [N]  : print last N log entries, single line log format
   logx [N]  : print last N log entries, extended log format
+  sha <SEARCH> [N]  : return full sha for an id or partial
+                      description string. searching by description
+                      is limited to the last N (default: 50) commits
   st|status      : show column format status with untracked local
                    path files only
   sta|status-all : show column format status
@@ -97,6 +100,11 @@ fnProcess() {
         format="fuller" && [ "x$command" == "xlog1" ] && format="oneline"
         TERM=linux git log --format="$format" -n $count "$@" | cat
       fi
+      ;;
+    "sha")
+      [ $# -lt 1 ] && echo "[error] not enough args" && exit
+      commit=$(fnCommit "$@")
+      [ -n "$commit" ] && echo "$commit"
       ;;
     "st"|"status")
       gitstatus=(git -c color.ui=always status)
