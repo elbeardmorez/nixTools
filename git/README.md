@@ -26,4 +26,5 @@ where <command> is:
   aca|addcommitamend         : add updated and commit, amending previous
   acan|addcommitamendnoedit  : add updated and commit, amending previous without editing message
   ff|fast-forward  : identify current 'branch' and fast-forward to HEAD of 'linked'
+  rd|rescue-dangling  : dump any orphaned commits still accessable to a 'commits' directory
 ```
