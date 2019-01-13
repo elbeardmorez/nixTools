@@ -85,15 +85,15 @@ fnProcess() {
   command="help" && [ $# -gt 0 ] && command="$1" && shift
   case "$command" in
     "help") help ;;
-    "diff") TERM=linux git diff $@ ;;
+    "diff") git diff $@ ;;
     "log"|"logx"|"log1")
       count=1 && [ $# -gt 0 ] && count=$1 && shift
       [ $count == "all" ] && count=$(git log --format=oneline | wc -l)
       if [ "x$command" == "xlog" ]; then
-        TERM=linux git log -n $count --format=format:"%at | %ct | version: %H%n %s (%an)" "$@" | awk '{for(l=1; l<=3; l++) {if ($l~/[0-9]+/) {$l=strftime("%Y%b%d",$l);}}; print $0}'
+        git log -n $count --format=format:"%at | %ct | version: %H%n %s (%an)" "$@" | awk '{for(l=1; l<=3; l++) {if ($l~/[0-9]+/) {$l=strftime("%Y%b%d",$l);}}; print $0}'
       else
         format="fuller" && [ "x$command" == "xlog1" ] && format="oneline"
-        TERM=linux git log --format="$format" -n $count "$@" | cat
+        git log --format="$format" -n $count "$@" | cat
       fi
       ;;
     "sha")
