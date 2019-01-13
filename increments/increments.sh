@@ -35,8 +35,6 @@ where OPTIONS can be:
 "
 }
 
-[ $# -lt 1 ] && help && echo "[error] not enough args" &&  exit 1
-
 while [ -n "$1" ]; do
   s="$(echo "$1" | sed -n 's/^-*//gp')"
   case "$s" in
@@ -52,6 +50,7 @@ done
 
 [ $DEBUG -gt 0 ] && echo "[debug] mode: $mode, search: [${search[@]}], target: `basename $target`, dump: $dump, ]" 1>&2
 
+[ ${#search[@]} -eq 0 ] && help && echo "[error] no search items specified" &&  exit 1
 [ ! -d "$target" ] && echo "[error] invalid search target set '$target'. exiting!" && exit 1
 
 if [ -n "$variants" ]; then
