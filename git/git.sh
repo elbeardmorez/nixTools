@@ -87,13 +87,31 @@ fnProcess() {
     "help") help ;;
     "diff") git diff $@ ;;
     "log"|"logx"|"log1")
-      count=1 && [ $# -gt 0 ] && count=$1 && shift
-      [ $count == "all" ] && count=$(git log --format=oneline | wc -l)
+      c_br="\e[0;33m"
+      c_off="\e[m"
+      count=-1
+      search=""
+      declare -a binargs
+      declare -a cmdargs
+      binargs=("-c" "color.ui=always")
+      while [ -n "$1" ]; do
+        [ "x$(echo "$1" | sed -n '/[0-9]/p')" != "x" ] && count=$1 && shift && continue
+        [ "x$(echo "$1" | sed -n '/^[^-]\+/p')" != "x" ] && search=$1 && shift && continue
+        [ "x$1" == "x--" ] && cmdargs=("${cmdargs[@]}" "$@") && break
+        cmdargs[${#cmdargs[@]}]="$1"
+        shift
+      done
+      [ $count -gt 0 ] && cmdargs=("-n" $count "${cmdargs[@]}")
+      if [ -n "$search" ]; then
+        commit=$(fnCommit "$search")
+        [ -z "$commit" ] && exit 1
+        cmdargs[${#cmdargs[@]}]="$(echo "$commit" | cut -d' ' -f1)"
+      fi
       if [ "x$command" == "xlog" ]; then
-        git log -n $count --format=format:"%at | %ct | version: %H%n %s (%an)" "$@" | awk '{for(l=1; l<=3; l++) {if ($l~/[0-9]+/) {$l=strftime("%Y%b%d",$l);}}; print $0}'
+        git "${binargs[@]}" log --format=format:"%at | %ct | version: $c_br%H$c_off%n %s (%an)" "${cmdargs[@]}" | awk '{for(l=1; l<=3; l++) {if ($l~/[0-9]+/) {$l=strftime("%Y%b%d",$l);}}; print $0}' | xargs -0 echo -e | sed '$d'
       else
-        format="fuller" && [ "x$command" == "xlog1" ] && format="oneline"
-        git log --format="$format" -n $count "$@" | cat
+        format="$([ "x$command" = "xlog1" ] && echo "oneline" || echo "fuller")"
+        git "${binargs[@]}" log --format="$format" "${cmdargs[@]}" | cat
       fi
       ;;
     "sha")
