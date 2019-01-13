@@ -55,14 +55,9 @@ where <OPTION> can be:
 fnCommit() {
   [ $# -lt 1 ] && echo "[fnCommit] id arg missing" && exit
   id="$1" && shift
-  cmd_sha="git log -n1 --oneline $id"
-  $cmd_sha > /dev/null 2>&1
-  if [ $? -eq 0 ]; then
-    sha=`$cmd_sha | cut -d' ' -f1`
-  else
-    sha=`fnCommitByName "$id" "$@"`
-  fi
-  echo "$sha"
+  commit="$(git log -n1 --oneline $id 2>/dev/null)"
+  [ $? -ne 0 ] && commit="$(fnCommitByName "$id" "$@")"
+  echo "$commit"
 }
 
 fnCommitByName() {
