@@ -26,22 +26,22 @@ where <OPTION> can be:
                    path files only
   sta|status-all : show column format status
   addnws  : add all files, ignoring white-space changes
-  fp|formatpatch <ID> [N]  : format N patch(es) back from an id or
-                             partial description string
+  fp|format-patch <ID> [N]  : format N patch(es) back from an id or
+                              partial description string
   rb|rebase <SEARCH> [N]  : interactively rebase by id or partial
                             description string. searching by
                             description is limited to the last N
                             (default: 50) commits
   cl|clone <REPO>  : clone repo
   co|checkout      : checkout files / branches
-  ca|commitamend         : commit, amending previous
-  can|commitamendnoedit  : commit, amending previous without editing
-                           message
-  ac|addcommit               : add updated and commit
-  aca|addcommitamend         : add updated and commit, amending
-                               previous commit message
-  acan|addcommitamendnoedit  : add updated and commit, amending
-                               previous without editing message
+  ca|commit-amend          : commit, amending previous
+  can|commit-amend-noedit  : commit, amending previous without editing
+                             message
+  ac|add-commit                 : add updated and commit
+  aca|add-commit-amend          : add updated and commit, amending
+                                  previous commit message
+  acan|add-commit-amend-noedit  : add updated and commit, amending
+                                  previous without editing message
   ff|fast-forward  : identify current 'branch' and fast-forward to
                      HEAD of 'linked'
   rd|rescue-dangling  : dump any orphaned commits still accessable to
@@ -146,21 +146,21 @@ fnProcess() {
     "cl"|"clone")
       git clone "$@"
       ;;
-    "ca"|"commitamend")
+    "ca"|"commit-amend")
       git commit --amend "$@"
       ;;
-    "can"|"commitamendnoedit")
+    "can"|"commit-amend-noedit")
       git commit --amend --no-edit "$@"
       ;;
-    "ac"|"addcommit")
+    "ac"|"add-commit")
       git add -u .
       git commit
       ;;
-    "aca"|"addcommitamend")
+    "aca"|"add-commit-amend")
       git add -u .
       git commit --amend
       ;;
-    "acan"|"addcommitamendnoedit")
+    "acan"|"add-commit-amend-noedit")
       git add -u .
       git commit --amend --no-edit "$@"
       ;;
