@@ -111,7 +111,7 @@ fnProcess() {
       while [ -n "$1" ]; do
         [ "x$(echo "$1" | sed -n '/[0-9]/p')" != "x" ] && count=$1 && shift && continue
         [ "x$(echo "$1" | sed -n '/^[^-]\+/p')" != "x" ] && search=$1 && shift && continue
-        [ "x$1" == "x--" ] && cmdargs=("${cmdargs[@]}" "$@") && break
+        [ "x$1" = "x--" ] && cmdargs=("${cmdargs[@]}" "$@") && break
         cmdargs[${#cmdargs[@]}]="$1"
         shift
       done
@@ -121,7 +121,7 @@ fnProcess() {
         res=$?; [ $res -ne 0 ] && exit $res
         cmdargs[${#cmdargs[@]}]="$(echo "$commit" | cut -d' ' -f1)"
       fi
-      if [ "x$command" == "xlog" ]; then
+      if [ "x$command" = "xlog" ]; then
         git "${binargs[@]}" log --format=format:"%at | %ct | version: $c_br%H$c_off%n %s (%an)" "${cmdargs[@]}" | awk '{for(l=1; l<=3; l++) {if ($l~/[0-9]+/) {$l=strftime("%Y%b%d",$l);}}; print $0}' | xargs -0 echo -e | sed '$d'
       else
         format="$([ "x$command" = "xlog1" ] && echo "oneline" || echo "fuller")"
@@ -156,7 +156,7 @@ fnProcess() {
       [ $# -lt 1 ] && echo "[error] not enough args" && exit
       id="$1" && shift
       n=1 && [ $# -gt 0 ] && n="$1" && shift
-      [ "x`echo "$n" | sed -n '/^[0-9]\+$/p'`" == "x" ] && echo "invalid number of patches: '$n'" && exit 1
+      [ "x`echo "$n" | sed -n '/^[0-9]\+$/p'`" = "x" ] && echo "invalid number of patches: '$n'" && exit 1
       commit=$(fnCommit "$id")
       res=$?; [ $res -ne 0 ] && exit $res
       sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
@@ -201,7 +201,7 @@ fnProcess() {
     "ff"|"fast-forward")
       num=$1 && shift;
       target=`git rev-parse --abbrev-ref HEAD`
-      [ "x$target" == "xHEAD" ] && target=`git status | sed -n "s/.* branch '\([^']\{1,\}\)' on '[0-9a-z]\{1,\}'.*/\1/p"`
+      [ "x$target" = "xHEAD" ] && target=`git status | sed -n "s/.* branch '\([^']\{1,\}\)' on '[0-9a-z]\{1,\}'.*/\1/p"`
       sha_current=`git log --oneline -n1 | cut -d' ' -f1`
       sha_target=`git log --oneline $target | grep $sha_current -B $num | head -n1 | cut -d' ' -f1`
       echo -n "fast-forwarding $num commits, '$sha_current' -> '$sha_target' on branch '$target', ok? [y/n]: "
