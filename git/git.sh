@@ -56,8 +56,12 @@ fnCommit() {
   [ $# -lt 1 ] && echo "[fnCommit] id arg missing" 1>&2 && return 1
   id="$1" && shift
   commit="$(git log -n1 --oneline $id 2>/dev/null)"
-  [ $? -ne 0 ] && commit="$(fnCommitByName "$id" "$@")"
+  if [ $? -ne 0 ]; then
+    commit="$(fnCommitByName "$id" "$@")"
+    res=$?; [ $res -ne 0 ] && return $res
+  fi
   echo "$commit"
+  return 0
 }
 
 fnCommitByName() {
@@ -69,6 +73,7 @@ fnCommitByName() {
     echo "be more precise in your search string or up the 'search last' arg" 1>&2 && return 1
   commit="${commits[0]}"
   echo "$commit"
+  return 0
 }
 
 fnDecision() {
@@ -104,7 +109,7 @@ fnProcess() {
       [ $count -gt 0 ] && cmdargs=("-n" $count "${cmdargs[@]}")
       if [ -n "$search" ]; then
         commit=$(fnCommit "$search")
-        [ -z "$commit" ] && exit 1
+        res=$?; [ $res -ne 0 ] && exit $res
         cmdargs[${#cmdargs[@]}]="$(echo "$commit" | cut -d' ' -f1)"
       fi
       if [ "x$command" == "xlog" ]; then
@@ -117,7 +122,8 @@ fnProcess() {
     "sha")
       [ $# -lt 1 ] && echo "[error] not enough args" && exit
       commit=$(fnCommit "$@")
-      [ -n "$commit" ] && echo "$commit"
+      res=$?; [ $res -ne 0 ] && exit $res
+      echo "$commit"
       ;;
     "st"|"status")
       gitstatus=(git -c color.ui=always status)
@@ -142,24 +148,22 @@ fnProcess() {
       id="$1" && shift
       n=1 && [ $# -gt 0 ] && n="$1" && shift
       [ "x`echo "$n" | sed -n '/^[0-9]\+$/p'`" == "x" ] && echo "invalid number of patches: '$n'" && exit 1
-      commit=`fnCommit "$id"`
-      if [ "x$commit" != "x" ]; then
-        sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
-        echo "formatting patch for rebasing from commit '$commit'"
-        git format-patch -k -$n $sha
-      fi
+      commit=$(fnCommit "$id")
+      res=$?; [ $res -ne 0 ] && exit $res
+      sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
+      echo "formatting patch for rebasing from commit '$commit'"
+      git format-patch -k -$n $sha
       ;;
     "rb"|"rebase")
       [ $# -lt 1 ] && echo "[error] not enough args" && exit
-      commit=`fnCommit "$@"`
-      if [ "x$commit" != "x" ]; then
-        sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
-        # ensure parent exists, else assume root
-        git rev-parse --verify "$sha^1"
-        root=$([ $? -ne 0 ] && echo 1 || echo 0)
-        echo "rebasing from commit '$commit'"
-        [ $root -eq 1 ] && git rebase -i --root || git rebase -i $sha~1
-      fi
+      commit=$(fnCommit "$@")
+      res=$?; [ $res -ne 0 ] && return $res
+      sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
+      # ensure parent exists, else assume root
+      git rev-parse --verify "$sha^1"
+      root=$([ $? -ne 0 ] && echo 1 || echo 0)
+      echo "rebasing from commit '$commit'"
+      [ $root -eq 1 ] && git rebase -i --root || git rebase -i $sha~1
       ;;
     "co"|"checkout")
       git checkout "$@"
