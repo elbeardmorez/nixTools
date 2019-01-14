@@ -66,9 +66,12 @@ fnCommit() {
 
 fnCommitByName() {
   [ $# -lt 1 ] && echo "[fnCommitByName] search arg missing" 1>&2 && return 1
+  declare -a binargs
+  declare -a cmdargs
+  cmdargs=("--oneline")
   search="$1" && shift
-  last=50 && [ $# -gt 0 ] && last=$1 && shift
-  IFS=$'\n'; commits=(`git log -n$last --oneline | grep "$search"`); IFS="$IFSORIG"
+  [ $# -gt 0 ] && cmdargs=("${cmdargs[@]}" "-n" $1) && shift
+  IFS=$'\n'; commits=(`git "${binargs[@]}" log "${cmdargs[@]}" | grep "$search"`); IFS="$IFSORIG"
   [[ ${#commits[@]} -ne 1 || "${commits[0]}" == "" ]] &&
     echo "be more precise in your search string or up the 'search last' arg" 1>&2 && return 1
   commit="${commits[0]}"
