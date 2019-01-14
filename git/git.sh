@@ -53,7 +53,7 @@ where <OPTION> can be:
 }
 
 fnCommit() {
-  [ $# -lt 1 ] && echo "[fnCommit] id arg missing" && return 1
+  [ $# -lt 1 ] && echo "[fnCommit] id arg missing" 1>&2 && return 1
   id="$1" && shift
   commit="$(git log -n1 --oneline $id 2>/dev/null)"
   [ $? -ne 0 ] && commit="$(fnCommitByName "$id" "$@")"
@@ -61,7 +61,7 @@ fnCommit() {
 }
 
 fnCommitByName() {
-  [ $# -lt 1 ] && echo "[fnCommitByName] search arg missing" && return 1
+  [ $# -lt 1 ] && echo "[fnCommitByName] search arg missing" 1>&2 && return 1
   search="$1" && shift
   last=50 && [ $# -gt 0 ] && last=$1 && shift
   IFS=$'\n'; commits=(`git log -n$last --oneline | grep "$search"`); IFS="$IFSORIG"
