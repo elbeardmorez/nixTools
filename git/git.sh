@@ -72,8 +72,12 @@ fnCommitByName() {
   search="$1" && shift
   [ $# -gt 0 ] && cmdargs=("${cmdargs[@]}" "-n" $1) && shift
   IFS=$'\n'; commits=(`git "${binargs[@]}" log "${cmdargs[@]}" | grep "$search"`); IFS="$IFSORIG"
-  [[ ${#commits[@]} -ne 1 || "${commits[0]}" == "" ]] &&
-    echo "be more precise in your search string or up the 'search last' arg" 1>&2 && return 1
+  [ ${#commits[@]} -eq 0 ] &&
+    echo "[info] no commits found matching search '$search'" 1>&2 && return 1
+  [ ${#commits[@]} -gt 1 ] &&
+    echo "[info] multiple commits matching search '$search'" \
+         "found. try a more specific search string, else use" \
+         "the [N] argument to limit the commit range" 1>&2 && return 1
   commit="${commits[0]}"
   echo "$commit"
   return 0
