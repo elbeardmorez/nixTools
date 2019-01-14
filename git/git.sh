@@ -53,7 +53,7 @@ where <OPTION> can be:
 }
 
 fnCommit() {
-  [ $# -lt 1 ] && echo "[fnCommit] id arg missing" 1>&2 && return 1
+  [ $# -lt 1 ] && echo "[error] id arg missing" 1>&2 && return 1
   id="$1" && shift
   commit="$(git log -n1 --oneline $id 2>/dev/null)"
   if [ $? -ne 0 ]; then
@@ -65,7 +65,7 @@ fnCommit() {
 }
 
 fnCommitByName() {
-  [ $# -lt 1 ] && echo "[fnCommitByName] search arg missing" 1>&2 && return 1
+  [ $# -lt 1 ] && echo "[error] search arg missing" 1>&2 && return 1
   declare -a binargs
   declare -a cmdargs
   cmdargs=("--oneline")
@@ -129,7 +129,7 @@ fnProcess() {
       fi
       ;;
     "sha")
-      [ $# -lt 1 ] && echo "[error] not enough args" && exit
+      [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
       commits=$(fnCommit "$@" "nolimit")
       res=$?; [ $res -ne 0 ] && exit $res
       echo -e "$commits"
@@ -149,22 +149,22 @@ fnProcess() {
       git status --col
       ;;
     "addnws")
-      echo "git: adding all files, ignoring white-space changes"
+      echo "[info] git: adding all files, ignoring white-space changes"
       git diff --ignore-all-space --no-color --unified=0 "$@" | git apply --cached --ignore-whitespace --unidiff-zero
       ;;
     "fp"|"formatpatch"|"format-patch")
-      [ $# -lt 1 ] && echo "[error] not enough args" && exit
+      [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
       id="$1" && shift
       n=1 && [ $# -gt 0 ] && n="$1" && shift
-      [ "x`echo "$n" | sed -n '/^[0-9]\+$/p'`" = "x" ] && echo "invalid number of patches: '$n'" && exit 1
+      [ "x`echo "$n" | sed -n '/^[0-9]\+$/p'`" = "x" ] && echo "[error] invalid number of patches: '$n'" && exit 1
       commit=$(fnCommit "$id")
       res=$?; [ $res -ne 0 ] && exit $res
       sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
-      echo "formatting patch for rebasing from commit '$commit'"
+      echo "[info] formatting patch for rebasing from commit '$commit'"
       git format-patch -k -$n $sha
       ;;
     "rb"|"rebase")
-      [ $# -lt 1 ] && echo "[error] not enough args" && exit
+      [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
       commit=$(fnCommit "$@")
       res=$?; [ $res -ne 0 ] && return $res
       sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
@@ -204,7 +204,7 @@ fnProcess() {
       [ "x$target" = "xHEAD" ] && target=`git status | sed -n "s/.* branch '\([^']\{1,\}\)' on '[0-9a-z]\{1,\}'.*/\1/p"`
       sha_current=`git log --oneline -n1 | cut -d' ' -f1`
       sha_target=`git log --oneline $target | grep $sha_current -B $num | head -n1 | cut -d' ' -f1`
-      echo -n "fast-forwarding $num commits, '$sha_current' -> '$sha_target' on branch '$target', ok? [y/n]: "
+      echo -n "[info] fast-forwarding $num commits, '$sha_current' -> '$sha_target' on branch '$target', ok? [y/n]: "
       res=$(fnDecision)
       [ "x$res" = "x1" ] && \
         git checkout $sha_target
