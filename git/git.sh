@@ -70,16 +70,18 @@ fnCommitByName() {
   declare -a cmdargs
   cmdargs=("--oneline")
   search="$1" && shift
-  [ $# -gt 0 ] && cmdargs=("${cmdargs[@]}" "-n" $1) && shift
-  IFS=$'\n'; commits=(`git "${binargs[@]}" log "${cmdargs[@]}" | grep "$search"`); IFS="$IFSORIG"
-  [ ${#commits[@]} -eq 0 ] &&
+  [[ $# -gt 0 && "x$(echo "$1" | sed -n '/^[0-9-]\+$/p')" != "x" ]] && cmdargs=("${cmdargs[@]}" "-n" $1) && shift
+  limit=1; [[ $# -gt 0 && "x$1" == "xnolimit" ]] && limit=-1 && shift
+  commits="$(git "${binargs[@]}" log "${cmdargs[@]}" | grep "$search")"
+  IFS=$'\n'; arr_commits=($(echo -e "$commits")); IFS="$IFSORIG";
+  [ ${#arr_commits[@]} -eq 0 ] &&
     echo "[info] no commits found matching search '$search'" 1>&2 && return 1
-  [ ${#commits[@]} -gt 1 ] &&
+  [[ ${#arr_commits[@]} -gt 1 && limit -eq 1 ]] &&
     echo "[info] multiple commits matching search '$search'" \
          "found. try a more specific search string, else use" \
          "the [N] argument to limit the commit range" 1>&2 && return 1
-  commit="${commits[0]}"
-  echo "$commit"
+  [ $limit -eq -1 ] && limit=${#arr_commits[@]}
+  echo -e "$commits" | tail -n $limit
   return 0
 }
 
@@ -128,9 +130,9 @@ fnProcess() {
       ;;
     "sha")
       [ $# -lt 1 ] && echo "[error] not enough args" && exit
-      commit=$(fnCommit "$@")
+      commits=$(fnCommit "$@" "nolimit")
       res=$?; [ $res -ne 0 ] && exit $res
-      echo "$commit"
+      echo -e "$commits"
       ;;
     "st"|"status")
       gitstatus=(git -c color.ui=always status)
