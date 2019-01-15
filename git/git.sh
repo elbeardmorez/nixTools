@@ -73,6 +73,7 @@ fnCommitByName() {
   while [ -n "$1" ]; do
     case "$1" in
       "nolimit") limit=-1 ;;
+      "colours") binargs=("-c" "color.ui=always") ;;
       *)
         if [ "x$(echo "$1" | sed -n '/^[0-9-]\+$/p')" != "x" ]; then
           cmdargs=("${cmdargs[@]}" "-n" $1)
@@ -143,7 +144,7 @@ fnProcess() {
       ;;
     "sha")
       [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
-      commits=$(fnCommit "$@" "nolimit")
+      commits=$(fnCommit "$@" "nolimit" "colours")
       res=$?; [ $res -ne 0 ] && exit $res
       echo -e "$commits"
       ;;
