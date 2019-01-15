@@ -136,7 +136,7 @@ fnProcess() {
         cmdargs[${#cmdargs[@]}]="$(echo "$commit" | cut -d' ' -f1)"
       fi
       if [ "x$command" = "xlog" ]; then
-        git "${binargs[@]}" log --format=format:"%at | %ct | version: $c_br%H$c_off%n %s (%an)" "${cmdargs[@]}" | awk '{for(l=1; l<=3; l++) {if ($l~/[0-9]+/) {$l=strftime("%Y%b%d",$l);}}; print $0}' | xargs -0 echo -e | sed '$d'
+        git "${binargs[@]}" log --format=format:"%at | %ct | version: $c_br%H$c_off%n %s (%an)" "${cmdargs[@]}" | awk '{for(l=1; l<=3; l++) {if ($l~/[0-9]+/) {$l=strftime("%Y%b%d %H:%M:%S",$l);}}; print $0}' | xargs -0 echo -e | sed '$d'
       else
         format="$([ "x$command" = "xlog1" ] && echo "oneline" || echo "fuller")"
         git "${binargs[@]}" log --format="$format" "${cmdargs[@]}" | cat
