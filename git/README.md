@@ -11,22 +11,28 @@ where <OPTION> can be:
 
   help  : print this text
   diff  : output diff to stdout
-  log [N]   : print last N log entries, simple log format
-  log1 [N]  : print last N log entries, single line log format
-  logx [N]  : print last N log entries, extended log format
-  sha <SEARCH> [N]  : return full sha for an id or partial
-                      description string. searching by description
-                      is limited to the last N (default: 50) commits
+  log<TYPE> [N] [ID]  : print log entries
+
+    <TYPE>
+      ''  :  simple log format
+      1   :  single line log format
+      x   :  extended log format
+    [N]  : limit the number of results
+    [ID]  : return results back starting from an id or partial
+            description string. implies N=1 unless N specified
+
+  sha <ID> [N]  : return commit sha / description for an id or
+                  partial description string. use N to limit the
+                  search range to the last N commits
   st|status      : show column format status with untracked local
                    path files only
   sta|status-all : show column format status
   addnws  : add all files, ignoring white-space changes
   fp|format-patch <ID> [N]  : format N patch(es) back from an id or
                               partial description string
-  rb|rebase <SEARCH> [N]  : interactively rebase by id or partial
-                            description string. searching by
-                            description is limited to the last N
-                            (default: 50) commits
+  rb|rebase <ID> [N]  : interactively rebase back from id or partial
+                        description string. use N to limit the search
+                        range to the last N commits
   cl|clone <REPO>  : clone repo
   co|checkout      : checkout files / branches
   ca|commit-amend          : commit, amending previous
