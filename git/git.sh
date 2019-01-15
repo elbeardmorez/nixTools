@@ -25,9 +25,11 @@ help() {
     [N]  : limit the number of results
     [ID]  : return results back starting from an id or partial
             description string. implies N=1 unless N specified\n
-  sha <ID> [N]  : return commit sha / description for an id or
-                  partial description string. use N to limit the
-                  search range to the last N commits
+  sha <ID> [N] [LOGTYPE]  : return commit sha / description for an id
+                            or partial description string. use N to
+                            limit the search range to the last N
+                            commits. use LOGTYPE to switch output
+                            format type as per the options above
   st|status      : show column format status with untracked local
                    path files only
   sta|status-all : show column format status
@@ -151,9 +153,28 @@ fnProcess() {
       ;;
     "sha")
       [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
-      commits=$(fnCommit "$@" "nolimit" "colours")
+      declare -a cmdargs
+      cmdargs=("nolimit")
+      log=""
+      while [ -n "$1" ]; do
+        case "$1" in
+          "log"|"log1"|"logx") log="$1" ;;
+          *) cmdargs[${#cmdargs[@]}]="$1" ;;
+        esac
+        shift
+      done
+      [ -z $log ] && cmdargs[${#cmdargs[@]}]="colours"
+      commits=$(fnCommit "${cmdargs[@]}")
       res=$?; [ $res -ne 0 ] && exit $res
-      echo -e "$commits"
+      if [ -z $log ]; then
+        echo -e "$commits"
+      else
+        IFS=$'\n'; arr_commits=($(echo -e "$commits")); IFS="$IFSORIG"
+        for c in "${arr_commits[@]}"; do
+          fnLog $log 1 "$(echo "$c" | cut -d' ' -f1)"
+          [ "x$log" = "xlogx" ] && echo
+        done
+      fi
       ;;
     "st"|"status")
       gitstatus=(git -c color.ui=always status)

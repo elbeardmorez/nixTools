@@ -21,9 +21,11 @@ where <OPTION> can be:
     [ID]  : return results back starting from an id or partial
             description string. implies N=1 unless N specified
 
-  sha <ID> [N]  : return commit sha / description for an id or
-                  partial description string. use N to limit the
-                  search range to the last N commits
+  sha <ID> [N] [LOGTYPE]  : return commit sha / description for an id
+                            or partial description string. use N to
+                            limit the search range to the last N
+                            commits. use LOGTYPE to switch output
+                            format type as per the options above
   st|status      : show column format status with untracked local
                    path files only
   sta|status-all : show column format status
