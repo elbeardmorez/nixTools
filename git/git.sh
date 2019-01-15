@@ -69,9 +69,22 @@ fnCommitByName() {
   declare -a binargs
   declare -a cmdargs
   cmdargs=("--oneline")
-  search="$1" && shift
-  [[ $# -gt 0 && "x$(echo "$1" | sed -n '/^[0-9-]\+$/p')" != "x" ]] && cmdargs=("${cmdargs[@]}" "-n" $1) && shift
-  limit=1; [[ $# -gt 0 && "x$1" == "xnolimit" ]] && limit=-1 && shift
+  limit=1
+  while [ -n "$1" ]; do
+    case "$1" in
+      "nolimit") limit=-1 ;;
+      *)
+        if [ "x$(echo "$1" | sed -n '/^[0-9-]\+$/p')" != "x" ]; then
+          cmdargs=("${cmdargs[@]}" "-n" $1)
+        elif [ -z $search ]; then
+          search="$1"
+        else
+          echo "[info] unknown arg '$1', ignoring" 1>&2
+        fi
+        ;;
+     esac
+     shift
+  done
   commits="$(git "${binargs[@]}" log "${cmdargs[@]}" | grep "$search")"
   IFS=$'\n'; arr_commits=($(echo -e "$commits")); IFS="$IFSORIG";
   [ ${#arr_commits[@]} -eq 0 ] &&
