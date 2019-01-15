@@ -111,38 +111,43 @@ fnDecision() {
   done
 }
 
+fnLog() {
+  command="$1" && shift
+  c_br="\e[0;33m"
+  c_off="\e[m"
+  count=-1
+  search=""
+  declare -a binargs
+  declare -a cmdargs
+  binargs=("-c" "color.ui=always")
+  while [ -n "$1" ]; do
+    [ "x$(echo "$1" | sed -n '/^[0-9]\+$/p')" != "x" ] && count=$1 && shift && continue
+    [ "x$(echo "$1" | sed -n '/^[^-]\+/p')" != "x" ] && search=$1 && shift && continue
+    [ "x$1" = "x--" ] && cmdargs=("${cmdargs[@]}" "$@") && break
+    cmdargs[${#cmdargs[@]}]="$1"
+    shift
+  done
+  [ $count -gt 0 ] && cmdargs=("-n" $count "${cmdargs[@]}")
+  if [ -n "$search" ]; then
+    commit=$(fnCommit "$search")
+    res=$?; [ $res -ne 0 ] && exit $res
+    cmdargs[${#cmdargs[@]}]="$(echo "$commit" | cut -d' ' -f1)"
+  fi
+  if [ "x$command" = "xlog" ]; then
+    git "${binargs[@]}" log --format=format:"%at | %ct | version: $c_br%H$c_off%n %s (%an)" "${cmdargs[@]}" | awk '{for(l=1; l<=3; l++) {if ($l~/[0-9]+/) {$l=strftime("%Y%b%d %H:%M:%S",$l);}}; print $0}' | xargs -0 echo -e | sed '$d'
+  else
+    format="$([ "x$command" = "xlog1" ] && echo "oneline" || echo "fuller")"
+    git "${binargs[@]}" log --format="$format" "${cmdargs[@]}" | cat
+  fi
+}
+
 fnProcess() {
   command="help" && [ $# -gt 0 ] && command="$1" && shift
   case "$command" in
     "help") help ;;
     "diff") git diff $@ ;;
     "log"|"logx"|"log1")
-      c_br="\e[0;33m"
-      c_off="\e[m"
-      count=-1
-      search=""
-      declare -a binargs
-      declare -a cmdargs
-      binargs=("-c" "color.ui=always")
-      while [ -n "$1" ]; do
-        [ "x$(echo "$1" | sed -n '/^[0-9]\+$/p')" != "x" ] && count=$1 && shift && continue
-        [ "x$(echo "$1" | sed -n '/^[^-]\+/p')" != "x" ] && search=$1 && shift && continue
-        [ "x$1" = "x--" ] && cmdargs=("${cmdargs[@]}" "$@") && break
-        cmdargs[${#cmdargs[@]}]="$1"
-        shift
-      done
-      [ $count -gt 0 ] && cmdargs=("-n" $count "${cmdargs[@]}")
-      if [ -n "$search" ]; then
-        commit=$(fnCommit "$search")
-        res=$?; [ $res -ne 0 ] && exit $res
-        cmdargs[${#cmdargs[@]}]="$(echo "$commit" | cut -d' ' -f1)"
-      fi
-      if [ "x$command" = "xlog" ]; then
-        git "${binargs[@]}" log --format=format:"%at | %ct | version: $c_br%H$c_off%n %s (%an)" "${cmdargs[@]}" | awk '{for(l=1; l<=3; l++) {if ($l~/[0-9]+/) {$l=strftime("%Y%b%d %H:%M:%S",$l);}}; print $0}' | xargs -0 echo -e | sed '$d'
-      else
-        format="$([ "x$command" = "xlog1" ] && echo "oneline" || echo "fuller")"
-        git "${binargs[@]}" log --format="$format" "${cmdargs[@]}" | cat
-      fi
+      fnLog $command "$@"
       ;;
     "sha")
       [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
