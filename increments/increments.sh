@@ -60,7 +60,7 @@ if [ -n "$variants" ]; then
     declare -a search2
     search2=""
     while read line; do
-      for s in ${search}; do
+      for s in "${search[@]}"; do
         search2+="$s\n"
         v=$(echo "$s" | sed "s$line")
         [ -n "${v}" ] && search2+="$v\n"
