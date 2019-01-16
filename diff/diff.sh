@@ -59,13 +59,22 @@ fnProcess() {
       ;;
     "filelist")
       [ "x$type" != "xdir" ] && echo "[user] filelist mode unsupported for type '$type'" && fnCleanUp && exit 1
+
       # compare files in directories
-      cd "$file1"; find . -name "*" -printf "%p\t%s\n" | sort > /tmp/_dirdiff1; cd "$OLDPWD"
-      cd "$file2"; find . -name "*" -printf "%p\t%s\n" | sort > /tmp/_dirdiff2; cd "$OLDPWD"
-      [ -f "$f_excludes" ] && $(while read line; do sed -i '/'$line'/d' /tmp/_dirdiff1; shift; done < "$fExcludes")
-      [ -f "$f_excludes" ] && $(while read line; do sed -i '/'$line'/d' /tmp/_dirdiff2; shift; done < "$fExcludes")
-      diff ${diff_options[@]} /tmp/_dirdiff1 /tmp/_dirdiff2 > /tmp/_dirdiff
-      $diff_viewer /tmp/_dirdiff1 /tmp/_dirdiff2 >/dev/null 2>&1 &
+      description1="$(cd "$file1" && pwd | tr '/ ' '^.')"
+      description2="$(cd "$file2" && pwd | tr '/ '  '^.')"
+
+      target1="/tmp/diff_dir1_$description1"
+      target2="/tmp/diff_dir2_$description2"
+
+      cd "$file1"; find . -name "*" -printf "%p\t%s\n" | sort > "$target1"; cd "$OLDPWD"
+      cd "$file2"; find . -name "*" -printf "%p\t%s\n" | sort > "$target2"; cd "$OLDPWD"
+
+      [ -f "$f_excludes" ] && $(while read line; do sed -i '/'$line'/d' $target1; shift; done < "$fExcludes")
+      [ -f "$f_excludes" ] && $(while read line; do sed -i '/'$line'/d' $target2; shift; done < "$fExcludes")
+
+      diff ${diff_options[@]} $target1 $target2 > /tmp/_dirdiff
+      $diff_viewer "$target1" "$target2" >/dev/null 2>&1 &
       ;;
   esac
   fnCleanUp
