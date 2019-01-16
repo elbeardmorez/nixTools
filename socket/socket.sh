@@ -69,10 +69,10 @@ fnRandom() {
 
 fnTempFile() {
   tmp="$(dirname $(mktemp -u) 2>/dev/null)"
-  [ -n "$tmp" ] && tmp="$TMP";
-  [ -n "$tmp" ] && tmp="$TMPDIR";
-  [ -n "$tmp" ] && tmp="$TEMP";
-  [ -n "$tmp" ] && tmp="/tmp";
+  [ -z "$tmp" ] && tmp="$TMP";
+  [ -z "$tmp" ] && tmp="$TMPDIR";
+  [ -z "$tmp" ] && tmp="$TEMP";
+  [ -z "$tmp" ] && tmp="/tmp";
   mkdir -p "$tmp"
   [ $? -ne 0 ] && echo "[error] failed to set temp storage" && exit 1
   f="$tmp/$SCRIPTNAME.$(fnRandom 10)"
