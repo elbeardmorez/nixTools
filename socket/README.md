@@ -15,6 +15,7 @@ where OPTION can be:
                          received
     -nc, --noclean  : don't even ask to delete existing blobs in
                       current directory
+    -ls, --local-socket  : open socket in current directory
 
   out [ARGS] [DATA [DATA2 ..]]  : (default) client side socket
                                   setup for netcat

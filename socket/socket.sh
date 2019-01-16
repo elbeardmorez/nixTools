@@ -34,6 +34,7 @@ where OPTION can be:
                          received
     -nc, --noclean  : don't even ask to delete existing blobs in
                       current directory
+    -ls, --local-socket  : open socket in current directory
 
   out [ARGS] [DATA [DATA2 ..]]  : (default) client side socket
                                   setup for netcat
@@ -68,7 +69,7 @@ fnRandom() {
 }
 
 fnTempFile() {
-  tmp="$(dirname $(mktemp -u) 2>/dev/null)"
+  tmp="${1:-$(dirname $(mktemp -u) 2>/dev/null)}"
   [ -z "$tmp" ] && tmp="$TMP";
   [ -z "$tmp" ] && tmp="$TMPDIR";
   [ -z "$tmp" ] && tmp="$TEMP";
@@ -151,11 +152,13 @@ fnProcess() {
       args=("-l" "-p" $PORT)
       persistent=0
       clean=1
+      localsocket=0
       if [ "$#" -gt 0 ]; then
         while [ -n "$1" ]; do
           case "$1" in
             "-ps"|"--persistent") persistent=1 ;;
             "-nc"|"--noclean") clean=0 ;;
+            "-ls"|"--local-socket") localsocket=1 ;;
             *) echo "[user] unrecognised option arg '$1', dropped"
           esac
           shift
@@ -165,7 +168,7 @@ fnProcess() {
       file="data"
       [ $clean -eq 1 ] && fnClean "$file"
       echo "[info]$([ $persistent -eq 1 ] && echo " persistent") socket opened"
-      SOCKET="$(fnTempFile)"
+      SOCKET="$(fnTempFile "$([ $localsocket -eq 1 ] && echo ".")")"
       while [[ 1 == 1 ]]; do
         nc "${args[@]}" > "$SOCKET"
         size=`du -h $SOCKET | cut -d'	' -f1`
