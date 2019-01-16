@@ -67,8 +67,8 @@ fnProcess() {
       target1="/tmp/diff_dir1_$description1"
       target2="/tmp/diff_dir2_$description2"
 
-      cd "$file1"; find . -name "*" -printf "%p\t%s\n" | sort > "$target1"; cd "$OLDPWD"
-      cd "$file2"; find . -name "*" -printf "%p\t%s\n" | sort > "$target2"; cd "$OLDPWD"
+      $(cd "$file1"; find . -name "*" -printf "%p\t%s\n" | sort > "$target1")
+      $(cd "$file2"; find . -name "*" -printf "%p\t%s\n" | sort > "$target2")
 
       [ -f "$f_excludes" ] && $(while read line; do sed -i '/'$line'/d' $target1; shift; done < "$fExcludes")
       [ -f "$f_excludes" ] && $(while read line; do sed -i '/'$line'/d' $target2; shift; done < "$fExcludes")
