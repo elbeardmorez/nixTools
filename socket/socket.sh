@@ -1,14 +1,9 @@
 #!/bin/sh
 
+. ${0%/*}/$(dirname "$(readlink $0)")/../func_common.sh
+
 SCRIPTNAME=${0##*/}
 
-# compatibility
-if [ -n "$BASH_VERSION" ]; then
-  CMDARGS_READ_SINGLECHAR=("-s" "-n1")
-elif [ -n "$ZSH_VERSION" ]; then
-  CMDARGS_READ_SINGLECHAR=("-s" "-k1")
-  setopt KSH_ARRAYS
-fi
 if [ "x$(nc -h 2>&1 | grep '\-c, --close')" != "x" ]; then
   CMDARGS_NC_CLOSE=("-c")
 elif [ "x$(nc -h 2>&1 | grep '\-q secs')" != "x" ]; then
@@ -62,23 +57,6 @@ where OPTION can be:
                                this interval where no packets are
                                received (default: 60)
 "
-}
-
-fnRandom() {
-  len=${1:-10}; s=""; while [ ${#s} -lt $len ]; do s+="$(head -c10 /dev/random | tr -dc '[[:alnum:]]')"; done; echo "${s:0:$len}";
-}
-
-fnTempFile() {
-  tmp="${1:-$(dirname $(mktemp -u) 2>/dev/null)}"
-  [ -z "$tmp" ] && tmp="$TMP";
-  [ -z "$tmp" ] && tmp="$TMPDIR";
-  [ -z "$tmp" ] && tmp="$TEMP";
-  [ -z "$tmp" ] && tmp="/tmp";
-  mkdir -p "$tmp"
-  [ $? -ne 0 ] && echo "[error] failed to set temp storage" && exit 1
-  f="$tmp/$SCRIPTNAME.$(fnRandom 10)"
-  while [ -e "$f" ]; do f="$tmp/$SCRIPTNAME.$(fnRandom 10)"; done
-  echo "$f"
 }
 
 fnNextFile() {

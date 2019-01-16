@@ -1,16 +1,10 @@
 #!/bin/sh
 
+. ${0%/*}/$(dirname "$(readlink $0)")/../func_common.sh
+
 SCRIPTNAME=${0##*/}
 DEBUG=${DEBUG:-0}
 IFSORIG="$IFS"
-
-# compatibility
-if [ -n "$BASH_VERSION" ]; then
-  CMDARGS_READ_SINGLECHAR=("-s" "-n1")
-elif [ -n "$ZSH_VERSION" ]; then
-  CMDARGS_READ_SINGLECHAR=("-s" "-k1")
-  setopt KSH_ARRAYS
-fi
 
 help() {
   echo -e "SYNTAX: $SCRIPTNAME <OPTION> [OPTION-ARGS]
@@ -101,16 +95,6 @@ fnCommitByName() {
   [ $limit -eq -1 ] && limit=${#arr_commits[@]}
   echo -e "$commits" | tail -n $limit
   return 0
-}
-
-fnDecision() {
-  while [ 1 -eq 1 ]; do
-    read "${CMDARGS_READ_SINGLECHAR[@]}"
-    case "$REPLY" in
-      "y"|"Y") echo "$REPLY" 1>&2; echo 1; break ;;
-      "n"|"N") echo "$REPLY" 1>&2; echo 0; break ;;
-    esac
-  done
 }
 
 fnLog() {

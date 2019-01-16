@@ -1,12 +1,6 @@
 #!/bin/sh
 
-SUPPORT_FUNCTIONS=../func_common.sh
-if [ -e $SUPPORT_FUNCTIONS ]; then
-  . $SUPPORT_FUNCTIONS
-else
-  echo error: no support functions available at \'$SUPPORT_FUNCTIONS\'
-  exit 1
-fi
+. ${0%/*}/$(dirname "$(readlink $0)")/../func_common.sh
 
 SCRIPTNAME=${0##/*}
 
@@ -193,7 +187,7 @@ EOF
   #updating..
   if [ $REMOVEINVALID -eq 1 ]; then
     #get invalid
-    TEMP=$(tempfile)
+    TEMP=$(fnTempFile)
     echo tar "--diff" "${args2[@]}"
     tar "--diff" "${args2[@]}" 2>&1 | grep -i 'no such file' | awk -F: '{gsub(" ","",$2); print $2}' > $TEMP
     if [ $(wc -l $TEMP | sed 's|^[ ]*\([0-9]*\).*$|\1|g') -gt 0 ]; then
@@ -210,7 +204,7 @@ function extractiso()
 {
   result=1
   set +e
-  file=$(tempfile) && rm $file && mkdir -p $file || return 1
+  file=$(fnTempFile) && rm $file && mkdir -p $file || return 1
   if [ -d $file ]; then
     mount -t iso9660 -o ro "$1" $file
     result=$( cp -R $file/* . )
