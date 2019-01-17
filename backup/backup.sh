@@ -2,9 +2,9 @@
 
 SCRIPTNAME=${0##*/}
 
-BACKUPROOT="/backup"
 RSYNC="/usr/local/bin/rsync"
 RSYNCOPTIONS=( "-varR" "--delete" )
+BACKUP_ROOT="${BACKUP_ROOT:-"/backup"}"
 
 VERBOSE=false
 FORCE=false
@@ -30,9 +30,12 @@ where:\n
                  update. be aware that forcing a sync will always
                  push the backup set along one
   -l, --limit  : limit to period specified only
+  -r, --root  : specify the root of the backup set
   -v, --verbose  : verbose mode
   -h, --help  : this help info
-\n"
+\nenvironment variables:\n
+  BACKUP_ROOT  : as detailed above
+"
 }
 
 fnGetSourceList() {
@@ -74,8 +77,8 @@ fnGetSourceList() {
 }
 
 fnGetLastBackup() {
-  if [ -f $BACKUPROOT/.$1 ]; then
-    lastbackup=$(cat $BACKUPROOT/.$1)
+  if [ -f $BACKUP_ROOT/.$1 ]; then
+    lastbackup=$(cat $BACKUP_ROOT/.$1)
   else
     lastbackup="01 Jan 1970"
   fi
@@ -112,21 +115,21 @@ fnPerformBackup() {
     if [ "$TYPE" = "$PERIOD" ]; then
       # backup
       if [ "$VERBOSE" = "true" ]; then echo "[info] performing a $TYPE sync backup"; fi
-      if [ -d $BACKUPROOT/$TYPE.tmp ]; then
-        rm -Rf $BACKUPROOT/$TYPE.tmp/*
+      if [ -d $BACKUP_ROOT/$TYPE.tmp ]; then
+        rm -Rf $BACKUP_ROOT/$TYPE.tmp/*
       else
-        mkdir -p $BACKUPROOT/$TYPE.tmp
+        mkdir -p $BACKUP_ROOT/$TYPE.tmp
       fi
       # always backup against (hard-linking to) the 'master' copy
-      if ! [ -d $BACKUPROOT/master ]; then mkdir -p $BACKUPROOT/master; fi
+      if ! [ -d $BACKUP_ROOT/master ]; then mkdir -p $BACKUP_ROOT/master; fi
       # refresh master
-      $RSYNC "${RSYNCOPTIONS[@]}" "${SOURCES[@]}" $BACKUPROOT/master
+      $RSYNC "${RSYNCOPTIONS[@]}" "${SOURCES[@]}" $BACKUP_ROOT/master
       if [ "$VERBOSE" = "true" ]; then
-        echo '$RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUPROOT/master "${SOURCES[@]}" $BACKUPROOT/$TYPE.tmp/'
-        echo $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUPROOT/master "${SOURCES[@]}" $BACKUPROOT/$TYPE.tmp/
-        $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUPROOT/master "${SOURCES[@]}" $BACKUPROOT/$TYPE.tmp/
+        echo '$RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/'
+        echo $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/
+        $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/
       else
-        $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUPROOT/master "${SOURCES[@]}" $BACKUPROOT/$TYPE.tmp/ # > /dev/null
+        $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/ # > /dev/null
       fi
       if [[ $? -eq 0 ]]; then success=true; fi
     else
@@ -134,20 +137,20 @@ fnPerformBackup() {
       if [ "$VERBOSE" = "true" ]; then echo "[info] performing a $TYPE link backup"; fi
       case $TYPE in
         "daily")
-          if [ -d $BACKUPROOT/hourly.1 ]; then
-            cp -al $BACKUPROOT/hourly.1 $BACKUPROOT/daily.tmp
+          if [ -d $BACKUP_ROOT/hourly.1 ]; then
+            cp -al $BACKUP_ROOT/hourly.1 $BACKUP_ROOT/daily.tmp
             if [[ $? -eq 0 ]]; then success=true; fi
           fi
           ;;
         "weekly")
-          if [ -d $BACKUPROOT/daily.1 ]; then
-            cp -al $BACKUPROOT/daily.1 $BACKUPROOT/weekly.tmp
+          if [ -d $BACKUP_ROOT/daily.1 ]; then
+            cp -al $BACKUP_ROOT/daily.1 $BACKUP_ROOT/weekly.tmp
             if [[ $? -eq 0 ]]; then success=true; fi
           fi
           ;;
         "monthly")
-          if [ -d $BACKUPROOT/weekly.1 ]; then
-            cp -al $BACKUPROOT/weekly.1 $BACKUPROOT/monthly.tmp
+          if [ -d $BACKUP_ROOT/weekly.1 ]; then
+            cp -al $BACKUP_ROOT/weekly.1 $BACKUP_ROOT/monthly.tmp
             if [[ $? -eq 0 ]]; then success=true; fi
           fi
           ;;
@@ -155,18 +158,18 @@ fnPerformBackup() {
     fi
     # if successful, reset the dir structure
     if [[ $? -eq 0 ]]; then
-      if [ -d $BACKUPROOT/$TYPE.10 ]; then rm -Rf $BACKUPROOT/$TYPE.10; fi
-      if [ -d $BACKUPROOT/$TYPE.9 ]; then mv $BACKUPROOT/$TYPE.9 $BACKUPROOT/$TYPE.10; fi
-      if [ -d $BACKUPROOT/$TYPE.8 ]; then mv $BACKUPROOT/$TYPE.8 $BACKUPROOT/$TYPE.9; fi
-      if [ -d $BACKUPROOT/$TYPE.7 ]; then mv $BACKUPROOT/$TYPE.7 $BACKUPROOT/$TYPE.8; fi
-      if [ -d $BACKUPROOT/$TYPE.6 ]; then mv $BACKUPROOT/$TYPE.6 $BACKUPROOT/$TYPE.7; fi
-      if [ -d $BACKUPROOT/$TYPE.5 ]; then mv $BACKUPROOT/$TYPE.5 $BACKUPROOT/$TYPE.6; fi
-      if [ -d $BACKUPROOT/$TYPE.4 ]; then mv $BACKUPROOT/$TYPE.4 $BACKUPROOT/$TYPE.5; fi
-      if [ -d $BACKUPROOT/$TYPE.3 ]; then mv $BACKUPROOT/$TYPE.3 $BACKUPROOT/$TYPE.4; fi
-      if [ -d $BACKUPROOT/$TYPE.2 ]; then mv $BACKUPROOT/$TYPE.2 $BACKUPROOT/$TYPE.3; fi
-      if [ -d $BACKUPROOT/$TYPE.1 ]; then mv $BACKUPROOT/$TYPE.1 $BACKUPROOT/$TYPE.2; fi
-      mv $BACKUPROOT/$TYPE.tmp $BACKUPROOT/$TYPE.1
-      echo $lastexpectedbackup > $BACKUPROOT/.$TYPE
+      if [ -d $BACKUP_ROOT/$TYPE.10 ]; then rm -Rf $BACKUP_ROOT/$TYPE.10; fi
+      if [ -d $BACKUP_ROOT/$TYPE.9 ]; then mv $BACKUP_ROOT/$TYPE.9 $BACKUP_ROOT/$TYPE.10; fi
+      if [ -d $BACKUP_ROOT/$TYPE.8 ]; then mv $BACKUP_ROOT/$TYPE.8 $BACKUP_ROOT/$TYPE.9; fi
+      if [ -d $BACKUP_ROOT/$TYPE.7 ]; then mv $BACKUP_ROOT/$TYPE.7 $BACKUP_ROOT/$TYPE.8; fi
+      if [ -d $BACKUP_ROOT/$TYPE.6 ]; then mv $BACKUP_ROOT/$TYPE.6 $BACKUP_ROOT/$TYPE.7; fi
+      if [ -d $BACKUP_ROOT/$TYPE.5 ]; then mv $BACKUP_ROOT/$TYPE.5 $BACKUP_ROOT/$TYPE.6; fi
+      if [ -d $BACKUP_ROOT/$TYPE.4 ]; then mv $BACKUP_ROOT/$TYPE.4 $BACKUP_ROOT/$TYPE.5; fi
+      if [ -d $BACKUP_ROOT/$TYPE.3 ]; then mv $BACKUP_ROOT/$TYPE.3 $BACKUP_ROOT/$TYPE.4; fi
+      if [ -d $BACKUP_ROOT/$TYPE.2 ]; then mv $BACKUP_ROOT/$TYPE.2 $BACKUP_ROOT/$TYPE.3; fi
+      if [ -d $BACKUP_ROOT/$TYPE.1 ]; then mv $BACKUP_ROOT/$TYPE.1 $BACKUP_ROOT/$TYPE.2; fi
+      mv $BACKUP_ROOT/$TYPE.tmp $BACKUP_ROOT/$TYPE.1
+      echo $lastexpectedbackup > $BACKUP_ROOT/.$TYPE
       if [ "$VERBOSE" = "true" ]; then echo "[info] backup succeeded"; fi
     else
       if [ "$VERBOSE" = "true" ]; then echo "[info] backup failed"; fi
@@ -215,19 +218,20 @@ while [ -n "$1" ]; do
     "p"|"period") shift && [ -z "$1" ] && help && exit 1; PERIOD=$1 ;;
     "f"|"force") FORCE=true ;;
     "l"|"limit") LIMIT=true ;;
+    "r"|"root") shift && [ -z "$1" ] && help && exit 1; BACKUP_ROOT="$1" ;;
     "h"|"help") help && exit ;;
     "v"|"verbose") VERBOSE=true ;;
   esac
   shift
 done
 
-[ ! -d $BACKUPROOT ] && echo "[error] invalid backup root '$BACKUPROOT'" && exit 1
+[ ! -d $BACKUP_ROOT ] && echo "[error] invalid backup root '$BACKUP_ROOT'" && exit 1
 [ -z "$PERIOD" ] && help &&
   echo "[error] please specify a period type over which to apply backups" && exit 1
 [ -z "$INCLUDE" ] && help &&
   echo "[error] please specify an INCLUDE file" && exit 1
 if [ ! -f "$INCLUDE" ]; then
-  [ -f $BACKUPROOT/$INCLUDE ] && INCLUDE="$BACKUPROOT/$INCLUDE" ||
+  [ -f $BACKUP_ROOT/$INCLUDE ] && INCLUDE="$BACKUP_ROOT/$INCLUDE" ||
     echo "[error] invalid 'include' file '$INCLUDE'" && exit 1
 fi
 [ -x $RSYNC ] && echo "[error] no rsync executable found$([ -n "$RSYNC" ] && echo " at '$RSYNC')" && exit 1
