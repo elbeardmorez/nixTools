@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 SCRIPTNAME=${0##*/}
 
@@ -71,7 +71,7 @@ function getsourcelist()
   IFS=$'\n'
   srcs=( $(cat $INCLUDE)  )
   unset $IFS
-  if [ "$VERBOSE" == "true" ]; then
+  if [ "$VERBOSE" = "true" ]; then
     echo "source directories listed for backup:"
     echo ${srcs[@]}
   fi
@@ -80,20 +80,20 @@ function getsourcelist()
   i=0
   while [ $i -lt ${#srcs[@]} ]; do
     valid=true
-    if [ "$valid" == "true" ]; then
+    if [ "$valid" = "true" ]; then
       # test for comment
       if ! [ "$(echo ${srcs[$i]} | grep "#")" = "" ]; then valid=false; fi
     fi
-    if [ "$valid" == "true" ]; then
+    if [ "$valid" = "true" ]; then
       # sanitise
       src=$(echo ${srcs[$i]} | sed 's/\"//g')
     fi
-    if [ "$valid" == "true" ]; then
+    if [ "$valid" = "true" ]; then
       # test size
       size=$(echo $(du -c ${srcs[$i]} | tail -n 1) | sed 's/total//')
       if [ $size -le 10 ]; then valid=false; fi # assuming something is wrong here!
     fi
-    if [ "$valid" == "true" ]; then
+    if [ "$valid" = "true" ]; then
       # append
       if [[ "${#SOURCES[@]}" -eq 0 || "x$SOURCES" == "x" ]]; then
         SOURCES=("$src")
@@ -105,13 +105,13 @@ function getsourcelist()
   done
 }
 
-if [ "$PERIOD" == "" ]; then
+if [ "$PERIOD" = "" ]; then
   echo "please specify a period type over which to apply backups"
   help
   exit 1
 fi
 
-if [ "$INCLUDE" == "" ]; then
+if [ "$INCLUDE" = "" ]; then
   echo "please specify an INCLUDE file"
   help
   exit 1
@@ -178,9 +178,9 @@ function performbackup()
   success=false
   if [[ $(date -d "$lastexpectedbackup" +%s) -gt $(date -d "$lastbackup" +%s) || "$FORCE" = "true" ]] ; then
     # perform backup!
-    if [ "$TYPE" == "$PERIOD" ]; then
+    if [ "$TYPE" = "$PERIOD" ]; then
       # backup
-      if [ "$VERBOSE" == "true" ]; then echo "performing a $TYPE sync backup"; fi
+      if [ "$VERBOSE" = "true" ]; then echo "performing a $TYPE sync backup"; fi
       if [ -d $BACKUPROOT/$TYPE.tmp ]; then
         rm -Rf $BACKUPROOT/$TYPE.tmp/*
       else
@@ -190,7 +190,7 @@ function performbackup()
       if ! [ -d $BACKUPROOT/master ]; then mkdir -p $BACKUPROOT/master; fi
       # refresh master
       $RSYNC "${RSYNCOPTIONS[@]}" "${SOURCES[@]}" $BACKUPROOT/master
-      if [ "$VERBOSE" == "true" ]; then
+      if [ "$VERBOSE" = "true" ]; then
         echo '$RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUPROOT/master "${SOURCES[@]}" $BACKUPROOT/$TYPE.tmp/'
         echo $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUPROOT/master "${SOURCES[@]}" $BACKUPROOT/$TYPE.tmp/
         $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUPROOT/master "${SOURCES[@]}" $BACKUPROOT/$TYPE.tmp/
@@ -200,7 +200,7 @@ function performbackup()
       if [[ $? -eq 0 ]]; then success=true; fi
     else
       # link
-      if [ "$VERBOSE" == "true" ]; then echo "performing a $TYPE link backup"; fi
+      if [ "$VERBOSE" = "true" ]; then echo "performing a $TYPE link backup"; fi
       case $TYPE in
         "daily")
           if [ -d $BACKUPROOT/hourly.1 ]; then
@@ -236,14 +236,14 @@ function performbackup()
       if [ -d $BACKUPROOT/$TYPE.1 ]; then mv $BACKUPROOT/$TYPE.1 $BACKUPROOT/$TYPE.2; fi
       mv $BACKUPROOT/$TYPE.tmp $BACKUPROOT/$TYPE.1
       echo $lastexpectedbackup > $BACKUPROOT/.$TYPE
-      if [ "$VERBOSE" == "true" ]; then echo "backup succeeded"; fi
+      if [ "$VERBOSE" = "true" ]; then echo "backup succeeded"; fi
     else
-      if [ "$VERBOSE" == "true" ]; then echo "backup failed"; fi
+      if [ "$VERBOSE" = "true" ]; then echo "backup failed"; fi
       LIMIT=true
     fi
   else
-    if [ "$VERBOSE" == "true" ]; then
-      if [ "$TYPE" == "$PERIOD" ]; then
+    if [ "$VERBOSE" = "true" ]; then
+      if [ "$TYPE" = "$PERIOD" ]; then
         echo "$(date): not performing a $TYPE sync backup"
       else
         echo "$(date): not performing a $TYPE link backup"
