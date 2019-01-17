@@ -1,13 +1,10 @@
 #!/bin/sh
 
+. ${0%/*}/$(dirname "$(readlink $0)")/../func_common.sh
+
 SCRIPTNAME=${0##*/}
 DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
-
-# compatibility
-if [ -n "$ZSH_VERSION" ]; then
-  setopt KSH_ARRAYS
-fi
 
 changed_only=0
 declare -a diff_options
@@ -46,14 +43,17 @@ fnProcess() {
   case "$mode" in
     "diff")
       [ "x$type" = "xdir" ] && diff_options[${#diff_options[@]}]="-r"
-      [ $DEBUG -ge 1 ] && echo "[debug] diff  ${diff_options_default[@]} ${diff_options[@]} \"$file1\" \"$file2\" | grep -ve \"^Only in\" | grep -ve \"^[Bb]inary\" | tee /tmp/_diff"
+
+      target="$(fnTempFile)"
+
+      [ $DEBUG -ge 1 ] && echo "[debug] diff  ${diff_options_default[@]} ${diff_options[@]} \"$file1\" \"$file2\" | grep -ve \"^Only in\" | grep -ve \"^[Bb]inary\"" | tee "$target"
       if [ $TEST -eq 0 ]; then
-        diff ${diff_options_default[@]} ${diff_options[@]} "$file1" "$file2" | grep -ve "^Only in" | grep -ve "^[Bb]inary" > /tmp/_diff
+        diff ${diff_options_default[@]} ${diff_options[@]} "$file1" "$file2" | grep -ve "^Only in" | grep -ve "^[Bb]inary" > "$target"
         if [[ "x$type" == "xdir" && $changed_only -eq 1 ]]; then
           echo -e "\n#changes found for the following file(s)"
-          cat /tmp/_diff | grep -P "^diff -" | sed 's/.*\/\(.*$\)/\1/'
+          cat "$target" | grep -P "^diff -" | sed 's/.*\/\(.*$\)/\1/'
         else
-          cat /tmp/_diff
+          cat "$target"
         fi
       fi
       ;;
@@ -64,8 +64,8 @@ fnProcess() {
       description1="$(cd "$file1" && pwd | tr '/ ' '^.')"
       description2="$(cd "$file2" && pwd | tr '/ '  '^.')"
 
-      target1="/tmp/diff_dir1_$description1"
-      target2="/tmp/diff_dir2_$description2"
+      target1="$(fnTempFile)_dir1_$description1"
+      target2="$(fnTempFile)_dir2_$description2"
 
       $(cd "$file1"; find . -name "*" -printf "%p\t%s\n" | sort > "$target1")
       $(cd "$file2"; find . -name "*" -printf "%p\t%s\n" | sort > "$target2")
@@ -73,7 +73,9 @@ fnProcess() {
       [ -f "$f_excludes" ] && $(while read line; do sed -i '/'$line'/d' $target1; shift; done < "$fExcludes")
       [ -f "$f_excludes" ] && $(while read line; do sed -i '/'$line'/d' $target2; shift; done < "$fExcludes")
 
-      diff ${diff_options[@]} $target1 $target2 > /tmp/_dirdiff
+      target="$(fnTempFile)"
+      diff ${diff_options[@]} $target1 $target2 > "${target}_dir"
+
       $diff_viewer "$target1" "$target2" >/dev/null 2>&1 &
       ;;
   esac
