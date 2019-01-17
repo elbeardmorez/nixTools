@@ -40,7 +40,7 @@ fnGetSourceList() {
   srcs=( $(cat $INCLUDE)  )
   unset $IFS
   if [ "$VERBOSE" = "true" ]; then
-    echo "source directories listed for backup:"
+    echo "[info] source directories listed for backup:"
     echo ${srcs[@]}
   fi
 
@@ -108,10 +108,10 @@ fnPerformBackup() {
   fnGetLastBackup $TYPE
   success=false
   if [[ $(date -d "$lastexpectedbackup" +%s) -gt $(date -d "$lastbackup" +%s) || "$FORCE" = "true" ]] ; then
-    # perform backup!
+    # perform backup
     if [ "$TYPE" = "$PERIOD" ]; then
       # backup
-      if [ "$VERBOSE" = "true" ]; then echo "performing a $TYPE sync backup"; fi
+      if [ "$VERBOSE" = "true" ]; then echo "[info] performing a $TYPE sync backup"; fi
       if [ -d $BACKUPROOT/$TYPE.tmp ]; then
         rm -Rf $BACKUPROOT/$TYPE.tmp/*
       else
@@ -131,7 +131,7 @@ fnPerformBackup() {
       if [[ $? -eq 0 ]]; then success=true; fi
     else
       # link
-      if [ "$VERBOSE" = "true" ]; then echo "performing a $TYPE link backup"; fi
+      if [ "$VERBOSE" = "true" ]; then echo "[info] performing a $TYPE link backup"; fi
       case $TYPE in
         "daily")
           if [ -d $BACKUPROOT/hourly.1 ]; then
@@ -167,17 +167,17 @@ fnPerformBackup() {
       if [ -d $BACKUPROOT/$TYPE.1 ]; then mv $BACKUPROOT/$TYPE.1 $BACKUPROOT/$TYPE.2; fi
       mv $BACKUPROOT/$TYPE.tmp $BACKUPROOT/$TYPE.1
       echo $lastexpectedbackup > $BACKUPROOT/.$TYPE
-      if [ "$VERBOSE" = "true" ]; then echo "backup succeeded"; fi
+      if [ "$VERBOSE" = "true" ]; then echo "[info] backup succeeded"; fi
     else
-      if [ "$VERBOSE" = "true" ]; then echo "backup failed"; fi
+      if [ "$VERBOSE" = "true" ]; then echo "[info] backup failed"; fi
       LIMIT=true
     fi
   else
     if [ "$VERBOSE" = "true" ]; then
       if [ "$TYPE" = "$PERIOD" ]; then
-        echo "$(date): not performing a $TYPE sync backup"
+        echo "[info] $(date), not performing a $TYPE sync backup"
       else
-        echo "$(date): not performing a $TYPE link backup"
+        echo "[info] $(date), not performing a $TYPE link backup"
       fi
     fi
   fi
