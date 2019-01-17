@@ -13,57 +13,27 @@ INCLUDE=""
 SOURCES=""
 LIMIT=false
 
-argsarray=( "$@" )
+lastexpectedbackup=""
+lastbackup=""
 
 help() {
-  echo -e "\nusage: $SCRIPTNAME -I <sources file> -p <backup period> [OPTIONS]\n
-    Be aware that forcing a sync will push the backup dirs back one!\n
-\t-h	: help
-\t-v	: verbose
-\t-f	: force
-\t-l	: limit to period specified only
-\t-I	: file containing source paths to backup, one per line
-\t-p	: period. either 'hourly' 'daily' 'weekly' or 'monthly' are valid periods\n"
+  echo -e "
+SYNTAX: $SCRIPTNAME -I <SOURCES> [OPTIONS]\n
+where:\n
+  -I, --include <SOURCES>  : file containing source paths to backup,
+                             one per line
+\nand [OPTIONS] can be:\n
+  -p, --period <PERIOD>  :  PERIOD can be either 'hourly', 'daily',
+                            'weekly' or 'monthly'
+  -f, --force  : force backups regardless as to whether the
+                 applicable period epoch has passed since its last
+                 update. be aware that forcing a sync will always
+                 push the backup set along one
+  -l, --limit  : limit to period specified only
+  -v, --verbose  : verbose mode
+  -h, --help  : this help info
+\n"
 }
-
-if [ $# -eq 0 ]; then
-  echo "no parameters provided"
-  help
-  exit 1
-else
-  # parse args
-  i=0
-  while [ $i -lt ${#argsarray[@]} ]; do
-    case ${argsarray[$i]} in
-      "-v" | "--v")
-        VERBOSE=true
-        ;;
-      "-f" | "--f")
-        FORCE=true
-        ;;
-      "-l" | "--l")
-        LIMIT=true
-        ;;
-      "-h" | "--h")
-        help
-        exit 0
-        ;;
-      "-p" | "--p")
-        if [ $[$i+1] -lt ${#argsarray[@]} ]; then
-          PERIOD=${argsarray[$[$i+1]]}
-          i=$[$i+1]
-        fi
-        ;;
-      "-I" | "--I")
-        if [ $[$i+1] -lt ${#argsarray[@]} ]; then
-          INCLUDE=${argsarray[$[$i+1]]}
-          i=$[$i+1]
-        fi
-        ;;
-    esac
-    i=$[$i+1]
-  done
-fi
 
 fnGetSourceList() {
   IFS=$'\n'
@@ -102,41 +72,6 @@ fnGetSourceList() {
     i=$[$i+1]
   done
 }
-
-if [ "$PERIOD" = "" ]; then
-  echo "please specify a period type over which to apply backups"
-  help
-  exit 1
-fi
-
-if [ "$INCLUDE" = "" ]; then
-  echo "please specify an INCLUDE file"
-  help
-  exit 1
-elif ! [ -f $INCLUDE ]; then
-  if [ -f $BACKUPROOT/$INCLUDE ]; then
-    INCLUDE=$BACKUPROOT/$INCLUDE
-  fi
-fi
-if ! [ -f $INCLUDE ]; then
-  echo "please specify an 'include' file with the -I parameter"
-  exit 1
-else
-  fnGetSourceList
-fi
-
-if ! [ -x $RSYNC ]; then
-  echo "no rsync executable found at $RSYNC"
-  exit 1
-fi
-
-if ! [ -d $BACKUPROOT ]; then
-  echo "backup root $BACKUPROOT is not invalid"
-  exit 1
-fi
-
-lastexpectedbackup=""
-lastbackup=""
 
 fnGetLastBackup() {
   if [ -f $BACKUPROOT/.$1 ]; then
@@ -268,7 +203,39 @@ function fnPerformMonthlyBackup() {
   fnPerformBackup "monthly"
 }
 
-# start
+
+# parse args
+[ $# -eq 0 ] && help && echo "[error] no parameters provided"
+
+i=0
+while [ -n "$1" ]; do
+  arg="$(echo "$1" | sed 's/^ *-*//')"
+  case "$arg" in
+    "I"|"include") shift && [ -z "$1" ] && help && exit 1; INCLUDE=$1 ;;
+    "p"|"period") shift && [ -z "$1" ] && help && exit 1; PERIOD=$1 ;;
+    "f"|"force") FORCE=true ;;
+    "l"|"limit") LIMIT=true ;;
+    "h"|"help") help && exit ;;
+    "v"|"verbose") VERBOSE=true ;;
+  esac
+  shift
+done
+
+[ ! -d $BACKUPROOT ] && echo "[error] invalid backup root '$BACKUPROOT'" && exit 1
+[ -z "$PERIOD" ] && help &&
+  echo "[error] please specify a period type over which to apply backups" && exit 1
+[ -z "$INCLUDE" ] && help &&
+  echo "[error] please specify an INCLUDE file" && exit 1
+if [ ! -f "$INCLUDE" ]; then
+  [ -f $BACKUPROOT/$INCLUDE ] && INCLUDE="$BACKUPROOT/$INCLUDE" ||
+    echo "[error] invalid 'include' file '$INCLUDE'" && exit 1
+fi
+[ -x $RSYNC ] && echo "[error] no rsync executable found$([ -n "$RSYNC" ] && echo " at '$RSYNC')" && exit 1
+
+# create source lits
+fnGetSourceList
+
+# process backup
 case "$PERIOD" in
   "hourly") fnPerformHourlyBackup ;;
   "daily") fnPerformDailyBackup ;;
