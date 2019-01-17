@@ -15,8 +15,7 @@ LIMIT=false
 
 argsarray=( "$@" )
 
-function help()
-{
+help() {
   echo -e "\nusage: $SCRIPTNAME -I <sources file> -p <backup period> [OPTIONS]\n
     Be aware that forcing a sync will push the backup dirs back one!\n
 \t-h	: help
@@ -66,8 +65,7 @@ else
   done
 fi
 
-function getsourcelist()
-{
+fnGetSourceList() {
   IFS=$'\n'
   srcs=( $(cat $INCLUDE)  )
   unset $IFS
@@ -124,7 +122,7 @@ if ! [ -f $INCLUDE ]; then
   echo "please specify an 'include' file with the -I parameter"
   exit 1
 else
-  getsourcelist
+  fnGetSourceList
 fi
 
 if ! [ -x $RSYNC ]; then
@@ -140,16 +138,15 @@ fi
 lastexpectedbackup=""
 lastbackup=""
 
-function getlastbackup()
-{
+fnGetLastBackup() {
   if [ -f $BACKUPROOT/.$1 ]; then
     lastbackup=$(cat $BACKUPROOT/.$1)
   else
     lastbackup="01 Jan 1970"
   fi
 }
-function getlastexpectedbackup()
-{
+
+fnGetLastExpectedBackup() {
   case $1 in
     "hourly")
       lastexpectedbackup=$(date +"%d %b %Y %H:00:00")
@@ -169,12 +166,11 @@ function getlastexpectedbackup()
   esac
 }
 
-function performbackup()
-{
+fnPerformBackup() {
   TYPE=$1
 
-  getlastexpectedbackup $TYPE
-  getlastbackup $TYPE
+  fnGetLastExpectedBackup $TYPE
+  fnGetLastBackup $TYPE
   success=false
   if [[ $(date -d "$lastexpectedbackup" +%s) -gt $(date -d "$lastbackup" +%s) || "$FORCE" = "true" ]] ; then
     # perform backup!
@@ -253,38 +249,29 @@ function performbackup()
 }
 
 # fall-through implementation
-function performhourlybackup()
-{
-  performbackup "hourly"
-  [ "$LIMIT" != "true" ] && performdailybackup
+fnPerformHourlyBackup() {
+  fnPerformBackup "hourly"
+  [ "$LIMIT" != "true" ] && fnPerformDailyBackup
 }
-function performdailybackup()
-{
-  performbackup "daily"
-  [ "$LIMIT" != "true" ] && performweeklybackup
+
+function fnPerformDailyBackup() {
+  fnPerformBackup "daily"
+  [ "$LIMIT" != "true" ] && fnPerformWeeklyBackup
 }
-function performweeklybackup()
-{
-  performbackup "weekly"
-  [ "$LIMIT" != "true" ] && performmonthlybackup
+
+fnPerformWeeklyBackup() {
+  fnPerformBackup "weekly"
+  [ "$LIMIT" != "true" ] && fnPerformMonthlyBackup
 }
-function performmonthlybackup()
-{
-  performbackup "monthly"
+
+function fnPerformMonthlyBackup() {
+  fnPerformBackup "monthly"
 }
 
 # start
-case $PERIOD in
-  "hourly")
-    performhourlybackup
-    ;;
-  "daily")
-    performdailybackup
-    ;;
-  "weekly")
-    performweeklybackup
-    ;;
-  "monthly")
-    performmonthlybackup
-    ;;
+case "$PERIOD" in
+  "hourly") fnPerformHourlyBackup ;;
+  "daily") fnPerformDailyBackup ;;
+  "weekly") fnPerformWeeklyBackup ;;
+  "monthly") fnPerformMonthlyBackup ;;
 esac
