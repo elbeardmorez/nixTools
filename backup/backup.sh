@@ -32,7 +32,7 @@ if [ $# -eq 0 ]; then
   help
   exit 1
 else
-  #parse args
+  # parse args
   i=0
   while [ $i -lt ${#argsarray[@]} ]; do
     case ${argsarray[$i]} in
@@ -57,7 +57,7 @@ else
         ;;
       "-I" | "--I")
         if [ $[$i+1] -lt ${#argsarray[@]} ]; then
-          INCLUDE=${argsarray[$[$i+1]]} 
+          INCLUDE=${argsarray[$[$i+1]]}
           i=$[$i+1]
         fi
         ;;
@@ -76,25 +76,25 @@ function getsourcelist()
     echo ${srcs[@]}
   fi
 
-  #loop to sanitise strings!  
+  # loop to sanitise strings!
   i=0
   while [ $i -lt ${#srcs[@]} ]; do
     valid=true
-    if [ "$valid" == "true" ]; then 
-      #test for comment
+    if [ "$valid" == "true" ]; then
+      # test for comment
       if ! [ "$(echo ${srcs[$i]} | grep "#")" = "" ]; then valid=false; fi
     fi
-    if [ "$valid" == "true" ]; then 
-      #sanitise
+    if [ "$valid" == "true" ]; then
+      # sanitise
       src=$(echo ${srcs[$i]} | sed 's/\"//g')
     fi
-    if [ "$valid" == "true" ]; then 
-      #test size
+    if [ "$valid" == "true" ]; then
+      # test size
       size=$(echo $(du -c ${srcs[$i]} | tail -n 1) | sed 's/total//')
       if [ $size -le 10 ]; then valid=false; fi # assuming something is wrong here!
     fi
     if [ "$valid" == "true" ]; then
-      #append
+      # append
       if [[ "${#SOURCES[@]}" -eq 0 || "x$SOURCES" == "x" ]]; then
         SOURCES=("$src")
       else
@@ -150,7 +150,7 @@ function getlastbackup()
 }
 function getlastexpectedbackup()
 {
-  case $1 in 
+  case $1 in
     "hourly")
       lastexpectedbackup=$(date +"%d %b %Y %H:00:00")
       ;;
@@ -158,7 +158,7 @@ function getlastexpectedbackup()
       lastexpectedbackup=$(date +"%d %b %Y 00:00:00")
       ;;
     "weekly")
-      #use number of weeks since a specific date
+      # use number of weeks since a specific date
       weeksecs=$[7*24*60*60]
       nearestweeksecs=$[$[$(date +%s)/$weeksecs]*$weeksecs]
       lastexpectedbackup=$(date -d "1970-01-01 00:00:00 UTC +$nearestweeksecs seconds" +"%d %b %Y 00:00:00")
@@ -172,23 +172,23 @@ function getlastexpectedbackup()
 function performbackup()
 {
   TYPE=$1
-  
+
   getlastexpectedbackup $TYPE
   getlastbackup $TYPE
   success=false
   if [[ $(date -d "$lastexpectedbackup" +%s) -gt $(date -d "$lastbackup" +%s) || "$FORCE" = "true" ]] ; then
-    #perform backup!
+    # perform backup!
     if [ "$TYPE" == "$PERIOD" ]; then
-      #backup
+      # backup
       if [ "$VERBOSE" == "true" ]; then echo "performing a $TYPE sync backup"; fi
       if [ -d $BACKUPROOT/$TYPE.tmp ]; then
         rm -Rf $BACKUPROOT/$TYPE.tmp/*
       else
         mkdir -p $BACKUPROOT/$TYPE.tmp
       fi
-      #always backup against (hard-linking to) the 'master' copy
+      # always backup against (hard-linking to) the 'master' copy
       if ! [ -d $BACKUPROOT/master ]; then mkdir -p $BACKUPROOT/master; fi
-      #refresh master
+      # refresh master
       $RSYNC "${RSYNCOPTIONS[@]}" "${SOURCES[@]}" $BACKUPROOT/master
       if [ "$VERBOSE" == "true" ]; then
         echo '$RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUPROOT/master "${SOURCES[@]}" $BACKUPROOT/$TYPE.tmp/'
@@ -199,11 +199,11 @@ function performbackup()
       fi
       if [[ $? -eq 0 ]]; then success=true; fi
     else
-      #link
+      # link
       if [ "$VERBOSE" == "true" ]; then echo "performing a $TYPE link backup"; fi
       case $TYPE in
         "daily")
-          if [ -d $BACKUPROOT/hourly.1 ]; then 
+          if [ -d $BACKUPROOT/hourly.1 ]; then
             cp -al $BACKUPROOT/hourly.1 $BACKUPROOT/daily.tmp
             if [[ $? -eq 0 ]]; then success=true; fi
           fi
@@ -215,14 +215,14 @@ function performbackup()
           fi
           ;;
         "monthly")
-          if [ -d $BACKUPROOT/weekly.1 ]; then 
+          if [ -d $BACKUPROOT/weekly.1 ]; then
             cp -al $BACKUPROOT/weekly.1 $BACKUPROOT/monthly.tmp
             if [[ $? -eq 0 ]]; then success=true; fi
           fi
           ;;
-      esac      
+      esac
     fi
-    #if successful, reset the dir structure
+    # if successful, reset the dir structure
     if [[ $? -eq 0 ]]; then
       if [ -d $BACKUPROOT/$TYPE.10 ]; then rm -Rf $BACKUPROOT/$TYPE.10; fi
       if [ -d $BACKUPROOT/$TYPE.9 ]; then mv $BACKUPROOT/$TYPE.9 $BACKUPROOT/$TYPE.10; fi
@@ -252,7 +252,7 @@ function performbackup()
   fi
 }
 
-#fall-through implementation
+# fall-through implementation
 function performhourlybackup()
 {
   performbackup "hourly"
@@ -273,19 +273,18 @@ function performmonthlybackup()
   performbackup "monthly"
 }
 
-#start
+# start
 case $PERIOD in
   "hourly")
-    performhourlybackup    
+    performhourlybackup
     ;;
   "daily")
     performdailybackup
     ;;
-  "weekly")    
+  "weekly")
     performweeklybackup
     ;;
   "monthly")
     performmonthlybackup
     ;;
 esac
-

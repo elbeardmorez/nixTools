@@ -10,21 +10,21 @@ against slitting directories with spaces in the name!
 
 RSYNCOPTIONS=( "-varR" "--delete" )
 
-rsync parameters                                                        
--a, --archive  : implies -rlptgoD                                   
--r, --recursive  : implied by -a                                    
--R, --relative  : use relative path names                           
--u, --update  : skip files that are newer on the receiver           
--v, --verbose                                                       
--t, --times  : preserve modification times                          
--p, --perms  : preserve permissions                                 
--E, --executability  : preserve executabilit                        
--X, --xattrs  : preserve extended attributes                        
--o, --owner  : preserve owner (super-user only)                     
--g, --group  : preserve group                                       
--n, --dry-run  : dont actually copy/move/delete any files           
--l, --links  : copy symlinks as symlinks                            
---files-from  : change the meaning of -a  ..need to append --no-R  
---no-R : the relative path part of the source directory is not kept 
+rsync parameters
+-a, --archive  : implies -rlptgoD
+-r, --recursive  : implied by -a
+-R, --relative  : use relative path names
+-u, --update  : skip files that are newer on the receiver
+-v, --verbose
+-t, --times  : preserve modification times
+-p, --perms  : preserve permissions
+-E, --executability  : preserve executabilit
+-X, --xattrs  : preserve extended attributes
+-o, --owner  : preserve owner (super-user only)
+-g, --group  : preserve group
+-n, --dry-run  : dont actually copy/move/delete any files
+-l, --links  : copy symlinks as symlinks
+--files-from  : change the meaning of -a  ..need to append --no-R
+--no-R : the relative path part of the source directory is not kept
 
 --files-from doesn't work the way i want it to. ..it's files relative to the source directory
