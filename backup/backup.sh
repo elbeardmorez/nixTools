@@ -2,9 +2,10 @@
 
 SCRIPTNAME=${0##*/}
 
-RSYNC="/usr/local/bin/rsync"
-RSYNCOPTIONS=( "-varR" "--delete" )
 BACKUP_ROOT="${BACKUP_ROOT:-"/backup"}"
+
+RSYNC="${RSYNC:-"auto"}"
+RSYNC_OPTIONS=(${RYNC_OPTIONS:-"--verbose --delete --relative --archive"})
 
 VERBOSE=false
 FORCE=false
@@ -35,6 +36,11 @@ where:\n
   -h, --help  : this help info
 \nenvironment variables:\n
   BACKUP_ROOT  : as detailed above
+  RSYNC  : path to the rsync binary to use (default: auto)
+  RSYNC_OPTIONS  : space delimited set of options to pass to rsync.
+                   modifying this is very dangerous and may compromise
+                   your backup set
+                   (default: --verbose --delete --relative --archive)
 "
 }
 
@@ -123,13 +129,13 @@ fnPerformBackup() {
       # always backup against (hard-linking to) the 'master' copy
       if ! [ -d $BACKUP_ROOT/master ]; then mkdir -p $BACKUP_ROOT/master; fi
       # refresh master
-      $RSYNC "${RSYNCOPTIONS[@]}" "${SOURCES[@]}" $BACKUP_ROOT/master
+      $RSYNC "${RSYNC_OPTIONS[@]}" "${SOURCES[@]}" $BACKUP_ROOT/master
       if [ "$VERBOSE" = "true" ]; then
-        echo '$RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/'
-        echo $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/
-        $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/
+        echo '$RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/'
+        echo $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/
+        $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/
       else
-        $RSYNC "${RSYNCOPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/ # > /dev/null
+        $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/ # > /dev/null
       fi
       if [[ $? -eq 0 ]]; then success=true; fi
     else
@@ -234,7 +240,8 @@ if [ ! -f "$INCLUDE" ]; then
   [ -f $BACKUP_ROOT/$INCLUDE ] && INCLUDE="$BACKUP_ROOT/$INCLUDE" ||
     echo "[error] invalid 'include' file '$INCLUDE'" && exit 1
 fi
-[ -x $RSYNC ] && echo "[error] no rsync executable found$([ -n "$RSYNC" ] && echo " at '$RSYNC')" && exit 1
+[ "x$RSYNC" = "xauto" ] && RSYNC="$(which rsync)"
+[ ! -x $RSYNC ] && echo "[error] no rsync binary found$([ -n "$RSYNC" ] && echo " at '$RSYNC'")" && exit 1
 
 # create source lits
 fnGetSourceList
