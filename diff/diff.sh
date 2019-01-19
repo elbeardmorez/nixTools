@@ -1,6 +1,10 @@
 #!/bin/sh
 
-. ${0%/*}/$(dirname "$(readlink $0)")/../func_common.sh
+# includes
+set -e
+x="$(dirname "$0")/$(basename "$0")"; [ ! -f "$x" ] && x="$(which $0)"; x="$(readlink -e "$x" || echo "$x")"
+. ${x%/*}/../func_common.sh
+set +e
 
 SCRIPTNAME=${0##*/}
 DEBUG=${DEBUG:-0}
