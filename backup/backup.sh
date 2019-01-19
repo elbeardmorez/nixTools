@@ -21,7 +21,7 @@ help() {
   echo -e "
 SYNTAX: $SCRIPTNAME -I <SOURCES> [OPTIONS]\n
 where:\n
-  -I, --include <SOURCES>  : file containing source paths to backup,
+  -i, --include <SOURCES>  : file containing source paths to backup,
                              one per line
 \nand [OPTIONS] can be:\n
   -p, --period <PERIOD>  :  PERIOD can be either 'hourly', 'daily',
@@ -220,7 +220,7 @@ i=0
 while [ -n "$1" ]; do
   arg="$(echo "$1" | sed 's/^ *-*//')"
   case "$arg" in
-    "I"|"include") shift && [ -z "$1" ] && help && exit 1; INCLUDE=$1 ;;
+    "i"|"include") shift && [ -z "$1" ] && help && exit 1; INCLUDE=$1 ;;
     "p"|"period") shift && [ -z "$1" ] && help && exit 1; PERIOD=$1 ;;
     "f"|"force") FORCE=true ;;
     "nc"|"no-cascade") NO_CASCADE=true ;;

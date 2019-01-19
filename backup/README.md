@@ -9,7 +9,7 @@ SYNTAX: backup_ -I <SOURCES> [OPTIONS]
 
 where:
 
-  -I, --include <SOURCES>  : file containing source paths to backup,
+  -i, --include <SOURCES>  : file containing source paths to backup,
                              one per line
 
 and [OPTIONS] can be:
