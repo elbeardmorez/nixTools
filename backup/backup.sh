@@ -10,7 +10,7 @@ RSYNC_OPTIONS=(${RYNC_OPTIONS:-"--verbose --delete --relative --archive"})
 VERBOSE=false
 FORCE=false
 PERIOD=""
-INCLUDE=""
+INCLUDE=".include"
 SOURCES=""
 NO_CASCADE=false
 
@@ -19,11 +19,11 @@ lastbackup=""
 
 help() {
   echo -e "
-SYNTAX: $SCRIPTNAME -I <SOURCES> [OPTIONS]\n
-where:\n
+SYNTAX: $SCRIPTNAME [OPTIONS]\n
+where [OPTIONS] can be:\n
   -i, --include <SOURCES>  : file containing source paths to backup,
                              one per line
-\nand [OPTIONS] can be:\n
+                             (default: 'BACKUP_ROOT/.include')
   -p, --period <PERIOD>  :  PERIOD can be either 'hourly', 'daily',
                             'weekly' or 'monthly'
   -f, --force  : force backups regardless of whether the period type's

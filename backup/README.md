@@ -5,15 +5,13 @@ creates a 'hardlink-based' backup set with 10 of each of the four time period gr
 
 ## usage
 ```
-SYNTAX: backup_ -I <SOURCES> [OPTIONS]
+SYNTAX: backup_ [OPTIONS]
 
-where:
+where [OPTIONS] can be:
 
   -i, --include <SOURCES>  : file containing source paths to backup,
                              one per line
-
-and [OPTIONS] can be:
-
+                             (default: 'BACKUP_ROOT/.include')
   -p, --period <PERIOD>  :  PERIOD can be either 'hourly', 'daily',
                             'weekly' or 'monthly'
   -f, --force  : force backups regardless of whether the period type's
