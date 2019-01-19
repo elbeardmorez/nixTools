@@ -16,10 +16,9 @@ and [OPTIONS] can be:
 
   -p, --period <PERIOD>  :  PERIOD can be either 'hourly', 'daily',
                             'weekly' or 'monthly'
-  -f, --force  : force backups regardless as to whether the
-                 applicable period epoch has passed since its last
-                 update. be aware that forcing a sync will always
-                 push the backup set along one
+  -f, --force  : force backups regardless of whether the period type's
+                 epoch has elapsed since its previous update. this
+                 will thus always roll the backup set along one
   -l, --limit  : limit to period specified only
   -r, --root  : specify the root of the backup set
   -v, --verbose  : verbose mode
