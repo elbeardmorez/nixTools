@@ -14,6 +14,7 @@ where [OPTIONS] can be:
                              (default: 'BACKUP_ROOT/.include')
   -p, --period <PERIOD>  :  PERIOD can be either 'hourly', 'daily',
                             'weekly' or 'monthly'
+                            (default: 'hourly')
   -f, --force  : force backups regardless of whether the period type's
                  epoch has elapsed since its previous update. this
                  will thus always roll the backup set along one
