@@ -19,7 +19,8 @@ and [OPTIONS] can be:
   -f, --force  : force backups regardless of whether the period type's
                  epoch has elapsed since its previous update. this
                  will thus always roll the backup set along one
-  -l, --limit  : limit to period specified only
+  -nc, --no-cascade  : limit modifications to the specified period
+                       type set only
   -r, --root  : specify the root of the backup set
   -v, --verbose  : verbose mode
   -h, --help  : this help info

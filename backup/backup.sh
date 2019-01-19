@@ -12,7 +12,7 @@ FORCE=false
 PERIOD=""
 INCLUDE=""
 SOURCES=""
-LIMIT=false
+NO_CASCADE=false
 
 lastexpectedbackup=""
 lastbackup=""
@@ -29,7 +29,8 @@ where:\n
   -f, --force  : force backups regardless of whether the period type's
                  epoch has elapsed since its previous update. this
                  will thus always roll the backup set along one
-  -l, --limit  : limit to period specified only
+  -nc, --no-cascade  : limit modifications to the specified period
+                       type set only
   -r, --root  : specify the root of the backup set
   -v, --verbose  : verbose mode
   -h, --help  : this help info
@@ -178,7 +179,7 @@ fnPerformBackup() {
       if [ "$VERBOSE" = "true" ]; then echo "[info] backup succeeded"; fi
     else
       if [ "$VERBOSE" = "true" ]; then echo "[info] backup failed"; fi
-      LIMIT=true
+      NO_CASCADE=true
     fi
   else
     if [ "$VERBOSE" = "true" ]; then
@@ -194,17 +195,17 @@ fnPerformBackup() {
 # fall-through implementation
 fnPerformHourlyBackup() {
   fnPerformBackup "hourly"
-  [ "$LIMIT" != "true" ] && fnPerformDailyBackup
+  [ "$NO_CASCADE" != "true" ] && fnPerformDailyBackup
 }
 
 function fnPerformDailyBackup() {
   fnPerformBackup "daily"
-  [ "$LIMIT" != "true" ] && fnPerformWeeklyBackup
+  [ "$NO_CASCADE" != "true" ] && fnPerformWeeklyBackup
 }
 
 fnPerformWeeklyBackup() {
   fnPerformBackup "weekly"
-  [ "$LIMIT" != "true" ] && fnPerformMonthlyBackup
+  [ "$NO_CASCADE" != "true" ] && fnPerformMonthlyBackup
 }
 
 function fnPerformMonthlyBackup() {
@@ -222,7 +223,7 @@ while [ -n "$1" ]; do
     "I"|"include") shift && [ -z "$1" ] && help && exit 1; INCLUDE=$1 ;;
     "p"|"period") shift && [ -z "$1" ] && help && exit 1; PERIOD=$1 ;;
     "f"|"force") FORCE=true ;;
-    "l"|"limit") LIMIT=true ;;
+    "nc"|"no-cascade") NO_CASCADE=true ;;
     "r"|"root") shift && [ -z "$1" ] && help && exit 1; BACKUP_ROOT="$1" ;;
     "h"|"help") help && exit ;;
     "v"|"verbose") VERBOSE=true ;;
