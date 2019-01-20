@@ -7,12 +7,12 @@ BACKUP_ROOT="${BACKUP_ROOT:-"/backup"}"
 RSYNC="${RSYNC:-"auto"}"
 RSYNC_OPTIONS=(${RYNC_OPTIONS:-"--verbose --delete --relative --archive"})
 
-VERBOSE=false
-FORCE=false
+VERBOSE=0
+FORCE=0
 PERIOD="hourly"
 INCLUDE=".include"
 SOURCES=""
-NO_CASCADE=false
+NO_CASCADE=0
 
 lastexpectedbackup=""
 lastbackup=""
@@ -49,7 +49,7 @@ fnGetSourceList() {
   IFS=$'\n'
   srcs=( $(cat $INCLUDE)  )
   unset $IFS
-  if [ "$VERBOSE" = "true" ]; then
+  if [ $VERBOSE -eq 1 ]; then
     echo "[info] source directories listed for backup:"
     echo ${srcs[@]}
   fi
@@ -57,21 +57,21 @@ fnGetSourceList() {
   # loop to sanitise strings!
   i=0
   while [ $i -lt ${#srcs[@]} ]; do
-    valid=true
-    if [ "$valid" = "true" ]; then
+    valid=1
+    if [ $valid -eq 1 ]; then
       # test for comment
-      if ! [ "$(echo ${srcs[$i]} | grep "#")" = "" ]; then valid=false; fi
+      if ! [ "$(echo ${srcs[$i]} | grep "#")" = "" ]; then valid=0; fi
     fi
-    if [ "$valid" = "true" ]; then
+    if [ $valid -eq 1 ]; then
       # sanitise
       src=$(echo ${srcs[$i]} | sed 's/\"//g')
     fi
-    if [ "$valid" = "true" ]; then
+    if [ $valid -eq 1 ]; then
       # test size
       size=$(echo $(du -c ${srcs[$i]} | tail -n 1) | sed 's/total//')
-      if [ $size -le 10 ]; then valid=false; fi # assuming something is wrong here!
+      if [ $size -le 10 ]; then valid=0; fi # assuming something is wrong here!
     fi
-    if [ "$valid" = "true" ]; then
+    if [ $valid -eq 1 ]; then
       # append
       if [[ "${#SOURCES[@]}" -eq 0 || "x$SOURCES" == "x" ]]; then
         SOURCES=("$src")
@@ -116,12 +116,12 @@ fnPerformBackup() {
 
   fnGetLastExpectedBackup $TYPE
   fnGetLastBackup $TYPE
-  success=false
-  if [[ $(date -d "$lastexpectedbackup" +%s) -gt $(date -d "$lastbackup" +%s) || "$FORCE" = "true" ]] ; then
+  success=0
+  if [[ $(date -d "$lastexpectedbackup" +%s) -gt $(date -d "$lastbackup" +%s) || $FORCE -eq 1 ]] ; then
     # perform backup
     if [ "$TYPE" = "$PERIOD" ]; then
       # backup
-      if [ "$VERBOSE" = "true" ]; then echo "[info] performing a $TYPE sync backup"; fi
+      if [ $VERBOSE -eq 1 ]; then echo "[info] performing a $TYPE sync backup"; fi
       if [ -d $BACKUP_ROOT/$TYPE.tmp ]; then
         rm -Rf $BACKUP_ROOT/$TYPE.tmp/*
       else
@@ -131,34 +131,34 @@ fnPerformBackup() {
       if ! [ -d $BACKUP_ROOT/master ]; then mkdir -p $BACKUP_ROOT/master; fi
       # refresh master
       $RSYNC "${RSYNC_OPTIONS[@]}" "${SOURCES[@]}" $BACKUP_ROOT/master
-      if [ "$VERBOSE" = "true" ]; then
+      if [ $VERBOSE -eq 1 ]; then
         echo '$RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/'
         echo $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/
         $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/
       else
         $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/ # > /dev/null
       fi
-      if [[ $? -eq 0 ]]; then success=true; fi
+      if [[ $? -eq 0 ]]; then success=1; fi
     else
       # link
-      if [ "$VERBOSE" = "true" ]; then echo "[info] performing a $TYPE link backup"; fi
+      if [ $VERBOSE -eq 1 ]; then echo "[info] performing a $TYPE link backup"; fi
       case $TYPE in
         "daily")
           if [ -d $BACKUP_ROOT/hourly.1 ]; then
             cp -al $BACKUP_ROOT/hourly.1 $BACKUP_ROOT/daily.tmp
-            if [[ $? -eq 0 ]]; then success=true; fi
+            if [[ $? -eq 0 ]]; then success=1; fi
           fi
           ;;
         "weekly")
           if [ -d $BACKUP_ROOT/daily.1 ]; then
             cp -al $BACKUP_ROOT/daily.1 $BACKUP_ROOT/weekly.tmp
-            if [[ $? -eq 0 ]]; then success=true; fi
+            if [[ $? -eq 0 ]]; then success=1; fi
           fi
           ;;
         "monthly")
           if [ -d $BACKUP_ROOT/weekly.1 ]; then
             cp -al $BACKUP_ROOT/weekly.1 $BACKUP_ROOT/monthly.tmp
-            if [[ $? -eq 0 ]]; then success=true; fi
+            if [[ $? -eq 0 ]]; then success=1; fi
           fi
           ;;
       esac
@@ -177,13 +177,13 @@ fnPerformBackup() {
       if [ -d $BACKUP_ROOT/$TYPE.1 ]; then mv $BACKUP_ROOT/$TYPE.1 $BACKUP_ROOT/$TYPE.2; fi
       mv $BACKUP_ROOT/$TYPE.tmp $BACKUP_ROOT/$TYPE.1
       echo $lastexpectedbackup > $BACKUP_ROOT/.$TYPE
-      if [ "$VERBOSE" = "true" ]; then echo "[info] backup succeeded"; fi
+      if [ $VERBOSE -eq 1 ]; then echo "[info] backup succeeded"; fi
     else
-      if [ "$VERBOSE" = "true" ]; then echo "[info] backup failed"; fi
-      NO_CASCADE=true
+      if [ $VERBOSE -eq 1 ]; then echo "[info] backup failed"; fi
+      NO_CASCADE=1
     fi
   else
-    if [ "$VERBOSE" = "true" ]; then
+    if [ $VERBOSE -eq 1 ]; then
       if [ "$TYPE" = "$PERIOD" ]; then
         echo "[info] $(date), not performing a $TYPE sync backup"
       else
@@ -196,17 +196,17 @@ fnPerformBackup() {
 # fall-through implementation
 fnPerformHourlyBackup() {
   fnPerformBackup "hourly"
-  [ "$NO_CASCADE" != "true" ] && fnPerformDailyBackup
+  [ $NO_CASCADE -eq 0 ] && fnPerformDailyBackup
 }
 
 function fnPerformDailyBackup() {
   fnPerformBackup "daily"
-  [ "$NO_CASCADE" != "true" ] && fnPerformWeeklyBackup
+  [ $NO_CASCADE -eq 0 ] && fnPerformWeeklyBackup
 }
 
 fnPerformWeeklyBackup() {
   fnPerformBackup "weekly"
-  [ "$NO_CASCADE" != "true" ] && fnPerformMonthlyBackup
+  [ $NO_CASCADE -eq 0 ] && fnPerformMonthlyBackup
 }
 
 function fnPerformMonthlyBackup() {
@@ -223,11 +223,11 @@ while [ -n "$1" ]; do
   case "$arg" in
     "i"|"include") shift && [ -z "$1" ] && help && exit 1; INCLUDE=$1 ;;
     "p"|"period") shift && [ -z "$1" ] && help && exit 1; PERIOD=$1 ;;
-    "f"|"force") FORCE=true ;;
-    "nc"|"no-cascade") NO_CASCADE=true ;;
+    "f"|"force") FORCE=1 ;;
+    "nc"|"no-cascade") NO_CASCADE=1 ;;
     "r"|"root") shift && [ -z "$1" ] && help && exit 1; BACKUP_ROOT="$1" ;;
     "h"|"help") help && exit ;;
-    "v"|"verbose") VERBOSE=true ;;
+    "v"|"verbose") VERBOSE=1 ;;
   esac
   shift
 done
