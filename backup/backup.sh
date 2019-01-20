@@ -1,6 +1,8 @@
 #!/bin/sh
 
 SCRIPTNAME=${0##*/}
+DEBUG=${DEBUG:-0}
+IFSORG="$IFS"
 
 BACKUP_ROOT="${BACKUP_ROOT:-"/backup"}"
 
@@ -11,9 +13,9 @@ VERBOSE=0
 FORCE=0
 PERIOD="hourly"
 INCLUDE=".include"
-SOURCES=""
 NO_CASCADE=0
 
+declare -a SOURCES
 lastexpectedbackup=""
 lastbackup=""
 
@@ -45,42 +47,30 @@ where [OPTIONS] can be:\n
 "
 }
 
-fnGetSourceList() {
-  IFS=$'\n'
-  srcs=( $(cat $INCLUDE)  )
-  unset $IFS
-  if [ $VERBOSE -eq 1 ]; then
-    echo "[info] source directories listed for backup:"
-    echo ${srcs[@]}
-  fi
 
-  # loop to sanitise strings!
-  i=0
-  while [ $i -lt ${#srcs[@]} ]; do
-    valid=1
-    if [ $valid -eq 1 ]; then
-      # test for comment
-      if ! [ "$(echo ${srcs[$i]} | grep "#")" = "" ]; then valid=0; fi
-    fi
-    if [ $valid -eq 1 ]; then
-      # sanitise
-      src=$(echo ${srcs[$i]} | sed 's/\"//g')
-    fi
-    if [ $valid -eq 1 ]; then
-      # test size
-      size=$(echo $(du -c ${srcs[$i]} | tail -n 1) | sed 's/total//')
-      if [ $size -le 10 ]; then valid=0; fi # assuming something is wrong here!
-    fi
-    if [ $valid -eq 1 ]; then
-      # append
-      if [[ "${#SOURCES[@]}" -eq 0 || "x$SOURCES" == "x" ]]; then
-        SOURCES=("$src")
-      else
-        SOURCES=("${SOURCES[@]}" "$src")
-      fi
-    fi
-    i=$[$i+1]
+fnSetSources() {
+
+  include=$(cat $INCLUDE)
+
+  [ $DEBUG -gt 0 ] && echo -e "[debug] raw includes list:\n$include" 1>&2
+  IFS=$'\n'; list=($(echo "$include")); IFS="$IFSORG"
+
+  # process lines
+  for s in "${list[@]}"; do
+    # ignore comment lines
+    [ -n "$(echo "$s" | sed -n '/^[\t ]*#/p')" ] && continue
+    # sanitise include strings
+    # strip any quotes
+    s="$(echo "$s" | sed 's/\"//g')"
+    # include target validity
+    [[ -n "$s" && -d "$s" ]] \
+      && SOURCES[${#SOURCES[@]}]="$s" \
+      || echo "[info] dropping invalid include target '$s'"
   done
+
+  [ ${#SOURCES[@]} -eq 0 ] && echo "[error] no valid source include paths found" && return 1
+
+  [ $VERBOSE -eq 1 ] && echo "[info] validated ${#SOURCES[@]} source include path$([ ${#SOURCES[@]} -ne 1 ] && echo "s") for backup:" && for s in "${SOURCES[@]}"; do echo "$s"; done
 }
 
 fnGetLastBackup() {
@@ -244,8 +234,9 @@ fi
 [ "x$RSYNC" = "xauto" ] && RSYNC="$(which rsync)"
 [ ! -x $RSYNC ] && echo "[error] no rsync binary found$([ -n "$RSYNC" ] && echo " at '$RSYNC'")" && exit 1
 
-# create source lits
-fnGetSourceList
+# parse includes
+fnSetSources
+ret=$? && [ $ret -ne 0 ] && exit $ret
 
 # process backup
 case "$PERIOD" in
