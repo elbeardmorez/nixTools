@@ -8,6 +8,10 @@ elif [ -n "$ZSH_VERSION" ]; then
   setopt KSH_ARRAYS
 fi
 
+# constants
+c_off='\033[0m'
+c_red='\033[0;31m'
+
 fnDecision() {
   while [ 1 -eq 1 ]; do
     read "${CMDARGS_READ_SINGLECHAR[@]}"

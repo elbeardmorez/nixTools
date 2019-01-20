@@ -37,6 +37,8 @@ help() {
   rb|rebase <ID> [N]  : interactively rebase back from id or partial
                         description string. use N to limit the search
                         range to the last N commits
+  b|blame <PATH> <SEARCH>  : filter blame output for PATH on SEARCH
+                             and offer 'show commit' per match
   cl|clone <REPO>  : clone repo
   co|checkout      : checkout files / branches
   ca|commit-amend          : commit, amending previous
@@ -250,6 +252,32 @@ fnProcess() {
           mkdir commits && \
           for c in ${commits[@]}; do git log -n1 -p $c > commits/$c.diff; done
       fi
+      ;;
+    "b"|"blame")
+      [ $# -lt 2 ] && help && echo "[error] not enough args" && exit 1
+      file="$1" && shift
+      res="$(git log "$file" >/dev/null 2>&1)"
+      [ $? -ne 0 ] && echo "[error] invalid path '$file'" && exit 1
+      search="$1"
+      IFS=$'\n'; matches=($(git blame -lt "$file" | grep "$search")); IFS="$IFSORG"
+      echo "[info] ${#matches[@]} hit$([ ${#matches[@]} -ne 1 ] && echo "s") for search string '$search' on file '$file'"
+      [ ${#matches[@]} -eq 0 ] && exit
+      for s in "${matches[@]}"; do
+        parts=($(echo "$s"))
+        id="${parts[0]}"
+        x="$(echo "${s:$((${#id}+1))}" | sed 's/^(\([^)]*\)) /\1|/')"
+        xa=(${x%%|*})
+        dt1="${xa[$((${#xa}-2))]}"
+        dt2="${xa[$((${#xa}-1))]}"
+        line="${xa[$((${#xa}-0))]}"
+        auth="$(echo "${xa[@]}" | sed 's/ '$dt1'.*$//')"
+        data="${x#*|}"
+        echo -e "[info] file: $file | ln#: $line | auth: ${c_red}${auth}${c_off} | date: $(date -d "@$dt1" "+%d %b %Y %H:%M:%S") $dt2"
+        echo -e "\n$data\n"
+        echo -n "[user] show commit '$id'? [y/n]: "
+        res=$(fnDecision)
+        [ $res -eq 1 ] && git show "$id" && echo
+      done
       ;;
     *)
       git $command "$@"

@@ -35,6 +35,8 @@ where <OPTION> can be:
   rb|rebase <ID> [N]  : interactively rebase back from id or partial
                         description string. use N to limit the search
                         range to the last N commits
+  b|blame <PATH> <SEARCH>  : filter blame output for PATH on SEARCH
+                             and offer 'show commit' per match
   cl|clone <REPO>  : clone repo
   co|checkout      : checkout files / branches
   ca|commit-amend          : commit, amending previous
