@@ -221,7 +221,7 @@ i=0
 while [ -n "$1" ]; do
   arg="$(echo "$1" | sed 's/^ *-*//')"
   case "$arg" in
-    "i"|"include") shift && [ -z "$1" ] && help && exit 1; INCLUDE=$1 ;;
+    "i"|"include") shift && [ -z "$1" ] && help && exit 1; INCLUDE="$1" ;;
     "p"|"period") shift && [ -z "$1" ] && help && exit 1; PERIOD=$1 ;;
     "f"|"force") FORCE=1 ;;
     "nc"|"no-cascade") NO_CASCADE=1 ;;
