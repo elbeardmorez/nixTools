@@ -1,7 +1,7 @@
 # backup.sh
 
 ## description
-creates a 'hardlink-based' backup set with 10 of each of the four time period granularities (hourly, daily, weekly, monthly). the use of hardlinks means the disk space footprint for the incremental sets is kept to a minimum - there is no duplication of **identical** files
+creates a 'hardlink-based' backup set with 10 of each of the four supported time interval types (hourly, daily, weekly, monthly). the use of hardlinks means the disk space footprint for the incremental sets is kept to a minimum - **there is no duplication of identical** files, which is in essence its sole raison d'être
 
 ## usage
 ```
@@ -35,16 +35,20 @@ environment variables:
 ```
 
 ## implementation
-the hard work (the actual copying of files) is handled by the extremely impressive and mature **rsync** program. this wrapper simply uses this binary to construct backup sets at set time intervals, purging the last sets of each time period when any period hits the set limit (10)
+if a backup program is defined simply as a file copier on a schedule, then this script should be viewed as a relatively thin wrapper over the **rsync** file copier which expects to be called via a scheduler like **cron**, or integrated into the likes of **systemd** via a timer, in order to operate as intended. the extremely impressive *rsync*, is very mature and as such very unlikely to cause problems at the business end of this wrapper (the actual file copying).
 
-by way of example, if running concurrent hourly backups (via cron, systemd etc), after 10 hours of use, the `hourly.10` backup folder is purged, all preceding folders in the set are then rolled back (`hourly.1` -> `hourly.2`) to make way for the latest backup set (`hourly.1`). the closest state to this purge set would then be found at the next time period granularity, i.e `daily.1`
+this wrapper uses the *rsync* binary to firstly construct a *master* backup set of all required files, from which it then, providing a specific requested interval (or any interval representing a greater epoch when 'cascading' - which happens by default) has fully elapsed, a further *rsync* backup set is made for that interval type. importantly this time however, the backup is 'hardlink-based'. just prior to this hardlink-backup type, the set is 'rolled'. there are 10 backups in each interval type's set
 
-the implementation requires a list of source directories in the rsync format. this allows for partial relative directory structures to be specified, e.g:
+by way of example: if running concurrent hourly backups, then after 11 hours of use, the `hourly.10` folder, which will necessarily exist, will be removed, and all preceding folders in the set will then be rolled/'pushed back' (`hourly.1` -> `hourly.2` etc.) to make way for the latest backup set (`hourly.1`). the backup set with the closest state to that purged (`hourly.10`) would then be found in one of the backups for a period type with greater time epoch, i.e `daily.1` in this instance*
+
+the implementation requires a list of source directories in the *rsync* format. this allows for partial relative directory structures to be specified, e.g:
 ```
 source              target
 /root/./docs/       TARGET/docs
 /var/./www/docs/    TARGET/www/docs
 ```
+
+*\*note: this is not guaranteed to be in a sensible location (as given by the example) where use of the `--force` switch has been made on the backup set. forcing a backup for a given period type breaks the minimal time epoch separation between backups in that set, thus potentially making it more difficult to find a specific version*
 
 ## rsync parameter reference
 
