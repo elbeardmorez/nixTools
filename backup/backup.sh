@@ -7,7 +7,7 @@ IFSORG="$IFS"
 BACKUP_ROOT="${BACKUP_ROOT:-"/backup"}"
 
 RSYNC="${RSYNC:-"auto"}"
-RSYNC_OPTIONS=(${RYNC_OPTIONS:-"--verbose --delete --relative --archive"})
+RSYNC_OPTIONS=($(echo "${RYNC_OPTIONS:-"--verbose --delete --relative --archive"}"))
 
 VERBOSE=0
 FORCE=0
