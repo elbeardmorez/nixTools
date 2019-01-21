@@ -19,6 +19,8 @@ declare -a SOURCES
 lastexpectedbackup=""
 lastbackup=""
 
+intervals="hourly daily weekly monthly"
+
 help() {
   echo -e "
 SYNTAX: $SCRIPTNAME [OPTIONS]\n
@@ -227,6 +229,8 @@ done
 [ ! -d $BACKUP_ROOT ] && echo "[error] invalid backup root '$BACKUP_ROOT'" && exit 1
 [ -z "$PERIOD" ] && help &&
   echo "[error] please specify a period type over which to apply backups" && exit 1
+[ -z "$(echo "$PERIOD" | sed -n '/'$(echo "$intervals" | sed 's/ /\\|/g')'/p')" ] &&
+  echo "[error] unrecognised period type '$PERIOD'" && exit 1
 [ -z "$INCLUDE" ] && help &&
   echo "[error] please specify an INCLUDE file" && exit 1
 if [ ! -f "$INCLUDE" ]; then
