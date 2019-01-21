@@ -60,6 +60,8 @@ fnSetSources() {
     # ignore comment lines
     [ -n "$(echo "$s" | sed -n '/^[\t ]*#/p')" ] && continue
     # sanitise include strings
+    # strip any leading space and inline comments
+    s="$(echo "$s" | sed 's/^[\t ]*\([^#]*\)#.*/\1/;s/[\t ]*$//')"
     # strip any quotes
     s="$(echo "$s" | sed 's/\"//g')"
     # include target validity
