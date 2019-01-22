@@ -9,7 +9,7 @@ SYNTAX: backup_ [OPTIONS]
 
 where [OPTIONS] can be:
 
-  -i, --include <SOURCES>  : file containing source paths to backup,
+  -s, --sources <SOURCES>  : file containing source paths to backup,
                              one per line
                              (default: 'BACKUP_ROOT/.include')
   -p, --period <PERIOD>  :  PERIOD can be either 'hourly', 'daily',
