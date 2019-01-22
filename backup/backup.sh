@@ -15,11 +15,13 @@ TYPE="hourly"
 INCLUDE=".include"
 NO_CASCADE=0
 
+intervals="hourly daily weekly monthly"
+INTERVALS="$intervals"
+
 declare -a sources
 lastexpectedbackup=""
 lastbackup=""
 
-intervals="hourly daily weekly monthly"
 
 help() {
   echo -e "
@@ -28,9 +30,12 @@ where [OPTIONS] can be:\n
   -s, --sources <SOURCES>  : file containing source paths to backup,
                              one per line
                              (default: 'BACKUP_ROOT/.include')
+  -i, --intervals <INTERVALS>  : space-delimited list of supported
+                                 interval types (default: 'hourly daily
+                                 weekly monthly')
   -t, --type <TYPE>  : initiate backup from TYPE interval, where TYPE
-                       can be either 'hourly', 'daily', 'weekly' or
-                       'monthly' (default: 'hourly')
+                       is a member of the INTERVALS set
+                       (default: 'hourly')
   -f, --force  : force backup regardless of whether the interval type's
                  epoch has elapsed since its previous update. this
                  will thus always roll the backup set along one
@@ -74,6 +79,23 @@ fnSetSources() {
   [ ${#sources[@]} -eq 0 ] && echo "[error] no valid source include paths found" && return 1
 
   [ $VERBOSE -eq 1 ] && echo "[info] validated ${#sources[@]} source include path$([ ${#sources[@]} -ne 1 ] && echo "s") for backup:" && for s in "${sources[@]}"; do echo "$s"; done
+}
+
+fnSetIntervals() {
+  valid=""
+  for i in $(echo "$INTERVALS"); do
+    [ -z "$(echo "$i" | sed -n '/'$(echo "$intervals" | sed 's/ /\\|/g')'/p')" ] &&
+      echo "[error] unsupported interval type '$i'" && return 1
+    valid+=" $i"
+  done
+  valid="${valid:1}"
+  ordered=""
+  for i in $(echo "$intervals"); do
+    [ -n "$(echo "$i" | sed -n '/'$(echo "$valid" | sed 's/ /\\|/g')'/p')" ] &&
+      ordered+=" $i"
+  done
+  ordered="${ordered:1}"
+  INTERVALS="$ordered"
 }
 
 fnGetLastBackup() {
@@ -188,7 +210,7 @@ fnPerformBackup() {
 # cascading backups
 fnBackup() {
   initialised=0
-  for type in $(echo "$intervals"); do
+  for type in $(echo "$INTERVALS"); do
     [[ $initialised -eq 0 && "$type" != "$TYPE" ]] && continue
     fnPerformBackup $type
     initialised=1
@@ -218,7 +240,7 @@ done
 [ ! -d $BACKUP_ROOT ] && echo "[error] invalid backup root '$BACKUP_ROOT'" && exit 1
 [ -z "$TYPE" ] && help &&
   echo "[error] please specify an interval type to initiate the backup from" && exit 1
-[ -z "$(echo "$TYPE" | sed -n '/'$(echo "$intervals" | sed 's/ /\\|/g')'/p')" ] &&
+[ -z "$(echo "$TYPE" | sed -n '/'$(echo "$INTERVALS" | sed 's/ /\\|/g')'/p')" ] &&
   echo "[error] unrecognised interval type '$TYPE'" && exit 1
 [ -z "$INCLUDE" ] && help &&
   echo "[error] please specify an INCLUDE file" && exit 1
@@ -231,6 +253,10 @@ fi
 
 # parse includes
 fnSetSources
+ret=$? && [ $ret -ne 0 ] && exit $ret
+
+# parse intervals
+fnSetIntervals
 ret=$? && [ $ret -ne 0 ] && exit $ret
 
 # process backup

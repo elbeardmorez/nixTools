@@ -12,9 +12,12 @@ where [OPTIONS] can be:
   -s, --sources <SOURCES>  : file containing source paths to backup,
                              one per line
                              (default: 'BACKUP_ROOT/.include')
+  -i, --intervals <INTERVALS>  : space-delimited list of supported
+                                 interval types (default: 'hourly daily
+                                 weekly monthly')
   -t, --type <TYPE>  : initiate backup from TYPE interval, where TYPE
-                       can be either 'hourly', 'daily', 'weekly' or
-                       'monthly' (default: 'hourly')
+                       is a member of the INTERVALS set
+                       (default: 'hourly')
   -f, --force  : force backup regardless of whether the interval type's
                  epoch has elapsed since its previous update. this
                  will thus always roll the backup set along one
