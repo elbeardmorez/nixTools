@@ -16,8 +16,8 @@ where [OPTIONS] can be:
                                  interval types (default: 'hourly daily
                                  weekly monthly')
   -t, --type <TYPE>  : initiate backup from TYPE interval, where TYPE
-                       is a member of the INTERVALS set
-                       (default: 'hourly')
+                       is a member of the INTERVALS set (default: first
+                       item in (epoch size ordered) INTERVALS list)
   -f, --force  : force backup regardless of whether the interval type's
                  epoch has elapsed since its previous update. this
                  will thus always roll the backup set along one

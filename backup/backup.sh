@@ -11,7 +11,7 @@ RSYNC_OPTIONS=($(echo "${RYNC_OPTIONS:-"--verbose --delete --relative --archive"
 
 VERBOSE=0
 FORCE=0
-TYPE="hourly"
+TYPE=""
 INCLUDE=".include"
 NO_CASCADE=0
 
@@ -34,8 +34,8 @@ where [OPTIONS] can be:\n
                                  interval types (default: 'hourly daily
                                  weekly monthly')
   -t, --type <TYPE>  : initiate backup from TYPE interval, where TYPE
-                       is a member of the INTERVALS set
-                       (default: 'hourly')
+                       is a member of the INTERVALS set (default: first
+                       item in (epoch size ordered) INTERVALS list)
   -f, --force  : force backup regardless of whether the interval type's
                  epoch has elapsed since its previous update. this
                  will thus always roll the backup set along one
@@ -91,8 +91,10 @@ fnSetIntervals() {
   valid="${valid:1}"
   ordered=""
   for i in $(echo "$intervals"); do
-    [ -n "$(echo "$i" | sed -n '/'$(echo "$valid" | sed 's/ /\\|/g')'/p')" ] &&
+    if [ -n "$(echo "$i" | sed -n '/'$(echo "$valid" | sed 's/ /\\|/g')'/p')" ]; then
+      [ -z $TYPE ] && TYPE="$i"
       ordered+=" $i"
+    fi
   done
   ordered="${ordered:1}"
   INTERVALS="$ordered"
@@ -238,9 +240,7 @@ while [ -n "$1" ]; do
 done
 
 [ ! -d $BACKUP_ROOT ] && echo "[error] invalid backup root '$BACKUP_ROOT'" && exit 1
-[ -z "$TYPE" ] && help &&
-  echo "[error] please specify an interval type to initiate the backup from" && exit 1
-[ -z "$(echo "$TYPE" | sed -n '/'$(echo "$INTERVALS" | sed 's/ /\\|/g')'/p')" ] &&
+[[ -n "$TYPE" && -z "$(echo "$TYPE" | sed -n '/'$(echo "$INTERVALS" | sed 's/ /\\|/g')'/p')" ]] && \
   echo "[error] unrecognised interval type '$TYPE'" && exit 1
 [ -z "$INCLUDE" ] && help &&
   echo "[error] please specify an INCLUDE file" && exit 1
