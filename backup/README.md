@@ -15,11 +15,10 @@ where [OPTIONS] can be:
   -t, --type <TYPE>  : initiate backup from TYPE interval, where TYPE
                        can be either 'hourly', 'daily', 'weekly' or
                        'monthly' (default: 'hourly')
-  -f, --force  : force backups regardless of whether the period type's
+  -f, --force  : force backup regardless of whether the interval type's
                  epoch has elapsed since its previous update. this
                  will thus always roll the backup set along one
-  -nc, --no-cascade  : limit modifications to the specified period
-                       type set only
+  -nc, --no-cascade  : update only the specified interval type's set
   -r, --root  : specify the root of the backup set
   -v, --verbose  : verbose mode
   -h, --help  : this help info
@@ -39,7 +38,7 @@ if a backup program is defined simply as a file copier on a schedule, then this 
 
 this wrapper uses the *rsync* binary to firstly construct a *master* backup set of all required files, from which it then, providing a specific requested interval (or any interval representing a greater epoch when 'cascading' - which happens by default) has fully elapsed, a further *rsync* backup set is made for that interval type. importantly this time however, the backup is 'hardlink-based'. just prior to this hardlink-backup type, the set is 'rolled'. there are 10 backups in each interval type's set
 
-by way of example: if running concurrent hourly backups, then after 11 hours of use, the `hourly.10` folder, which will necessarily exist, will be removed, and all preceding folders in the set will then be rolled/'pushed back' (`hourly.1` -> `hourly.2` etc.) to make way for the latest backup set (`hourly.1`). the backup set with the closest state to that purged (`hourly.10`) would then be found in one of the backups for a period type with greater time epoch, i.e `daily.1` in this instance*
+by way of example: if running concurrent hourly backups, then after 11 hours of use, the `hourly.10` folder, which will necessarily exist, will be removed, and all preceding folders in the set will then be rolled/'pushed back' (`hourly.1` -> `hourly.2` etc.) to make way for the latest backup set (`hourly.1`). the backup set with the closest state to that purged (`hourly.10`) would then be found in one of the backups for an interval type with greater time epoch, i.e `daily.1` in this instance*
 
 the implementation requires a list of source directories in the *rsync* format. this allows for partial relative directory structures to be specified, e.g:
 ```
@@ -48,7 +47,7 @@ source              target
 /var/./www/docs/    TARGET/www/docs
 ```
 
-*\*note: this is not guaranteed to be in a sensible location (as given by the example) where use of the `--force` switch has been made on the backup set. forcing a backup for a given period type breaks the minimal time epoch separation between backups in that set, thus potentially making it more difficult to find a specific version*
+*\*note: this is not guaranteed to be in a sensible location (as given by the example) where use of the `--force` switch has been made on the backup set. forcing a backup for a given interval type breaks the minimal time epoch separation between backups in that set, thus potentially making it more difficult to find a specific version*
 
 ## rsync parameter reference
 

@@ -31,11 +31,10 @@ where [OPTIONS] can be:\n
   -t, --type <TYPE>  : initiate backup from TYPE interval, where TYPE
                        can be either 'hourly', 'daily', 'weekly' or
                        'monthly' (default: 'hourly')
-  -f, --force  : force backups regardless of whether the period type's
+  -f, --force  : force backup regardless of whether the interval type's
                  epoch has elapsed since its previous update. this
                  will thus always roll the backup set along one
-  -nc, --no-cascade  : limit modifications to the specified period
-                       type set only
+  -nc, --no-cascade  : update only the specified interval type's set
   -r, --root  : specify the root of the backup set
   -v, --verbose  : verbose mode
   -h, --help  : this help info
@@ -227,9 +226,9 @@ done
 
 [ ! -d $BACKUP_ROOT ] && echo "[error] invalid backup root '$BACKUP_ROOT'" && exit 1
 [ -z "$TYPE" ] && help &&
-  echo "[error] please specify a period type over which to apply backups" && exit 1
+  echo "[error] please specify an interval type to initiate the backup from" && exit 1
 [ -z "$(echo "$TYPE" | sed -n '/'$(echo "$intervals" | sed 's/ /\\|/g')'/p')" ] &&
-  echo "[error] unrecognised period type '$TYPE'" && exit 1
+  echo "[error] unrecognised interval type '$TYPE'" && exit 1
 [ -z "$INCLUDE" ] && help &&
   echo "[error] please specify an INCLUDE file" && exit 1
 if [ ! -f "$INCLUDE" ]; then
