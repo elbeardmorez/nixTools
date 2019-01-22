@@ -15,7 +15,7 @@ TYPE="hourly"
 INCLUDE=".include"
 NO_CASCADE=0
 
-declare -a SOURCES
+declare -a sources
 lastexpectedbackup=""
 lastbackup=""
 
@@ -67,13 +67,13 @@ fnSetSources() {
     s="$(echo "$s" | sed 's/\"//g')"
     # include target validity
     [[ -n "$s" && -d "$s" ]] \
-      && SOURCES[${#SOURCES[@]}]="$s" \
+      && sources[${#sources[@]}]="$s" \
       || echo "[info] dropping invalid include target '$s'"
   done
 
-  [ ${#SOURCES[@]} -eq 0 ] && echo "[error] no valid source include paths found" && return 1
+  [ ${#sources[@]} -eq 0 ] && echo "[error] no valid source include paths found" && return 1
 
-  [ $VERBOSE -eq 1 ] && echo "[info] validated ${#SOURCES[@]} source include path$([ ${#SOURCES[@]} -ne 1 ] && echo "s") for backup:" && for s in "${SOURCES[@]}"; do echo "$s"; done
+  [ $VERBOSE -eq 1 ] && echo "[info] validated ${#sources[@]} source include path$([ ${#sources[@]} -ne 1 ] && echo "s") for backup:" && for s in "${sources[@]}"; do echo "$s"; done
 }
 
 fnGetLastBackup() {
@@ -133,13 +133,13 @@ fnPerformBackup() {
     # always backup against (hard-linking to) the 'master' copy
     if ! [ -d $BACKUP_ROOT/master ]; then mkdir -p $BACKUP_ROOT/master; fi
     # refresh master
-    $RSYNC "${RSYNC_OPTIONS[@]}" "${SOURCES[@]}" $BACKUP_ROOT/master
+    $RSYNC "${RSYNC_OPTIONS[@]}" "${sources[@]}" $BACKUP_ROOT/master
     if [ $VERBOSE -eq 1 ]; then
-      echo '$RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$type.tmp/'
-      echo $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$type.tmp/
-      $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$type.tmp/
+      echo '$RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${sources[@]}" $BACKUP_ROOT/$type.tmp/'
+      echo $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${sources[@]}" $BACKUP_ROOT/$type.tmp/
+      $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${sources[@]}" $BACKUP_ROOT/$type.tmp/
     else
-      $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$type.tmp/ # > /dev/null
+      $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${sources[@]}" $BACKUP_ROOT/$type.tmp/ # > /dev/null
     fi
     if [[ $? -eq 0 ]]; then success=1; fi
   else
@@ -214,6 +214,7 @@ while [ -n "$1" ]; do
   arg="$(echo "$1" | sed 's/^ *-*//')"
   case "$arg" in
     "s"|"sources") shift && [ -z "$1" ] && help && exit 1; INCLUDE="$1" ;;
+    "i"|"intervals") shift && [ -z "$1" ] && help && exit 1; INTERVALS="$1" ;;
     "t"|"type") shift && [ -z "$1" ] && help && exit 1; TYPE=$1 ;;
     "f"|"force") FORCE=1 ;;
     "nc"|"no-cascade") NO_CASCADE=1 ;;
