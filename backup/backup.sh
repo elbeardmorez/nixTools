@@ -185,26 +185,16 @@ fnPerformBackup() {
   fi
 }
 
-# fall-through implementation
-fnPerformHourlyBackup() {
-  fnPerformBackup "hourly"
-  [ $NO_CASCADE -eq 0 ] && fnPerformDailyBackup
+# cascading backups
+fnBackup() {
+  initialised=0
+  for type in $(echo "$intervals"); do
+    [[ $initialised -eq 0 && "$type" != "$TYPE" ]] && continue
+    fnPerformBackup $type
+    initialised=1
+    [ $NO_CASCADE -ne 0 ] && break
+  done
 }
-
-function fnPerformDailyBackup() {
-  fnPerformBackup "daily"
-  [ $NO_CASCADE -eq 0 ] && fnPerformWeeklyBackup
-}
-
-fnPerformWeeklyBackup() {
-  fnPerformBackup "weekly"
-  [ $NO_CASCADE -eq 0 ] && fnPerformMonthlyBackup
-}
-
-function fnPerformMonthlyBackup() {
-  fnPerformBackup "monthly"
-}
-
 
 # parse args
 [ $# -eq 0 ] && help && echo "[error] no parameters provided"
@@ -244,9 +234,4 @@ fnSetSources
 ret=$? && [ $ret -ne 0 ] && exit $ret
 
 # process backup
-case "$TYPE" in
-  "hourly") fnPerformHourlyBackup ;;
-  "daily") fnPerformDailyBackup ;;
-  "weekly") fnPerformWeeklyBackup ;;
-  "monthly") fnPerformMonthlyBackup ;;
-esac
+fnBackup
