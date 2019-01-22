@@ -11,7 +11,7 @@ RSYNC_OPTIONS=($(echo "${RYNC_OPTIONS:-"--verbose --delete --relative --archive"
 
 VERBOSE=0
 FORCE=0
-PERIOD="hourly"
+TYPE="hourly"
 INCLUDE=".include"
 NO_CASCADE=0
 
@@ -28,9 +28,9 @@ where [OPTIONS] can be:\n
   -s, --sources <SOURCES>  : file containing source paths to backup,
                              one per line
                              (default: 'BACKUP_ROOT/.include')
-  -p, --period <PERIOD>  :  PERIOD can be either 'hourly', 'daily',
-                            'weekly' or 'monthly'
-                            (default: 'hourly')
+  -t, --type <TYPE>  : initiate backup from TYPE interval, where TYPE
+                       can be either 'hourly', 'daily', 'weekly' or
+                       'monthly' (default: 'hourly')
   -f, --force  : force backups regardless of whether the period type's
                  epoch has elapsed since its previous update. this
                  will thus always roll the backup set along one
@@ -106,10 +106,10 @@ fnGetLastExpectedBackup() {
 }
 
 fnPerformBackup() {
-  TYPE=$1
+  type=$1
 
-  fnGetLastExpectedBackup $TYPE
-  fnGetLastBackup $TYPE
+  fnGetLastExpectedBackup $type
+  fnGetLastBackup $type
   success=0
 
   backup=0
@@ -118,35 +118,35 @@ fnPerformBackup() {
   # short ciruit
   if [ $backup -eq 0 ]; then
     [ $VERBOSE -eq 1 ] && \
-      echo "[info] $(date), not performing a $TYPE $([ "$TYPE" = "$PERIOD" ] && echo "sync" || echo "link") backup"
+      echo "[info] $(date), not performing a $type $([ "$type" = "$TYPE" ] && echo "sync" || echo "link") backup"
     return 1
   fi
 
   # perform backup
-  if [ "$TYPE" = "$PERIOD" ]; then
+  if [ "$type" = "$TYPE" ]; then
     # sync backup
-    if [ $VERBOSE -eq 1 ]; then echo "[info] performing a $TYPE sync backup"; fi
-    if [ -d $BACKUP_ROOT/$TYPE.tmp ]; then
-      rm -Rf $BACKUP_ROOT/$TYPE.tmp/*
+    if [ $VERBOSE -eq 1 ]; then echo "[info] performing a $type sync backup"; fi
+    if [ -d $BACKUP_ROOT/$type.tmp ]; then
+      rm -Rf $BACKUP_ROOT/$type.tmp/*
     else
-      mkdir -p $BACKUP_ROOT/$TYPE.tmp
+      mkdir -p $BACKUP_ROOT/$type.tmp
     fi
     # always backup against (hard-linking to) the 'master' copy
     if ! [ -d $BACKUP_ROOT/master ]; then mkdir -p $BACKUP_ROOT/master; fi
     # refresh master
     $RSYNC "${RSYNC_OPTIONS[@]}" "${SOURCES[@]}" $BACKUP_ROOT/master
     if [ $VERBOSE -eq 1 ]; then
-      echo '$RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/'
-      echo $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/
-      $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/
+      echo '$RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$type.tmp/'
+      echo $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$type.tmp/
+      $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$type.tmp/
     else
-      $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$TYPE.tmp/ # > /dev/null
+      $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${SOURCES[@]}" $BACKUP_ROOT/$type.tmp/ # > /dev/null
     fi
     if [[ $? -eq 0 ]]; then success=1; fi
   else
     # link backup
-    if [ $VERBOSE -eq 1 ]; then echo "[info] performing a $TYPE link backup"; fi
-    case $TYPE in
+    if [ $VERBOSE -eq 1 ]; then echo "[info] performing a $type link backup"; fi
+    case $type in
       "daily")
         if [ -d $BACKUP_ROOT/hourly.1 ]; then
           cp -al $BACKUP_ROOT/hourly.1 $BACKUP_ROOT/daily.tmp
@@ -170,15 +170,15 @@ fnPerformBackup() {
   if [ $? -eq 0 ]; then
     # roll the directory structure
     interval_sets_max=10
-    [ -d "$BACKUP_ROOT/$TYPE.$interval_sets_max" ] && \
-       rm -rf "$BACKUP_ROOT/$TYPE.$interval_sets_max"
+    [ -d "$BACKUP_ROOT/$type.$interval_sets_max" ] && \
+       rm -rf "$BACKUP_ROOT/$type.$interval_sets_max"
     for l in $(seq $interval_sets_max -1 2); do
-      source="$BACKUP_ROOT/$TYPE.$(($l-1))"
-      target="$BACKUP_ROOT/$TYPE.$l"
+      source="$BACKUP_ROOT/$type.$(($l-1))"
+      target="$BACKUP_ROOT/$type.$l"
       [ -d "$source" ] && mv "$source" "$target"
     done
-    mv $BACKUP_ROOT/$TYPE.tmp $BACKUP_ROOT/$TYPE.1
-    echo $lastexpectedbackup > $BACKUP_ROOT/.$TYPE
+    mv $BACKUP_ROOT/$type.tmp $BACKUP_ROOT/$type.1
+    echo $lastexpectedbackup > $BACKUP_ROOT/.$type
     [ $VERBOSE -eq 1 ] && echo "[info] backup succeeded" 1>&2
   else
     [ $VERBOSE -eq 1 ] && echo "[info] backup failed" 1>&2
@@ -215,7 +215,7 @@ while [ -n "$1" ]; do
   arg="$(echo "$1" | sed 's/^ *-*//')"
   case "$arg" in
     "s"|"sources") shift && [ -z "$1" ] && help && exit 1; INCLUDE="$1" ;;
-    "p"|"period") shift && [ -z "$1" ] && help && exit 1; PERIOD=$1 ;;
+    "t"|"type") shift && [ -z "$1" ] && help && exit 1; TYPE=$1 ;;
     "f"|"force") FORCE=1 ;;
     "nc"|"no-cascade") NO_CASCADE=1 ;;
     "r"|"root") shift && [ -z "$1" ] && help && exit 1; BACKUP_ROOT="$1" ;;
@@ -226,10 +226,10 @@ while [ -n "$1" ]; do
 done
 
 [ ! -d $BACKUP_ROOT ] && echo "[error] invalid backup root '$BACKUP_ROOT'" && exit 1
-[ -z "$PERIOD" ] && help &&
+[ -z "$TYPE" ] && help &&
   echo "[error] please specify a period type over which to apply backups" && exit 1
-[ -z "$(echo "$PERIOD" | sed -n '/'$(echo "$intervals" | sed 's/ /\\|/g')'/p')" ] &&
-  echo "[error] unrecognised period type '$PERIOD'" && exit 1
+[ -z "$(echo "$TYPE" | sed -n '/'$(echo "$intervals" | sed 's/ /\\|/g')'/p')" ] &&
+  echo "[error] unrecognised period type '$TYPE'" && exit 1
 [ -z "$INCLUDE" ] && help &&
   echo "[error] please specify an INCLUDE file" && exit 1
 if [ ! -f "$INCLUDE" ]; then
@@ -244,7 +244,7 @@ fnSetSources
 ret=$? && [ $ret -ne 0 ] && exit $ret
 
 # process backup
-case "$PERIOD" in
+case "$TYPE" in
   "hourly") fnPerformHourlyBackup ;;
   "daily") fnPerformDailyBackup ;;
   "weekly") fnPerformWeeklyBackup ;;
