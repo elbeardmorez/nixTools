@@ -190,7 +190,7 @@ fnPerformBackup() {
         ;;
     esac
   fi
-  if [ $? -eq 0 ]; then
+  if [ $success -eq 1 ]; then
     # roll the directory structure
     interval_sets_max=10
     [ -d "$BACKUP_ROOT/$type.$interval_sets_max" ] && \
