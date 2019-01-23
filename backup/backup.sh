@@ -169,26 +169,10 @@ fnPerformBackup() {
   else
     # link backup
     if [ $VERBOSE -eq 1 ]; then echo "[info] performing a $type link backup"; fi
-    case $type in
-      "daily")
-        if [ -d $BACKUP_ROOT/hourly.1 ]; then
-          cp -al $BACKUP_ROOT/hourly.1 $BACKUP_ROOT/daily.tmp
-          if [[ $? -eq 0 ]]; then success=1; fi
-        fi
-        ;;
-      "weekly")
-        if [ -d $BACKUP_ROOT/daily.1 ]; then
-          cp -al $BACKUP_ROOT/daily.1 $BACKUP_ROOT/weekly.tmp
-          if [[ $? -eq 0 ]]; then success=1; fi
-        fi
-        ;;
-      "monthly")
-        if [ -d $BACKUP_ROOT/weekly.1 ]; then
-          cp -al $BACKUP_ROOT/weekly.1 $BACKUP_ROOT/monthly.tmp
-          if [[ $? -eq 0 ]]; then success=1; fi
-        fi
-        ;;
-    esac
+    if [ -d $BACKUP_ROOT/master ]; then
+      cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$type.tmp
+      if [[ $? -eq 0 ]]; then success=1; fi
+    fi
   fi
   if [ $success -eq 1 ]; then
     # roll the directory structure
