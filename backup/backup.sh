@@ -36,7 +36,8 @@ where [OPTIONS] can be:\n
                        item in (epoch size ordered) INTERVALS list)
   -f, --force  : force backup regardless of whether the interval type's
                  epoch has elapsed since its previous update. this
-                 will thus always roll the backup set along one
+                 will thus always roll the backup set along one. this
+                 has no effect on cascaded interval types
   -nc, --no-cascade  : update only the specified interval type's set
   -r, --root  : specify the root of the backup set
   -v, --verbose  : verbose mode
@@ -144,33 +145,23 @@ fnPerformBackup() {
   ## always backup against (hard-link to common / unchanged files in) the 'master' backup set
   success=0
   if [ "$type" = "$TYPE" ]; then
-    # sync backup
-
-    # refresh master
-    [ $VERBOSE -eq 1 ] && echo "[info] refreshing 'master' backup set"
+    # rebuild master
+    [ $VERBOSE -eq 1 ] && echo "[info] rebuilding 'master' backup set"
+    [ -d $BACKUP_ROOT/master.tmp ] && rm -rf $BACKUP_ROOT/$type.tmp ]
+    [ -d $BACKUP_ROOT/master ] && mv $BACKUP_ROOT/master{,.tmp} || mkdir -p $BACKUP_ROOT/master.tmp
     [ ! -d $BACKUP_ROOT/master ] && mkdir -p $BACKUP_ROOT/master
     if [ $DEBUG -gt 0 ]; then
-      echo '[debug] $RSYNC "${RSYNC_OPTIONS[@]}" "${sources[@]}" $BACKUP_ROOT/master'
-      echo "[debug] $RSYNC ${RSYNC_OPTIONS[@]} ${sources[@]} $BACKUP_ROOT/master"
+      echo '[debug] $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master.tmp/ "${sources[@]}" $BACKUP_ROOT/master/'
+      echo "[debug] $RSYNC ${RSYNC_OPTIONS[@]} --link-dest=$BACKUP_ROOT/master.tmp/ ${sources[@]} $BACKUP_ROOT/master/"
     fi
     echo
-    $RSYNC "${RSYNC_OPTIONS[@]}" "${sources[@]}" $BACKUP_ROOT/master
+    $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master.tmp/ "${sources[@]}" $BACKUP_ROOT/master/
     [ $? -eq 0 ] && success=1
     echo
+    rm -rf $BACKUP_ROOT/master.tmp
+  fi
 
-    # sync backup against master
-    [ $VERBOSE -eq 1 ] && echo "[info] performing a $type sync backup"
-    [ -d $BACKUP_ROOT/$type.tmp ] && rm -rf $BACKUP_ROOT/$type.tmp || mkdir -p $BACKUP_ROOT/$type.tmp
-    if [ $DEBUG -gt 0 ]; then
-      echo '[debug] $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${sources[@]}" $BACKUP_ROOT/$type.tmp/'
-      echo "[debug] $RSYNC ${RSYNC_OPTIONS[@]} --link-dest=$BACKUP_ROOT/master ${sources[@]} $BACKUP_ROOT/$type.tmp/"
-    fi
-    echo
-    $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${sources[@]}" $BACKUP_ROOT/$type.tmp/
-    [ $? -eq 0 ] && success=1
-    echo
-
-  else
+  if [ $success -eq 1 ]; then
     # link backup
     [ $VERBOSE -eq 1 ] && echo "[info] performing a $type link backup"
     if [ $DEBUG -gt 0 ]; then

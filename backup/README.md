@@ -20,7 +20,8 @@ where [OPTIONS] can be:
                        item in (epoch size ordered) INTERVALS list)
   -f, --force  : force backup regardless of whether the interval type's
                  epoch has elapsed since its previous update. this
-                 will thus always roll the backup set along one
+                 will thus always roll the backup set along one. this
+                 has no effect on cascaded interval types
   -nc, --no-cascade  : update only the specified interval type's set
   -r, --root  : specify the root of the backup set
   -v, --verbose  : verbose mode
