@@ -133,7 +133,6 @@ fnPerformBackup() {
 
   fnGetLastExpectedBackup $type
   fnGetLastBackup $type
-  success=0
 
   backup=0
   [[ $(date -d "$lastexpectedbackup" +%s) -gt $(date -d "$lastbackup" +%s) || $FORCE -eq 1 ]] && backup=1
@@ -146,36 +145,49 @@ fnPerformBackup() {
   fi
 
   # perform backup
+  ## always backup against (hard-link to common / unchanged files in) the 'master' backup set
+  success=0
   if [ "$type" = "$TYPE" ]; then
     # sync backup
-    if [ $VERBOSE -eq 1 ]; then echo "[info] performing a $type sync backup"; fi
-    if [ -d $BACKUP_ROOT/$type.tmp ]; then
-      rm -Rf $BACKUP_ROOT/$type.tmp/*
-    else
-      mkdir -p $BACKUP_ROOT/$type.tmp
-    fi
-    # always backup against (hard-linking to) the 'master' copy
-    if ! [ -d $BACKUP_ROOT/master ]; then mkdir -p $BACKUP_ROOT/master; fi
+
     # refresh master
-    $RSYNC "${RSYNC_OPTIONS[@]}" "${sources[@]}" $BACKUP_ROOT/master
-    if [ $VERBOSE -eq 1 ]; then
-      echo '$RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${sources[@]}" $BACKUP_ROOT/$type.tmp/'
-      echo $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${sources[@]}" $BACKUP_ROOT/$type.tmp/
-      $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${sources[@]}" $BACKUP_ROOT/$type.tmp/
-    else
-      $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${sources[@]}" $BACKUP_ROOT/$type.tmp/ # > /dev/null
+    [ $VERBOSE -eq 1 ] && echo "[info] refreshing 'master' backup set"
+    [ ! -d $BACKUP_ROOT/master ] && mkdir -p $BACKUP_ROOT/master
+    if [ $DEBUG -gt 0 ]; then
+      echo '[debug] $RSYNC "${RSYNC_OPTIONS[@]}" "${sources[@]}" $BACKUP_ROOT/master'
+      echo "[debug] $RSYNC ${RSYNC_OPTIONS[@]} ${sources[@]} $BACKUP_ROOT/master"
     fi
-    if [[ $? -eq 0 ]]; then success=1; fi
+    echo
+    $RSYNC "${RSYNC_OPTIONS[@]}" "${sources[@]}" $BACKUP_ROOT/master
+    [ $? -eq 0 ] && success=1
+    echo
+
+    # sync backup against master
+    [ $VERBOSE -eq 1 ] && echo "[info] performing a $type sync backup"
+    [ -d $BACKUP_ROOT/$type.tmp ] && rm -rf $BACKUP_ROOT/$type.tmp || mkdir -p $BACKUP_ROOT/$type.tmp
+    if [ $DEBUG -gt 0 ]; then
+      echo '[debug] $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${sources[@]}" $BACKUP_ROOT/$type.tmp/'
+      echo "[debug] $RSYNC ${RSYNC_OPTIONS[@]} --link-dest=$BACKUP_ROOT/master ${sources[@]} $BACKUP_ROOT/$type.tmp/"
+    fi
+    echo
+    $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master "${sources[@]}" $BACKUP_ROOT/$type.tmp/
+    [ $? -eq 0 ] && success=1
+    echo
+
   else
     # link backup
-    if [ $VERBOSE -eq 1 ]; then echo "[info] performing a $type link backup"; fi
-    if [ -d $BACKUP_ROOT/master ]; then
-      cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$type.tmp
-      if [[ $? -eq 0 ]]; then success=1; fi
+    [ $VERBOSE -eq 1 ] && echo "[info] performing a $type link backup"
+    if [ $DEBUG -gt 0 ]; then
+      echo '[debug] cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$type.tmp'
+      echo "[debug] cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$type.tmp"
     fi
+    cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$type.tmp
+    [ $? -eq 0 ] && success=1
   fi
+
   if [ $success -eq 1 ]; then
     # roll the directory structure
+    [ $VERBOSE -eq 1 ] && echo "[info] rolling $type backup set"
     interval_sets_max=10
     [ -d "$BACKUP_ROOT/$type.$interval_sets_max" ] && \
        rm -rf "$BACKUP_ROOT/$type.$interval_sets_max"
