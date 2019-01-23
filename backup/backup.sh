@@ -19,8 +19,6 @@ intervals="hourly daily weekly monthly"
 INTERVALS="$intervals"
 
 declare -a sources
-lastexpectedbackup=""
-lastbackup=""
 
 
 help() {
@@ -101,29 +99,27 @@ fnSetIntervals() {
 }
 
 fnGetLastBackup() {
-  if [ -f $BACKUP_ROOT/.$1 ]; then
-    lastbackup=$(cat $BACKUP_ROOT/.$1)
-  else
-    lastbackup="01 Jan 1970"
-  fi
+  type="$1"
+  [ -f $BACKUP_ROOT/.$type ] && cat $BACKUP_ROOT/.$type || echo "01 Jan 1970"
 }
 
 fnGetLastExpectedBackup() {
-  case $1 in
+  type="$1"
+  case "$type" in
     "hourly")
-      lastexpectedbackup=$(date +"%d %b %Y %H:00:00")
+      date +"%d %b %Y %H:00:00"
       ;;
     "daily")
-      lastexpectedbackup=$(date +"%d %b %Y 00:00:00")
+      date +"%d %b %Y 00:00:00"
       ;;
     "weekly")
       # use number of weeks since a specific date
       weeksecs=$[7*24*60*60]
       nearestweeksecs=$[$[$(date +%s)/$weeksecs]*$weeksecs]
-      lastexpectedbackup=$(date -d "1970-01-01 00:00:00 UTC +$nearestweeksecs seconds" +"%d %b %Y 00:00:00")
+      date -d "1970-01-01 00:00:00 UTC +$nearestweeksecs seconds" +"%d %b %Y 00:00:00"
       ;;
     "monthly")
-      lastexpectedbackup=$(date +"01 %b %Y 00:00:00")
+      date +"01 %b %Y 00:00:00"
       ;;
   esac
 }
@@ -131,8 +127,8 @@ fnGetLastExpectedBackup() {
 fnPerformBackup() {
   type=$1
 
-  fnGetLastExpectedBackup $type
-  fnGetLastBackup $type
+  lastexpectedbackup="$(fnGetLastExpectedBackup $type)"
+  lastbackup="$(fnGetLastBackup $type)"
 
   backup=0
   [[ $(date -d "$lastexpectedbackup" +%s) -gt $(date -d "$lastbackup" +%s) || $FORCE -eq 1 ]] && backup=1
