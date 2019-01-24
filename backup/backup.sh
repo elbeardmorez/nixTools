@@ -165,8 +165,8 @@ fnPerformBackup() {
     # link backup
     [ $VERBOSE -eq 1 ] && echo "[info] performing a $type link backup"
     if [ $DEBUG -gt 0 ]; then
-      echo '[debug] cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$type.tmp'
-      echo "[debug] cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$type.tmp"
+      echo '[debug] cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$type.tmp' 1>&2
+      echo "[debug] cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$type.tmp" 1>&2
     fi
     cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$type.tmp
     [ $? -eq 0 ] && success=1
