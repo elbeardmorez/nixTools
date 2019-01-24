@@ -181,9 +181,13 @@ fnPerformBackup() {
     for l in $(seq $interval_sets_max -1 2); do
       source="$BACKUP_ROOT/$type.$(($l-1))"
       target="$BACKUP_ROOT/$type.$l"
-      [ -d "$source" ] && mv "$source" "$target"
+      if [ -d "$source" ]; then
+        [ $DEBUG -gt 0 ] && echo "[debug] mv $source $target" 1>&2
+        mv "$source" "$target"
+      fi
     done
     mv $BACKUP_ROOT/$type.tmp $BACKUP_ROOT/$type.1
+    [ $DEBUG -gt 0 ] && echo "[debug] mv $BACKUP_ROOT/$type.tmp $BACKUP_ROOT/$type.1" 1>&2
     echo $lastexpectedbackup > $BACKUP_ROOT/.$type
     [ $VERBOSE -eq 1 ] && echo "[info] backup succeeded" 1>&2
   else
