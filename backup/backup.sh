@@ -17,6 +17,16 @@ NO_CASCADE=0
 
 intervals="hourly daily weekly monthly"
 INTERVALS="$intervals"
+declare -A intervals_epoch
+intervals_epoch["hourly"]="1 hour"
+intervals_epoch["daily"]="1 day"
+intervals_epoch["weekly"]="1 week"
+intervals_epoch["monthly"]="1 month"
+declare -A intervals_anchor
+intervals_anchor["hourly"]="%d %b %Y %H:00:00"
+intervals_anchor["daily"]="%d %b %Y"
+intervals_anchor["weekly"]="01 Jan %Y"
+intervals_anchor["monthly"]="01 %b %Y"
 
 declare -a sources
 
@@ -110,23 +120,21 @@ fnGetLastBackup() {
 
 fnGetLastExpectedBackup() {
   type="$1"
-  case "$type" in
-    "hourly")
-      date +"%d %b %Y %H:00:00"
-      ;;
-    "daily")
-      date +"%d %b %Y 00:00:00"
-      ;;
-    "weekly")
-      # use number of weeks since a specific date
-      weeksecs=$[7*24*60*60]
-      nearestweeksecs=$[$[$(date +%s)/$weeksecs]*$weeksecs]
-      date -d "1970-01-01 00:00:00 UTC +$nearestweeksecs seconds" +"%d %b %Y 00:00:00"
-      ;;
-    "monthly")
-      date +"01 %b %Y 00:00:00"
-      ;;
-  esac
+  epoch=${intervals_epoch[$type]}
+  anchor=${intervals_anchor[$type]}
+
+  now="$(date "+%d %b %Y %T UTC")"
+  now_seconds=$(date -d "$now" "+%s")
+
+  epoch_seconds=$(($(date -d "$now + $epoch" "+%s")-$now_seconds))
+  anchor_seconds=$(date -d "$(date "+$anchor UTC")" "+%s")
+
+  # closest previous epoch
+  epoch_last_seconds=$(($now_seconds-$(echo "($now_seconds-$anchor_seconds) % $epoch_seconds" | bc)))
+  epoch_last="$(date -d "@$epoch_last_seconds" "+%d %b %Y %T")"
+  [ $DEBUG -gt 0 ] && echo "[debug] anchoring interval type: '$type' to date: '$epoch_last'" 1>&2
+
+  echo "$epoch_last"
 }
 
 fnPerformBackup() {
