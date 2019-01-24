@@ -78,6 +78,8 @@ fnSetSources() {
   [ ${#sources[@]} -eq 0 ] && echo "[error] no valid source include paths found" && return 1
 
   [ $VERBOSE -eq 1 ] && echo "[info] validated ${#sources[@]} source include path$([ ${#sources[@]} -ne 1 ] && echo "s") for backup:" && for s in "${sources[@]}"; do echo "$s"; done
+
+  return 0
 }
 
 fnSetIntervals() {
@@ -97,6 +99,8 @@ fnSetIntervals() {
   done
   ordered="${ordered:1}"
   INTERVALS="$ordered"
+
+  return 0
 }
 
 fnGetLastBackup() {
