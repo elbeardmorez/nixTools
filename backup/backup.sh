@@ -230,8 +230,11 @@ done
 [ -z "$INCLUDE" ] && help &&
   echo "[error] please specify an INCLUDE file" && exit 1
 if [ ! -f "$INCLUDE" ]; then
-  [ -f $BACKUP_ROOT/$INCLUDE ] && INCLUDE="$BACKUP_ROOT/$INCLUDE" ||
+  if [ -f $BACKUP_ROOT/$INCLUDE ]; then
+    INCLUDE="$BACKUP_ROOT/$INCLUDE"
+  else
     echo "[error] invalid 'include' file '$INCLUDE'" && exit 1
+  fi
 fi
 [ "x$RSYNC" = "xauto" ] && RSYNC="$(which rsync)"
 [ ! -x $RSYNC ] && echo "[error] no rsync binary found$([ -n "$RSYNC" ] && echo " at '$RSYNC'")" && exit 1
