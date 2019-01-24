@@ -208,8 +208,6 @@ fnBackup() {
 }
 
 # parse args
-[ $# -eq 0 ] && help && echo "[error] no parameters provided"
-
 i=0
 while [ -n "$1" ]; do
   arg="$(echo "$1" | sed 's/^ *-*//')"
