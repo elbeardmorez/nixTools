@@ -15,8 +15,8 @@ TYPE=""
 INCLUDE=".include"
 NO_CASCADE=0
 
-intervals="hourly daily weekly monthly"
-INTERVALS="$intervals"
+intervals_default="hourly,daily,weekly,monthly"
+INTERVALS="$intervals_default"
 declare -A intervals_epoch
 intervals_epoch["hourly"]="1 hour"
 intervals_epoch["daily"]="1 day"
@@ -38,9 +38,9 @@ where [OPTIONS] can be:\n
   -s, --sources <SOURCES>  : file containing source paths to backup,
                              one per line
                              (default: 'BACKUP_ROOT/.include')
-  -i, --intervals <INTERVALS>  : space-delimited list of supported
-                                 interval types (default: 'hourly daily
-                                 weekly monthly')
+  -i, --intervals <INTERVALS>  : comma-delimited list of supported
+                                 interval types (default: 'hourly,daily
+                                 ,weekly,monthly')
   -t, --type <TYPE>  : initiate backup from TYPE interval, where TYPE
                        is a member of the INTERVALS set (default: first
                        item in (epoch size ordered) INTERVALS list)
@@ -94,17 +94,19 @@ fnSetSources() {
 
 fnSetIntervals() {
   valid=""
-  for i in $(echo "$INTERVALS"); do
-    [ -z "$(echo "$i" | sed -n '/'$(echo "$intervals" | sed 's/ /\\|/g')'/p')" ] &&
-      echo "[error] unsupported interval type '$i'" && return 1
-    valid+=" $i"
+  IFS=','; intervals=($(echo "$INTERVALS")); IFS="$IFSORG"
+  for interval in "${intervals[@]}"; do
+    [ -z "$(echo "$interval" | sed -n '/'$(echo "$intervals_default" | sed 's/,/\\|/g')'/p')" ] &&
+      echo "[error] unsupported interval type '$interval'" && return 1
+    valid+=",$interval"
   done
   valid="${valid:1}"
   ordered=""
-  for i in $(echo "$intervals"); do
-    if [ -n "$(echo "$i" | sed -n '/'$(echo "$valid" | sed 's/ /\\|/g')'/p')" ]; then
-      [ -z $TYPE ] && TYPE="$i"
-      ordered+=" $i"
+  IFS=','; intervals=($(echo "$intervals_default")); IFS="$IFSORG"
+  for interval in "${intervals[@]}"; do
+    if [ -n "$(echo "$interval" | sed -n '/'$(echo "$valid" | sed 's/,/\\|/g')'/p')" ]; then
+      [ -z $TYPE ] && TYPE="$interval"
+      ordered+=",$interval"
     fi
   done
   ordered="${ordered:1}"
@@ -214,7 +216,8 @@ fnPerformBackup() {
 # cascading backups
 fnBackup() {
   initialised=0
-  for interval in $(echo "$INTERVALS"); do
+  IFS=','; intervals=($(echo "$INTERVALS")); IFS="$IFSORG"
+  for interval in "${intervals[@]}"; do
     [[ $initialised -eq 0 && "$interval" != "$TYPE" ]] && continue
     fnPerformBackup "$interval"
     initialised=1
@@ -241,7 +244,7 @@ while [ -n "$1" ]; do
 done
 
 [ ! -d "$BACKUP_ROOT" ] && echo "[error] invalid backup root '$BACKUP_ROOT'" && exit 1
-[[ -n "$TYPE" && -z "$(echo "$TYPE" | sed -n '/'$(echo "$INTERVALS" | sed 's/ /\\|/g')'/p')" ]] && \
+[[ -n "$TYPE" && -z "$(echo "$TYPE" | sed -n '/'$(echo "$INTERVALS" | sed 's/,/\\|/g')'/p')" ]] && \
   echo "[error] unrecognised interval type '$TYPE'" && exit 1
 [ -z "$INCLUDE" ] && help &&
   echo "[error] please specify an INCLUDE file" && exit 1
