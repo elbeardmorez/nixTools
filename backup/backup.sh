@@ -150,7 +150,7 @@ fnPerformBackup() {
   if [ $backup -eq 0 ]; then
     [ $VERBOSE -eq 1 ] && \
       echo "[info] $(date), not performing a $type $([ "$type" = "$TYPE" ] && echo "sync" || echo "link") backup"
-    return 1
+    return 0
   fi
 
   success=1
@@ -219,6 +219,7 @@ fnBackup() {
     initialised=1
     [ $NO_CASCADE -ne 0 ] && break
   done
+  return 0
 }
 
 # parse args
