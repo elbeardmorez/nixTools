@@ -140,11 +140,11 @@ fnGetLastExpectedBackup() {
 fnPerformBackup() {
   type=$1
 
-  lastexpectedbackup="$(fnGetLastExpectedBackup $type)"
-  lastbackup="$(fnGetLastBackup $type)"
+  dt_last_expected="$(fnGetLastExpectedBackup $type)"
+  dt_last="$(fnGetLastBackup $type)"
 
   backup=0
-  [[ $(date -d "$lastexpectedbackup" +%s) -gt $(date -d "$lastbackup" +%s) || $FORCE -eq 1 ]] && backup=1
+  [[ $(date -d "$dt_last_expected" +%s) -gt $(date -d "$dt_last" +%s) || $FORCE -eq 1 ]] && backup=1
 
   # short ciruit
   if [ $backup -eq 0 ]; then
@@ -202,8 +202,8 @@ fnPerformBackup() {
     done
     mv $BACKUP_ROOT/$type.tmp $BACKUP_ROOT/$type.1
     [ $DEBUG -gt 0 ] && echo "[debug] mv $BACKUP_ROOT/$type.tmp $BACKUP_ROOT/$type.1" 1>&2
-    echo -e "anchor datetime: '$lastexpectedbackup'\nbackup datetime: '$(date "+%d %b %Y %T")'" > $BACKUP_ROOT/$type.1/.timestamp
-    echo $lastexpectedbackup > $BACKUP_ROOT/.$type
+    echo -e "anchor datetime: '$dt_last_expected'\nbackup datetime: '$(date "+%d %b %Y %T")'" > $BACKUP_ROOT/$type.1/.timestamp
+    echo $dt_last_expected > $BACKUP_ROOT/.$type
     [ $VERBOSE -eq 1 ] && echo "[info] backup succeeded"
   else
     [ $VERBOSE -eq 1 ] && echo "[info] backup failed"
