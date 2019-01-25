@@ -202,6 +202,7 @@ fnPerformBackup() {
     done
     mv $BACKUP_ROOT/$type.tmp $BACKUP_ROOT/$type.1
     [ $DEBUG -gt 0 ] && echo "[debug] mv $BACKUP_ROOT/$type.tmp $BACKUP_ROOT/$type.1" 1>&2
+    echo -e "anchor datetime: '$lastexpectedbackup'\nbackup datetime: '$(date "+%d %b %Y %T")'" > $BACKUP_ROOT/$type.1/.timestamp
     echo $lastexpectedbackup > $BACKUP_ROOT/.$type
     [ $VERBOSE -eq 1 ] && echo "[info] backup succeeded"
   else
