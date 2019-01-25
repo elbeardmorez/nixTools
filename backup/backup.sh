@@ -114,14 +114,14 @@ fnSetIntervals() {
 }
 
 fnGetLastBackup() {
-  type="$1"
-  [ -f "$BACKUP_ROOT"/.$type ] && cat "$BACKUP_ROOT"/.$type || echo "01 Jan 1970"
+  interval="$1"
+  [ -f "$BACKUP_ROOT/.$interval" ] && cat "$BACKUP_ROOT/.$interval" || echo "01 Jan 1970"
 }
 
 fnGetLastExpectedBackup() {
-  type="$1"
-  epoch=${intervals_epoch[$type]}
-  anchor=${intervals_anchor[$type]}
+  interval="$1"
+  epoch=${intervals_epoch["$interval"]}
+  anchor=${intervals_anchor["$interval"]}
 
   now="$(date "+%d %b %Y %T UTC")"
   now_seconds=$(date -d "$now" "+%s")
@@ -132,16 +132,16 @@ fnGetLastExpectedBackup() {
   # closest previous epoch
   epoch_last_seconds=$(($now_seconds-$(echo "($now_seconds-$anchor_seconds) % $epoch_seconds" | bc)))
   epoch_last="$(date -d "@$epoch_last_seconds" "+%d %b %Y %T")"
-  [ $DEBUG -gt 0 ] && echo "[debug] anchoring interval type: '$type' to date: '$epoch_last'" 1>&2
+  [ $DEBUG -gt 0 ] && echo "[debug] anchoring interval type: '$interval' to date: '$epoch_last'" 1>&2
 
   echo "$epoch_last"
 }
 
 fnPerformBackup() {
-  type=$1
+  interval="$1"
 
-  dt_last_expected="$(fnGetLastExpectedBackup $type)"
-  dt_last="$(fnGetLastBackup $type)"
+  dt_last_expected="$(fnGetLastExpectedBackup "$interval")"
+  dt_last="$(fnGetLastBackup "$interval")"
 
   backup=0
   [[ $(date -d "$dt_last_expected" +%s) -gt $(date -d "$dt_last" +%s) || $FORCE -eq 1 ]] && backup=1
@@ -149,14 +149,14 @@ fnPerformBackup() {
   # short ciruit
   if [ $backup -eq 0 ]; then
     [ $VERBOSE -eq 1 ] && \
-      echo "[info] $(date "+%d %b %Y %T"), not performing a $type $([ "$type" = "$TYPE" ] && echo "sync" || echo "link") backup as epoch not ellapsed"
+      echo "[info] $(date "+%d %b %Y %T"), not performing a '$interval' $([ "$interval" = "$TYPE" ] && echo "sync" || echo "link") backup as epoch not ellapsed"
     return 0
   fi
 
   success=1
   # perform backup
   ## always backup against (hard-link to common / unchanged files in) the 'master' backup set
-  if [ "$type" = "$TYPE" ]; then
+  if [ "$interval" = "$TYPE" ]; then
     # rebuild master
     success=0
     [ $VERBOSE -eq 1 ] && echo "[info] rebuilding 'master' backup set"
@@ -177,33 +177,33 @@ fnPerformBackup() {
   if [ $success -eq 1 ]; then
     # link backup
     success=0
-    [ $VERBOSE -eq 1 ] && echo "[info] performing a $type link backup"
+    [ $VERBOSE -eq 1 ] && echo "[info] performing a '$interval' link backup"
     if [ $DEBUG -gt 0 ]; then
-      echo '[debug] cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$type.tmp' 1>&2
-      echo "[debug] cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$type.tmp" 1>&2
+      echo '[debug] cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$interval.tmp' 1>&2
+      echo "[debug] cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$interval.tmp" 1>&2
     fi
-    cp -al "$BACKUP_ROOT"/master "$BACKUP_ROOT"/$type.tmp
+    cp -al "$BACKUP_ROOT"/master "$BACKUP_ROOT/$interval".tmp
     [ $? -eq 0 ] && success=1
   fi
 
   if [ $success -eq 1 ]; then
     # roll the directory structure
-    [ $VERBOSE -eq 1 ] && echo "[info] rolling $type backup set"
+    [ $VERBOSE -eq 1 ] && echo "[info] rolling '$interval' backup set"
     interval_sets_max=10
-    [ -d "$BACKUP_ROOT/$type.$interval_sets_max" ] && \
-       rm -rf "$BACKUP_ROOT/$type.$interval_sets_max"
+    [ -d "$BACKUP_ROOT/$interval.$interval_sets_max" ] && \
+       rm -rf "$BACKUP_ROOT/$interval.$interval_sets_max"
     for l in $(seq $interval_sets_max -1 2); do
-      source="$BACKUP_ROOT/$type.$(($l-1))"
-      target="$BACKUP_ROOT/$type.$l"
+      source="$BACKUP_ROOT/$interval.$(($l-1))"
+      target="$BACKUP_ROOT/$interval.$l"
       if [ -d "$source" ]; then
         [ $DEBUG -gt 0 ] && echo "[debug] mv $source $target" 1>&2
         mv "$source" "$target"
       fi
     done
-    mv "$BACKUP_ROOT"/$type.tmp "$BACKUP_ROOT"/$type.1
-    [ $DEBUG -gt 0 ] && echo "[debug] mv $BACKUP_ROOT/$type.tmp $BACKUP_ROOT/$type.1" 1>&2
-    echo -e "anchor datetime: '$dt_last_expected'\nbackup datetime: '$(date "+%d %b %Y %T")'" > "$BACKUP_ROOT"/$type.1/.timestamp
-    echo $dt_last_expected > "$BACKUP_ROOT"/.$type
+    mv "$BACKUP_ROOT/$interval.tmp" "$BACKUP_ROOT/$interval.1"
+    [ $DEBUG -gt 0 ] && echo "[debug] mv $BACKUP_ROOT/$interval.tmp $BACKUP_ROOT/$interval.1" 1>&2
+    echo -e "anchor datetime: '$dt_last_expected'\nbackup datetime: '$(date "+%d %b %Y %T")'" > "$BACKUP_ROOT/$interval.1/.timestamp"
+    echo $dt_last_expected > "$BACKUP_ROOT/.$interval"
     [ $VERBOSE -eq 1 ] && echo "[info] backup succeeded"
   else
     [ $VERBOSE -eq 1 ] && echo "[info] backup failed"
@@ -214,9 +214,9 @@ fnPerformBackup() {
 # cascading backups
 fnBackup() {
   initialised=0
-  for type in $(echo "$INTERVALS"); do
-    [[ $initialised -eq 0 && "$type" != "$TYPE" ]] && continue
-    fnPerformBackup $type
+  for interval in $(echo "$INTERVALS"); do
+    [[ $initialised -eq 0 && "$interval" != "$TYPE" ]] && continue
+    fnPerformBackup "$interval"
     initialised=1
     [ $NO_CASCADE -ne 0 ] && break
   done
