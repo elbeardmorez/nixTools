@@ -153,11 +153,12 @@ fnPerformBackup() {
     return 1
   fi
 
+  success=1
   # perform backup
   ## always backup against (hard-link to common / unchanged files in) the 'master' backup set
-  success=0
   if [ "$type" = "$TYPE" ]; then
     # rebuild master
+    success=0
     [ $VERBOSE -eq 1 ] && echo "[info] rebuilding 'master' backup set"
     [ -d $BACKUP_ROOT/master.tmp ] && rm -rf $BACKUP_ROOT/$type.tmp ]
     [ -d $BACKUP_ROOT/master ] && mv $BACKUP_ROOT/master{,.tmp} || mkdir -p $BACKUP_ROOT/master.tmp
@@ -175,6 +176,7 @@ fnPerformBackup() {
 
   if [ $success -eq 1 ]; then
     # link backup
+    success=0
     [ $VERBOSE -eq 1 ] && echo "[info] performing a $type link backup"
     if [ $DEBUG -gt 0 ]; then
       echo '[debug] cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$type.tmp' 1>&2
