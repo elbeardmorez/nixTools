@@ -160,7 +160,7 @@ fnPerformBackup() {
     # rebuild master
     success=0
     [ $VERBOSE -eq 1 ] && echo "[info] rebuilding 'master' backup set"
-    [ -d "$BACKUP_ROOT"/master.tmp ] && rm -rf "$BACKUP_ROOT"/$type.tmp ]
+    [ -d "$BACKUP_ROOT"/master.tmp ] && rm -rf "$BACKUP_ROOT"/master.tmp ]
     [ -d "$BACKUP_ROOT"/master ] && mv "$BACKUP_ROOT"/master{,.tmp} || mkdir -p "$BACKUP_ROOT"/master.tmp
     [ ! -d "$BACKUP_ROOT"/master ] && mkdir -p "$BACKUP_ROOT"/master
     if [ $DEBUG -gt 0 ]; then
