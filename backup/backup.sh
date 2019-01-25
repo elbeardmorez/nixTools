@@ -149,7 +149,7 @@ fnPerformBackup() {
   # short ciruit
   if [ $backup -eq 0 ]; then
     [ $VERBOSE -eq 1 ] && \
-      echo "[info] $(date), not performing a $type $([ "$type" = "$TYPE" ] && echo "sync" || echo "link") backup"
+      echo "[info] $(date "+%d %b %Y %T"), not performing a $type $([ "$type" = "$TYPE" ] && echo "sync" || echo "link") backup as epoch not ellapsed"
     return 0
   fi
 
@@ -203,9 +203,9 @@ fnPerformBackup() {
     mv $BACKUP_ROOT/$type.tmp $BACKUP_ROOT/$type.1
     [ $DEBUG -gt 0 ] && echo "[debug] mv $BACKUP_ROOT/$type.tmp $BACKUP_ROOT/$type.1" 1>&2
     echo $lastexpectedbackup > $BACKUP_ROOT/.$type
-    [ $VERBOSE -eq 1 ] && echo "[info] backup succeeded" 1>&2
+    [ $VERBOSE -eq 1 ] && echo "[info] backup succeeded"
   else
-    [ $VERBOSE -eq 1 ] && echo "[info] backup failed" 1>&2
+    [ $VERBOSE -eq 1 ] && echo "[info] backup failed"
     NO_CASCADE=1
   fi
 }
