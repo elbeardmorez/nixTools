@@ -115,7 +115,7 @@ fnSetIntervals() {
 
 fnGetLastBackup() {
   type="$1"
-  [ -f $BACKUP_ROOT/.$type ] && cat $BACKUP_ROOT/.$type || echo "01 Jan 1970"
+  [ -f "$BACKUP_ROOT"/.$type ] && cat "$BACKUP_ROOT"/.$type || echo "01 Jan 1970"
 }
 
 fnGetLastExpectedBackup() {
@@ -160,18 +160,18 @@ fnPerformBackup() {
     # rebuild master
     success=0
     [ $VERBOSE -eq 1 ] && echo "[info] rebuilding 'master' backup set"
-    [ -d $BACKUP_ROOT/master.tmp ] && rm -rf $BACKUP_ROOT/$type.tmp ]
-    [ -d $BACKUP_ROOT/master ] && mv $BACKUP_ROOT/master{,.tmp} || mkdir -p $BACKUP_ROOT/master.tmp
-    [ ! -d $BACKUP_ROOT/master ] && mkdir -p $BACKUP_ROOT/master
+    [ -d "$BACKUP_ROOT"/master.tmp ] && rm -rf "$BACKUP_ROOT"/$type.tmp ]
+    [ -d "$BACKUP_ROOT"/master ] && mv "$BACKUP_ROOT"/master{,.tmp} || mkdir -p "$BACKUP_ROOT"/master.tmp
+    [ ! -d "$BACKUP_ROOT"/master ] && mkdir -p "$BACKUP_ROOT"/master
     if [ $DEBUG -gt 0 ]; then
       echo '[debug] $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master.tmp/ "${sources[@]}" $BACKUP_ROOT/master/'
       echo "[debug] $RSYNC ${RSYNC_OPTIONS[@]} --link-dest=$BACKUP_ROOT/master.tmp/ ${sources[@]} $BACKUP_ROOT/master/"
     fi
     echo
-    $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master.tmp/ "${sources[@]}" $BACKUP_ROOT/master/
+    $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest="$BACKUP_ROOT"/master.tmp/ "${sources[@]}" "$BACKUP_ROOT"/master/
     [ $? -eq 0 ] && success=1
     echo
-    rm -rf $BACKUP_ROOT/master.tmp
+    rm -rf "$BACKUP_ROOT"/master.tmp
   fi
 
   if [ $success -eq 1 ]; then
@@ -182,7 +182,7 @@ fnPerformBackup() {
       echo '[debug] cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$type.tmp' 1>&2
       echo "[debug] cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$type.tmp" 1>&2
     fi
-    cp -al $BACKUP_ROOT/master $BACKUP_ROOT/$type.tmp
+    cp -al "$BACKUP_ROOT"/master "$BACKUP_ROOT"/$type.tmp
     [ $? -eq 0 ] && success=1
   fi
 
@@ -200,10 +200,10 @@ fnPerformBackup() {
         mv "$source" "$target"
       fi
     done
-    mv $BACKUP_ROOT/$type.tmp $BACKUP_ROOT/$type.1
+    mv "$BACKUP_ROOT"/$type.tmp "$BACKUP_ROOT"/$type.1
     [ $DEBUG -gt 0 ] && echo "[debug] mv $BACKUP_ROOT/$type.tmp $BACKUP_ROOT/$type.1" 1>&2
-    echo -e "anchor datetime: '$dt_last_expected'\nbackup datetime: '$(date "+%d %b %Y %T")'" > $BACKUP_ROOT/$type.1/.timestamp
-    echo $dt_last_expected > $BACKUP_ROOT/.$type
+    echo -e "anchor datetime: '$dt_last_expected'\nbackup datetime: '$(date "+%d %b %Y %T")'" > "$BACKUP_ROOT"/$type.1/.timestamp
+    echo $dt_last_expected > "$BACKUP_ROOT"/.$type
     [ $VERBOSE -eq 1 ] && echo "[info] backup succeeded"
   else
     [ $VERBOSE -eq 1 ] && echo "[info] backup failed"
@@ -240,13 +240,13 @@ while [ -n "$1" ]; do
   shift
 done
 
-[ ! -d $BACKUP_ROOT ] && echo "[error] invalid backup root '$BACKUP_ROOT'" && exit 1
+[ ! -d "$BACKUP_ROOT" ] && echo "[error] invalid backup root '$BACKUP_ROOT'" && exit 1
 [[ -n "$TYPE" && -z "$(echo "$TYPE" | sed -n '/'$(echo "$INTERVALS" | sed 's/ /\\|/g')'/p')" ]] && \
   echo "[error] unrecognised interval type '$TYPE'" && exit 1
 [ -z "$INCLUDE" ] && help &&
   echo "[error] please specify an INCLUDE file" && exit 1
 if [ ! -f "$INCLUDE" ]; then
-  if [ -f $BACKUP_ROOT/$INCLUDE ]; then
+  if [ -f "$BACKUP_ROOT/$INCLUDE" ]; then
     INCLUDE="$BACKUP_ROOT/$INCLUDE"
   else
     echo "[error] invalid 'include' file '$INCLUDE'" && exit 1
