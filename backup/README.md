@@ -117,3 +117,4 @@ consult *man(1) rsync* for full details
 - rsync
 - sed
 - which
+- date (GNU coreutils)
