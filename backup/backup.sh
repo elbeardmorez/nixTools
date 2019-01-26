@@ -101,7 +101,9 @@ fnSetIntervals() {
   IFS=','; intervals=($(echo "$INTERVALS")); IFS="$IFSORG"
   for i in "${intervals[@]}"; do
     interval="$i"
-    if [ -z "$(echo "$interval" | sed -n '/'$(echo "$intervals_default" | sed 's/,/\\|/g')'/p')" ]; then
+    if [ -n "$(echo "$interval" | sed -n '/'$(echo "$intervals_default" | sed 's/,/\\|/g')'/p')" ]; then
+      intervals_max["$interval"]=$intervals_max_default
+    else
       custom=0
       if [ -n "$(echo "$interval" | sed -n '/|/p')" ]; then
         IFS='|'; parts=($(echo "$interval")); IFS="$IFSORG"
