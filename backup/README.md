@@ -53,8 +53,16 @@ the implementation allows for an arbitrary mix of simple default supported inter
 ```
 $ BACKUP_ROOT=/backup/live backup_ --verbose --intervals "15m|900 seconds|%d %b %Y %H:00:00"
 
+$ BACKUP_ROOT=/backup/live backup_ --verbose --intervals "15m|15 minutes|%d %b %Y %H:30:00"
+
 ```
-the above example allowing creation of backup sets at 15 minute intervals
+the above examples are identical, allowing creation of backup sets at 15 minute intervals which will be anchored at 00, 15, 30, 45 past the hour
+
+both *epoch* and *anchor* must be datetime 'descriptions' recognised by **GNU coreutils**'s `date` binary - it is highly flexible, see `info date` for details. both parts are used to determine whether a backup should be performed or not. such a mechanism is more relevant (or even necessary!) in practice for creation of sets with longer term epochs, e.g. months
+
+the problem with dumb timers is that they require the system to be operational either for the entire duration of the epoch, else, at that specific point in time that the backup should be made (e.g. 1st of the month).
+
+this script requires each interval type / period is 'anchored' to a position in time, and then whenever the script is run, either directly specifying the target interval type, or via the default cascading, the decision to perform that backup or not is **based on the last anchor datetime**. therefore if your machine has been off a while, the next time the script is run, it'll notice it's past due for that backup type and perform it. the next update for that interval type may then occur in much less time than prescribed by the type's epoch/interval, but this potential unevenness of the interval structure should be seen as a positive feature - it's better than missed backups!
 
 ## implementation
 if a backup program is defined simply as a file copier on a schedule, then this script should be viewed as a relatively thin wrapper over the **rsync** file copier which expects to be called via a scheduler like **cron**, or integrated into the likes of **systemd** via a timer, in order to operate as intended. the extremely impressive *rsync*, is very mature and as such very unlikely to cause problems at the business end of this wrapper (the actual file copying).
