@@ -95,29 +95,53 @@ fnSetSources() {
 fnSetIntervals() {
   valid=""
   IFS=','; intervals=($(echo "$INTERVALS")); IFS="$IFSORG"
-  for interval in "${intervals[@]}"; do
-    [ -z "$(echo "$interval" | sed -n '/'$(echo "$intervals_default" | sed 's/,/\\|/g')'/p')" ] &&
-      echo "[error] unsupported interval type '$interval'" && return 1
-    valid+=",$interval"
+  for i in "${intervals[@]}"; do
+    interval="$i"
+    if [ -z "$(echo "$interval" | sed -n '/'$(echo "$intervals_default" | sed 's/,/\\|/g')'/p')" ]; then
+      custom=0
+      if [ -n "$(echo "$interval" | sed -n '/|/p')" ]; then
+        IFS='|'; parts=($(echo "$interval")); IFS="$IFSORG"
+        if [ ${#parts[@]} -eq 3 ]; then
+          interval="${parts[0]}"
+          epoch="${parts[1]}"
+          anchor="${parts[2]}"
+          date -d "$epoch" 2>/dev/null 1>&2 && date "+$anchor" 2>/dev/null 1>&2
+          if [ $? -eq 0 ]; then
+            custom=1
+            intervals_epoch["$interval"]="$epoch"
+            intervals_anchor["$interval"]="$anchor"
+          fi
+        fi
+      fi
+      [ $custom -eq 0 ] && echo "[error] unsupported interval type '$i'" && return 1
+    fi
+    valid+=" $interval"
   done
   valid="${valid:1}"
   ordered=""
-  IFS=','; intervals=($(echo "$intervals_default")); IFS="$IFSORG"
-  for interval in "${intervals[@]}"; do
-    if [ -n "$(echo "$interval" | sed -n '/'$(echo "$valid" | sed 's/,/\\|/g')'/p')" ]; then
-      [ -z $TYPE ] && TYPE="$interval"
-      ordered+=",$interval"
-    fi
+  s=""
+  now="$(date "+%d %b %Y %T UTC")"
+  for interval in $(echo "$valid"); do
+    s+="\n$(fnEpochSeconds "$now" "${intervals_epoch["$interval"]}")\t$interval"
   done
-  ordered="${ordered:1}"
+  s="${s:2}"
+  ordered="$(echo -e "$s" | sort -n -u | sed 's/^[ \t]*[0-9]\+[ \t]*\([^ \t]*\)[ \t]*$/\1/' | tr '\n' ',' | sed 's/,$//')"
   INTERVALS="$ordered"
-
+  [ -z $TYPE ] && TYPE="${INTERVALS%%,*}"
   return 0
 }
 
 fnGetLastBackup() {
   interval="$1"
   [ -f "$BACKUP_ROOT/.$interval" ] && cat "$BACKUP_ROOT/.$interval" || echo "01 Jan 1970"
+}
+
+fnEpochSeconds() {
+  dt="$1"
+  epoch="$2"
+  dt_seconds=$(date -d "$dt" "+%s")
+  epoch_seconds=$(($(date -d "$dt + $epoch" "+%s")-$dt_seconds))
+  echo $epoch_seconds
 }
 
 fnGetLastExpectedBackup() {
@@ -128,7 +152,7 @@ fnGetLastExpectedBackup() {
   now="$(date "+%d %b %Y %T UTC")"
   now_seconds=$(date -d "$now" "+%s")
 
-  epoch_seconds=$(($(date -d "$now + $epoch" "+%s")-$now_seconds))
+  epoch_seconds=$(fnEpochSeconds "$now" "$epoch")
   anchor_seconds=$(date -d "$(date "+$anchor UTC")" "+%s")
 
   # closest previous epoch
@@ -244,8 +268,6 @@ while [ -n "$1" ]; do
 done
 
 [ ! -d "$BACKUP_ROOT" ] && echo "[error] invalid backup root '$BACKUP_ROOT'" && exit 1
-[[ -n "$TYPE" && -z "$(echo "$TYPE" | sed -n '/'$(echo "$INTERVALS" | sed 's/,/\\|/g')'/p')" ]] && \
-  echo "[error] unrecognised interval type '$TYPE'" && exit 1
 [ -z "$INCLUDE" ] && help &&
   echo "[error] please specify an INCLUDE file" && exit 1
 if [ ! -f "$INCLUDE" ]; then
@@ -265,6 +287,8 @@ ret=$? && [ $ret -ne 0 ] && exit $ret
 # parse intervals
 fnSetIntervals
 ret=$? && [ $ret -ne 0 ] && exit $ret
+[ -z "$(echo "$TYPE" | sed -n '/'$(echo "$INTERVALS" | sed 's/,/\\|/g')'/p')" ] && \
+  echo "[error] unrecognised interval type '$TYPE'" && exit 1
 
 # process backup
 fnBackup
