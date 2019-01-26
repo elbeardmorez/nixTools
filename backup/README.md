@@ -1,7 +1,7 @@
 # backup.sh
 
 ## description
-creates a 'hardlink-based' backup set with 10 of each of the four supported time interval types (hourly, daily, weekly, monthly). the use of hardlinks means the disk space footprint for the incremental sets is kept to a minimum - **there is no duplication of identical** files, which is in essence its sole raison d'être
+creates a 'hardlink-based' backup set with 10 of each of supported time interval types (hourly/daily/weekly/monthly or custom). the use of hardlinks means the disk space footprint for the incremental sets is kept to a minimum - **there is no duplication of identical** files, which is in essence its sole raison d'être
 
 ## usage
 ```
@@ -12,9 +12,11 @@ where [OPTIONS] can be:
   -s, --sources <SOURCES>  : file containing source paths to backup,
                              one per line
                              (default: 'BACKUP_ROOT/.include')
-  -i, --intervals <INTERVALS>  : comma-delimited list of supported
-                                 interval types (default: 'hourly,daily
-                                 ,weekly,monthly')
+  -i, --intervals <INTERVALS>  : comma-delimited list of interval
+                                 types. custom intervals are supported,
+                                 see README for details
+                                 (default: 'hourly,daily,weeky,
+                                            monthly')
   -t, --type <TYPE>  : initiate backup from TYPE interval, where TYPE
                        is a member of the INTERVALS set (default: first
                        item in (epoch size ordered) INTERVALS list)
@@ -37,6 +39,23 @@ environment variables:
                    (default: --archive --relative --delete --verbose)
 ```
 
+### SOURCES
+the implementation requires a list of source directories in the *rsync* format. this allows for partial relative directory structures to be specified, e.g:
+```
+source              target
+/root/./docs/       TARGET/docs
+/var/./www/docs/    TARGET/www/docs
+```
+
+### INTERVALS
+the implementation allows for an arbitrary mix of simple default supported intervals types (currently: hourly, daily, weekly, monthly) or custom types which must be entered as triples via two additional suffixed pipe ('|') delimited arguments representing an interval as 'name|epoch|anchor'. e.g.:
+
+```
+$ BACKUP_ROOT=/backup/live backup_ --verbose --intervals "15m|900 seconds|%d %b %Y %H:00:00"
+
+```
+the above example allowing creation of backup sets at 15 minute intervals
+
 ## implementation
 if a backup program is defined simply as a file copier on a schedule, then this script should be viewed as a relatively thin wrapper over the **rsync** file copier which expects to be called via a scheduler like **cron**, or integrated into the likes of **systemd** via a timer, in order to operate as intended. the extremely impressive *rsync*, is very mature and as such very unlikely to cause problems at the business end of this wrapper (the actual file copying).
 
@@ -46,12 +65,6 @@ when the max revisions limit is hit for an interval, the roll stage of the proce
 
 it's worth pointing out that purging of the final revision set will only 'delete' a file if it is nowhere common across the rest of the backup set. where files are common, their link counts will just reduce by one.
 
-the implementation requires a list of source directories in the *rsync* format. this allows for partial relative directory structures to be specified, e.g:
-```
-source              target
-/root/./docs/       TARGET/docs
-/var/./www/docs/    TARGET/www/docs
-```
 
 *\*note: this is not guaranteed to be in a sensible location (as given by the example) where use of the `--force` switch has been made on the backup set. forcing a backup for a given interval type breaks the minimal time epoch separation between backups in that set, thus potentially making it more difficult to find a specific version*
 

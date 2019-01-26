@@ -38,9 +38,11 @@ where [OPTIONS] can be:\n
   -s, --sources <SOURCES>  : file containing source paths to backup,
                              one per line
                              (default: 'BACKUP_ROOT/.include')
-  -i, --intervals <INTERVALS>  : comma-delimited list of supported
-                                 interval types (default: 'hourly,daily
-                                 ,weekly,monthly')
+  -i, --intervals <INTERVALS>  : comma-delimited list of interval
+                                 types. custom intervals are supported,
+                                 see README for details
+                                 (default: 'hourly,daily,weeky,
+                                            monthly')
   -t, --type <TYPE>  : initiate backup from TYPE interval, where TYPE
                        is a member of the INTERVALS set (default: first
                        item in (epoch size ordered) INTERVALS list)
