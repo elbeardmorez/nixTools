@@ -27,6 +27,8 @@ intervals_anchor["hourly"]="%d %b %Y %H:00:00"
 intervals_anchor["daily"]="%d %b %Y"
 intervals_anchor["weekly"]="01 Jan %Y"
 intervals_anchor["monthly"]="01 %b %Y"
+intervals_max_default=10
+declare -A intervals_max
 
 declare -a sources
 
@@ -103,15 +105,17 @@ fnSetIntervals() {
       custom=0
       if [ -n "$(echo "$interval" | sed -n '/|/p')" ]; then
         IFS='|'; parts=($(echo "$interval")); IFS="$IFSORG"
-        if [ ${#parts[@]} -eq 3 ]; then
+        if [[ ${#parts[@]} -eq 3 || ${#parts[@]} -eq 4 ]]; then
           interval="${parts[0]}"
           epoch="${parts[1]}"
           anchor="${parts[2]}"
+          [ ${#parts[@]} -eq 4 ] && max=${parts[3]} || max=$intervals_max_default
           date -d "$epoch" 2>/dev/null 1>&2 && date "+$anchor" 2>/dev/null 1>&2
           if [ $? -eq 0 ]; then
             custom=1
             intervals_epoch["$interval"]="$epoch"
             intervals_anchor["$interval"]="$anchor"
+            intervals_max["$interval"]=$max
           fi
         fi
       fi
@@ -217,10 +221,10 @@ fnPerformBackup() {
   if [ $success -eq 1 ]; then
     # roll the directory structure
     [ $VERBOSE -eq 1 ] && echo "[info] rolling '$interval' backup set"
-    interval_sets_max=10
-    [ -d "$BACKUP_ROOT/$interval.$interval_sets_max" ] && \
-       rm -rf "$BACKUP_ROOT/$interval.$interval_sets_max"
-    for l in $(seq $interval_sets_max -1 2); do
+    intervals_max=${intervals_max["$interval"]}
+    [ -d "$BACKUP_ROOT/$interval.$intervals_max" ] && \
+       rm -rf "$BACKUP_ROOT/$interval.$intervals_max"
+    for l in $(seq $intervals_max -1 2); do
       source="$BACKUP_ROOT/$interval.$(($l-1))"
       target="$BACKUP_ROOT/$interval.$l"
       if [ -d "$source" ]; then
