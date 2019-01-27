@@ -26,6 +26,7 @@ where [OPTIONS] can be:
                  has no effect on cascaded interval types
   -nc, --no-cascade  : update only the specified interval type's set
   -r, --root  : specify the root of the backup set
+  -p, --purge  : purge any extraneous backup sets found
   -v, --verbose  : verbose mode
   -h, --help  : this help info
 

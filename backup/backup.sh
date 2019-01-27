@@ -14,6 +14,7 @@ FORCE=0
 TYPE=""
 INCLUDE=".include"
 NO_CASCADE=0
+PURGE=0
 
 intervals_default="hourly,daily,weekly,monthly"
 INTERVALS="$intervals_default"
@@ -54,6 +55,7 @@ where [OPTIONS] can be:\n
                  has no effect on cascaded interval types
   -nc, --no-cascade  : update only the specified interval type's set
   -r, --root  : specify the root of the backup set
+  -p, --purge  : purge any extraneous backup sets found
   -v, --verbose  : verbose mode
   -h, --help  : this help info
 \nenvironment variables:\n
@@ -230,8 +232,25 @@ fnPerformBackup() {
     # roll the directory structure
     [ $VERBOSE -eq 1 ] && echo "[info] rolling '$interval' backup set"
     intervals_max=${intervals_max["$interval"]}
-    [ -d "$BACKUP_ROOT/$interval.$intervals_max" ] && \
-       rm -rf "$BACKUP_ROOT/$interval.$intervals_max"
+    if [ -d "$BACKUP_ROOT/$interval.$intervals_max" ]; then
+      if [ -d "$BACKUP_ROOT/$interval.$(($intervals_max+1))" ]; then
+        # extraneous sets exist
+        if [ $PURGE -eq 1 ]; then
+          intervals_max_extra=$(($intervals_max+1))
+          purged=0
+          while [ -d "$BACKUP_ROOT/$interval.$intervals_max_extra" ]; do
+            [ $DEBUG -gt 0 ] && echo "[debug] purging extraneous backup set at '$BACKUP_ROOT/$interval.$intervals_max_extra'"
+            rm -rf "$BACKUP_ROOT/$interval.$intervals_max_extra"
+            intervals_max_extra=$(($intervals_max_extra+1))
+            purged=$(($purged+1))
+          done
+          [ $VERBOSE -eq 1 ] && echo "[info] purged $purged backup set$([ $purged -ne 1 ] && echo "s")"
+        else
+          [ $VERBOSE -eq 1 ] && echo "[info] extraneous '$interval' backup sets found, not purging"
+        fi
+      fi
+      rm -rf "$BACKUP_ROOT/$interval.$intervals_max"
+    fi
     for l in $(seq $intervals_max -1 2); do
       source="$BACKUP_ROOT/$interval.$(($l-1))"
       target="$BACKUP_ROOT/$interval.$l"
@@ -275,6 +294,7 @@ while [ -n "$1" ]; do
     "f"|"force") FORCE=1 ;;
     "nc"|"no-cascade") NO_CASCADE=1 ;;
     "r"|"root") shift && [ -z "$1" ] && help && exit 1; BACKUP_ROOT="$1" ;;
+    "p"|"purge") PURGE=1 ;;
     "h"|"help") help && exit ;;
     "v"|"verbose") VERBOSE=1 ;;
   esac
