@@ -39,7 +39,7 @@ environment variables:
                    (default: --archive --relative --delete --verbose)
 ```
 
-### SOURCES
+**SOURCES**  
 the implementation requires a list of source directories in the *rsync* format. this allows for partial relative directory structures to be specified, e.g:
 ```
 source              target
@@ -47,7 +47,7 @@ source              target
 /var/./www/docs/    TARGET/www/docs
 ```
 
-### INTERVALS
+**INTERVALS**  
 the implementation allows for an arbitrary mix of *simple*, default supported built-in intervals types (currently: hourly, daily, weekly, monthly), *mixed*, which uses the pipe ('|') delimited double 'name|size' as an interval description, used specifically to override built-in max set sizes, and finally, *custom*, which use the pipe ('|') delimited triple/[quad] 'name|epoch|anchor[|size]' as an interval description. e.g.:
 
 ```
