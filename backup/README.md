@@ -49,12 +49,10 @@ source              target
 
 **INTERVALS**  
 the implementation allows for an arbitrary mix of *simple*, default supported built-in intervals types (currently: hourly, daily, weekly, monthly), *mixed*, which uses the pipe ('|') delimited double 'name|size' as an interval description, used specifically to override built-in max set sizes, and finally, *custom*, which use the pipe ('|') delimited triple/[quad] 'name|epoch|anchor[|size]' as an interval description. e.g.:
-
 ```
 $ BACKUP_ROOT=/backup/live backup_ --verbose --intervals "15m|900 seconds|%d %b %Y %H:00:00"
 
 $ BACKUP_ROOT=/backup/live backup_ --verbose --intervals "15m|15 minutes|%d %b %Y %H:30:00"
-
 ```
 the above examples are identical, resulting in creation of backup sets at 15 minute intervals which will be anchored at 00, 15, 30, 45 minutes past the hour
 
