@@ -1,7 +1,7 @@
 # backup.sh
 
 ## description
-creates a 'hardlink-based' backup set with 10 of each of supported time interval types (hourly/daily/weekly/monthly or custom). the use of hardlinks means the disk space footprint for the incremental sets is kept to a minimum - **there is no duplication of identical** files, which is in essence its sole raison d'être
+creates a 'hardlink-based' backup set comprising an arbitrary number of sets for each of the supported time interval types (hourly/daily/weekly/monthly or custom). the use of hardlinks means the disk space footprint for the incremental sets is kept to a minimum - **there is no duplication of identical** files, which is in essence its sole raison d'être
 
 ## usage
 ```
@@ -48,7 +48,7 @@ source              target
 ```
 
 ### INTERVALS
-the implementation allows for an arbitrary mix of simple default supported intervals types (currently: hourly, daily, weekly, monthly) or custom types which must be entered as triples via two additional suffixed pipe ('|') delimited arguments representing an interval as 'name|epoch|anchor'. e.g.:
+the implementation allows for an arbitrary mix of *simple*, default supported built-in intervals types (currently: hourly, daily, weekly, monthly), *mixed*, which uses the pipe ('|') delimited double 'name|size' as an interval description, used specifically to override built-in max set sizes, and finally, *custom*, which use the pipe ('|') delimited triple/[quad] 'name|epoch|anchor[|size]' as an interval description. e.g.:
 
 ```
 $ BACKUP_ROOT=/backup/live backup_ --verbose --intervals "15m|900 seconds|%d %b %Y %H:00:00"
@@ -67,7 +67,7 @@ this script requires each interval type / period is 'anchored' to a position in 
 ## implementation
 if a backup program is defined simply as a file copier on a schedule, then this script should be viewed as a relatively thin wrapper over the **rsync** file copier which expects to be called via a scheduler like **cron**, or integrated into the likes of **systemd** via a timer, in order to operate as intended. the extremely impressive *rsync*, is very mature and as such very unlikely to cause problems at the business end of this wrapper (the actual file copying).
 
-this wrapper uses the *rsync* binary to firstly construct a *master* backup set of all required files. it uses rsync's `--link-dest=DIR` option to ensure any unchanged files are hardlinked to the appropriate existing files in the backup set. providing a specific requested interval (or any interval representing a greater epoch when 'cascading' - which happens by default) has fully elapsed, it then makes a copy of this updated master set to that interval type. importantly, this mechanism maintains all hardlinks in the existing backup set revisions. there can be up to 10 revisions for each interval type's set.
+this wrapper uses the *rsync* binary to firstly construct a *master* backup set of all required files. it uses rsync's `--link-dest=DIR` option to ensure any unchanged files are hardlinked to the appropriate existing files in the backup set. providing a specific requested interval (or any interval representing a greater epoch when 'cascading' - which happens by default) has fully elapsed, it then makes a copy of this updated master set to that interval type. importantly, this mechanism maintains all hardlinks in the existing backup set revisions. there can be an arbitrary number of revisions for each interval type's set, the default is 10 where not specified.
 
 when the max revisions limit is hit for an interval, the roll stage of the procedure with purge the last revision in the set. by way of example: if running concurrent hourly backups, then after 11 hours of use, the `hourly.10` folder, which will necessarily exist, will be removed, and all preceding folders in the set will then be rolled / 'pushed back' (`hourly.1` -> `hourly.2` etc.) to make way for the latest backup set (`hourly.1`). the backup set with the closest state to that of the purged set (`hourly.10`) would then be found in one of the backups for an interval type with greater time epoch, i.e `daily.1` in this instance*
 
