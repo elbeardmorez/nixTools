@@ -64,6 +64,32 @@ the problem with dumb timers is that they require the system to be operational e
 
 this script requires each interval type / period is 'anchored' to a position in time, and then whenever the script is run, either directly specifying the target interval type, or via the default cascading, the decision to perform that backup or not is **based on the last anchor datetime**. therefore if your machine has been off a while, the next time the script is run, it'll notice it's past due for that backup type and perform it. the next update for that interval type may then occur in much less time than prescribed by the type's epoch/interval, but this potential unevenness of the interval structure should be seen as a positive feature - it's better than missed backups!
 
+## examples
+
+again, the examples here are to be called via a timer of some sort with a resolution less than or equal to the smallest epoch you desire support for, e.g. 1 hour by default
+
+**simple, ultimately generates 10 hourly, daily, weekly and monthly incremental sets**
+```
+$ backup_
+```
+
+**testing**
+```
+$ DEBUG=1 BACKUP_ROOT=/backup/test backup_ -v --intervals "10m|10 minutes|%d %b %Y %H:00:00|6,hourly|12" -t hourly -f
+```
+- [`DEBUG=1`] show all step performed
+- [`BACKUP_ROOT=/backup/live`] specify non-default backup folder
+- [`-v`] verbose mode, 'human readable' description of steps
+- [`---intervals "10m|10 minutes|%d %b %Y %H:00:00|6,hourly|12"`] max 6 10 minute backups, max 12 hourly backups
+
+**force a new entry in the hourly backup set immediately**
+```
+$ backup_ --verbose --intervals "10m|10 minutes|%d %b %Y %H:00:00|6,hourly|12" -t hourly --force --no-casade
+```
+- [`-t hourly`] target 'hourly' interval backup set
+- [`--force`] force the creation of the target set, ignoring current position in its epoch
+- [`--no-cascade`] don't inadvertently update any other backup set
+
 ## implementation
 if a backup program is defined simply as a file copier on a schedule, then this script should be viewed as a relatively thin wrapper over the **rsync** file copier which expects to be called via a scheduler like **cron**, or integrated into the likes of **systemd** via a timer, in order to operate as intended. the extremely impressive *rsync*, is very mature and as such very unlikely to cause problems at the business end of this wrapper (the actual file copying).
 
