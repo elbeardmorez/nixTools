@@ -56,7 +56,7 @@ $ BACKUP_ROOT=/backup/live backup_ --verbose --intervals "15m|900 seconds|%d %b 
 $ BACKUP_ROOT=/backup/live backup_ --verbose --intervals "15m|15 minutes|%d %b %Y %H:30:00"
 
 ```
-the above examples are identical, allowing creation of backup sets at 15 minute intervals which will be anchored at 00, 15, 30, 45 past the hour
+the above examples are identical, resulting in creation of backup sets at 15 minute intervals which will be anchored at 00, 15, 30, 45 minutes past the hour
 
 both *epoch* and *anchor* must be datetime 'descriptions' recognised by **GNU coreutils**'s `date` binary - it is highly flexible, see `info date` for details. both parts are used to determine whether a backup should be performed or not. such a mechanism is more relevant (or even necessary!) in practice for creation of sets with longer term epochs, e.g. months
 
