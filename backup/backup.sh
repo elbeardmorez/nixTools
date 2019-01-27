@@ -101,27 +101,33 @@ fnSetIntervals() {
   IFS=','; intervals=($(echo "$INTERVALS")); IFS="$IFSORG"
   for i in "${intervals[@]}"; do
     interval="$i"
-    if [ -n "$(echo "$interval" | sed -n '/'$(echo "$intervals_default" | sed 's/,/\\|/g')'/p')" ]; then
-      intervals_max["$interval"]=$intervals_max_default
+    if [ -z "$(echo "$interval" | sed -n '/|/p')" ]; then
+      [ -n "$(echo "$interval" | sed -n '/'$(echo "$intervals_default" | sed 's/,/\\|/g')'/p')" ] && \
+        intervals_max["$interval"]=$intervals_max_default
     else
-      custom=0
-      if [ -n "$(echo "$interval" | sed -n '/|/p')" ]; then
-        IFS='|'; parts=($(echo "$interval")); IFS="$IFSORG"
-        if [[ ${#parts[@]} -eq 3 || ${#parts[@]} -eq 4 ]]; then
-          interval="${parts[0]}"
+      add=0
+      IFS='|'; parts=($(echo "$interval")); IFS="$IFSORG"
+      if [[ ${#parts[@]} -ge 2 && ${#parts[@]} -le 4 ]]; then
+        interval="${parts[0]}"
+        if [ ${#parts[@]} -eq 2 ]; then
+          # override a builtin's max set size
+          [ -n "$(echo "$interval" | sed -n '/'$(echo "$intervals_default" | sed 's/,/\\|/g')'/p')" ] && \
+          intervals_max["$interval"]=${parts[1]} && add=1
+        else
+          # custom, require epoch and anchor
           epoch="${parts[1]}"
           anchor="${parts[2]}"
           [ ${#parts[@]} -eq 4 ] && max=${parts[3]} || max=$intervals_max_default
           date -d "$epoch" 2>/dev/null 1>&2 && date "+$anchor" 2>/dev/null 1>&2
           if [ $? -eq 0 ]; then
-            custom=1
             intervals_epoch["$interval"]="$epoch"
             intervals_anchor["$interval"]="$anchor"
             intervals_max["$interval"]=$max
+            add=1
           fi
         fi
       fi
-      [ $custom -eq 0 ] && echo "[error] unsupported interval type '$i'" && return 1
+      [ $add -eq 0 ] && echo "[error] unsupported interval type '$i'" && return 1
     fi
     valid+=" $interval"
   done
