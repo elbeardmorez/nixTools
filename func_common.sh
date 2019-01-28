@@ -18,6 +18,7 @@ fnDecision() {
     case "$REPLY" in
       "y"|"Y") echo "$REPLY" 1>&2; echo 1; break ;;
       "n"|"N") echo "$REPLY" 1>&2; echo 0; break ;;
+      "c"|"C") echo "$REPLY" 1>&2; echo -1; break ;;
     esac
   done
 }
