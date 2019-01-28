@@ -22,6 +22,22 @@ fnDecision() {
   done
 }
 
+fnNextFile() {
+  file=$1
+  delim="${2:-"_"}"
+  if [ -e "$file" ]; then
+    postfix="$(echo "$file" | sed -n 's/.*_\([0-9]*\)$/\1/p')"
+    if [[ "x$postfix" == "x" ]]; then
+      file="${file}${delim}2"
+    else
+      file="${file:0:$((${#file} - ${#postfix} - 1))}"
+      while [ -e ${file}${delim}${postfix} ]; do postfix=$((postfix + 1)); done
+      file="${file}${delim}${postfix}"
+    fi
+  fi
+  echo $file
+}
+
 fnRandom() {
   len=${1:-10}; s=""; while [ ${#s} -lt $len ]; do s+="$(head -c10 /dev/random | tr -dc '[[:alnum:]]')"; done; echo "${s:0:$len}";
 }

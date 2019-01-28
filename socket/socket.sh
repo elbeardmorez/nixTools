@@ -63,22 +63,6 @@ where OPTION can be:
 "
 }
 
-fnNextFile() {
-  file=$1
-  delim="${2:-"_"}"
-  if [ -e "$file" ]; then
-    postfix="$(echo "$file" | sed -n 's/.*_\([0-9]*\)$/\1/p')"
-    if [[ "x$postfix" == "x" ]]; then
-      file="${file}${delim}2"
-    else
-      file="${file:0:$((${#file} - ${#postfix} - 1))}"
-      while [ -e ${file}${delim}${postfix} ]; do postfix=$((postfix + 1)); done
-      file="${file}${delim}${postfix}"
-    fi
-  fi
-  echo $file
-}
-
 fnSend() {
   d="$1"
   verbose=${2:-1}
