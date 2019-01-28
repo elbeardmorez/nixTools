@@ -29,14 +29,10 @@ fnNextFile() {
   [[ -n "$suffix" && ${#file} -gt ${#suffix} && \
         "x${file:$((${#file}-${#suffix}))}" == "x$suffix" ]] && file="${file:0:$((${#file}-${#suffix}))}"
   if [ -e "${file}${suffix}" ]; then
-    num="$(echo "$file" | sed -n 's/.*'"$delim"'\([0-9]*\)$/\1/p')"
-    if [[ "x$num" == "x" ]]; then
-      file="${file}${delim}2"
-    else
-      file="${file:0:$((${#file}-${#delim}-${#num}))}"
-      while [ -e "${file}${delim}${num}${suffix}" ]; do num=$((num+1)); done
-      file="${file}${delim}${num}"
-    fi
+    num="$(echo "$file" | sed -n 's/.*'"$delim"'\([0-9]*\)\('"$suffix"'\)\?$/\1/p')"
+    [ "x$num" = "x" ] && num=2 || file="${file:0:$((${#file}-${#delim}-${#num}))}"
+    while [ -e "${file}${delim}${num}${suffix}" ]; do num=$((num+1)); done
+    file="${file}${delim}${num}"
   fi
   echo "${file}${suffix}"
 }
