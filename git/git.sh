@@ -108,8 +108,8 @@ fnLog() {
   command="$1" && shift
   c_br="\e[0;33m"
   c_off="\e[m"
-  count=-1
   search=""
+  declare count
   declare -a binargs
   declare -a cmdargs
   binargs=("-c" "color.ui=always")
@@ -120,18 +120,24 @@ fnLog() {
     cmdargs[${#cmdargs[@]}]="$1"
     shift
   done
-  [ $count -gt 0 ] && cmdargs=("-n" $count "${cmdargs[@]}")
   if [ -n "$search" ]; then
-    commit=$(fnCommit "$search")
+    commits="$(fnCommit "$search" "${count:-nolimit}")"
     res=$?; [ $res -ne 0 ] && exit $res
-    cmdargs[${#cmdargs[@]}]="$(echo "$commit" | cut -d' ' -f1)"
-  fi
-  if [ "x$command" = "xlog" ]; then
-    git "${binargs[@]}" log --format=format:"%at | %ct | version: $c_br%H$c_off%n %s (%an)" "${cmdargs[@]}" | awk '{for(l=1; l<=3; l++) {if ($l~/[0-9]+/) {$l=strftime("%Y%b%d %H:%M:%S",$l);}}; print $0}' | xargs -0 echo -e | sed '$d'
+    IFS=$'\n'; commits=($(echo "$commits")); IFS="$IFSORG"
   else
-    format="$([ "x$command" = "xlog1" ] && echo "oneline" || echo "fuller")"
-    git "${binargs[@]}" log --format="$format" "${cmdargs[@]}" | cat
+    commits=("HEAD")
   fi
+  [ ${#commits[@]} -gt 1 ] && count=1
+  [ -n "$count" ] && cmdargs=("-n" $count "${cmdargs[@]}")
+  for commit in "${commits[@]}"; do
+    commit="$(echo "$commit" | cut -d' ' -f1)"
+    if [ "x$command" = "xlog" ]; then
+      git "${binargs[@]}" log --format=format:"%at | %ct | version: $c_br%H$c_off%n %s (%an)" "${cmdargs[@]}" $commit | awk '{for(l=1; l<=3; l++) {if ($l~/[0-9]+/) {$l=strftime("%Y%b%d %H:%M:%S",$l);}}; print $0}' | xargs -0 echo -e | sed '$d'
+    else
+      format="$([ "x$command" = "xlog1" ] && echo "oneline" || echo "fuller")"
+      git "${binargs[@]}" log --format="$format" "${cmdargs[@]}" $commit | cat
+    fi
+  done
 }
 
 fnProcess() {
