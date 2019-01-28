@@ -30,7 +30,7 @@ fnNextFile() {
     if [[ "x$postfix" == "x" ]]; then
       file="${file}${delim}2"
     else
-      file="${file:0:$((${#file} - ${#postfix} - 1))}"
+      file="${file:0:$((${#file}-${#delim}-${#postfix}))}"
       while [ -e "${file}${delim}${postfix}" ]; do postfix=$((postfix + 1)); done
       file="${file}${delim}${postfix}"
     fi
