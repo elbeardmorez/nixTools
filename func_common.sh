@@ -23,7 +23,7 @@ fnDecision() {
 }
 
 fnNextFile() {
-  file=$1
+  file="$1"
   delim="${2:-"_"}"
   if [ -e "$file" ]; then
     postfix="$(echo "$file" | sed -n 's/.*_\([0-9]*\)$/\1/p')"
@@ -31,11 +31,11 @@ fnNextFile() {
       file="${file}${delim}2"
     else
       file="${file:0:$((${#file} - ${#postfix} - 1))}"
-      while [ -e ${file}${delim}${postfix} ]; do postfix=$((postfix + 1)); done
+      while [ -e "${file}${delim}${postfix}" ]; do postfix=$((postfix + 1)); done
       file="${file}${delim}${postfix}"
     fi
   fi
-  echo $file
+  echo "$file"
 }
 
 fnRandom() {
