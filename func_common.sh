@@ -26,7 +26,7 @@ fnNextFile() {
   file="$1"
   delim="${2:-"_"}"
   if [ -e "$file" ]; then
-    postfix="$(echo "$file" | sed -n 's/.*_\([0-9]*\)$/\1/p')"
+    postfix="$(echo "$file" | sed -n 's/.*'"$delim"'\([0-9]*\)$/\1/p')"
     if [[ "x$postfix" == "x" ]]; then
       file="${file}${delim}2"
     else
