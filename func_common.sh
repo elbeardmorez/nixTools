@@ -26,17 +26,19 @@ fnNextFile() {
   file="$1"
   delim="${2:-"_"}"
   suffix="${3:-""}"
+  [[ -n "$suffix" && ${#file} -gt ${#suffix} && \
+        "x${file:$((${#file}-${#suffix}))}" == "x$suffix" ]] && file="${file:0:$((${#file}-${#suffix}))}"
   if [ -e "${file}${suffix}" ]; then
     num="$(echo "$file" | sed -n 's/.*'"$delim"'\([0-9]*\)$/\1/p')"
     if [[ "x$num" == "x" ]]; then
-      file="${file}${delim}2${suffix}"
+      file="${file}${delim}2"
     else
       file="${file:0:$((${#file}-${#delim}-${#num}))}"
       while [ -e "${file}${delim}${num}${suffix}" ]; do num=$((num+1)); done
-      file="${file}${delim}${num}${suffix}"
+      file="${file}${delim}${num}"
     fi
   fi
-  echo "${file}"
+  echo "${file}${suffix}"
 }
 
 fnRandom() {
