@@ -73,6 +73,7 @@ fnCommitByName() {
   declare -a binargs
   declare -a cmdargs
   cmdargs=("--oneline")
+  declare search
   limit=1
   while [ -n "$1" ]; do
     case "$1" in

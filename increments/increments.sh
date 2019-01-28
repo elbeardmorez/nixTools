@@ -43,12 +43,13 @@ while [ -n "$1" ]; do
     "t"|"target") shift; target="$1" ;;
     "d"|"dump") shift; dump="$1" ;;
     "v"|"variants") shift; variants="$1" ;;
+    "pp"|"path-precedence") shift; precedence="$1" ;;
     *) search[${#search[@]}]="$1" ;;
   esac
   shift
 done
 
-[ $DEBUG -gt 0 ] && echo "[debug] mode: $mode, search: [${search[@]}], target: `basename $target`, dump: $dump, ]" 1>&2
+[ $DEBUG -gt 0 ] && echo "[debug] mode: $mode, search: [${search[@]}], target: `basename $target`, dump: $dump" 1>&2
 
 [ ${#search[@]} -eq 0 ] && help && echo "[error] no search items specified" &&  exit 1
 [ ! -d "$target" ] && echo "[error] invalid search target set '$target'. exiting!" && exit 1
