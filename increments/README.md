@@ -17,6 +17,11 @@ where OPTIONS can be:
   -v, --variants VARIANTS  : consider search variants given by
                              application of (sed) regexp
                              transformations in VARIANTS file
+  -pp, --path-precedence  : pipe ('|') delimited list of partial
+                            paths for matching on search results
+                            in order to override the default order
+                            of the ultimate set when desired
+
 environment variables:
   INCREMENTS_TARGET:  as detailed above
   INCREMENTS_SEARCH:  as detailed above
@@ -56,5 +61,4 @@ $ ls -1 increments
 - sed
 
 ## todo
-- match target precedence
 - remove duplicates

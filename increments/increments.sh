@@ -14,6 +14,7 @@ dump="increments"
 target=${INCREMENTS_TARGET:-}
 search=(${INCREMENTS_SEARCH:-})
 variants=${INCREMENTS_VARIANTS:-}
+precedence=${INCREMENTS_PRECEDENCE:-}
 
 help() {
   echo -e "
@@ -28,10 +29,15 @@ where OPTIONS can be:
   -v, --variants VARIANTS  : consider search variants given by
                              application of (sed) regexp
                              transformations in VARIANTS file
+  -pp, --path-precedence  : pipe ('|') delimited list of partial
+                            paths for matching on search results
+                            in order to override the default order
+                            of the ultimate set when desired
 \nenvironment variables:
   INCREMENTS_TARGET  : as detailed above
   INCREMENTS_SEARCH  : as detailed above
   INCREMENTS_VARIANTS  : as detailed above
+  INCREMENTS_PRECEDENCE  : as detailed above
 "
 }
 
@@ -95,9 +101,25 @@ for f in ${files[@]}; do
   s="$s\n$ts\t$sz\t$f"
 done
 s="${s:2}"
+sorted="$(echo -e "$s" | sort -t$'\t' -k1)"
+[ $DEBUG -gt 1 ] && echo -e "[debug] timestamp sorted table\n$sorted"
 
-IFS=$'\n'; sorted=(`echo -e "$s" | sort -t$'\t' -k1`); IFS="$IFSORG"
+# precedence
+if [ -n "$precedence" ]; then
+  IFS=$'|'; precedence_sets_searches=($(echo "$precedence")); IFS="$IFSORG"
+  s="$sorted"
+  l=0
+  for pss in "${precedence_sets_searches[@]}"; do
+    s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*'"$pss"'[^\t]*\)$/_'$l'_\t\1/')"
+    l=$(($l+1))
+  done
+  s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*\)$/_'$l'_\t\1/')"
+  [ $DEBUG -gt 1 ] && echo -e "[debug] timestamp sorted precedence sets keyed table\n$s"
+  sorted="$(echo "$s" | sort | sed 's/^_[0-9]\+_\t//')"
+  [ $DEBUG -gt 1 ] && echo -e "[debug] timestamp sorted precedence table\n$sorted"
+fi
 
+IFS=$'\n'; sorted=($(echo -e "$sorted")); IFS="$IFSORG"
 case "$mode" in
   "list")
     echo "[info] matched ${#files[@]} files" 1>&2
