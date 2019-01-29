@@ -12,6 +12,8 @@ fi
 c_off='\033[0m'
 c_red='\033[0;31m'
 
+ESCAPE_SED='].[|/-'
+
 fnDecision() {
   while [ 1 -eq 1 ]; do
     read "${CMDARGS_READ_SINGLECHAR[@]}"
@@ -53,4 +55,13 @@ fnTempFile() {
   f="$tmp/$SCRIPTNAME.$(fnRandom 10)"
   while [ -e "$f" ]; do f="$TMP/$SCRIPTNAME.$(fnRandom 10)"; done
   echo "$f"
+}
+
+fnRegexp() {
+  # escape reserved characters
+  exp="$1" && shift
+  [ $DEBUG -ge 2 ] && echo "[debug] raw expression: '$exp', sed protected chars: '$ESCAPE_SED'" 1>&2
+  exp="$(echo "$exp" | sed 's/\(['$ESCAPE_SED']\)/\\\1/g')"
+  [ $DEBUG -ge 2 ] && echo "[debug] protected expression: '$exp'" 1>&2
+  echo "$exp"
 }

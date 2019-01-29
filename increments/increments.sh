@@ -1,13 +1,14 @@
 #!/bin/sh
 
+# includes
+set -e
+x="$(dirname "$0")/$(basename "$0")"; [ ! -f "$x" ] && x="$(which $0)"; x="$(readlink -e "$x" || echo "$x")"
+. ${x%/*}/../func_common.sh
+set +e
+
 SCRIPTNAME=${0##*/}
 IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
-
-# compatibility
-if [ -n "$ZSH_VERSION" ]; then
-  setopt KSH_ARRAYS
-fi
 
 mode="list"
 dump="increments"
@@ -110,7 +111,7 @@ if [ -n "$precedence" ]; then
   s="$sorted"
   l=0
   for pss in "${precedence_sets_searches[@]}"; do
-    s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*'"$pss"'[^\t]*\)$/_'$l'_\t\1/')"
+    s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*'"$(fnRegexp "$pss")"'[^\t]*\)$/_'$l'_\t\1/')"
     l=$(($l+1))
   done
   s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*\)$/_'$l'_\t\1/')"
