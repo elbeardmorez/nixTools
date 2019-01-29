@@ -60,10 +60,11 @@ if [ -n "$variants" ]; then
   else
     declare -a search2
     search2=""
-    while read line; do
+    IFS=$'\n'; transforms=($(cat "$variants")); IFS="$IFSORG"
+    for transform in "${transforms[@]}"; do
       for s in "${search[@]}"; do
         search2+="$s\n"
-        v=$(echo "$s" | sed "s$line")
+        v=$(echo "$s" | sed 's'"$transform")
         [ -n "${v}" ] && search2+="$v\n"
       done
     done < $variants
