@@ -129,6 +129,7 @@ fnLog() {
   fi
   [ ${#commits[@]} -gt 1 ] && count=1
   [ -n "$count" ] && cmdargs=("-n" $count "${cmdargs[@]}")
+  commit_last="$(echo "${commits[$((${#commits[@]}-1))]}" | cut -d' ' -f1)"
   for commit in "${commits[@]}"; do
     commit="$(echo "$commit" | cut -d' ' -f1)"
     if [ "x$command" = "xlog" ]; then
@@ -136,6 +137,7 @@ fnLog() {
     else
       format="$([ "x$command" = "xlog1" ] && echo "oneline" || echo "fuller")"
       git "${binargs[@]}" log --format="$format" "${cmdargs[@]}" $commit | cat
+      [[ "x$command" == xlogx && "$commit" != "$commit_last" ]] && echo
     fi
   done
 }
