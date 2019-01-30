@@ -12,6 +12,7 @@ DEBUG=${DEBUG:-0}
 
 mode="list"
 dump="increments"
+remove_dupes=0
 target=${INCREMENTS_TARGET:-}
 search=(${INCREMENTS_SEARCH:-})
 variants=${INCREMENTS_VARIANTS:-}
@@ -34,12 +35,35 @@ where OPTIONS can be:
                             paths for matching on search results
                             in order to override the default order
                             of the ultimate set when desired
+  -nd, --no-duplicates  : use only first instance of any duplicate
+                          files matched
 \nenvironment variables:
   INCREMENTS_TARGET  : as detailed above
   INCREMENTS_SEARCH  : as detailed above
   INCREMENTS_VARIANTS  : as detailed above
   INCREMENTS_PRECEDENCE  : as detailed above
 "
+}
+
+fnFilesCompare() {
+  [ $DEBUG -ge 5 ] && echo "[debug | fnFilesCompare]" 1>&2
+  [ $# -lt 2 ] && echo "[error] not enough args" 1>&2 && return 1
+  declare base
+  declare md5base
+  declare md5compare
+  declare res
+  base="$1" && shift
+  [ ! -f "$base" ] && echo "[error] invalid file '$base'" 1>&2 && return 1
+  md5base="$(md5sum "$base" | cut -d' ' -f1)"
+  res=""
+  while [ -n "$1" ]; do
+    compare="$1"
+    [ ! -f "$base" ] && echo "[error] invalid file '$compare'" 1>&2 && return 1
+    md5compare="$(md5sum "$compare" | cut -d' ' -f1)"
+    res+="\n$compare\t$([ "x$md5base" == "x$md5compare" ] && echo 1 || echo 0)"
+    shift
+  done
+  echo -e "${res:2}"
 }
 
 while [ -n "$1" ]; do
@@ -51,6 +75,7 @@ while [ -n "$1" ]; do
     "d"|"dump") shift; dump="$1" ;;
     "v"|"variants") shift; variants="$1" ;;
     "pp"|"path-precedence") shift; precedence="$1" ;;
+    "nd"|"no-duplicates") shift; remove_dupes=1 ;;
     *) search[${#search[@]}]="$1" ;;
   esac
   shift
@@ -104,6 +129,59 @@ done
 s="${s:2}"
 sorted="$(echo -e "$s" | sort -t$'\t' -k1)"
 [ $DEBUG -gt 1 ] && echo -e "[debug] timestamp sorted table\n$sorted"
+
+# duplicates
+if [ $remove_dupes -eq 1 ]; then
+  IFS=$'\n'; sorted_size=($(echo -e "$sorted" | sort -t$'\t' -k2)); IFS="$IFSORG" # sort by size
+  l1=0
+  compared_dupe=""
+  while [ $l1 -lt ${#sorted_size[@]} ]; do
+    sz="$(echo "${sorted_size[$l1]}" | cut -d$'\t' -f2)"
+    f="$(echo "${sorted_size[$l1]}" | cut -d$'\t' -f3)"
+    compared_dupe+="\n${sorted_size[$l1]}\t0"  # unique or first
+    l1=$(($l1+1))
+    l2=0
+    s=()
+    while [[ $(($l1+$l2)) -lt ${#sorted_size[@]} && \
+             $sz -eq $(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f2) ]]; do
+      # collect any files with same size as first/base, yet to be deemed 'dupe'
+      f2="$(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f3)"
+      dupe="$(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f4)"
+      [ -z "$dupe" ] && s[${#s[@]}]="$f2"
+      l2=$(($l2+1))
+    done
+    if [ ${#s[@]} -gt 0 ]; then
+      # make comparison
+      compared="$(fnFilesCompare "$f" "${s[@]}")"
+      res=$?
+      [ $res -ne 0 ] && exit $res
+      # create merged data subset for sort
+      IFS=$'\n'; compared=($(echo -e "$compared")); IFS="$IFSORG"
+      s=""
+      for l3 in $(seq 0 1 $((l2-1))); do
+        s2="${sorted_size[$(($l1+$l3))]}"
+        c="${compared[$l3]}"
+        s+="\n$([ ${c#*$'\t'} -eq 1 ] && echo "${s2%$'\t'*%}\t1" || echo "${sorted_size[$(($l1+$l3))]}")"
+      done
+      # update set / replace subset with any dupes first
+      IFS=$'\n'; compared=($(echo -e "$s" | sort -t$'\t' -k4 -r)); IFS="$IFSORG"
+      dupes_count=0
+      for l3 in $(seq 0 1 $((l2-1))); do
+        sorted_size[$(($l1+$l3))]="${compared[$l3]}"
+        if [ -n "$(echo "${compared[$l3]}" | cut -d$'\t' -f4)" ]; then
+          compared_dupe+="\n${compared[$l3]}"  # dupe
+          dupes_count=$(($dupes_count+1))
+        fi
+      done
+      # move index beyond dupes for next base
+      l1=$(($l1+$dupes_count))
+    fi
+  done
+  compared_dupe="${compared_dupe:2}"
+  [ $DEBUG -gt 1 ] && echo -e "[debug] duplicate tested table\n$compared_dupe" 1>&2
+  sorted="$(echo -e "$compared_dupe" | sort -t$'\t' -k1 | sed '/\t1/d;s/\t0$//')"
+  [ $DEBUG -gt 1 ] && echo -e "[debug] timestamp sorted duplicate free table\n$sorted" 1>&2
+fi
 
 # precedence
 if [ -n "$precedence" ]; then

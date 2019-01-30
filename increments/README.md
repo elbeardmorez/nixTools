@@ -21,6 +21,8 @@ where OPTIONS can be:
                             paths for matching on search results
                             in order to override the default order
                             of the ultimate set when desired
+  -nd, --no-duplicates  : use only first instance of any duplicate
+                          files matched
 
 environment variables:
   INCREMENTS_TARGET:  as detailed above
@@ -59,6 +61,6 @@ $ ls -1 increments
 
 ## dependencies
 - sed
+- md5sum
 
 ## todo
-- remove duplicates
