@@ -60,7 +60,7 @@ help() {
 fnCommit() {
   [ $# -lt 1 ] && echo "[error] id arg missing" 1>&2 && return 1
   id="$1" && shift
-  commit="$(git log -n1 --oneline $id 2>/dev/null)"
+  commit="$(git rev-list --max-count=1 "$id" 2>/dev/null)"
   if [ $? -ne 0 ]; then
     commit="$(fnCommitByName "$id" "$@")"
     res=$?; [ $res -ne 0 ] && return $res
