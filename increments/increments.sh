@@ -216,7 +216,7 @@ if [ $diffs -eq 1 ]; then
 fi
 
 # list
-echo "[info] matched ${#files[@]} files" 1>&2
+echo "[info] matched ${#sorted[@]}$([ ${#files[@]} -ne ${#sorted[@]} ] && echo " unique") files" 1>&2
 date_format="%Y%b%d %H:%M:%S %z"
 field_date=0; field_size=1; field_path=2
 field_widths=(25 $(($maxlen_size+1)) $(($maxlen_path+1)))
