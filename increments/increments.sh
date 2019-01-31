@@ -70,7 +70,7 @@ while [ -n "$1" ]; do
     "t"|"target") shift; target="$1" ;;
     "v"|"variants") shift; variants="$1" ;;
     "pp"|"path-precedence") shift; precedence="$1" ;;
-    "nd"|"no-duplicates") shift; remove_dupes=1 ;;
+    "nd"|"no-duplicates") remove_dupes=1 ;;
     "d"|"diffs") diffs=1 ;;
     "dd"|"dump-diffs") shift; dump="$1" ;;
     *) search[${#search[@]}]="$1" ;;
