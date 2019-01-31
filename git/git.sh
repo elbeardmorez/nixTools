@@ -11,7 +11,7 @@ DEBUG=${DEBUG:-0}
 IFSORIG="$IFS"
 
 help() {
-  echo -e "SYNTAX: $SCRIPTNAME <OPTION> [OPTION-ARGS]
+  echo -e "SYNTAX: git_ <OPTION> [OPTION-ARGS] [-- [BIN-ARGS]]*
 \nwhere <OPTION> can be:\n
   help  : print this text
   diff  : output diff to stdout
@@ -53,6 +53,7 @@ help() {
                      HEAD of 'linked'
   rd|rescue-dangling  : dump any orphaned commits still accessable to
                         a 'commits' directory
+\n*note: optional binary args are supported for command: log
 "
 }
 

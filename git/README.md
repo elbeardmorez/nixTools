@@ -5,7 +5,7 @@ git wrapper adding several features and various customised calls to the underlyi
 
 ## usage
 ```
-SYNTAX: git_ <OPTION> [OPTION-ARGS]
+SYNTAX: git_ <OPTION> [OPTION-ARGS] [-- [BIN-ARGS]]*
 
 where <OPTION> can be:
 
@@ -51,4 +51,6 @@ where <OPTION> can be:
                      HEAD of 'linked'
   rd|rescue-dangling  : dump any orphaned commits still accessable to
                         a 'commits' directory
+
+*note: optional binary args are supported for command: log
 ```
