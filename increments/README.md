@@ -8,7 +8,7 @@ given a search set and a target, find all files satisfying the search under the 
 SYNTAX: increments_ [OPTIONS] search [search2 ..]
 
 where OPTIONS can be:
-  -t, --target TARGET:  search path
+  -t TARGET, --target TARGET:  search path
   -v, --variants VARIANTS  : consider search variants given by
                              application of (sed) regexp
                              transformations in VARIANTS file
@@ -61,5 +61,7 @@ $ ls -1 increments
 ## dependencies
 - sed
 - md5sum
+- tee
+- diff
 
 ## todo

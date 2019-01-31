@@ -11,7 +11,8 @@ IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
 
 diffs=0
-dump="increments"
+TARGET_DIFFS_DEFAULT="increments"
+declare target_diffs
 remove_dupes=0
 target=${INCREMENTS_TARGET:-}
 search=(${INCREMENTS_SEARCH:-})
@@ -22,7 +23,7 @@ help() {
   echo -e "
 SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
 \nwhere OPTIONS can be:
-  -t, --target TARGET:  search path
+  -t TARGET, --target TARGET:  search path
   -v, --variants VARIANTS  : consider search variants given by
                              application of (sed) regexp
                              transformations in VARIANTS file
@@ -72,13 +73,14 @@ while [ -n "$1" ]; do
     "pp"|"path-precedence") shift; precedence="$1" ;;
     "nd"|"no-duplicates") remove_dupes=1 ;;
     "d"|"diffs") diffs=1 ;;
-    "dd"|"dump-diffs") shift; dump="$1" ;;
+    "dd") target_diffs="$TARGET_DIFFS_DEFAULT" ;;
+    "dump-diffs") shift; target_diffs="$1" ;;
     *) search[${#search[@]}]="$1" ;;
   esac
   shift
 done
 
-[ $DEBUG -gt 0 ] && echo "[debug] search: [${search[@]}], target: `basename $target`, diffs: $diffs: diffs dump: $dump" 1>&2
+[ $DEBUG -gt 0 ] && echo "[debug] search: [${search[@]}], target: `basename $target`, diffs: $diffs: diffs target: $target_diffs" 1>&2
 
 [ ${#search[@]} -eq 0 ] && help && echo "[error] no search items specified" &&  exit 1
 [ ! -d "$target" ] && echo "[error] invalid search target set '$target'. exiting!" && exit 1
@@ -199,20 +201,29 @@ fi
 IFS=$'\n'; sorted=($(echo -e "$sorted")); IFS="$IFSORG"
 
 # diffs
-if [ $diffs -eq 1 ]; then
-  [ ! -d "$dump" ] && mkdir -p "$dump"
+if [[ $diffs -eq 1 || -n "$target_diffs" ]]; then
+  [[ -n "$target_diffs" && ! -d "$target_diffs" ]] && mkdir -p "$target_diffs"
   last="/dev/null"
+  bin=diff
   for r in "${sorted[@]}"; do
     [ $DEBUG -gt 2 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
     IFS=$'\t'; fields=($r); IFS="$IFSORG"
     ts=${fields[0]}
     sz=${fields[1]}
     f="${fields[2]}"
+    binargs=("-u" "$last" "$f")
     [ $DEBUG -gt 1 ] && echo "[debug] diff '$last <-> $f'"
-    diff -u "$last" "$f" > "$dump/$ts.diff"
+    if [[ $diffs -eq 1 && -n "$target_diffs" ]]; then
+      $bin "${binargs[@]}" | tee "$target_diffs/$ts.diff"
+    elif [ $diffs -eq 1 ]; then
+      $bin "${binargs[@]}"
+    else
+      $bin "${binargs[@]}" > "$target_diffs/$ts.diff"
+    fi
     last="$f"
   done
-  echo "[info] dumped ${#sorted[@]} diffs to '$dump'" 1>&2
+  [ -n "$target_diffs" ] && \
+    echo "[info] dumped ${#sorted[@]} diffs to '$target_diffs'" 1>&2
 fi
 
 # list
