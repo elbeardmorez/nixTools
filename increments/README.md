@@ -5,13 +5,8 @@ given a search set and a target, find all files satisfying the search under the 
 
 ## usage
 ```
-SYNTAX: increments.sh [MODE] [OPTIONS] search [search2 ..]
+SYNTAX: increments_ [OPTIONS] search [search2 ..]
 
-where MODE can be:
-  list  : list search matches in incremental order
-  diffs  : create a set of diffs from matches
-    where OPTIONS can be:
-      -d, --dump TARGET  : target path for diffs (default: increments)
 where OPTIONS can be:
   -t, --target TARGET:  search path
   -v, --variants VARIANTS  : consider search variants given by
@@ -23,10 +18,14 @@ where OPTIONS can be:
                             of the ultimate set when desired
   -nd, --no-duplicates  : use only first instance of any duplicate
                           files matched
+  -d, --diffs  : output incremental diffs of search matches
+  -dd, --dump-diffs PATH  : write diffs to PATH (default: increments)
 
 environment variables:
   INCREMENTS_TARGET:  as detailed above
   INCREMENTS_SEARCH:  as detailed above
+  INCREMENTS_VARIANTS  : as detailed above
+  INCREMENTS_PRECEDENCE  : as detailed above
 ```
 
 ## examples
@@ -35,7 +34,6 @@ $ increments.sh -t test/source/ x.cpp
 [info] matched 2 files
 
 path                 size                     date
-test/source/x.cpp      21 2018Jul14 16:05:47 +0100
 test/source/2/x.cpp    29 2018Jul14 16:06:33 +0100
 ```
 
@@ -51,7 +49,8 @@ test/source/2/x.cpp     29 2018Jul14 16:06:33 +0100
 ```
 
 ```
-$ increments.sh diffs -t test/source/ x.cpp
+$ increments.sh -t test/source/ --diffs x.cpp
+...
 [info] dumped 2 diffs to 'increments'
 
 $ ls -1 increments

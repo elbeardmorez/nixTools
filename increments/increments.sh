@@ -10,7 +10,7 @@ SCRIPTNAME=${0##*/}
 IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
 
-mode="list"
+diffs=0
 dump="increments"
 remove_dupes=0
 target=${INCREMENTS_TARGET:-}
@@ -20,13 +20,8 @@ precedence=${INCREMENTS_PRECEDENCE:-}
 
 help() {
   echo -e "
-SYNTAX: $SCRIPTNAME [MODE] [OPTIONS] search [search2 ..]
-\nwhere MODE can be:
-  list  : list search matches in incremental order
-  diffs  : create a set of diffs from matches
-    where OPTIONS can be:
-      -d, --dump TARGET  : target path for diffs (default: increments)
-where OPTIONS can be:
+SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
+\nwhere OPTIONS can be:
   -t, --target TARGET:  search path
   -v, --variants VARIANTS  : consider search variants given by
                              application of (sed) regexp
@@ -37,6 +32,8 @@ where OPTIONS can be:
                             of the ultimate set when desired
   -nd, --no-duplicates  : use only first instance of any duplicate
                           files matched
+  -d, --diffs  : output incremental diffs of search matches
+  -dd, --dump-diffs PATH  : write diffs to PATH (default: increments)
 \nenvironment variables:
   INCREMENTS_TARGET  : as detailed above
   INCREMENTS_SEARCH  : as detailed above
@@ -70,18 +67,18 @@ while [ -n "$1" ]; do
   s="$(echo "$1" | sed -n 's/^-*//gp')"
   case "$s" in
     "h"|"help") help && exit ;;
-    "list"|"diffs") mode="$s" ;;
     "t"|"target") shift; target="$1" ;;
-    "d"|"dump") shift; dump="$1" ;;
     "v"|"variants") shift; variants="$1" ;;
     "pp"|"path-precedence") shift; precedence="$1" ;;
     "nd"|"no-duplicates") shift; remove_dupes=1 ;;
+    "d"|"diffs") diffs=1 ;;
+    "dd"|"dump-diffs") shift; dump="$1" ;;
     *) search[${#search[@]}]="$1" ;;
   esac
   shift
 done
 
-[ $DEBUG -gt 0 ] && echo "[debug] mode: $mode, search: [${search[@]}], target: `basename $target`, dump: $dump" 1>&2
+[ $DEBUG -gt 0 ] && echo "[debug] search: [${search[@]}], target: `basename $target`, diffs: $diffs: diffs dump: $dump" 1>&2
 
 [ ${#search[@]} -eq 0 ] && help && echo "[error] no search items specified" &&  exit 1
 [ ! -d "$target" ] && echo "[error] invalid search target set '$target'. exiting!" && exit 1
@@ -198,9 +195,27 @@ if [ -n "$precedence" ]; then
   [ $DEBUG -gt 1 ] && echo -e "[debug] timestamp sorted precedence table\n$sorted"
 fi
 
+# switch to array items
 IFS=$'\n'; sorted=($(echo -e "$sorted")); IFS="$IFSORG"
-case "$mode" in
-  "list")
+
+# diffs
+if [ $diffs -eq 1 ]; then
+  [ ! -d "$dump" ] && mkdir -p "$dump"
+  last="/dev/null"
+  for r in "${sorted[@]}"; do
+    [ $DEBUG -gt 2 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
+    IFS=$'\t'; fields=($r); IFS="$IFSORG"
+    ts=${fields[0]}
+    sz=${fields[1]}
+    f="${fields[2]}"
+    [ $DEBUG -gt 1 ] && echo "[debug] diff '$last <-> $f'"
+    diff -u "$last" "$f" > "$dump/$ts.diff"
+    last="$f"
+  done
+  echo "[info] dumped ${#sorted[@]} diffs to '$dump'" 1>&2
+fi
+
+# list
     echo "[info] matched ${#files[@]} files" 1>&2
     date_format="%Y%b%d %H:%M:%S %z"
     field_date=0; field_size=1; field_path=2
@@ -226,20 +241,3 @@ case "$mode" in
       done
       printf '\n'
     done
-    ;;
-  "diffs")
-    [ ! -d "$dump" ] && mkdir -p "$dump"
-    last="/dev/null"
-    for r in "${sorted[@]}"; do
-      [ $DEBUG -gt 2 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
-      IFS=$'\t'; fields=($r); IFS="$IFSORG"
-      ts=${fields[0]}
-      sz=${fields[1]}
-      f="${fields[2]}"
-      [ $DEBUG -gt 1 ] && echo "[debug] diff '$last <-> $f'"
-      diff -u "$last" "$f" > "$dump/$ts.diff"
-      last="$f"
-    done
-    echo "[info] dumped ${#sorted[@]} diffs to '$dump'" 1>&2
-    ;;
-esac
