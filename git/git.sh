@@ -116,7 +116,7 @@ fnLog() {
   while [ -n "$1" ]; do
     [ "x$(echo "$1" | sed -n '/^[0-9]\+$/p')" != "x" ] && count=$1 && shift && continue
     [ "x$(echo "$1" | sed -n '/^[^-]\+/p')" != "x" ] && search=$1 && shift && continue
-    [ "x$1" = "x--" ] && cmdargs=("${cmdargs[@]}" "$@") && break
+    [ "x$1" = "x--" ] && shift && cmdargs=("${cmdargs[@]}" "$@") && break
     cmdargs[${#cmdargs[@]}]="$1"
     shift
   done
