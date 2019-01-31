@@ -22,8 +22,8 @@ where OPTIONS can be:
   -dd, --dump-diffs PATH  : write diffs to PATH (default: increments)
 
 environment variables:
-  INCREMENTS_TARGET:  as detailed above
-  INCREMENTS_SEARCH:  as detailed above
+  INCREMENTS_TARGET  : as detailed above
+  INCREMENTS_SEARCH  : as detailed above
   INCREMENTS_VARIANTS  : as detailed above
   INCREMENTS_PRECEDENCE  : as detailed above
 ```
