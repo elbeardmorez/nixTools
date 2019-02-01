@@ -596,7 +596,7 @@ function build()
   args=$@
 
   ## pkg name
-  [[ ${#args[@]} -gt 0 && "x`echo "${args[0]}" | sed -n '/\(user\|system\|noconfig\|nobuild\|noinstall|\uninstall\|clean\|distclean\|vala-clean\)/p'`" == "x" ]] && pkg="$args1" && args="${args[@]:1}"
+  [[ ${#args[@]} -gt 0 && "x`echo "${args[0]}" | sed -n '/\(user\|system\|noconfig\|nobuild\|noinstall|\uninstall\|clean\|distclean\|vala-clean\)/p'`" == "x" ]] && pkg="${args[0]}" && args="${args[@]:1}"
 
   ## build
   if [ $# -gt 0 ]; then
