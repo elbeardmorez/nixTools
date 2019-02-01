@@ -20,54 +20,52 @@ function help()
   echo usage: $SCRIPTNAME 'sPkgName'
 }
 
+fnPackageInfo() {
+  type="$1" && shift
+  case "$type" in
+    "iso_source")
+      echo -e "$1" | sed -n 's/.*\.\/\([a-zA-Z]\+\)\/[^ ]*\/\([^ ]*\)-\([0-9]\+\.[0-9.]\+[.0-9]*[a-zA-Z]\?\)\([_-][0-9]*\)\?\.tar.\(xz\|gz\).*/[\1] \2 \3/p'
+      ;;
+    "iso_package")
+      echo -e "$1" | sed -n 's/.*\.\/\([a-zA-Z]\+\)\/\([^ ]*\)-\([0-9]\+\.[0-9.]\+[.0-9]*[a-zA-Z]\?\)\([_-][0-9]*\)\?.*\.t\(xz\|gz\).*/[\1] \2 \3/p'
+      ;;
+    "remote")
+      echo -e "$1" | sed -n 's/^PACKAGE NAME:[ ]*\([^ ]*\)-\([0-9._]\+[a-z]\?\)\-.*x86.*-.*LOCATION:[ ]*\.\/.*\/\([a-z]\).*/[\3] \1 \2/ip'
+      ;;
+  esac
+}
+
 function sSearch()
 {
   search="$1" && shift
   if [ "$REPOSOURCE" != "current" ]; then
-    # local sample source
-
-    ## input
-    ##./n/cyrus-sasl/cyrus-sasl-2.1.26-null-crypt.patch.gz ./n/cyrus-sasl/cyrus-sasl-2.1.26-size_t.patch.gz ./n/cyrus-sasl/cyrus-sasl-2.1.26.tar.xz
-
-    ## output
-    ##[n] cyrus-sasl 2.1.26
-
     # search source iso
     SOURCE=/mnt/iso/slackware-$REPOSOURCE-source/source
     if [ -d $SOURCE ]; then
       cd $SOURCE
-      results=`find . -iname "*$search*z" | grep "/.*$search.*/"`
+      results="$(find . -iname "*$search*z" | grep "/.*$search.*/")"
       cd - 2>&1 > /dev/null
       if [ "x$results" == "x" ]; then
         echo "no package found" 1>&2
         return 1
       else
-        echo $results | sed -n 's/.*\.\/\([a-zA-Z]\+\)\/[^ ]*\/\([^ ]*\)-\([0-9]\+\.[0-9.]\+[.0-9]*[a-zA-Z]\?\)\([_-][0-9]*\)\?\.tar.\(xz\|gz\).*/[\1] \2 \3/p'
+        fnPackageInfo "iso_source" "$results"
         return
       fi
     else
       echo "invalid source location: '$SOURCE'" 1>&2
     fi
-
-    # local sample package
-
-    ## input
-    ## ./l/giflib-5.1.1-x86_64-1.txz
-
-    ## output
-    ## [l] giflib 5.1.1
-
     # search package iso
     SOURCEPKG=/mnt/iso/slackware$ARCHSUFFIX-$REPOSOURCE/slackware$ARCHSUFFIX
     if [ -d $SOURCEPKG ]; then
       cd $SOURCEPKG
-      results=`find . -iname "*$search*z"`
+      results="$(find . -iname "*$search*z")"
       cd - 2>&1 > /dev/null
       if [ "x$results" == "x" ]; then
         echo "no package found" 1>&2
         return 1
       else
-        echo $results | sed -n 's/.*\.\/\([a-zA-Z]\+\)\/\([^ ]*\)-\([0-9]\+\.[0-9.]\+[.0-9]*[a-zA-Z]\?\)\([_-][0-9]*\)\?.*\.t\(xz\|gz\).*/[\1] \2 \3/p'
+        fnPackageInfo "iso_package" "$results"
         return
       fi
     else
@@ -75,20 +73,14 @@ function sSearch()
     fi
 
   else
-    # remote sample
-
-    ## input
-    ## PACKAGE NAME:  ConsoleKit2-1.0.0-x86_64-3.txz
-    ## PACKAGE LOCATION:  ./slackware64/l
-
-    ## output
-    ## [l] ConsoleKit2 1.0.0
+    # search remote
 
     #ensure list
     [ ! -f $PKGLISTLOCAL ] && slackpkg update
     [ ! $? ] && return 1
 
-    sed -n '/^PACKAGE NAME:[ ]*.*'"$search"'.*/{N;s/^PACKAGE NAME:[ ]*\(.*'"$search"'[^-]*\)-\([0-9._]\+[a-z]\?\)\-.*x86.*-.*LOCATION:[ ]*\.\/.*\/\([a-z]\).*/[\3] \1 \2/ip}' $PKGLISTLOCAL
+    results="$(sed -n '/^PACKAGE NAME:[ ]*.*'"$search"'.*/{N;s/\n\(.\)/|\1/;p}' $PKGLISTLOCAL)"
+    fnPackageInfo "remote" "$results"
   fi
 }
 
@@ -682,6 +674,42 @@ function convert()
   ldconfig && ldconfig -p | grep ${pkg%%-*}
 }
 
+ftest() {
+  target="$1" && shift
+  case $target in
+    "fnPackageInfo")
+      if [ $# -eq 0 ]; then
+        # iso source
+        type="iso_source"
+        in="./n/cyrus-sasl/cyrus-sasl-2.1.26-null-crypt.patch.gz ./n/cyrus-sasl/cyrus-sasl-2.1.26-size_t.patch.gz ./n/cyrus-sasl/cyrus-sasl-2.1.26.tar.xz"
+        out="[n] cyrus-sasl 2.1.26"
+        res=$($target "$type" "$in")
+        echo "[$target | $type | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
+        # iso package
+        type="iso_package"
+        in="./l/giflib-5.1.1-x86_64-1.txz"
+        out="[l] giflib 5.1.1"
+        res=$($target "$type" "$in")
+        echo "[$target | $type | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
+        # remote package
+        type="remote"
+        in="PACKAGE NAME:  ConsoleKit2-1.0.0-x86_64-3.txz\nPACKAGE LOCATION:  ./slackware64/l"
+        out="[l] ConsoleKit2 1.0.0"
+        res=$($target "$type" "$in")
+        echo "[$target | $type | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
+      else
+        type="$1" && shift
+        in="$@"
+        res=$($target "$type" "$in")
+        echo "[$target | $type | ${in[@]}] out: '$res' | $([ "x$res" != "x" ] && echo "pass" || echo "fail")"
+      fi
+      ;;
+    *)
+      $target "$@"
+      ;;
+  esac
+}
+
 #args
 [ ! $# -gt 0 ] && help && echo "[error] no enough args" && exit 1
 [ "x$1" == "x-x" ] && DEBUG=1 && shift
@@ -699,6 +727,7 @@ case "$(echo "$option" | awk '{print tolower($1)}')" in
   "convert"|"cv") convert "$@" ;;
   "download"|"dl") sDownload "$@" ;;
   "search"|"srch") sSearch "$@" ;;
+  "test") ftest "$@" ;;
   *) slackbuild "$option" "$@" ;;
 esac
 
