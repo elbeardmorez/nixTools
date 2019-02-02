@@ -737,7 +737,7 @@ case "$(echo "$option" | awk '{print tolower($1)}')" in
   "sbupdate"|"sbu") sbUpdate "$1" ;;
   "mldownload"|"mld") mlDownload "$1" ;;
   "mlupdate"|"mlu") mlUpdate "$1" ;;
-  "build"|"sb") build "$@" ;;
+  "build"|"bd") build "$@" ;;
   "convert"|"cv") convert "$@" ;;
   "download"|"dl") sDownload "$@" ;;
   "search"|"srch") sSearch "$@" ;;
