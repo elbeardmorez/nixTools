@@ -15,8 +15,7 @@ ARCH2=${ARCH:-"$(uname -m)"} && [ ${ARCH2:$[${#ARCH2}-2]:2} == 64 ] && ARCHSUFFI
 URLSOURCE=https://mirror.slackbuilds.org/slackware/slackware$ARCHSUFFIX-$REPOSOURCE/source
 PKGLISTLOCAL=/var/lib/slackpkg/PACKAGES.TXT
 
-function help()
-{
+help() {
   echo usage: $SCRIPTNAME 'sPkgName'
 }
 
@@ -41,8 +40,7 @@ fnPackageInfo() {
   esac
 }
 
-function sSearch()
-{
+sSearch() {
   search="$1" && shift
   if [ "$REPOSOURCE" != "current" ]; then
     # search source iso
@@ -90,8 +88,7 @@ function sSearch()
   fi
 }
 
-function sDownload()
-{
+sDownload() {
   SEARCH="$1" && shift
   PATHTARGET=~/packages/
   DEBUG=0
@@ -201,8 +198,7 @@ function sDownload()
   done
 }
 
-function slUpdate()
-{
+slUpdate() {
   lReturn=0
   pkglist=/tmp/packages.current
 
@@ -229,8 +225,7 @@ function slUpdate()
   return $lReturn
 }
 
-function slList()
-{
+slList() {
   pkglist=/tmp/packages.current
 
   slUpdate
@@ -245,8 +240,8 @@ function slList()
   esac
 
 }
-function sbUpdate()
-{
+
+sbUpdate() {
   PKGLIST=/tmp/packages.slackbuilds
   PKGLISTREMOTE="$URLSLACKBUILDS$REPOSLACKBUILDS""/SLACKBUILDS.TXT"
   wget -P /tmp $WGETOPTS $PKGLISTREMOTE -O $PKGLIST.all
@@ -259,8 +254,8 @@ function sbUpdate()
   sed -n "/^.*NAME:.*$/,/^.*VERSION:.*$/{/NAME:/{h;b};H;/VERSION:/{g;s|^.*NAME:\s*\(\S*\).*VERSION:\s\(\S*\)|SLACKBUILD PACKAGE: \1\-\2|p;x;p};b};p" $PKGLIST.all > $PKGLIST
   return $?
 }
-function sbSearch()
-{
+
+sbSearch() {
   PKGLIST=/tmp/packages.slackbuilds
 
   #ensure list
@@ -269,8 +264,8 @@ function sbSearch()
 
   sed -n "s|^SLACKBUILD PACKAGE: \(.*$1.*\)|\1|ip" "$PKGLIST"
 }
-function sbDownload()
-{
+
+sbDownload() {
   SEARCH="$1"
   DEBUG=1
   if [ $# -gt 1 ]; then
@@ -355,14 +350,13 @@ function sbDownload()
   fi
 }
 
-function mlUpdate()
-{
+mlUpdate() {
   PKGLIST=/tmp/packages.multilib
   wget -P /tmp $WGETOPTS $URLMULTILIB"FILELIST.TXT" -O $PKGLIST.all
   sed -n 's|.*\ \.\/current\/\(.*t[gx]z$\)|\1|p' $PKGLIST.all > $PKGLIST
 }
-function mlDownload()
-{
+
+mlDownload() {
   SEARCH="$1"
   PATHTARGET=~/packages/
   PKGLIST=/tmp/packages.multilib
@@ -401,8 +395,7 @@ function mlDownload()
   fi
 }
 
-function mlDownload2()
-{
+mlDownload2() {
   PATHTARGET=~/packages/
 #  wget -P /tmp $WGETOPTS $URLMULTILIB/FILELIST.TXT
   sed -n 's|.*current\/\(.*t[gx]z$\)|\1|p' /tmp/FILELIST.TXT > /tmp/packages.multilib
@@ -426,8 +419,7 @@ function mlDownload2()
  fi
 }
 
-function prefixes()
-{
+prefixes() {
   FILE="$1"
   BUILDTYPE="$2"
   FORCE="$3"
@@ -453,8 +445,7 @@ function prefixes()
     sed -n -i '1{s/\(.*\)/\1\n'"$flag"'/mp;b};p' "$FILE"
 }
 
-function slackbuild()
-{
+slackbuild() {
   FORCE=0
   COMPAT=0
   BUILD=1
@@ -582,8 +573,7 @@ function slackbuild()
   fi
 }
 
-function build()
-{
+build() {
   #simple build
 
   CONFIG=1
@@ -668,8 +658,7 @@ function build()
   fi
 }
 
-function convert()
-{
+convert() {
   IFS=$'\n'; pkg=($(echo "$1" | sed 's/\([^-]*\)\-\([0-9.gitsvnba]*\)-\(x86_64\|i[4-6]86\|$\)-\([0-9]\|$\)\(_\?[a-zA-Z0-9]*\|$\)\(\.tar.*\|\.t[gx].*\|\)/\1\n\2\n\3\n\4/')); IFS=$IFSORG
   [ ${#pkg[@]} -ne 4 ] && echo "[error] cannot parse 'pkg-ver-arch-build' parts for '$1'" && exit 1
 #  for s in "${pkg[@]}"; do echo $s; done
