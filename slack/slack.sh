@@ -22,6 +22,9 @@ help() {
 fnPackageInfo() {
   type="$1" && shift
   case "$type" in
+    "string")
+      echo "$1" | sed -n 's/\([^ ]*\)-\(\([0-9]\+\.\?[0-9.]\+[a-z]\?\)\|\([a-z]\{3\}[0-9]\+[^-]\+\)\)/\1|\2/p'
+      ;;
     "archive")
       echo "$1" | sed -n 's/\([^ ]*\)-\(\([0-9]\+\.\?[0-9.]\+[a-z]\?\)\|\([a-z]\{3\}[0-9]\+[^-]\+\)\).*\.\(tar.\|t\)\(xz\|gz\).*/\1|\2/p'
       ;;
@@ -674,6 +677,16 @@ ftest() {
   case $target in
     "fnPackageInfo")
       if [ $# -eq 0 ]; then
+        # string
+        type="string"
+        tests=("openssl-1.0.1e|openssl|1.0.1e"
+               "xorg-git2018Jun20|xorg|git2018Jun20")
+        for s in ${tests[@]}; do
+          in="$(echo "$s" | cut -d'|' -f1)"
+          out="$(echo "$s" | cut -d'|' -f2-)"
+          res=$($target "$type" "$in")
+          echo "[$target | $type | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
+        done
         # archive
         type="archive"
         tests=("cyrus-sasl-2.1.26.tar.xz|cyrus-sasl|2.1.26"
