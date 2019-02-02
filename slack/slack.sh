@@ -725,9 +725,9 @@ ftest() {
 }
 
 #args
-[ ! $# -gt 0 ] && help && echo "[error] no enough args" && exit 1
+[ ! $# -gt 0 ] && help && echo "[error] not enough args" && exit 1
 [ "x$1" == "x-x" ] && DEBUG=1 && shift
-[ ! $# -gt 0 ] && help && echo "[error] no enough args" && exit 1
+[ ! $# -gt 0 ] && help && echo "[error] not enough args" && exit 1
 option=$1 && shift
 case "$(echo "$option" | awk '{print tolower($1)}')" in
   "slupdate"|"slu") slUpdate "$@" ;;
