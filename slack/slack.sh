@@ -724,12 +724,32 @@ ftest() {
   esac
 }
 
+option="slackbuild"
+
 #args
-[ ! $# -gt 0 ] && help && echo "[error] not enough args" && exit 1
-option=$1 && shift
-case "$(echo "$option" | awk '{print tolower($1)}')" in
+[ $# -eq 0 ] && help && echo "[error] not enough args" && exit 1
+
+s="$(echo "$1" | awk '{s=tolower($0); gsub(/^[-]*/, "", s); print s}')"
+[ "x$(echo "$s" | sed -n '/^\('\
+'slupdate\|slu\|'\
+'sllist\|sll\|list\|l\|'\
+'slackbuild\|sb\|'\
+'sbdownload\|sbd\|'\
+'sbsearch\|sbs\|'\
+'sbupdate\|sbu\|'\
+'mldownload\|mld\|'\
+'mlupdate\|mlu\|'\
+'build\|bd\|'\
+'convert\|cv\|'\
+'download\|dl\|'\
+'search\|s\|'\
+'test'\
+'\)$/p')" != "x" ] && option="$s" && shift
+
+case "$option" in
   "slupdate"|"slu") slUpdate "$@" ;;
   "sllist"|"sll"|"list"|"l") slList "$@" ;;
+  "slackbuild"|"sb") slackbuild "$@" ;;
   "sbdownload"|"sbd") sbDownload "$1" ;;
   "sbsearch"|"sbs") sbSearch "$1" ;;
   "sbupdate"|"sbu") sbUpdate "$1" ;;
@@ -740,6 +760,5 @@ case "$(echo "$option" | awk '{print tolower($1)}')" in
   "download"|"dl") sDownload "$@" ;;
   "search"|"srch") sSearch "$@" ;;
   "test") ftest "$@" ;;
-  *) slackbuild "$option" "$@" ;;
 esac
 
