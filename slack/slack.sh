@@ -19,6 +19,17 @@ help() {
   echo usage: $SCRIPTNAME 'sPkgName'
 }
 
+fnExtract() {
+  archive="$1"
+  target="$2"
+  [ -f "./$archive" ] && archive="$(pwd)/$archive"
+  [ ! -d "$target" ] && mkdir -p "$target"
+  cd "$target"
+  tar -xf "$archive"
+  [ $(ls -1 | wc -l) == 1 ] && d=$(echo *) && mv "$d"/* . && rmdir "$d"
+  cd - >/dev/null 2>&1
+}
+
 fnPackageInfo() {
   type="$1" && shift
   case "$type" in
@@ -731,6 +742,12 @@ ftest() {
         res=$($target "$type" "$in")
         echo "[$target | $type | ${in[@]}] out: '$res' | $([ "x$res" != "x" ] && echo "pass" || echo "fail")"
       fi
+      ;;
+    "fnExtract")
+      in=($@)
+      $target ${in[@]}
+      res=$([[ $? -eq 0 && -d "${in[1]}" ]] && echo $(ls -1 ${in[1]} | wc -l) || echo 0)
+      echo "[$target | ${in[@]}] extracted count: '$res' | $([ $res -gt 0 ] && echo "pass" || echo "fail")"
       ;;
     *)
       $target "$@"
