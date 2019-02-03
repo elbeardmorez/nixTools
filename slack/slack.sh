@@ -679,30 +679,30 @@ ftest() {
       if [ $# -eq 0 ]; then
         # string
         type="string"
-        tests=("openssl-1.0.1e|openssl|1.0.1e"
-               "xorg-git2018Jun20|xorg|git2018Jun20")
-        for s in ${tests[@]}; do
-          in="$(echo "$s" | cut -d'|' -f1)"
-          out="$(echo "$s" | cut -d'|' -f2-)"
+        tests=("openssl-1.0.1e openssl|1.0.1e"
+               "xorg-git2018Jun20 xorg|git2018Jun20")
+        for s in "${tests[@]}"; do
+          in="$(echo "$s" | cut -d' ' -f1)"
+          out="$(echo "$s" | cut -d' ' -f2)"
           res=$($target "$type" "$in")
           echo "[$target | $type | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
         done
         # archive
         type="archive"
-        tests=("cyrus-sasl-2.1.26.tar.xz|cyrus-sasl|2.1.26"
-               "giflib-5.1.1-x86_64-1.tgz|giflib|5.1.1")
-        for s in ${tests[@]}; do
-          in="$(echo "$s" | cut -d'|' -f1)"
-          out="$(echo "$s" | cut -d'|' -f2-)"
+        tests=("cyrus-sasl-2.1.26.tar.xz cyrus-sasl|2.1.26"
+               "giflib-5.1.1-x86_64-1.tgz giflib|5.1.1")
+        for s in "${tests[@]}"; do
+          in="$(echo "$s" | cut -d' ' -f1)"
+          out="$(echo "$s" | cut -d' ' -f2)"
           res=$($target "$type" "$in")
           echo "[$target | $type | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
         done
         # dir
         type="dir"
-        tests=("callibre-git2019Feb01-x86_64|callibre|git2019Feb01")
-        for s in ${tests[@]}; do
-          in="$(echo "$s" | cut -d'|' -f1)"
-          out="$(echo "$s" | cut -d'|' -f2-)"
+        tests=("callibre-git2019Feb01-x86_64 callibre|git2019Feb01")
+        for s in "${tests[@]}"; do
+          in="$(echo "$s" | cut -d' ' -f1)"
+          out="$(echo "$s" | cut -d' ' -f2)"
           res=$($target "$type" "$in")
           echo "[$target | "$type" | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
         done
