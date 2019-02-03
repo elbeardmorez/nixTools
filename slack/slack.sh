@@ -592,35 +592,37 @@ build() {
   BUILD=1
   INSTALL=1
 
-  # args
-  args=$@
+  ## package info
+  s=""
+  [[ $# -gt 0 && "x`echo "$1" | sed -n '/\(user\|system\|noconfig\|nobuild\|noinstall\)/p'`" == "x" ]] && s=$(fnPackageInfo "string" "$1")
+  [ "x$s" != "x" ] && pkg="$(echo $s | cut -d'|' -f1)" && pkgver="$(echo $s | cut -d'|' -f2)" && shift
+  [ "x$pkg" == "x" ] && s="$(fnPackageInfo "dir" $(basename $(pwd)))"
+  [ "x$s" != "x" ] && pkg="$(echo $s | cut -d'|' -f1)" && pkgver="$(echo $s | cut -d'|' -f2)"
+  [ "x$pkg" == "x" ] && help && echo "[error] cannot determine package details" && exit 1
 
-  ## pkg name
-  [[ ${#args[@]} -gt 0 && "x`echo "${args[0]}" | sed -n '/\(user\|system\|noconfig\|nobuild\|noinstall\)/p'`" == "x" ]] && pkg="${args[0]}" && args="${args[@]:1}"
-
-  ## build
+  ## switches
   if [ $# -gt 0 ]; then
-    args2=()
-    for arg in "${args[@]}"; do
+    declare -a args
+    while [ $# -gt 0 ]; do
+      arg="$1"
       case "$arg" in
-        "user"|"system") BUILDTYPE=$1 && shift ;;
+        "user"|"system") BUILDTYPE="$arg" && shift ;;
         "noconfig") CONFIG=0 && shift ;;
         "nobuild") BUILD=0 && shift ;;
         "noinstall") INSTALL=0 && shift ;;
-        *) args2=("${args2[@]}" "$arg") ;;
+        *) args[${#args[@]}]="$arg" ;;
       esac
     done
-    args="${args2[@]}"
   fi
   [ $DEBUG -ge 1 ] && echo "buildtype: '$BUILDTYPE', force: '$FORCE', compat: '$COMPAT'"
 
   ## build prep
-  args2=()
+  declare -a args2
   for arg in "${args[@]}"; do
     if [ "x`echo "$arg" | sed -n '/\(uninstall\|clean\|distclean\|vala-clean\)/p'`" != "x" ]; then
       make "$arg"
     else
-      args2=("${args2[@]}" "$arg")
+      args2[${#args2}]="$arg"
     fi
   done
   args="${args2[@]}"
@@ -629,9 +631,24 @@ build() {
   [ "x$BUILDTYPE" == "xsystem" ] && target="/usr"
 
   arch2=$ARCH && [ "x${arch2:$[${#arch2}-2]}" == "x86" ] && arch2=x86
-  [ "x${pkg:$[${#pkg}-${#arch2}-1]}" == "x-$arch2" ] && pkg=${pkg%-$arch2}
-  [ ! -d $pkg-$arch2 ] && fnExtract $pkg.tar.* "$pkg-$arch2"
-  [ -d $pkg-$arch2 ] && cd $pkg-$arch2
+
+  ## build source
+  if [[ ! -f "./configure" && ! -f "./autogen.sh" ]]; then
+    if [ -d "$pkg-$pkgver-$arch2" ]; then
+      cd "$pkg-$pkgver-$arch2" >/dev/null 2>&1
+    elif [ -d "src-$arch2" ]; then
+      cd "src-$arch2" >/dev/null 2>&1
+    else
+      archive="$(echo $pkg-$pkgver*.t*z)" # glob expand
+      if [ -f "$archive" ]; then
+        dir="$pkg-$pkgver-$arch2"
+        fnExtract "$archive" "$dir"
+        [ -d "$dir" ] && cd "$dir" >/dev/null 2>&1
+      fi
+    fi
+    [[ ! -f "./configure" && ! -f "./autogen.sh" ]] &&
+      echo "[error] could not locate or extract usable source" && exit 1
+  fi
 
   CFLAGS="-O0 -ggdb3 $CFLAGS"
   CXXFLAGS="-O0 -ggdb3 $CXXFLAGS"
