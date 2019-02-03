@@ -484,11 +484,9 @@ slackbuild() {
   if [ $BUILD -eq 1 ]; then
     if [ ! -f $PKGNAME.[Ss]lack[Bb]uild ]; then
       if [ -f $PKGNAME.tar.?z ]; then
-        _extract ./$PKGNAME.tar.?z
-        if [ ! -d ./$PKGNAME ]; then
-          echo "tarbomb? no '$PKGNAME' dir found after extraction of '$PKGNAME.tar.?z'"
-          exit 1
-        fi
+        fnExtract ./$PKGNAME.tar.?z "$PKGNAME"
+        [ ! -d ./$PKGNAME ] &&
+          echo "tarbomb? no '$PKGNAME' dir found after extraction of '$PKGNAME.tar.?z'" && exit 1
         cd ./"$PKGNAME"
       elif [ -d "$PKGNAME" ]; then
         cd ./"$PKGNAME"
@@ -632,7 +630,7 @@ build() {
 
   arch2=$ARCH && [ "x${arch2:$[${#arch2}-2]}" == "x86" ] && arch2=x86
   [ "x${pkg:$[${#pkg}-${#arch2}-1]}" == "x-$arch2" ] && pkg=${pkg%-$arch2}
-  [ ! -d $pkg-$arch2 ] && _extract $pkg.tar.* && mv $pkg $pkg-$arch2
+  [ ! -d $pkg-$arch2 ] && fnExtract $pkg.tar.* "$pkg-$arch2"
   [ -d $pkg-$arch2 ] && cd $pkg-$arch2
 
   CFLAGS="-O0 -ggdb3 $CFLAGS"
