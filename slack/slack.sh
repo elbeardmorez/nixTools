@@ -23,7 +23,7 @@ fnPackageInfo() {
   type="$1" && shift
   case "$type" in
     "string")
-      echo "$1" | sed -n 's/\([^ ]*\)-\(\([0-9]\+\.\?[0-9.]\+[a-z]\?\)\|\([a-z]\{3\}[0-9]\+[^-]\+\)\)/\1|\2/p'
+      echo "$1" | sed -n 's/\([^ ]*\)[|^-]\(\([0-9]\+\.\?[0-9.]\+[a-z]\?\)\|\([a-z]\{3\}[0-9]\+[^-]\+\)\)/\1|\2/p'
       ;;
     "archive")
       echo "$1" | sed -n 's/\([^ ]*\)-\(\([0-9]\+\.\?[0-9.]\+[a-z]\?\)\|\([a-z]\{3\}[0-9]\+[^-]\+\)\).*\.\(tar.\|t\)\(xz\|gz\).*/\1|\2/p'
@@ -680,7 +680,8 @@ ftest() {
         # string
         type="string"
         tests=("openssl-1.0.1e openssl|1.0.1e"
-               "xorg-git2018Jun20 xorg|git2018Jun20")
+               "xorg-git2018Jun20 xorg|git2018Jun20"
+               "optipng|0.7.7 optipng|0.7.7")
         for s in "${tests[@]}"; do
           in="$(echo "$s" | cut -d' ' -f1)"
           out="$(echo "$s" | cut -d' ' -f2)"
