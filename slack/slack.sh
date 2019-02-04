@@ -80,13 +80,15 @@ slUpdate() {
   [[ $filter -eq 0 && $(date -r "$PKGBLACKLISTLOCAL" +%s) -gt $(date -r $pkglist +%s) ]] && filter=1
 
   if [ $filter -eq 1 ]; then
-    echo "[user] filtering blacklisted packages"
     cp "$pkglist.all" "$pkglist"
+    lc=$(cat $pkglist | wc -l)
     while read line; do
       match="$(echo "$line" | sed -n 's/^\([^#]*\).*$/\1/p')"
       [ "x$match" == "x" ] && continue
       sed -i '/.*'$match'-[^-]\+-[^-]\+-[^-]\+\( \|\t\|$\)/d' $pkglist
     done < $PKGBLACKLISTLOCAL
+    lc2=$(cat $pkglist | wc -l)
+    echo "[user] filtered $(($lc-$lc2)) blacklisted package entries"
   fi
 }
 
