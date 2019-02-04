@@ -407,30 +407,6 @@ mlDownload() {
   fi
 }
 
-mlDownload2() {
-  PATHTARGET=~/packages/
-#  wget -P /tmp $WGETOPTS $URLMULTILIB/FILELIST.TXT
-  sed -n 's|.*current\/\(.*t[gx]z$\)|\1|p' /tmp/FILELIST.TXT > /tmp/packages.multilib
-  IFSORIG=$IFS
-  IFS=$' ' #avoid stripping the \n newline
-  packages=( $(grep -P "$1" /tmp/packages.multilib) )
-  echo \#found ${#packages[@]} packages:
-  echo ${packages[@]}
-  IFS=$IFSORIG
-  result=""
-  echo -n download listed packages to $PATHTARGET? [y/n]
-  read -s -n 1 result
-  echo ""
-  if [[ "$result" == "Y" || "$result" == "y" ]]; then
-    IFS=$'\n' #now use the \n in the single array item to glob
-    for url in ${packages[@]}; do
-      echo downloading package \'${url##*/}\'
-#      wget -P $PATHTARGET $WGETOPTS $URLMULTILIB/current/$url
-    done
-   IFS=$IFSORIG
- fi
-}
-
 prefixes() {
   FILE="$1"
   BUILDTYPE="$2"
