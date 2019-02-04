@@ -14,6 +14,7 @@ REPOSOURCE=${REPOSOURCE:-current}
 ARCH2=${ARCH:-"$(uname -m)"} && [ ${ARCH2:$[${#ARCH2}-2]:2} == 64 ] && ARCHSUFFIX=64 && ARCH2=_x86_64
 URLSOURCE=https://mirror.slackbuilds.org/slackware/slackware$ARCHSUFFIX-$REPOSOURCE/source
 PKGLISTLOCAL=/var/lib/slackpkg/PACKAGES.TXT
+PKGLISTMAXAGE=$[7*24*60*60]
 PKGBLACKLISTLOCAL=/etc/slackpkg/blacklist
 
 help() {
@@ -64,14 +65,14 @@ slUpdate() {
 
   # refresh?
   [ $# -gt 0 ] && [ "x$1" == "xforce" ] && refresh=1 && shift
-  [ $refresh -eq 0 ] && [ $(date +%s) -gt $[ $(date -r $pkglist.all +%s) + $[7*24*60*60] ] ] && refresh=1
+  [ $refresh -eq 0 ] && [ $(date +%s) -gt $[ $(date -r $pkglist.all +%s) + $PKGLISTMAXAGE ] ] && refresh=1
   if [ $refresh -eq 1 ]; then
     slackpkg update
     slackpkg search . > $pkglist.all
     filter=1
-    echo "[user] $pkglist.all updated"
+    echo "[user] '$pkglist.all' updated"
   else
-    echo "[user] $pkglist.all current (<1w old), not updating"
+    echo "[user] '$pkglist.all' less than 'PKGLISTMAXAGE [${PKGLISTMAXAGE}s]' old, not updating"
   fi
 
   # filter blacklist?
