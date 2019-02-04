@@ -54,7 +54,32 @@ fnPackageInfo() {
   esac
 }
 
-sSearch() {
+slUpdate() {
+  pkglist=/tmp/packages.current
+
+  #refresh?
+  refresh=0 && [ $# -gt 0 ] && [ "x$1" == "xforce" ] && refresh=1 && shift
+  [ $refresh -eq 0 ] && [ $(date +%s) -gt $[ $(date -r $pkglist.all +%s) + $[7*24*60*60] ] ] && refresh=1
+  if [ $refresh -eq 1 ]; then
+    slackpkg update
+    slackpkg search . > $pkglist.all
+    echo "[user] $pkglist.all updated"
+  else
+    echo "[user] $pkglist.all already update to date (<1w old)"
+  fi
+
+  #filter blacklist
+  echo "[user] filtering blacklisted packages"
+  cp "$pkglist.all" "$pkglist"
+  while read line; do
+    match="$(echo "$line" | sed -n 's/^\([^#]*\).*$/\1/p')"
+    [ "x$match" == "x" ] && continue
+    sed -i '/^[^]]*\][- ]*'$match'/d' $pkglist
+  done < /etc/slackpkg/blacklist
+
+}
+
+slSearch() {
   search="$1" && shift
   if [ "$REPOSOURCE" != "current" ]; then
     # search source iso
@@ -102,7 +127,7 @@ sSearch() {
   fi
 }
 
-sDownload() {
+slDownload() {
   SEARCH="$1" && shift
   PATHTARGET=~/packages/
   DEBUG=0
@@ -120,7 +145,7 @@ sDownload() {
   [ $DEBUG -ge 1 ] && echo "source: '$SOURCE'"
 
   #search
-  PKGS="$(sSearch "$SEARCH")"
+  PKGS="$(slSearch "$SEARCH")"
   if [ ! $? -eq 0 ]; then return 1; fi
   IFS=$'\n'; PKGS=($PKGS); IFS="$IFSORG"
 
@@ -212,31 +237,6 @@ sDownload() {
   done
 }
 
-slUpdate() {
-  pkglist=/tmp/packages.current
-
-  #refresh?
-  refresh=0 && [ $# -gt 0 ] && [ "x$1" == "xforce" ] && refresh=1 && shift
-  [ $refresh -eq 0 ] && [ $(date +%s) -gt $[ $(date -r $pkglist.all +%s) + $[7*24*60*60] ] ] && refresh=1
-  if [ $refresh -eq 1 ]; then
-    slackpkg update
-    slackpkg search . > $pkglist.all
-    echo "[user] $pkglist.all updated"
-  else
-    echo "[user] $pkglist.all already update to date (<1w old)"
-  fi
-
-  #filter blacklist
-  echo "[user] filtering blacklisted packages"
-  cp "$pkglist.all" "$pkglist"
-  while read line; do
-    match="$(echo "$line" | sed -n 's/^\([^#]*\).*$/\1/p')"
-    [ "x$match" == "x" ] && continue
-    sed -i '/^[^]]*\][- ]*'$match'/d' $pkglist
-  done < /etc/slackpkg/blacklist
-
-}
-
 slList() {
   pkglist=/tmp/packages.current
 
@@ -251,6 +251,51 @@ slList() {
      grep -iP '$option' $pkglist | sort ;;
   esac
 
+}
+
+mlUpdate() {
+  PKGLIST=/tmp/packages.multilib
+  wget -P /tmp $WGETOPTS $URLMULTILIB"FILELIST.TXT" -O $PKGLIST.all
+  sed -n 's|.*\ \.\/current\/\(.*t[gx]z$\)|\1|p' $PKGLIST.all > $PKGLIST
+}
+
+mlDownload() {
+  SEARCH="$1"
+  PATHTARGET=~/packages/
+  PKGLIST=/tmp/packages.multilib
+  if [ ! -f $PKGLIST ]; then
+    echo "[error] no multilib package list at '$PKGLIST'"
+    exit 1
+  fi
+  IFSORIG=$IFS
+  packages=($(grep -P "$SEARCH" /tmp/packages.multilib))
+  echo -n \#found ${#packages[@]}
+  if [ ${#packages[@]} -eq 0 ]; then
+    echo " packages"
+  else
+    if [ ${#packages[@]} -eq 1 ]; then
+      echo " package"
+    else
+      echo " packages"
+    fi
+    for url in ${packages[@]}; do
+      echo ${url##*/}
+    done
+    result=""
+    echo -n "download listed packages to $PATHTARGET? [y/n]: "
+    read -s -n 1 result
+    if [[ "$result" == "Y" || "$result" == "y" ]]; then
+      echo "$result"
+      for url in ${packages[@]}; do
+        echo "downloading package '${url##*/}'"
+        set -x
+        wget -P $PATHTARGET $WGETOPTS $URLMULTILIB/current/$url
+        set +x
+      done
+    else
+      echo ""
+    fi
+  fi
 }
 
 sbUpdate() {
@@ -361,52 +406,6 @@ sbDownload() {
     done
   fi
 }
-
-mlUpdate() {
-  PKGLIST=/tmp/packages.multilib
-  wget -P /tmp $WGETOPTS $URLMULTILIB"FILELIST.TXT" -O $PKGLIST.all
-  sed -n 's|.*\ \.\/current\/\(.*t[gx]z$\)|\1|p' $PKGLIST.all > $PKGLIST
-}
-
-mlDownload() {
-  SEARCH="$1"
-  PATHTARGET=~/packages/
-  PKGLIST=/tmp/packages.multilib
-  if [ ! -f $PKGLIST ]; then
-    echo "[error] no multilib package list at '$PKGLIST'"
-    exit 1
-  fi
-  IFSORIG=$IFS
-  packages=($(grep -P "$SEARCH" /tmp/packages.multilib))
-  echo -n \#found ${#packages[@]}
-  if [ ${#packages[@]} -eq 0 ]; then
-    echo " packages"
-  else
-    if [ ${#packages[@]} -eq 1 ]; then
-      echo " package"
-    else
-      echo " packages"
-    fi
-    for url in ${packages[@]}; do
-      echo ${url##*/}
-    done
-    result=""
-    echo -n "download listed packages to $PATHTARGET? [y/n]: "
-    read -s -n 1 result
-    if [[ "$result" == "Y" || "$result" == "y" ]]; then
-      echo "$result"
-      for url in ${packages[@]}; do
-        echo "downloading package '${url##*/}'"
-        set -x
-        wget -P $PATHTARGET $WGETOPTS $URLMULTILIB/current/$url
-        set +x
-      done
-    else
-      echo ""
-    fi
-  fi
-}
-
 prefixes() {
   FILE="$1"
   BUILDTYPE="$2"
@@ -433,7 +432,7 @@ prefixes() {
     sed -n -i '1{s/\(.*\)/\1\n'"$flag"'/mp;b};p' "$FILE"
 }
 
-slackbuild() {
+sbBuild() {
   FORCE=0
   COMPAT=0
   BUILD=1
@@ -744,41 +743,41 @@ ftest() {
   esac
 }
 
-option="slackbuild"
+option="sbbuild"
 
 #args
 [ $# -eq 0 ] && help && echo "[error] not enough args" && exit 1
 
 s="$(echo "$1" | awk '{s=tolower($0); gsub(/^[-]*/, "", s); print s}')"
 [ "x$(echo "$s" | sed -n '/^\('\
-'slupdate\|slu\|'\
-'sllist\|sll\|list\|l\|'\
-'slackbuild\|sb\|'\
-'sbdownload\|sbd\|'\
-'sbsearch\|sbs\|'\
-'sbupdate\|sbu\|'\
-'mldownload\|mld\|'\
+'update\|u\|'\
+'search\|s\|'\
+'download\|d\|'\
+'list\|l\|'\
 'mlupdate\|mlu\|'\
+'mldownload\|mld\|'\
+'sbupdate\|sbu\|'\
+'sbsearch\|sbs\|'\
+'sbdownload\|sbd\|'\
+'sbbuild\|sbb\|'\
 'build\|bd\|'\
 'convert\|cv\|'\
-'download\|dl\|'\
-'search\|s\|'\
 'test'\
 '\)$/p')" != "x" ] && option="$s" && shift
 
 case "$option" in
-  "slupdate"|"slu") slUpdate "$@" ;;
-  "sllist"|"sll"|"list"|"l") slList "$@" ;;
-  "slackbuild"|"sb") slackbuild "$@" ;;
-  "sbdownload"|"sbd") sbDownload "$1" ;;
-  "sbsearch"|"sbs") sbSearch "$1" ;;
-  "sbupdate"|"sbu") sbUpdate "$1" ;;
-  "mldownload"|"mld") mlDownload "$1" ;;
+  "update"|"u") slUpdate "$@" ;;
+  "list"|"l") slList "$@" ;;
+  "search"|"s") slSearch "$@" ;;
+  "download"|"d") slDownload "$@" ;;
   "mlupdate"|"mlu") mlUpdate "$1" ;;
+  "mldownload"|"mld") mlDownload "$1" ;;
+  "sbupdate"|"sbu") sbUpdate "$1" ;;
+  "sbsearch"|"sbs") sbSearch "$1" ;;
+  "sbdownload"|"sbd") sbDownload "$1" ;;
+  "sbbuild"|"sbb") sbBuild "$@" ;;
   "build"|"bd") build "$@" ;;
   "convert"|"cv") convert "$@" ;;
-  "download"|"dl") sDownload "$@" ;;
-  "search"|"srch") sSearch "$@" ;;
   "test") ftest "$@" ;;
 esac
 
