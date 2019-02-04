@@ -213,7 +213,6 @@ sDownload() {
 }
 
 slUpdate() {
-  lReturn=0
   pkglist=/tmp/packages.current
 
   #refresh?
@@ -236,7 +235,6 @@ slUpdate() {
     sed -i '/^[^]]*\][- ]*'$match'/d' $pkglist
   done < /etc/slackpkg/blacklist
 
-  return $lReturn
 }
 
 slList() {
