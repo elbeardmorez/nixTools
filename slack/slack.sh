@@ -14,6 +14,7 @@ REPOSOURCE=${REPOSOURCE:-current}
 ARCH2=${ARCH:-"$(uname -m)"} && [ ${ARCH2:$[${#ARCH2}-2]:2} == 64 ] && ARCHSUFFIX=64 && ARCH2=_x86_64
 URLSOURCE=https://mirror.slackbuilds.org/slackware/slackware$ARCHSUFFIX-$REPOSOURCE/source
 PKGLISTLOCAL=/var/lib/slackpkg/PACKAGES.TXT
+PKGBLACKLISTLOCAL=/etc/slackpkg/blacklist
 
 help() {
   echo usage: $SCRIPTNAME 'sPkgName'
@@ -57,26 +58,35 @@ fnPackageInfo() {
 slUpdate() {
   pkglist=/tmp/packages.current
 
-  #refresh?
-  refresh=0 && [ $# -gt 0 ] && [ "x$1" == "xforce" ] && refresh=1 && shift
+  # switches
+  refresh=0
+  filter=0
+
+  # refresh?
+  [ $# -gt 0 ] && [ "x$1" == "xforce" ] && refresh=1 && shift
   [ $refresh -eq 0 ] && [ $(date +%s) -gt $[ $(date -r $pkglist.all +%s) + $[7*24*60*60] ] ] && refresh=1
   if [ $refresh -eq 1 ]; then
     slackpkg update
     slackpkg search . > $pkglist.all
+    filter=1
     echo "[user] $pkglist.all updated"
   else
-    echo "[user] $pkglist.all already update to date (<1w old)"
+    echo "[user] $pkglist.all current (<1w old), not updating"
   fi
 
-  #filter blacklist
-  echo "[user] filtering blacklisted packages"
-  cp "$pkglist.all" "$pkglist"
-  while read line; do
-    match="$(echo "$line" | sed -n 's/^\([^#]*\).*$/\1/p')"
-    [ "x$match" == "x" ] && continue
-    sed -i '/^[^]]*\][- ]*'$match'/d' $pkglist
-  done < /etc/slackpkg/blacklist
+  # filter blacklist?
+  [[ $filter -eq 0 && ! -f $pkglist ]] && filter=1
+  [[ $filter -eq 0 && $(date -r "$PKGBLACKLISTLOCAL" +%s) -gt $(date -r $pkglist +%s) ]] && filter=1
 
+  if [ $filter -eq 1 ]; then
+    echo "[user] filtering blacklisted packages"
+    cp "$pkglist.all" "$pkglist"
+    while read line; do
+      match="$(echo "$line" | sed -n 's/^\([^#]*\).*$/\1/p')"
+      [ "x$match" == "x" ] && continue
+      sed -i '/^[^]]*\][- ]*'$match'/d' $pkglist
+    done < $PKGBLACKLISTLOCAL
+  fi
 }
 
 slSearch() {
@@ -766,7 +776,7 @@ s="$(echo "$1" | awk '{s=tolower($0); gsub(/^[-]*/, "", s); print s}')"
 '\)$/p')" != "x" ] && option="$s" && shift
 
 case "$option" in
-  "update"|"u") slUpdate "$@" ;;
+  "update"|"u") slUpdate "force" ;;
   "list"|"l") slList "$@" ;;
   "search"|"s") slSearch "$@" ;;
   "download"|"d") slDownload "$@" ;;
