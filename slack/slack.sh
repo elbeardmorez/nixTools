@@ -85,7 +85,7 @@ slUpdate() {
     while read line; do
       match="$(echo "$line" | sed -n 's/^\([^#]*\).*$/\1/p')"
       [ "x$match" == "x" ] && continue
-      sed -i '/^[^]]*\][- ]*'$match'/d' $pkglist
+      sed -i '/.*'$match'-[^-]\+-[^-]\+-[^-]\+\( \|\t\|$\)/d' $pkglist
     done < $PKGBLACKLISTLOCAL
   fi
 }
