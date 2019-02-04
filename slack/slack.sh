@@ -249,19 +249,27 @@ slDownload() {
 }
 
 slList() {
-  pkglist=/tmp/packages.current
 
+  #args
+  [ $# -eq 0 ] && help && echo "[error] not enough args" && exit 1
+
+  option="search"
+  [[ "x$(echo "$1" | sed -n '/[-]*\(new\|uninstalled\|up\|\upg\|upd\|update\|\updates\|upgrade\|upgrades\|search\)"/p')" != "x" || $# -gt 1 ]] && option="$1" && shift
+
+  pkglist=/tmp/packages.current
   slUpdate
 
-  option="$1"
   case "$option" in
     "new"|"uninstalled") grep -iP '^\[uninstalled\]' $pkglist | sort ;;
-    "up"|"upg"|"update"|"updates"|"upgrade"|"upgrades") grep -iP '^\[\s*upgrade\s*\]' $pkglist | sort ;;
+    "up"|"upg"|"upg"|"update"|"updates"|"upgrade"|"upgrades") grep -iP '^\[\s*upgrade\s*\]' $pkglist | sort ;;
+    "search")
+      [ $# -eq 0 ] && help && echo "[error] not enough args" && exit 1
+      grep -iP "$1" $pkglist | sort
+      ;;
     *)
-      # echo "[error] unsupported list option '$option'"
-     grep -iP '$option' $pkglist | sort ;;
+      help && echo "[error] unsupported list option '$option'" && exit 1
+      ;;
   esac
-
 }
 
 mlUpdate() {
