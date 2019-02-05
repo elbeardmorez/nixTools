@@ -10,11 +10,11 @@ REPOMULTILIB=current
 URLMULTILIB=http://slackware.com/~alien/multilib/
 REPOSLACKBUILDS=14.2
 URLSLACKBUILDS=http://slackbuilds.org/slackbuilds/
-REPOSOURCE=${REPOSOURCE:-current}
+REPO=${REPO:-current}
 ARCH2=${ARCH:-"$(uname -m)"} && [ ${ARCH2:$[${#ARCH2}-2]:2} == 64 ] && ARCHSUFFIX=64 && ARCH2=_x86_64
-URLSOURCE=https://mirror.slackbuilds.org/slackware/slackware$ARCHSUFFIX-$REPOSOURCE/source
-ISOSOURCE=/mnt/iso/slackware-$REPOSOURCE-source/source
-ISOPACKAGES=/mnt/iso/slackware$ARCHSUFFIX-$REPOSOURCE/slackware$ARCHSUFFIX
+URLSOURCE=https://mirror.slackbuilds.org/slackware/slackware$ARCHSUFFIX-$REPO/source
+ISOSOURCE=/mnt/iso/slackware-$REPO-source/source
+ISOPACKAGES=/mnt/iso/slackware$ARCHSUFFIX-$REPO/slackware$ARCHSUFFIX
 PKGLISTLOCAL=/var/lib/slackpkg/PACKAGES.TXT
 PKGLISTMAXAGE=$[7*24*60*60]
 PKGBLACKLISTLOCAL=/etc/slackpkg/blacklist
@@ -96,7 +96,7 @@ slUpdate() {
 
 slSearch() {
   search="$1" && shift
-  if [ "$REPOSOURCE" != "current" ]; then
+  if [ "$REPO" != "current" ]; then
     # search source iso
     source="$ISOSOURCE"
     if [ -d "$source" ]; then
@@ -203,7 +203,7 @@ slDownload() {
     if [ $download -eq 1 ]; then
       target="$pkg-$version"
       mkdir -p "$target"
-      if [ "$REPOSOURCE" != "current" ]; then
+      if [ "$REPO" != "current" ]; then
         #local
         ## sources
         source="$ISOSOURCE"
