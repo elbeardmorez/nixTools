@@ -1,18 +1,17 @@
 #!/bin/sh
 SCRIPTNAME="${0##*/}"
-
 IFSORG="$IFS"
+
 DEBUG=${DEBUG:-0}
-PKGNAME=
+ARCH2=${ARCH:-"$(uname -m)"} && [ ${ARCH2:$[${#ARCH2}-2]:2} == 64 ] && ARCHSUFFIX=64 && ARCH2=_x86_64
 BUILDTYPE=user
 WGETOPTS="--no-check-certificate"
-REPOMULTILIB=current
-URLMULTILIB=http://slackware.com/~alien/multilib/
-REPOSLACKBUILDS=14.2
-URLSLACKBUILDS=http://slackbuilds.org/slackbuilds/
+REPOMULTILIB=${REPO:-current}
+REPOSLACKBUILDS=${REPO:-14.2}
 REPO=${REPO:-current}
-ARCH2=${ARCH:-"$(uname -m)"} && [ ${ARCH2:$[${#ARCH2}-2]:2} == 64 ] && ARCHSUFFIX=64 && ARCH2=_x86_64
 URLSOURCE=https://mirror.slackbuilds.org/slackware/slackware$ARCHSUFFIX-$REPO/source
+URLMULTILIB=http://slackware.com/~alien/multilib/
+URLSLACKBUILDS=http://slackbuilds.org/slackbuilds/
 ISOSOURCE=/mnt/iso/slackware-$REPO-source/source
 ISOPACKAGES=/mnt/iso/slackware$ARCHSUFFIX-$REPO/slackware$ARCHSUFFIX
 PKGLISTLOCAL=/var/lib/slackpkg/PACKAGES.TXT
