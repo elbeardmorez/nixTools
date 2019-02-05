@@ -13,6 +13,8 @@ URLSLACKBUILDS=http://slackbuilds.org/slackbuilds/
 REPOSOURCE=${REPOSOURCE:-current}
 ARCH2=${ARCH:-"$(uname -m)"} && [ ${ARCH2:$[${#ARCH2}-2]:2} == 64 ] && ARCHSUFFIX=64 && ARCH2=_x86_64
 URLSOURCE=https://mirror.slackbuilds.org/slackware/slackware$ARCHSUFFIX-$REPOSOURCE/source
+ISOSOURCE=/mnt/iso/slackware-$REPOSOURCE-source/source
+ISOPACKAGES=/mnt/iso/slackware$ARCHSUFFIX-$REPOSOURCE/slackware$ARCHSUFFIX
 PKGLISTLOCAL=/var/lib/slackpkg/PACKAGES.TXT
 PKGLISTMAXAGE=$[7*24*60*60]
 PKGBLACKLISTLOCAL=/etc/slackpkg/blacklist
@@ -96,9 +98,9 @@ slSearch() {
   search="$1" && shift
   if [ "$REPOSOURCE" != "current" ]; then
     # search source iso
-    SOURCE=/mnt/iso/slackware-$REPOSOURCE-source/source
-    if [ -d $SOURCE ]; then
-      cd $SOURCE
+    source="$ISOSOURCE"
+    if [ -d "$source" ]; then
+      cd "$source"
       results="$(find . -iname "*$search*z" | grep "/.*$search.*/")"
       cd - 2>&1 > /dev/null
       if [ "x$results" == "x" ]; then
@@ -109,12 +111,12 @@ slSearch() {
         return
       fi
     else
-      echo "invalid source location: '$SOURCE'" 1>&2
+      echo "invalid source location: '$source'" 1>&2
     fi
-    # search package iso
-    SOURCEPKG=/mnt/iso/slackware$ARCHSUFFIX-$REPOSOURCE/slackware$ARCHSUFFIX
-    if [ -d $SOURCEPKG ]; then
-      cd $SOURCEPKG
+    # search packages iso
+    source="$ISOPACKAGES"
+    if [ -d "$source" ]; then
+      cd "$source"
       results="$(find . -iname "*$search*z")"
       cd - 2>&1 > /dev/null
       if [ "x$results" == "x" ]; then
@@ -125,7 +127,7 @@ slSearch() {
         return
       fi
     else
-      echo "invalid package location: '$SOURCEPKG'" 1>&2
+      echo "invalid package location: '$source'" 1>&2
     fi
 
   else
@@ -203,10 +205,12 @@ slDownload() {
       mkdir -p "$target"
       if [ "$REPOSOURCE" != "current" ]; then
         #local
-        SOURCE=/mnt/iso/slackware-$REPOSOURCE-source/source
-        SOURCEPKG=/mnt/iso/slackware$ARCHSUFFIX-$REPOSOURCE/slackware$ARCHSUFFIX
-        cp -a $SOURCE/$type/$pkg/ "$target"
-        cp $SOURCEPKG/$type/$pkg-$version*z "$target"
+        ## sources
+        source="$ISOSOURCE"
+        cp -a "$source"/$type/$pkg/ "$target"
+        ## packages
+        source="$ISOPACKAGES"
+        cp -a "$source"/$type/$pkg-$version*z "$target"
       else
         #remote
         if [ $DEBUG -eq 1 ]; then echo -e "PKG: \n$pkg"; fi
