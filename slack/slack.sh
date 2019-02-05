@@ -19,7 +19,77 @@ PKGLISTMAXAGE=$[7*24*60*60]
 PKGBLACKLISTLOCAL=/etc/slackpkg/blacklist
 
 help() {
-  echo usage: $SCRIPTNAME 'sPkgName'
+  echo -e "
+usage: $SCRIPTNAME [OPTION] [OPTION ARGS]\n
+where OPTION is:
+
+  # slack packages / sources / packages:
+  u, update  : update lists of packages from repositories
+               configured through Slackpkg and their current
+               state
+
+  s, search PKG  : wildcard search for packages
+
+  d, download PKG [ARG]  : wildcard search and download packages
+    where [ARG] can be:
+      src, source  : also download source tarball and build script
+
+  l, list [ARG1 [ARG2]]  : list packages types of ARG1, or search
+                           in list
+    where [ARG1] can be:
+      new, uninstalled      : list new/uninstalled packages
+      up, update, upgrade   : list upgradable packages
+      search [ARG2]         : (default) list packages matching ARG2
+
+  # multilib packages:
+  mlu, mlupdate        : update current multilib package list
+  mld, mldownload PKG  : download packages matching 'PKG' from
+                         (alienbob's) multilib repository
+
+  # slackbuild scripts / sources
+  sbu, sbupdate        : update current slackbuilds.org package list
+  sbd, sbdownload PKG  : download package 'PKG' from slackbuilds.org
+  sbs, sbsearch PKG    : search package 'PKG' locally or remotely
+                         based upon 'REPO'
+  sbb, sbbuild PKG [ARGS]  : build package PKG from build script
+                             located in pwd
+    where [ARGS] can be
+      system     : ensure any instances of the standard '/usr/local'
+                   prefix are set to '/usr'
+                   [note: use escapes (e.g. '/\usr') to protect paths]
+      user       : ensure any instances of the standard '/usr'
+                   prefix are set to '/usr/local'
+                   [note: use escapes (e.g. '/\usr') to protect paths]
+      convert    : create an x86_64 compatibility package from built
+                   package
+      nobuild    : skip building of package
+      noinstall  : skip installation of package
+
+  # source
+  bd, build [PKG-VER] [ARGS..]  : source only build and install.
+                                  [supports: autotools]
+    where [ARGS] can be
+      system     : target '/usr' prefix
+      user       : target '/usr/local' prefix
+      convert    : create an x86_64 compatibility package from built
+                   package
+      noconfig   : skip configuration of source
+      nobuild    : skip building of source
+      noinstall  : skip installation of source
+      uninstall, clean,       : identified as 'make' targets which are
+      dist-clean, vala-clean    executed prior to build
+      *                       : all other args passed to make
+
+  # packages
+  cv, convert PKG  : find x86 package build in PWD and convert to
+                     x86_64 compatibility package
+
+environment variable switches:
+
+  ARCH  : override current system architecture for builds
+  REPO  : 'current' (default), sets the target version for package /
+          source searching and downloading
+"
 }
 
 fnExtract() {
@@ -786,6 +856,7 @@ s="$(echo "$1" | awk '{s=tolower($0); gsub(/^[-]*/, "", s); print s}')"
 'sbbuild\|sbb\|'\
 'build\|bd\|'\
 'convert\|cv\|'\
+'help\|h\|'\
 'test'\
 '\)$/p')" != "x" ] && option="$s" && shift
 
@@ -802,6 +873,7 @@ case "$option" in
   "sbbuild"|"sbb") sbBuild "$@" ;;
   "build"|"bd") build "$@" ;;
   "convert"|"cv") convert "$@" ;;
+  "help"|"h") help ;;
   "test") ftest "$@" ;;
 esac
 
