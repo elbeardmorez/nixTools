@@ -19,6 +19,7 @@ SERVER_TIMEOUT=${SERVER_TIMEOUT:-60}
 PORT=${PORT:-666}
 RETRIES=10
 RETRY_DELAY=0.1
+DELAY_CLOSE=1
 PRESERVE_PATHS=0
 SOCKET=""
 
@@ -47,6 +48,9 @@ where OPTION can be:
                              directories
     -rd, --retry-delay SECONDS  : period to wait between retries
                                   (default: 0.1)
+    -dc, --delay-close SECONDS  : period to wait before allowing
+                                  netcat to process EOF and close
+                                  its connection (default: 1)
     -a, --any  : process non-file/dir args as valid raw data strings
                  to be push to the server
 
@@ -73,9 +77,9 @@ fnSend() {
       root="$(dirname "$d")"
       d="$(basename "$d")"
     fi
-    tar --label="socket_" -C $root -c "$d" | nc ${CMDARGS_NC_CLOSE[@]} $SERVER $PORT
+    (tar --label="socket_" -C $root -c "$d"; sleep $delay_close) | nc ${CMDARGS_NC_CLOSE[@]} $SERVER $PORT
   else
-    echo "$d" | nc ${CMDARGS_NC_CLOSE[@]} $SERVER $PORT
+    (echo "$d"; sleep $delay_close) | nc ${CMDARGS_NC_CLOSE[@]} $SERVER $PORT
   fi
   res=$?
   [[ $res -ne 0 && $verbose -eq 1 ]] &&
@@ -160,6 +164,7 @@ fnProcess() {
       # client side
       raw=0
       retry_delay=$RETRY_DELAY
+      delay_close=$DELAY_CLOSE
       declare -a data
       if [ "$#" -gt 0 ]; then
         while [ -n "$1" ]; do
@@ -168,6 +173,7 @@ fnProcess() {
             "-r"|"--retries") shift && RETRIES="$1" ;;
             "-pp"|"--preserve-paths") PRESERVE_PATHS=1 ;;
             "-rd"|"--retry-delay") shift && retry_delay=$1 ;;
+            "-dc"|"--delay-close") shift && delay_close=$1 ;;
             "-a"|"--any") raw=1 ;;
             *)
               if [[ -e "$1" || "$raw" -eq 1 ]]; then

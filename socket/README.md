@@ -29,6 +29,9 @@ where OPTION can be:
                              directories
     -rd, --retry-delay SECONDS  : period to wait between retries
                                   (default: 0.1)
+    -dc, --delay-close SECONDS  : period to wait before allowing
+                                  netcat to process EOF and close
+                                  its connection (default: 1)
     -a, --any  : process non-file/dir args as valid raw data strings
                  to be push to the server
 
