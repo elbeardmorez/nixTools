@@ -139,6 +139,7 @@ fnProcess() {
       [ $clean -eq 1 ] && fnClean "$file"
       echo "[info]$([ $persistent -eq 1 ] && echo " persistent") socket opened"
       SOCKET="$(fnTempFile "$([ $localsocket -eq 1 ] && echo ".")")"
+      [ $? -ne 0 ] && exit 1
       while [[ 1 == 1 ]]; do
         nc "${args[@]}" > "$SOCKET"
         size=`du -h $SOCKET | cut -d'	' -f1`
