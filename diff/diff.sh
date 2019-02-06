@@ -74,8 +74,12 @@ fnProcess() {
       $(cd "$file1"; find . -name "*" -printf "%p\t%s\n" | sort > "$target1")
       $(cd "$file2"; find . -name "*" -printf "%p\t%s\n" | sort > "$target2")
 
-      [ -f "$f_excludes" ] && $(while read line; do sed -i '/'$line'/d' $target1; shift; done < "$fExcludes")
-      [ -f "$f_excludes" ] && $(while read line; do sed -i '/'$line'/d' $target2; shift; done < "$fExcludes")
+      if [ -f "$f_excludes" ]; then
+         while read line; do
+           sed -i '/'$line'/d' $target1
+           sed -i '/'$line'/d' $target2
+         done < "$fExcludes"
+      fi
 
       target="$(fnTempFile)"
       diff ${diff_options[@]} $target1 $target2 > "${target}_dir"
