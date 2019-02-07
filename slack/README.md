@@ -37,6 +37,7 @@ where OPTION is:
 
   # multilib packages:
   mlu, mlupdate        : update current multilib package list
+  mls, mlsearch PKG    : search current multilib package list
   mld, mldownload PKG  : download packages matching 'PKG' from
                          (alienbob's) multilib repository
 

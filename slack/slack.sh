@@ -43,6 +43,7 @@ where OPTION is:
 
   # multilib packages:
   mlu, mlupdate        : update current multilib package list
+  mls, mlsearch PKG    : search current multilib package list
   mld, mldownload PKG  : download packages matching 'PKG' from
                          (alienbob's) multilib repository
 
@@ -351,6 +352,12 @@ mlUpdate() {
   PKGLIST=/tmp/packages.multilib
   wget -P /tmp $WGETOPTS $URLMULTILIB/"FILELIST.TXT" -O $PKGLIST.all
   sed -n 's|.*\ \.\/'$REPOVERMULTILIB'\/\(.*t[gx]z$\)|\1|p' $PKGLIST.all > $PKGLIST
+}
+
+mlSearch() {
+  PKGLIST=/tmp/packages.multilib
+  SEARCH="$1"
+  grep -P "$SEARCH" /tmp/packages.multilib
 }
 
 mlDownload() {
@@ -849,6 +856,7 @@ s="$(echo "$1" | awk '{s=tolower($0); gsub(/^[-]*/, "", s); print s}')"
 'download\|d\|'\
 'list\|l\|'\
 'mlupdate\|mlu\|'\
+'mlsearch\|mls\|'\
 'mldownload\|mld\|'\
 'sbupdate\|sbu\|'\
 'sbsearch\|sbs\|'\
@@ -866,6 +874,7 @@ case "$option" in
   "search"|"s") slSearch "$@" ;;
   "download"|"d") slDownload "$@" ;;
   "mlupdate"|"mlu") mlUpdate "$1" ;;
+  "mlsearch"|"mls") mlSearch "$1" ;;
   "mldownload"|"mld") mlDownload "$1" ;;
   "sbupdate"|"sbu") sbUpdate "$1" ;;
   "sbsearch"|"sbs") sbSearch "$1" ;;
