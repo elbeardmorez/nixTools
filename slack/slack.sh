@@ -29,14 +29,17 @@ help() {
 usage: $SCRIPTNAME [OPTION] [OPTION ARGS]\n
 where OPTION is:
 
-  # slack packages / sources / packages:
-  u, update  : update lists of packages from repositories
-               configured through Slackpkg and their current
-               state
+  # slack packages / sources list:
+  u, update  : update lists of packages from all repositories
+               (configured through Slackpkg) and their current state
+               on the system
 
-  s, search PKG  : wildcard search for packages
+  s, search PKG  : wildcard search package 'PKG' locally (slackware
+                   isos) or remotely (slackware repository) based on
+                   'REPOVER'
 
-  d, download PKG [ARG]  : wildcard search and download packages
+  d, download PKG [ARG]  : pull packages matching 'PKG' from either
+                           local or remote resources
     where [ARG] can be:
       src, source  : also download source tarball and build script
 
@@ -49,15 +52,15 @@ where OPTION is:
 
   # multilib packages:
   mlu, mlupdate        : update current multilib package list
-  mls, mlsearch PKG    : search current multilib package list
+  mls, mlsearch PKG    : wildcard search package list for package 'PKG'
   mld, mldownload PKG  : download packages matching 'PKG' from
-                         (alienbob's) multilib repository
+                         the multilib repository
 
-  # slackbuild scripts / sources
+  # slackbuild sources:
   sbu, sbupdate        : update current slackbuilds.org package list
-  sbd, sbdownload PKG  : download package 'PKG' from slackbuilds.org
-  sbs, sbsearch PKG    : search package 'PKG' locally or remotely
-                         based upon 'REPOVER'
+  sbs, sbsearch PKG    : wildcard search package list for package 'PKG'
+  sbd, sbdownload PKG  : download packages matching 'PKG' from
+                         the slackbuilds.org repository
 
   # builds
   bs, buildscript PKG [ARGS]  : build package PKG using build scripts
