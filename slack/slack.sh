@@ -350,7 +350,7 @@ slList() {
 mlUpdate() {
   PKGLIST=/tmp/packages.multilib
   wget -P /tmp $WGETOPTS $URLMULTILIB/"FILELIST.TXT" -O $PKGLIST.all
-  sed -n 's|.*\ \.\/current\/\(.*t[gx]z$\)|\1|p' $PKGLIST.all > $PKGLIST
+  sed -n 's|.*\ \.\/'$REPOMULTILIB'\/\(.*t[gx]z$\)|\1|p' $PKGLIST.all > $PKGLIST
 }
 
 mlDownload() {
