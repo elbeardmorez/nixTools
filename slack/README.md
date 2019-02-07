@@ -44,7 +44,7 @@ where OPTION is:
   sbu, sbupdate        : update current slackbuilds.org package list
   sbd, sbdownload PKG  : download package 'PKG' from slackbuilds.org
   sbs, sbsearch PKG    : search package 'PKG' locally or remotely
-                         based upon 'REPO'
+                         based upon 'REPOVER'
   sbb, sbbuild PKG [ARGS]  : build package PKG from build script
                              located in pwd
     where [ARGS] can be
@@ -80,9 +80,9 @@ where OPTION is:
 
 environment variable switches:
 
-  ARCH  : override current system architecture for builds
-  REPO  : 'current' (default), sets the target version for package /
-          source searching and downloading
+  ARCH     : override current system architecture for builds
+  REPOVER  : 'current' (default), sets the target version for package
+             / source searching and downloading
 ```
 
 ## dependencies

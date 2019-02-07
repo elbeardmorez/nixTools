@@ -6,14 +6,14 @@ DEBUG=${DEBUG:-0}
 ARCH2=${ARCH:-"$(uname -m)"} && [ ${ARCH2:$[${#ARCH2}-2]:2} == 64 ] && ARCHSUFFIX=64 && ARCH2=_x86_64
 BUILDTYPE=user
 WGETOPTS="--no-check-certificate"
-REPOMULTILIB=${REPO:-current}
-REPOSLACKBUILDS=${REPO:-14.2}
-REPO=${REPO:-current}
+REPOVERMULTILIB=${REPOVER:-current}
+REPOvERSLACKBUILDS=${REPOVER:-14.2}
+REPOVER=${REPOVER:-current}
 URLSLACKWARE=https://mirror.slackbuilds.org/slackware
 URLMULTILIB=http://slackware.com/~alien/multilib
 URLSLACKBUILDS=http://slackbuilds.org/slackbuilds
-ISOSOURCE=/mnt/iso/slackware-$REPO-source/source
-ISOPACKAGES=/mnt/iso/slackware$ARCHSUFFIX-$REPO/slackware$ARCHSUFFIX
+ISOSOURCE=/mnt/iso/slackware-$REPOVER-source/source
+ISOPACKAGES=/mnt/iso/slackware$ARCHSUFFIX-$REPOVER/slackware$ARCHSUFFIX
 PKGLISTLOCAL=/var/lib/slackpkg/PACKAGES.TXT
 PKGLISTMAXAGE=$[7*24*60*60]
 PKGBLACKLISTLOCAL=/etc/slackpkg/blacklist
@@ -50,7 +50,7 @@ where OPTION is:
   sbu, sbupdate        : update current slackbuilds.org package list
   sbd, sbdownload PKG  : download package 'PKG' from slackbuilds.org
   sbs, sbsearch PKG    : search package 'PKG' locally or remotely
-                         based upon 'REPO'
+                         based upon 'REPOVER'
   sbb, sbbuild PKG [ARGS]  : build package PKG from build script
                              located in pwd
     where [ARGS] can be
@@ -86,9 +86,9 @@ where OPTION is:
 
 environment variable switches:
 
-  ARCH  : override current system architecture for builds
-  REPO  : 'current' (default), sets the target version for package /
-          source searching and downloading
+  ARCH     : override current system architecture for builds
+  REPOVER  : 'current' (default), sets the target version for package
+             / source searching and downloading
 "
 }
 
@@ -165,7 +165,7 @@ slUpdate() {
 
 slSearch() {
   search="$1" && shift
-  if [ "$REPO" != "current" ]; then
+  if [ "$REPOVER" != "current" ]; then
     # search source iso
     source="$ISOSOURCE"
     if [ -d "$source" ]; then
@@ -272,7 +272,7 @@ slDownload() {
     if [ $download -eq 1 ]; then
       target="$pkg-$version"
       mkdir -p "$target"
-      if [ "$REPO" != "current" ]; then
+      if [ "$REPOVER" != "current" ]; then
         #local
         ## sources
         source="$ISOSOURCE"
@@ -313,7 +313,7 @@ slDownload() {
 
         if [ $SOURCE -eq 1 ]; then
           ## source
-          wget -P . -r --directory-prefix="$target" --no-host-directories --cut-dirs=5 --no-parent --level=2 --reject="index.html*" $WGETOPTS $URLSLACKWARE/slackware$ARCHSUFFIX-$REPO/source/$PKGLOCATION/$PKGNAME/
+          wget -P . -r --directory-prefix="$target" --no-host-directories --cut-dirs=5 --no-parent --level=2 --reject="index.html*" $WGETOPTS $URLSLACKWARE/slackware$ARCHSUFFIX-$REPOVER/source/$PKGLOCATION/$PKGNAME/
           res=$?
           [ -e "$target"/robots.txt ] && `rm "$target"/robots.txt`
           [ $res -ne 0 ] && echo "wget returned non-zero exit code ($res), aborting" && return $res
@@ -350,7 +350,7 @@ slList() {
 mlUpdate() {
   PKGLIST=/tmp/packages.multilib
   wget -P /tmp $WGETOPTS $URLMULTILIB/"FILELIST.TXT" -O $PKGLIST.all
-  sed -n 's|.*\ \.\/'$REPOMULTILIB'\/\(.*t[gx]z$\)|\1|p' $PKGLIST.all > $PKGLIST
+  sed -n 's|.*\ \.\/'$REPOVERMULTILIB'\/\(.*t[gx]z$\)|\1|p' $PKGLIST.all > $PKGLIST
 }
 
 mlDownload() {
@@ -394,7 +394,7 @@ mlDownload() {
 
 sbUpdate() {
   PKGLIST=/tmp/packages.slackbuilds
-  PKGLISTREMOTE="$URLSLACKBUILDS/$REPOSLACKBUILDS""/SLACKBUILDS.TXT"
+  PKGLISTREMOTE="$URLSLACKBUILDS/$REPOvERSLACKBUILDS""/SLACKBUILDS.TXT"
   wget -P /tmp $WGETOPTS $PKGLISTREMOTE -O $PKGLIST.all
   if [ ! $? -eq 0 ]; then
     echo "[error] pulling package list from '$PKGLISTREMOTE'"
@@ -475,7 +475,7 @@ sbDownload() {
         [ $DEBUG -ge 1 ] && echo -e "PKGINFO: \n$PKGINFO"
         PKGNAME=$(echo -e "$PKGINFO" | sed -n 's|^.*NAME:\ \(.*\)$|\1|p')
         [ $DEBUG -ge 1 ] && echo -e "PKGNAME: \n$PKGNAME"
-        PKGBUILD=$URLSLACKBUILDS/$REPOSLACKBUILDS/$(echo -e "$PKGINFO" | sed -n 's|^.*LOCATION:\ \.\/\(.*\)\/.*$|\1|p')/$PKGNAME.tar.gz
+        PKGBUILD=$URLSLACKBUILDS/$REPOvERSLACKBUILDS/$(echo -e "$PKGINFO" | sed -n 's|^.*LOCATION:\ \.\/\(.*\)\/.*$|\1|p')/$PKGNAME.tar.gz
         [ $DEBUG -ge 1 ] && echo -e "PKGBUILD: \n$PKGBUILD"
         PKGDATA=($(echo -e "$PKGINFO" | sed -n 's|^.*DOWNLOAD'$ARCH2':\ \(.*\)$|\1|p'))
         if [ ! "x$PKGDATA" == "x" ]; then
