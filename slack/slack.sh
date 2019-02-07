@@ -18,9 +18,9 @@ REPOURL['slackware']='https://mirror.slackbuilds.org/slackware'
 REPOURL['multilib']='http://slackware.com/~alien/multilib'
 REPOURL['slackbuilds']='http://slackbuilds.org/slackbuilds'
 PKGLIST='/tmp/_slack.packages'
-PKGLISTLOCAL=/var/lib/slackpkg/PACKAGES.TXT
 PKGLISTMAXAGE=$[7*24*60*60]
-PKGBLACKLISTLOCAL=/etc/slackpkg/blacklist
+SLACKPKGLIST=/var/lib/slackpkg/PACKAGES.TXT
+SLACKPKGBLACKLIST=/etc/slackpkg/blacklist
 ISOPACKAGES=/mnt/iso/slackware$ARCHSUFFIX-$REPOVER/slackware$ARCHSUFFIX
 ISOSOURCE=/mnt/iso/slackware-$REPOVER-source/source
 
@@ -166,7 +166,7 @@ fnUpdate() {
 
       # filter blacklist?
       [[ $filter -eq 0 && ! -f $pkglist ]] && filter=1
-      [[ $filter -eq 0 && $(date -r "$PKGBLACKLISTLOCAL" +%s) -gt $(date -r $pkglist +%s) ]] && filter=1
+      [[ $filter -eq 0 && $(date -r "$SLACKPKGBLACKLIST" +%s) -gt $(date -r $pkglist +%s) ]] && filter=1
 
       if [ $filter -eq 1 ]; then
         cp "$pkglist.all" "$pkglist"
@@ -175,7 +175,7 @@ fnUpdate() {
           match="$(echo "$line" | sed -n 's/^\([^#]*\).*$/\1/p')"
           [ "x$match" == "x" ] && continue
           sed -i '/.*'$match'-[^-]\+-[^-]\+-[^-]\+\( \|\t\|$\)/d' $pkglist
-        done < $PKGBLACKLISTLOCAL
+        done < $SLACKPKGBLACKLIST
         lc2=$(cat $pkglist | wc -l)
         echo "[user] filtered $(($lc-$lc2)) blacklisted package entries"
       fi
@@ -245,10 +245,10 @@ fnSearch() {
         # search remote
 
         #ensure list
-        [ ! -f $PKGLISTLOCAL ] && slackpkg update
+        [ ! -f $SLACKPKGLIST ] && slackpkg update
         [ ! $? ] && return 1
 
-        results="$(sed -n '/^PACKAGE NAME:[ ]*.*'"$search"'.*/{N;s/\n\(.\)/|\1/;p}' $PKGLISTLOCAL)"
+        results="$(sed -n '/^PACKAGE NAME:[ ]*.*'"$search"'.*/{N;s/\n\(.\)/|\1/;p}' $SLACKPKGLIST)"
         fnPackageInfo "remote" "$results"
       fi
       ;;
@@ -344,7 +344,7 @@ fnDownload() {
           else
             #remote
             if [ $DEBUG -eq 1 ]; then echo -e "PKG: \n$pkg"; fi
-            PKGINFO=$(grep -B1 -A3 "^PACKAGE NAME:[ ]*$pkg-[0-9]\+.*" "$PKGLISTLOCAL")
+            PKGINFO=$(grep -B1 -A3 "^PACKAGE NAME:[ ]*$pkg-[0-9]\+.*" "$SLACKPKGLIST")
             if [ $DEBUG -eq 1 ]; then echo -e "PKGINFO: \n$PKGINFO"; fi
             PKG=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)/\1/p')
             PKGNAME=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)-[0-9]\+.*\-.*x86.*-.*/\1/p')
