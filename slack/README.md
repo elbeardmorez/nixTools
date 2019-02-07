@@ -46,8 +46,11 @@ where OPTION is:
   sbd, sbdownload PKG  : download package 'PKG' from slackbuilds.org
   sbs, sbsearch PKG    : search package 'PKG' locally or remotely
                          based upon 'REPOVER'
-  sbb, sbbuild PKG [ARGS]  : build package PKG from build script
-                             located in pwd
+
+  # builds
+  bs, buildscript PKG [ARGS]  : build package PKG using build scripts
+                                or in the standard slackbuilds.org
+                                build script archives located in pwd
     where [ARGS] can be
       system     : ensure any instances of the standard '/usr/local'
                    prefix are set to '/usr'
@@ -60,9 +63,9 @@ where OPTION is:
       nobuild    : skip building of package
       noinstall  : skip installation of package
 
-  # source
-  bd, build [PKG-VER] [ARGS..]  : source only build and install.
-                                  [supports: autotools]
+  bat, buildautotool [PKG-VER] [ARGS..]  : source only build and
+                                           install for autotools
+                                           projects
     where [ARGS] can be
       system     : target '/usr' prefix
       user       : target '/usr/local' prefix
@@ -82,6 +85,10 @@ where OPTION is:
 environment variable switches:
 
   ARCH     : override current system architecture for builds
+  REPO     : 'slackware' (default), sets the target version for
+             package / source searching and downloading. overridden
+             by suffixed flavours of the standard option names
+             (e.g. 'sbdownload' implies REPO='slackbuilds')
   REPOVER  : 'current' (default), sets the target version for package
              / source searching and downloading
 ```
