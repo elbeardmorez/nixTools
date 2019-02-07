@@ -154,7 +154,8 @@ fnUpdate() {
       filter=0
       # refresh?
       [ $# -gt 0 ] && [ "x$1" == "xforce" ] && refresh=1 && shift
-      [ $refresh -eq 0 ] && [ $(date +%s) -gt $[ $(date -r $pkglist.all +%s) + $PKGLISTMAXAGE ] ] && refresh=1
+      [[ $refresh -eq 0 && ! -f $pkglist.all ]] && refresh=1
+      [[ $(date +%s) -gt $[ $(date -r $pkglist.all +%s) + $PKGLISTMAXAGE ] ]] && refresh=1
       if [ $refresh -eq 1 ]; then
         slackpkg update
         slackpkg search . > $pkglist.all
