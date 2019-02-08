@@ -175,6 +175,7 @@ fnUpdate() {
       if [ $refresh -eq 1 ]; then
         fnRepoSwitch $REPOVER
         slackpkg update 1>&2
+        [ ! $? ] && echo "[error] updating package list through Slackpkg" && return 1
         cp $SLACKPKGLIST $pkglist.raw
         slackpkg search . > $pkglist.all
         filter=1
@@ -208,16 +209,14 @@ fnUpdate() {
     "slackbuilds")
       PKGLISTREMOTE="${REPOURL['slackbuilds']}/$REPOVER""/SLACKBUILDS.TXT"
       wget -P /tmp $WGETOPTS $PKGLISTREMOTE -O $pkglist.all
-      if [ ! $? -eq 0 ]; then
-        echo "[error] pulling package list from '$PKGLISTREMOTE'"
-        return 1
-      fi
+      [ ! $? ] && echo "[error] pulling package list from '$PKGLISTREMOTE'" && return 1
       #process list
       #add search property - name-version per package
       sed -n "/^.*NAME:.*$/,/^.*VERSION:.*$/{/NAME:/{h;b};H;/VERSION:/{g;s|^.*NAME:\s*\(\S*\).*VERSION:\s\(\S*\)|SLACKBUILD PACKAGE: \1\-\2|p;x;p};b};p" $pkglist.all > $pkglist
-      return $?
       ;;
   esac
+
+  return $?
 }
 
 fnSearch() {
@@ -234,20 +233,18 @@ fnSearch() {
           results="$(find . -iname "*$search*z")"
           cd - 2>&1 > /dev/null
           if [ "x$results" == "x" ]; then
-            echo "no package found" 1>&2
-            return 1
+            echo "[info] no package found" 1>&2 && return 1
           else
             fnPackageInfo "iso_package" "$results"
             return
           fi
         else
-          echo "invalid package location: '$source'" 1>&2
+          echo "[error] invalid package location: '$source'" 1>&2
         fi
       else
         # search remote
-
-        #ensure list
-        [ ! -f $SLACKPKGLIST ] && slackpkg update
+        # ensure list or die
+        fnUpdate
         [ ! $? ] && return 1
 
         results="$(sed -n '/^PACKAGE NAME:[ ]*.*'"$search"'.*/{N;s/\n\(.\)/|\1/;p}' $pkglist.raw)"
@@ -256,19 +253,25 @@ fnSearch() {
       ;;
 
     "multilib")
+      # ensure list or die
+      fnUpdate
+      [ ! $? ] && return 1
+
       search="$1"
       grep -P "$search" $pkglist
       ;;
 
     "slackbuilds")
-      #ensure list
-      if [ ! -f $PKGLIST ]; then fnUpdate; fi
-      if [ ! $? -eq 0 ]; then return 1; fi
+      # ensure list or die
+      fnUpdate
+      [ ! $? ] && return 1
 
       search="$1"
       sed -n 's/^SLACKBUILD PACKAGE: \(.*'"$search"'.*\)/\1/ip' $pkglist
       ;;
   esac
+
+  return $?
 }
 
 fnDownload() {
@@ -276,7 +279,7 @@ fnDownload() {
 
   case "$REPO" in
     "slackware")
-      SEARCH="$1" && shift
+      search="$1" && shift
       DEBUG=0
       SOURCE=0
       if [ $# -gt 0 ]; then
@@ -291,12 +294,12 @@ fnDownload() {
 
       [ $DEBUG -ge 1 ] && echo "source: '$SOURCE'"
 
-      #search
-      PKGS="$(fnSearch "$SEARCH")"
-      if [ ! $? -eq 0 ]; then return 1; fi
-      IFS=$'\n'; PKGS=($PKGS); IFS="$IFSORG"
+      # search
+      packages="$(fnSearch "$search")"
+      [ ! $? ] && return 1
 
-      for PKG in "${PKGS[@]}"; do
+      IFS=$'\n'; packages=($packages); IFS="$IFSORG"
+      for PKG in "${packages[@]}"; do
         PKG=(`echo $PKG`)
         type=${PKG[0]} && type=${type:1:$[${#type} - 2]}
         pkg=${PKG[1]} && [ "x$pkg" == "x" ] && return 1
@@ -387,14 +390,15 @@ fnDownload() {
       ;;
 
     "multilib")
-      SEARCH="$1"
+      search="$1" && shift
       PATHTARGET=~/packages/
-      if [ ! -f $pkglist ]; then
-        echo "[error] no multilib package list at '$pkglist'"
-        exit 1
-      fi
-      IFSORIG=$IFS
-      packages=($(grep -P "$SEARCH" $pkglist))
+
+      # search
+      packages="$(fnSearch "$search")"
+      [ ! $? ] && return 1
+
+      IFS=$'\n'; packages=($packages); IFS="$IFSORG"
+
       echo -n \#found ${#packages[@]}
       if [ ${#packages[@]} -eq 0 ]; then
         echo " packages"
@@ -425,30 +429,28 @@ fnDownload() {
       ;;
 
     "slackbuilds")
-      SEARCH="$1"
+      search="$1"
       DEBUG=1
       if [ $# -gt 1 ]; then
         if [ "x$2" == "no" ]; then DEBUG=0; fi
       fi
 
-      #ensure list
-      if [ ! -f $PKGLIST ]; then fnUpdate; fi
-      if [ ! $? -eq 0 ]; then return 1; fi
+      # search
+      packages="$(fnSearch "$search")"
+      [ ! $? ] && return 1
 
-      #search
-      PKGS=($(fnSearch "$SEARCH"))
-      if [ ! $? -eq 0 ]; then return 1; fi
+      IFS=$'\n'; packages=($packages); IFS="$IFSORG"
 
-      #error if none, continue if unique, list if multiple matches
-      if [ ${#PKGS[@]} -eq 0 ]; then
-        echo "[user] no package name containing '$SEARCH' found"
+      # error if none, continue if unique, list if multiple matches
+      if [ ${#packages[@]} -eq 0 ]; then
+        echo "[user] no package name containing '$search' found"
         return 0
       else
         SUFFIX=
-        if [ ${#PKGS[@]} -gt 1 ]; then SUFFIX="s"; fi
-        echo "found ${#PKGS[@]} slackbuild$SUFFIX package$SUFFIX matching search term '$SEARCH'"
+        if [ ${#packages[@]} -gt 1 ]; then SUFFIX="s"; fi
+        echo "found ${#packages[@]} slackbuild$SUFFIX package$SUFFIX matching search term '$search'"
         cancel=0
-        for PKG in "${PKGS[@]}"; do
+        for PKG in "${packages[@]}"; do
           download=1
           if [ $DEBUG -eq 1 ]; then
             result=
