@@ -175,6 +175,7 @@ fnUpdate() {
       if [ $refresh -eq 1 ]; then
         fnRepoSwitch $REPOVER
         slackpkg update 1>&2
+        cp $SLACKPKGLIST $pkglist.raw
         slackpkg search . > $pkglist.all
         filter=1
         echo "[user] '$pkglist.all' updated" 1>&2
@@ -249,29 +250,29 @@ fnSearch() {
         [ ! -f $SLACKPKGLIST ] && slackpkg update
         [ ! $? ] && return 1
 
-        results="$(sed -n '/^PACKAGE NAME:[ ]*.*'"$search"'.*/{N;s/\n\(.\)/|\1/;p}' $SLACKPKGLIST)"
+        results="$(sed -n '/^PACKAGE NAME:[ ]*.*'"$search"'.*/{N;s/\n\(.\)/|\1/;p}' $pkglist.raw)"
         fnPackageInfo "remote" "$results"
       fi
       ;;
 
     "multilib")
-      PKGLIST=/tmp/packages.multilib
-      SEARCH="$1"
-      grep -P "$SEARCH" /tmp/packages.multilib
+      search="$1"
+      grep -P "$search" $pkglist
       ;;
 
     "slackbuilds")
-      PKGLIST=/tmp/packages.slackbuilds
       #ensure list
       if [ ! -f $PKGLIST ]; then fnUpdate; fi
       if [ ! $? -eq 0 ]; then return 1; fi
 
-      sed -n "s|^SLACKBUILD PACKAGE: \(.*$1.*\)|\1|ip" "$PKGLIST"
+      search="$1"
+      sed -n 's/^SLACKBUILD PACKAGE: \(.*'"$search"'.*\)/\1/ip' $pkglist
       ;;
   esac
 }
 
 fnDownload() {
+  pkglist=${PKGLIST}.${REPO}-${REPOVER}
 
   case "$REPO" in
     "slackware")
@@ -345,7 +346,7 @@ fnDownload() {
           else
             #remote
             if [ $DEBUG -eq 1 ]; then echo -e "PKG: \n$pkg"; fi
-            PKGINFO=$(grep -B1 -A3 "^PACKAGE NAME:[ ]*$pkg-[0-9]\+.*" "$SLACKPKGLIST")
+            PKGINFO=$(grep -B1 -A3 "^PACKAGE NAME:[ ]*$pkg-[0-9]\+.*" "$pkglist.raw")
             if [ $DEBUG -eq 1 ]; then echo -e "PKGINFO: \n$PKGINFO"; fi
             PKG=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)/\1/p')
             PKGNAME=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)-[0-9]\+.*\-.*x86.*-.*/\1/p')
@@ -388,13 +389,12 @@ fnDownload() {
     "multilib")
       SEARCH="$1"
       PATHTARGET=~/packages/
-      PKGLIST=/tmp/packages.multilib
-      if [ ! -f $PKGLIST ]; then
-        echo "[error] no multilib package list at '$PKGLIST'"
+      if [ ! -f $pkglist ]; then
+        echo "[error] no multilib package list at '$pkglist'"
         exit 1
       fi
       IFSORIG=$IFS
-      packages=($(grep -P "$SEARCH" /tmp/packages.multilib))
+      packages=($(grep -P "$SEARCH" $pkglist))
       echo -n \#found ${#packages[@]}
       if [ ${#packages[@]} -eq 0 ]; then
         echo " packages"
@@ -430,7 +430,6 @@ fnDownload() {
       if [ $# -gt 1 ]; then
         if [ "x$2" == "no" ]; then DEBUG=0; fi
       fi
-      PKGLIST=/tmp/packages.slackbuilds
 
       #ensure list
       if [ ! -f $PKGLIST ]; then fnUpdate; fi
@@ -478,7 +477,7 @@ fnDownload() {
           if [ $cancel -eq 1 ]; then break; fi
           if [ $download -eq 1 ]; then
             [ $DEBUG -ge 1 ] && echo -e "PKG: \n$PKG"
-            PKGINFO=$(grep -A9 "^SLACKBUILD PACKAGE: $PKG\$" "$PKGLIST")
+            PKGINFO=$(grep -A9 "^SLACKBUILD PACKAGE: $PKG\$" "$pkglist")
             [ $DEBUG -ge 1 ] && echo -e "PKGINFO: \n$PKGINFO"
             PKGNAME=$(echo -e "$PKGINFO" | sed -n 's|^.*NAME:\ \(.*\)$|\1|p')
             [ $DEBUG -ge 1 ] && echo -e "PKGNAME: \n$PKGNAME"
