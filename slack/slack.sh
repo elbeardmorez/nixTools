@@ -174,12 +174,12 @@ fnUpdate() {
       [[ $(date +%s) -gt $[ $(date -r $pkglist.all +%s) + $PKGLISTMAXAGE ] ]] && refresh=1
       if [ $refresh -eq 1 ]; then
         fnRepoSwitch $REPOVER
-        slackpkg update
+        slackpkg update 1>&2
         slackpkg search . > $pkglist.all
         filter=1
-        echo "[user] '$pkglist.all' updated"
+        echo "[user] '$pkglist.all' updated" 1>&2
       else
-        echo "[user] '$pkglist.all' less than 'PKGLISTMAXAGE [${PKGLISTMAXAGE}s]' old, not updating"
+        echo "[user] '$pkglist.all' less than 'PKGLISTMAXAGE [${PKGLISTMAXAGE}s]' old, not updating" 1>&2
       fi
 
       # filter blacklist?
@@ -195,7 +195,7 @@ fnUpdate() {
           sed -i '/.*'$match'-[^-]\+-[^-]\+-[^-]\+\( \|\t\|$\)/d' $pkglist
         done < $SLACKPKGBLACKLIST
         lc2=$(cat $pkglist | wc -l)
-        echo "[user] filtered $(($lc-$lc2)) blacklisted package entries"
+        echo "[user] filtered $(($lc-$lc2)) blacklisted package entries" 1>&2
       fi
       ;;
 
