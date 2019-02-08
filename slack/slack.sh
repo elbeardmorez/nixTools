@@ -372,7 +372,7 @@ fnDownload() {
             #download
 
             ## pkg
-            PKGLOCATION_BUILD="`sed -n /^[^#]/p /etc/slackpkg/mirrors`slackware$ARCHSUFFIX/$PKGLOCATION"
+            PKGLOCATION_BUILD="$(sed -n '/^[ \t]*[^#]\+$/p' $SLACKPKGMIRRORS)slackware$ARCHSUFFIX/$PKGLOCATION"
             PKGARCH="x86_64"
             if [ "x$ARCHSUFFIX" = "x64" ]; then
               PKGURL="${PKGLOCATION_BUILD}/${PKG}"
