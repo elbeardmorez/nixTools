@@ -21,6 +21,7 @@ PKGLIST='/tmp/_slack.packages'
 PKGLISTMAXAGE=$[7*24*60*60]
 SLACKPKGLIST=/var/lib/slackpkg/PACKAGES.TXT
 SLACKPKGBLACKLIST=/etc/slackpkg/blacklist
+SLACKPKGMIRRORS=/etc/slackpkg/mirrors
 ISOPACKAGES=/mnt/iso/slackware$ARCHSUFFIX-$REPOVER/slackware$ARCHSUFFIX
 ISOSOURCE=/mnt/iso/slackware-$REPOVER-source/source
 
@@ -144,6 +145,21 @@ fnPackageInfo() {
   esac
 }
 
+fnRepoSwitch() {
+  repover="$1"
+  mirrors="${2:-$SLACKPKGMIRRORS}"
+  current="$(sed -n '/^[ \t]*[^#]\+$/p' $mirrors)"
+  [ "x$current" == "x" ] && echo "[error] no mirrors live in mirror list" && exit 1
+  switched=0
+  if [ "x$(echo "$current" | sed -n '/slackware\(64\)\?\-'$repover'/p')" == "x" ]; then
+    sed -i '/^[ \t]*[^#]\+$/{s/slackware\(64\)\?\-[^/]\+/slackware\1-'$repover'/}' $mirrors
+    current="$(sed -n '/^[ \t]*[^#]\+$/p' $mirrors)"
+    switched=1
+  fi
+  echo "[user] $([ $switched -eq 1 ] && echo "switched to ")using slackpkg mirror '$current'" 1>&2
+  return $switched
+}
+
 fnUpdate() {
   pkglist=${PKGLIST}.${REPO}-${REPOVER}
 
@@ -157,6 +173,7 @@ fnUpdate() {
       [[ $refresh -eq 0 && ! -f $pkglist.all ]] && refresh=1
       [[ $(date +%s) -gt $[ $(date -r $pkglist.all +%s) + $PKGLISTMAXAGE ] ]] && refresh=1
       if [ $refresh -eq 1 ]; then
+        fnRepoSwitch $REPOVER
         slackpkg update
         slackpkg search . > $pkglist.all
         filter=1
@@ -877,6 +894,39 @@ fnTest() {
       $target ${in[@]}
       res=$([[ $? -eq 0 && -d "${in[1]}" ]] && echo $(ls -1 ${in[1]} | wc -l) || echo 0)
       echo "[$target | ${in[@]}] extracted count: '$res' | $([ $res -gt 0 ] && echo "pass" || echo "fail")"
+      ;;
+    "fnRepoSwitch")
+      if [ $# -eq 0 ]; then
+        f="$(tempfile)"
+        echo '
+#note
+#http://ftp.gwdg.de/pub/linux/slackware/slackware64-14.1/
+#ftp://ftp.gwdg.de/pub/linux/slackware/slackware64-14.2/
+  http://ftp.gwdg.de/pub/linux/slackware/slackware64-current/
+#
+' > "$f"
+        tests=("current 0"
+               "14.1 1"
+               "current 1")
+        for s in "${tests[@]}"; do
+          in="$(echo "$s" | cut -d' ' -f1)"
+          out="$(echo "$s" | cut -d' ' -f2)"
+          $($target "$in" "$f")
+          res=$?
+          echo "[$target | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
+        done
+        rm "$f"
+      else
+        [ $# -ne 2 ] && echo "[error] $target tests require 2 args"
+        in=($@)
+        before="$(sed -n '/^[ \t]*[^#]\+$/p' "${in[1]}")"
+        $target ${in[@]}
+        res=$?
+        after="$(sed -n '/^[ \t]*[^#]\+$/p'  "${in[1]}")"
+        echo -e "[$target | ${in[@]}] $([[ ($res -eq 0 && "x$before" == "x$after") ||
+                                           ($res -eq 1 && "x$before" != "x$after") ]] &&
+                                         echo "pass" || echo "fail")\nbefore: '$before'\nafter : '$after'"
+      fi
       ;;
     *)
       $target "$@"
