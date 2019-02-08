@@ -226,22 +226,6 @@ fnSearch() {
     "slackware")
       search="$1" && shift
       if [ "$REPOVER" != "current" ]; then
-        # search source iso
-        source="$ISOSOURCE"
-        if [ -d "$source" ]; then
-          cd "$source"
-          results="$(find . -iname "*$search*z" | grep "/.*$search.*/")"
-          cd - 2>&1 > /dev/null
-          if [ "x$results" == "x" ]; then
-            echo "no package found" 1>&2
-            return 1
-          else
-            fnPackageInfo "iso_source" "$results"
-            return
-          fi
-        else
-          echo "invalid source location: '$source'" 1>&2
-        fi
         # search packages iso
         source="$ISOPACKAGES"
         if [ -d "$source" ]; then
@@ -258,7 +242,6 @@ fnSearch() {
         else
           echo "invalid package location: '$source'" 1>&2
         fi
-
       else
         # search remote
 
