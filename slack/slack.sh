@@ -430,10 +430,6 @@ fnDownload() {
 
     "slackbuilds")
       search="$1"
-      DEBUG=1
-      if [ $# -gt 1 ]; then
-        if [ "x$2" == "no" ]; then DEBUG=0; fi
-      fi
 
       # search
       packages="$(fnSearch "$search")"
