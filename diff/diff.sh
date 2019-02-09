@@ -48,7 +48,7 @@ fnProcess() {
     "diff")
       [ "x$type" = "xdir" ] && diff_options[${#diff_options[@]}]="-r"
 
-      target="$(fnTempFile)"
+      target="$(fnTempFile "$SCRIPTNAME")"
 
       [ $DEBUG -ge 1 ] && echo "[debug] diff  ${diff_options_default[@]} ${diff_options[@]} \"$file1\" \"$file2\" | grep -ve \"^Only in\" | grep -ve \"^[Bb]inary\"" | tee "$target"
       if [ $TEST -eq 0 ]; then
@@ -68,8 +68,8 @@ fnProcess() {
       description1="$(cd "$file1" && pwd | tr '/ ' '^.')"
       description2="$(cd "$file2" && pwd | tr '/ '  '^.')"
 
-      target1="$(fnTempFile)_dir1_$description1"
-      target2="$(fnTempFile)_dir2_$description2"
+      target1="$(fnTempFile "$SCRIPTNAME")_dir1_$description1"
+      target2="$(fnTempFile "$SCRIPTNAME")_dir2_$description2"
 
       $(cd "$file1"; find . -name "*" -printf "%p\t%s\n" | sort > "$target1")
       $(cd "$file2"; find . -name "*" -printf "%p\t%s\n" | sort > "$target2")
@@ -81,7 +81,7 @@ fnProcess() {
          done < "$fExcludes"
       fi
 
-      target="$(fnTempFile)"
+      target="$(fnTempFile "$SCRIPTNAME")"
       diff ${diff_options[@]} $target1 $target2 > "${target}_dir"
 
       $diff_viewer "$target1" "$target2" >/dev/null 2>&1 &
