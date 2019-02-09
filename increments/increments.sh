@@ -86,7 +86,7 @@ while [ -n "$1" ]; do
   shift
 done
 
-[ $DEBUG -gt 0 ] && echo "[debug] search: [${search[@]}], target: `basename $target`, diffs: $diffs: diffs target: $target_diffs, matches target: $target_matches" 1>&2
+[ $DEBUG -ge 1 ] && echo "[debug] search: [${search[@]}], target: `basename $target`, diffs: $diffs: diffs target: $target_diffs, matches target: $target_matches" 1>&2
 
 [ ${#search[@]} -eq 0 ] && help && echo "[error] no search items specified" &&  exit 1
 [ ! -d "$target" ] && echo "[error] invalid search target set '$target'. exiting!" && exit 1
@@ -117,7 +117,7 @@ rx="^.*/?\(${rx:2}\)$"
 
 # search
 IFS=$'\n'; files=(`find "$target" -iregex "$rx"`); IFS="$IFSORG"
-[ $DEBUG -gt 0 ] && echo "[debug] searched target '$target' for '${search[@]}', found ${#files[@]} file(s)" 1>&2
+[ $DEBUG -ge 1 ] && echo "[debug] searched target '$target' for '${search[@]}', found ${#files[@]} file(s)" 1>&2
 
 [ ${#files[@]} -eq 0 ] && echo "[info] no files found" && exit
 
@@ -141,7 +141,7 @@ for f in ${files[@]}; do
 done
 s="${s:2}"
 sorted="$(echo -e "$s" | sort -t$'\t' -k1)"
-[ $DEBUG -gt 1 ] && echo -e "[debug] timestamp sorted table\n$sorted"
+[ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted table\n$sorted"
 
 # duplicates
 if [ $remove_dupes -eq 1 ]; then
@@ -191,10 +191,13 @@ if [ $remove_dupes -eq 1 ]; then
     fi
   done
   compared_dupe="${compared_dupe:2}"
-  [ $DEBUG -gt 1 ] && echo -e "[debug] duplicate tested table\n$compared_dupe" 1>&2
+  [ $DEBUG -ge 2 ] && echo -e "[debug] duplicate tested table\n$compared_dupe" 1>&2
   sorted="$(echo -e "$compared_dupe" | sort -t$'\t' -k1 | sed '/\t1/d;s/\t0$//')"
-  [ $DEBUG -gt 1 ] && echo -e "[debug] timestamp sorted duplicate free table\n$sorted" 1>&2
+  [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted duplicate free table\n$sorted" 1>&2
 fi
+
+matches=$(echo -e "$sorted" | wc -l)
+echo "[info] matched ${matches}$([ ${#files[@]} -ne ${#sorted[@]} ] && echo " unique") file$([ $matches -ne 1 ] && echo "s")" 1>&2
 
 # precedence
 if [ -n "$precedence" ]; then
@@ -206,9 +209,9 @@ if [ -n "$precedence" ]; then
     l=$(($l+1))
   done
   s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*\)$/_'$l'_\t\1/')"
-  [ $DEBUG -gt 1 ] && echo -e "[debug] timestamp sorted precedence sets keyed table\n$s"
+  [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted precedence sets keyed table\n$s"
   sorted="$(echo "$s" | sort | sed 's/^_[0-9]\+_\t//')"
-  [ $DEBUG -gt 1 ] && echo -e "[debug] timestamp sorted precedence table\n$sorted"
+  [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted precedence table\n$sorted"
 fi
 
 # switch to array items
@@ -220,13 +223,13 @@ if [[ $diffs -eq 1 || -n "$target_diffs" ]]; then
   last="/dev/null"
   bin=diff
   for r in "${sorted[@]}"; do
-    [ $DEBUG -gt 2 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
+    [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
     IFS=$'\t'; fields=($r); IFS="$IFSORG"
     ts=${fields[0]}
     sz=${fields[1]}
     f="${fields[2]}"
     binargs=("-u" "$last" "$f")
-    [ $DEBUG -gt 1 ] && echo "[debug] diff '$last <-> $f'"
+    [ $DEBUG -ge 2 ] && echo "[debug] diff '$last <-> $f'"
     if [[ $diffs -eq 1 && -n "$target_diffs" ]]; then
       $bin "${binargs[@]}" | tee "$target_diffs/$ts.diff"
     elif [ $diffs -eq 1 ]; then
@@ -241,16 +244,16 @@ if [[ $diffs -eq 1 || -n "$target_diffs" ]]; then
 fi
 
 # list
-echo "[info] matched ${#sorted[@]}$([ ${#files[@]} -ne ${#sorted[@]} ] && echo " unique") files" 1>&2
+echo "[info] file list:"
 date_format="%Y%b%d %H:%M:%S %z"
 field_date=0; field_size=1; field_path=2
 field_widths=(25 $(($maxlen_size+1)) $(($maxlen_path+1)))
 field_order=(2 1 0)
 # header
-printf "\n%s%$((${field_widths[$field_path]}-4))s%$((${field_widths[$field_size]}-4))s%s%$((${field_widths[$field_date]}-4))s%s\n" "path" " " " " "size" " " "date"
+printf "%s%$((${field_widths[$field_path]}-4))s%$((${field_widths[$field_size]}-4))s%s%$((${field_widths[$field_date]}-4))s%s\n" "path" " " " " "size" " " "date"
 # rows
 for r in "${sorted[@]}"; do
-  [ $DEBUG -gt 2 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
+  [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
   IFS=$'\t'; fields=($r); IFS="$IFSORG"
   for l in ${field_order[@]}; do
     f="${fields[$l]}"

@@ -60,8 +60,8 @@ fnTempFile() {
 fnRegexp() {
   # escape reserved characters
   exp="$1" && shift
-  [ $DEBUG -ge 2 ] && echo "[debug] raw expression: '$exp', sed protected chars: '$ESCAPE_SED'" 1>&2
+  [ $DEBUG -ge 3 ] && echo "[debug] raw expression: '$exp', sed protected chars: '$ESCAPE_SED'" 1>&2
   exp="$(echo "$exp" | sed 's/\(['$ESCAPE_SED']\)/\\\1/g')"
-  [ $DEBUG -ge 2 ] && echo "[debug] protected expression: '$exp'" 1>&2
+  [ $DEBUG -ge 3 ] && echo "[debug] protected expression: '$exp'" 1>&2
   echo "$exp"
 }
