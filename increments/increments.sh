@@ -13,6 +13,8 @@ DEBUG=${DEBUG:-0}
 diffs=0
 TARGET_DIFFS_DEFAULT="increments"
 declare target_diffs
+TARGET_MATCHES_DEFAULT="matches"
+declare target_matches
 remove_dupes=0
 target=${INCREMENTS_TARGET:-}
 search=(${INCREMENTS_SEARCH:-})
@@ -35,6 +37,8 @@ SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
                           files matched
   -d, --diffs  : output incremental diffs of search matches
   -dd, --dump-diffs PATH  : write diffs to PATH (default: increments)
+  -dm, --dump-matches PATH  : copy search matches to PATH
+                              (default: matches)
 \nenvironment variables:
   INCREMENTS_TARGET  : as detailed above
   INCREMENTS_SEARCH  : as detailed above
@@ -75,12 +79,14 @@ while [ -n "$1" ]; do
     "d"|"diffs") diffs=1 ;;
     "dd") target_diffs="$TARGET_DIFFS_DEFAULT" ;;
     "dump-diffs") shift; target_diffs="$1" ;;
+    "dm") target_matches="$TARGET_MATCHES_DEFAULT" ;;
+    "dump-matches") shift; target_matches="$1" ;;
     *) search[${#search[@]}]="$1" ;;
   esac
   shift
 done
 
-[ $DEBUG -gt 0 ] && echo "[debug] search: [${search[@]}], target: `basename $target`, diffs: $diffs: diffs target: $target_diffs" 1>&2
+[ $DEBUG -gt 0 ] && echo "[debug] search: [${search[@]}], target: `basename $target`, diffs: $diffs: diffs target: $target_diffs, matches target: $target_matches" 1>&2
 
 [ ${#search[@]} -eq 0 ] && help && echo "[error] no search items specified" &&  exit 1
 [ ! -d "$target" ] && echo "[error] invalid search target set '$target'. exiting!" && exit 1
@@ -114,6 +120,14 @@ IFS=$'\n'; files=(`find "$target" -iregex "$rx"`); IFS="$IFSORG"
 [ $DEBUG -gt 0 ] && echo "[debug] searched target '$target' for '${search[@]}', found ${#files[@]} file(s)" 1>&2
 
 [ ${#files[@]} -eq 0 ] && echo "[info] no files found" && exit
+
+# dump matches
+if [ -n "$target_matches" ]; then
+  [ ! -d "$target_matches" ] && mkdir -p "$target_matches"
+  for f in ${files[@]}; do cp -a --parents "$f" "$target_matches/"; done
+  echo "[info] dumped ${#files[@]} matches to '$target_matches'" 1>&2
+fi
+
 maxlen_path=4
 maxlen_size=4
 s=""

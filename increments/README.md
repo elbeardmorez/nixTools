@@ -20,6 +20,8 @@ where OPTIONS can be:
                           files matched
   -d, --diffs  : output incremental diffs of search matches
   -dd, --dump-diffs PATH  : write diffs to PATH (default: increments)
+  -dm, --dump-matches PATH  : copy search matches to PATH
+                              (default: matches)
 
 environment variables:
   INCREMENTS_TARGET  : as detailed above
