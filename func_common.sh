@@ -44,7 +44,7 @@ fnRandom() {
   len=${1:-10}; s=""; while [ ${#s} -lt $len ]; do s+="$(head -c10 /dev/random | tr -dc '[[:alnum:]]')"; done; echo "${s:0:$len}";
 }
 
-fnTempFile() {
+fnTemp() {
   name="$1" && shift
   tmp="${1:-$(dirname $(mktemp -u) 2>/dev/null)}"
   [ -z "$tmp" ] && tmp="$TMP";
@@ -56,6 +56,22 @@ fnTempFile() {
   f="$tmp/$name.$(fnRandom 10)"
   while [ -e "$f" ]; do f="$tmp/$name.$(fnRandom 10)"; done
   echo "$f"
+}
+
+fnTempFile() {
+  tmp=$(fnTemp "$@")
+  res=$?
+  [ $res -ne 0 ] && return $res
+  touch "$tmp"
+  echo "$tmp"
+}
+
+fnTempDir() {
+  tmp=$(fnTemp "$@")
+  res=$?
+  [ $res -ne 0 ] && return $res
+  mkdir "$tmp"
+  echo "$tmp"
 }
 
 fnRegexp() {
