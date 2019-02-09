@@ -399,25 +399,19 @@ fnDownload() {
 
       IFS=$'\n'; packages=($packages); IFS="$IFSORG"
 
-      echo -n \#found ${#packages[@]}
-      if [ ${#packages[@]} -eq 0 ]; then
-        echo " packages"
-      else
-        if [ ${#packages[@]} -eq 1 ]; then
-          echo " package"
-        else
-          echo " packages"
-        fi
+      echo "[info] found ${#packages[@]} package$([ ${#packages[@]} -ne 1 ] && echo "s") matching search term '$search'"
+      if [ ${#packages[@]} -gt 0 ]; then
+        echo ""
         for url in ${packages[@]}; do
           echo ${url##*/}
         done
         result=""
-        echo -n "download listed packages to $PATHTARGET? [y/n]: "
+        echo -n "[user] download listed packages to '$PATHTARGET'? [y/n]: "
         read -s -n 1 result
         if [[ "$result" == "Y" || "$result" == "y" ]]; then
           echo "$result"
           for url in ${packages[@]}; do
-            echo "downloading package '${url##*/}'"
+            echo "[info] downloading package '${url##*/}'"
             set -x
             wget -P $PATHTARGET $WGETOPTS ${REPOURL['multilib']}/current/$url
             set +x
