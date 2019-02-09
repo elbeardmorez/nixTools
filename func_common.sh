@@ -53,7 +53,7 @@ fnTempFile() {
   mkdir -p "$tmp" 2>/dev/null
   [ $? -ne 0 ] && echo "[error] failed to set temp storage" 1>&2 && return 1
   f="$tmp/$SCRIPTNAME.$(fnRandom 10)"
-  while [ -e "$f" ]; do f="$TMP/$SCRIPTNAME.$(fnRandom 10)"; done
+  while [ -e "$f" ]; do f="$tmp/$SCRIPTNAME.$(fnRandom 10)"; done
   echo "$f"
 }
 
