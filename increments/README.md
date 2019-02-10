@@ -1,14 +1,14 @@
 # increments.sh
 
 ## description
-given a search set and a target, find all files satisfying the search under the target location and return a match list ordered by modification date to represent an incremental set, from which a dump of ordered incremental diffs is optionally created
+given a search set and a target, find all files satisfying the search under/in the target and return a match list ordered by modification date to represent an incremental set, from which a dump of ordered incremental diffs is optionally created
 
 ## usage
 ```
 SYNTAX: increments_ [OPTIONS] search [search2 ..]
 
 where OPTIONS can be:
-  -t TARGET, --target TARGET:  search path
+  -t TARGET, --target TARGET:  search TARGET (path / archive)
   -v, --variants VARIANTS  : consider search variants given by
                              application of (sed) regexp
                              transformations in VARIANTS file
@@ -65,5 +65,6 @@ $ ls -1 increments
 - md5sum
 - tee
 - diff
+- GNU tar ('--wildcards' extension)
 
 ## todo

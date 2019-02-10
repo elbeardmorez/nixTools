@@ -20,12 +20,13 @@ target=${INCREMENTS_TARGET:-}
 search=(${INCREMENTS_SEARCH:-})
 variants=${INCREMENTS_VARIANTS:-}
 precedence=${INCREMENTS_PRECEDENCE:-}
+declare tmp
 
 help() {
   echo -e "
 SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
 \nwhere OPTIONS can be:
-  -t TARGET, --target TARGET:  search path
+  -t TARGET, --target TARGET:  search TARGET (path / archive)
   -v, --variants VARIANTS  : consider search variants given by
                              application of (sed) regexp
                              transformations in VARIANTS file
@@ -45,6 +46,10 @@ SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
   INCREMENTS_VARIANTS  : as detailed above
   INCREMENTS_PRECEDENCE  : as detailed above
 "
+}
+
+fnCleanUp() {
+  [ -n "$tmp" ] && [ -e "$tmp" ] && rm -rf "$tmp" 2>/dev/null 1>&2
 }
 
 fnFilesCompare() {
@@ -89,13 +94,22 @@ fnProcess() {
     fi
   fi
 
-  # search regexp
-  rx=""
-  for s in "${search[@]}"; do rx+="\|$s"; done
-  rx="^.*/?\(${rx:2}\)$"
-
   # search
-  IFS=$'\n'; files=(`find "$target" -iregex "$rx"`); IFS="$IFSORG"
+  declare -a files
+  declare matches
+  if [ ! -d "$target" ]; then
+    # archive extraction
+    globs=(); for s in "${search[@]}"; do globs=("${globs[@]}" "--wildcards" "*$s*"); done
+    tmp=$(fnTempDir "$SCRIPTNAME")
+    tar -C "$tmp" -x "${globs[@]}" -f "$target"
+    res=$?
+    [ $res -ne 0 ] && return $res
+    target=$tmp
+  fi
+  # directory search
+  rx=""; for s in "${search[@]}"; do rx+="\|$s"; done; rx="^.*/?\(${rx:2}\)$"
+  matches="$(find "$target" -iregex "$rx")"
+  IFS=$'\n'; files=($(echo -e "$matches")); IFS="$IFSORG"
   [ $DEBUG -ge 1 ] && echo "[debug] searched target '$target' for '${search[@]}', found ${#files[@]} file(s)" 1>&2
 
   [ ${#files[@]} -eq 0 ] && echo "[info] no files found" && return 1
@@ -272,8 +286,23 @@ done
 [ $DEBUG -ge 1 ] && echo "[debug] search: [${search[@]}], target: `basename $target`, diffs: $diffs: diffs target: $target_diffs, matches target: $target_matches" 1>&2
 
 # option validation
+## search
 [ ${#search[@]} -eq 0 ] && help && echo "[error] no search items specified" && exit 1
-[ ! -d "$target" ] && echo "[error] invalid search target set '$target'. exiting!" && exit 1
+## target
+if [ ! -e "$target" ]; then
+  echo "[error] invalid search target set '$target'. exiting!" && exit 1
+else
+  if [ -f "$target" ]; then
+    # ensure it's a supported file
+    type="$(file --brief --mime-type "$target")"
+    type_required="application/x-tar"
+    [ "x$type" != "x$type_required" ] &&
+      echo "[error] target file type '$type' unsupported, expected '$type_expected' archive" && exit
+  fi
+fi
 
 # run
 fnProcess
+
+# clean up
+fnCleanUp
