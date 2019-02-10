@@ -92,20 +92,8 @@ fnClean() {
   IFS=$'\n'; files=($(find . -regex '.*/data\(\_[0-9]+\)?$')); IFS="$IFSORG"
   if [ ${#files[@]} -gt 0 ]; then
     echo -n "[user] default cleaning, purge ${#files[@]} blob$([ ${#files[@]} -ne 1 ] && echo "s")? [y/n]: "
-    while [ 1 -eq 1 ]; do
-      read ${CMDARGS_READ_SINGLECHAR[@]}
-      case "$REPLY" in
-        "y"|"Y")
-          echo "$REPLY"
-          for f in "${files[@]}"; do rm "$f"; done
-          break
-          ;;
-        "n"|"N")
-          echo $REPLY
-          break
-          ;;
-      esac
-    done
+    res=$(fnDecision)
+    [ "x$res" = "x1" ] && for f in "${files[@]}"; do rm "$f"; done
   fi
 }
 
