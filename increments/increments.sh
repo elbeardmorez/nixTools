@@ -68,28 +68,7 @@ fnFilesCompare() {
   echo -e "${res:2}"
 }
 
-while [ -n "$1" ]; do
-  s="$(echo "$1" | sed -n 's/^-*//gp')"
-  case "$s" in
-    "h"|"help") help && exit ;;
-    "t"|"target") shift; target="$1" ;;
-    "v"|"variants") shift; variants="$1" ;;
-    "pp"|"path-precedence") shift; precedence="$1" ;;
-    "nd"|"no-duplicates") remove_dupes=1 ;;
-    "d"|"diffs") diffs=1 ;;
-    "dd") target_diffs="$TARGET_DIFFS_DEFAULT" ;;
-    "dump-diffs") shift; target_diffs="$1" ;;
-    "dm") target_matches="$TARGET_MATCHES_DEFAULT" ;;
-    "dump-matches") shift; target_matches="$1" ;;
-    *) search[${#search[@]}]="$1" ;;
-  esac
-  shift
-done
-
-[ $DEBUG -ge 1 ] && echo "[debug] search: [${search[@]}], target: `basename $target`, diffs: $diffs: diffs target: $target_diffs, matches target: $target_matches" 1>&2
-
-[ ${#search[@]} -eq 0 ] && help && echo "[error] no search items specified" &&  exit 1
-[ ! -d "$target" ] && echo "[error] invalid search target set '$target'. exiting!" && exit 1
+fnProcess() {
 
 if [ -n "$variants" ]; then
   if [ ! -f "$variants" ]; then
@@ -119,7 +98,7 @@ rx="^.*/?\(${rx:2}\)$"
 IFS=$'\n'; files=(`find "$target" -iregex "$rx"`); IFS="$IFSORG"
 [ $DEBUG -ge 1 ] && echo "[debug] searched target '$target' for '${search[@]}', found ${#files[@]} file(s)" 1>&2
 
-[ ${#files[@]} -eq 0 ] && echo "[info] no files found" && exit
+[ ${#files[@]} -eq 0 ] && echo "[info] no files found" && return 1
 
 # dump matches
 if [ -n "$target_matches" ]; then
@@ -167,7 +146,7 @@ if [ $remove_dupes -eq 1 ]; then
       # make comparison
       compared="$(fnFilesCompare "$f" "${s[@]}")"
       res=$?
-      [ $res -ne 0 ] && exit $res
+      [ $res -ne 0 ] && return $res
       # create merged data subset for sort
       IFS=$'\n'; compared=($(echo -e "$compared")); IFS="$IFSORG"
       s=""
@@ -269,3 +248,32 @@ for r in "${sorted[@]}"; do
   done
   printf '\n'
 done
+
+}
+
+# option parsing
+while [ -n "$1" ]; do
+  s="$(echo "$1" | sed -n 's/^-*//gp')"
+  case "$s" in
+    "h"|"help") help && exit ;;
+    "t"|"target") shift; target="$1" ;;
+    "v"|"variants") shift; variants="$1" ;;
+    "pp"|"path-precedence") shift; precedence="$1" ;;
+    "nd"|"no-duplicates") remove_dupes=1 ;;
+    "d"|"diffs") diffs=1 ;;
+    "dd") target_diffs="$TARGET_DIFFS_DEFAULT" ;;
+    "dump-diffs") shift; target_diffs="$1" ;;
+    "dm") target_matches="$TARGET_MATCHES_DEFAULT" ;;
+    "dump-matches") shift; target_matches="$1" ;;
+    *) search[${#search[@]}]="$1" ;;
+  esac
+  shift
+done
+[ $DEBUG -ge 1 ] && echo "[debug] search: [${search[@]}], target: `basename $target`, diffs: $diffs: diffs target: $target_diffs, matches target: $target_matches" 1>&2
+
+# option validation
+[ ${#search[@]} -eq 0 ] && help && echo "[error] no search items specified" && exit 1
+[ ! -d "$target" ] && echo "[error] invalid search target set '$target'. exiting!" && exit 1
+
+# run
+fnProcess
