@@ -70,184 +70,184 @@ fnFilesCompare() {
 
 fnProcess() {
 
-if [ -n "$variants" ]; then
-  if [ ! -f "$variants" ]; then
-    echo "[error] invalid variants file set '$variants'. ignoring!"
-  else
-    declare -a search2
-    search2=""
-    IFS=$'\n'; transforms=($(cat "$variants")); IFS="$IFSORG"
-    for transform in "${transforms[@]}"; do
-      for s in "${search[@]}"; do
-        search2+="$s\n"
-        v=$(echo "$s" | sed 's'"$transform")
-        [ -n "${v}" ] && search2+="$v\n"
-      done
-    done < $variants
-    # unique only
-    IFS=$'\n'; search=($(echo -e "$search2" | sort -u)); IFS="$IFSORG"
-  fi
-fi
-
-# search regexp
-rx=""
-for s in "${search[@]}"; do rx+="\|$s"; done
-rx="^.*/?\(${rx:2}\)$"
-
-# search
-IFS=$'\n'; files=(`find "$target" -iregex "$rx"`); IFS="$IFSORG"
-[ $DEBUG -ge 1 ] && echo "[debug] searched target '$target' for '${search[@]}', found ${#files[@]} file(s)" 1>&2
-
-[ ${#files[@]} -eq 0 ] && echo "[info] no files found" && return 1
-
-# dump matches
-if [ -n "$target_matches" ]; then
-  [ ! -d "$target_matches" ] && mkdir -p "$target_matches"
-  for f in ${files[@]}; do cp -a --parents "$f" "$target_matches/"; done
-  echo "[info] dumped ${#files[@]} matches to '$target_matches'" 1>&2
-fi
-
-maxlen_path=4
-maxlen_size=4
-s=""
-for f in ${files[@]}; do
-  [ ${#f} -gt $maxlen_path ] && maxlen_path=${#f}
-  i=`stat -L "$f"`
-  ts=`echo -e "$i" | grep "Modify" | cut -d' ' -f2- | xargs -I '{}' date -d '{}' '+%s'`
-  sz=`echo -e "$i" | sed -n 's/.*Size: \([0-9]\+\).*/\1/p'`
-  [ ${#sz} -gt $maxlen_size ] && maxlen_size=${#sz}
-  s="$s\n$ts\t$sz\t$f"
-done
-s="${s:2}"
-sorted="$(echo -e "$s" | sort -t$'\t' -k1)"
-[ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted table\n$sorted"
-
-# duplicates
-if [ $remove_dupes -eq 1 ]; then
-  IFS=$'\n'; sorted_size=($(echo -e "$sorted" | sort -t$'\t' -k2)); IFS="$IFSORG" # sort by size
-  l1=0
-  compared_dupe=""
-  while [ $l1 -lt ${#sorted_size[@]} ]; do
-    sz="$(echo "${sorted_size[$l1]}" | cut -d$'\t' -f2)"
-    f="$(echo "${sorted_size[$l1]}" | cut -d$'\t' -f3)"
-    compared_dupe+="\n${sorted_size[$l1]}\t0"  # unique or first
-    l1=$(($l1+1))
-    l2=0
-    s=()
-    while [[ $(($l1+$l2)) -lt ${#sorted_size[@]} && \
-             $sz -eq $(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f2) ]]; do
-      # collect any files with same size as first/base, yet to be deemed 'dupe'
-      f2="$(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f3)"
-      dupe="$(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f4)"
-      [ -z "$dupe" ] && s[${#s[@]}]="$f2"
-      l2=$(($l2+1))
-    done
-    if [ ${#s[@]} -gt 0 ]; then
-      # make comparison
-      compared="$(fnFilesCompare "$f" "${s[@]}")"
-      res=$?
-      [ $res -ne 0 ] && return $res
-      # create merged data subset for sort
-      IFS=$'\n'; compared=($(echo -e "$compared")); IFS="$IFSORG"
-      s=""
-      for l3 in $(seq 0 1 $((l2-1))); do
-        s2="${sorted_size[$(($l1+$l3))]}"
-        c="${compared[$l3]}"
-        s+="\n$([ ${c#*$'\t'} -eq 1 ] && echo "${s2%$'\t'*%}\t1" || echo "${sorted_size[$(($l1+$l3))]}")"
-      done
-      # update set / replace subset with any dupes first
-      IFS=$'\n'; compared=($(echo -e "$s" | sort -t$'\t' -k4 -r)); IFS="$IFSORG"
-      dupes_count=0
-      for l3 in $(seq 0 1 $((l2-1))); do
-        sorted_size[$(($l1+$l3))]="${compared[$l3]}"
-        if [ -n "$(echo "${compared[$l3]}" | cut -d$'\t' -f4)" ]; then
-          compared_dupe+="\n${compared[$l3]}"  # dupe
-          dupes_count=$(($dupes_count+1))
-        fi
-      done
-      # move index beyond dupes for next base
-      l1=$(($l1+$dupes_count))
+  if [ -n "$variants" ]; then
+    if [ ! -f "$variants" ]; then
+      echo "[error] invalid variants file set '$variants'. ignoring!"
+    else
+      declare -a search2
+      search2=""
+      IFS=$'\n'; transforms=($(cat "$variants")); IFS="$IFSORG"
+      for transform in "${transforms[@]}"; do
+        for s in "${search[@]}"; do
+          search2+="$s\n"
+          v=$(echo "$s" | sed 's'"$transform")
+          [ -n "${v}" ] && search2+="$v\n"
+        done
+      done < $variants
+      # unique only
+      IFS=$'\n'; search=($(echo -e "$search2" | sort -u)); IFS="$IFSORG"
     fi
+  fi
+
+  # search regexp
+  rx=""
+  for s in "${search[@]}"; do rx+="\|$s"; done
+  rx="^.*/?\(${rx:2}\)$"
+
+  # search
+  IFS=$'\n'; files=(`find "$target" -iregex "$rx"`); IFS="$IFSORG"
+  [ $DEBUG -ge 1 ] && echo "[debug] searched target '$target' for '${search[@]}', found ${#files[@]} file(s)" 1>&2
+
+  [ ${#files[@]} -eq 0 ] && echo "[info] no files found" && return 1
+
+  # dump matches
+  if [ -n "$target_matches" ]; then
+    [ ! -d "$target_matches" ] && mkdir -p "$target_matches"
+    for f in ${files[@]}; do cp -a --parents "$f" "$target_matches/"; done
+    echo "[info] dumped ${#files[@]} matches to '$target_matches'" 1>&2
+  fi
+
+  maxlen_path=4
+  maxlen_size=4
+  s=""
+  for f in ${files[@]}; do
+    [ ${#f} -gt $maxlen_path ] && maxlen_path=${#f}
+    i=`stat -L "$f"`
+    ts=`echo -e "$i" | grep "Modify" | cut -d' ' -f2- | xargs -I '{}' date -d '{}' '+%s'`
+    sz=`echo -e "$i" | sed -n 's/.*Size: \([0-9]\+\).*/\1/p'`
+    [ ${#sz} -gt $maxlen_size ] && maxlen_size=${#sz}
+    s="$s\n$ts\t$sz\t$f"
   done
-  compared_dupe="${compared_dupe:2}"
-  [ $DEBUG -ge 2 ] && echo -e "[debug] duplicate tested table\n$compared_dupe" 1>&2
-  sorted="$(echo -e "$compared_dupe" | sort -t$'\t' -k1 | sed '/\t1/d;s/\t0$//')"
-  [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted duplicate free table\n$sorted" 1>&2
-fi
+  s="${s:2}"
+  sorted="$(echo -e "$s" | sort -t$'\t' -k1)"
+  [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted table\n$sorted"
 
-matches=$(echo -e "$sorted" | wc -l)
-echo "[info] matched ${matches}$([ ${#files[@]} -ne ${#sorted[@]} ] && echo " unique") file$([ $matches -ne 1 ] && echo "s")" 1>&2
+  # duplicates
+  if [ $remove_dupes -eq 1 ]; then
+    IFS=$'\n'; sorted_size=($(echo -e "$sorted" | sort -t$'\t' -k2)); IFS="$IFSORG" # sort by size
+    l1=0
+    compared_dupe=""
+    while [ $l1 -lt ${#sorted_size[@]} ]; do
+      sz="$(echo "${sorted_size[$l1]}" | cut -d$'\t' -f2)"
+      f="$(echo "${sorted_size[$l1]}" | cut -d$'\t' -f3)"
+      compared_dupe+="\n${sorted_size[$l1]}\t0"  # unique or first
+      l1=$(($l1+1))
+      l2=0
+      s=()
+      while [[ $(($l1+$l2)) -lt ${#sorted_size[@]} && \
+               $sz -eq $(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f2) ]]; do
+        # collect any files with same size as first/base, yet to be deemed 'dupe'
+        f2="$(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f3)"
+        dupe="$(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f4)"
+        [ -z "$dupe" ] && s[${#s[@]}]="$f2"
+        l2=$(($l2+1))
+      done
+      if [ ${#s[@]} -gt 0 ]; then
+        # make comparison
+        compared="$(fnFilesCompare "$f" "${s[@]}")"
+        res=$?
+        [ $res -ne 0 ] && return $res
+        # create merged data subset for sort
+        IFS=$'\n'; compared=($(echo -e "$compared")); IFS="$IFSORG"
+        s=""
+        for l3 in $(seq 0 1 $((l2-1))); do
+          s2="${sorted_size[$(($l1+$l3))]}"
+          c="${compared[$l3]}"
+          s+="\n$([ ${c#*$'\t'} -eq 1 ] && echo "${s2%$'\t'*%}\t1" || echo "${sorted_size[$(($l1+$l3))]}")"
+        done
+        # update set / replace subset with any dupes first
+        IFS=$'\n'; compared=($(echo -e "$s" | sort -t$'\t' -k4 -r)); IFS="$IFSORG"
+        dupes_count=0
+        for l3 in $(seq 0 1 $((l2-1))); do
+          sorted_size[$(($l1+$l3))]="${compared[$l3]}"
+          if [ -n "$(echo "${compared[$l3]}" | cut -d$'\t' -f4)" ]; then
+            compared_dupe+="\n${compared[$l3]}"  # dupe
+            dupes_count=$(($dupes_count+1))
+          fi
+        done
+        # move index beyond dupes for next base
+        l1=$(($l1+$dupes_count))
+      fi
+    done
+    compared_dupe="${compared_dupe:2}"
+    [ $DEBUG -ge 2 ] && echo -e "[debug] duplicate tested table\n$compared_dupe" 1>&2
+    sorted="$(echo -e "$compared_dupe" | sort -t$'\t' -k1 | sed '/\t1/d;s/\t0$//')"
+    [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted duplicate free table\n$sorted" 1>&2
+  fi
 
-# precedence
-if [ -n "$precedence" ]; then
-  IFS=$'|'; precedence_sets_searches=($(echo "$precedence")); IFS="$IFSORG"
-  s="$sorted"
-  l=0
-  for pss in "${precedence_sets_searches[@]}"; do
-    s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*'"$(fnRegexp "$pss")"'[^\t]*\)$/_'$l'_\t\1/')"
-    l=$(($l+1))
-  done
-  s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*\)$/_'$l'_\t\1/')"
-  [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted precedence sets keyed table\n$s"
-  sorted="$(echo "$s" | sort | sed 's/^_[0-9]\+_\t//')"
-  [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted precedence table\n$sorted"
-fi
+  matches=$(echo -e "$sorted" | wc -l)
+  echo "[info] matched ${matches}$([ ${#files[@]} -ne ${#sorted[@]} ] && echo " unique") file$([ $matches -ne 1 ] && echo "s")" 1>&2
 
-# switch to array items
-IFS=$'\n'; sorted=($(echo -e "$sorted")); IFS="$IFSORG"
+  # precedence
+  if [ -n "$precedence" ]; then
+    IFS=$'|'; precedence_sets_searches=($(echo "$precedence")); IFS="$IFSORG"
+    s="$sorted"
+    l=0
+    for pss in "${precedence_sets_searches[@]}"; do
+      s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*'"$(fnRegexp "$pss")"'[^\t]*\)$/_'$l'_\t\1/')"
+      l=$(($l+1))
+    done
+    s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*\)$/_'$l'_\t\1/')"
+    [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted precedence sets keyed table\n$s"
+    sorted="$(echo "$s" | sort | sed 's/^_[0-9]\+_\t//')"
+    [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted precedence table\n$sorted"
+  fi
 
-# diffs
-if [[ $diffs -eq 1 || -n "$target_diffs" ]]; then
-  [[ -n "$target_diffs" && ! -d "$target_diffs" ]] && mkdir -p "$target_diffs"
-  last="/dev/null"
-  bin=diff
+  # switch to array items
+  IFS=$'\n'; sorted=($(echo -e "$sorted")); IFS="$IFSORG"
+
+  # diffs
+  if [[ $diffs -eq 1 || -n "$target_diffs" ]]; then
+    [[ -n "$target_diffs" && ! -d "$target_diffs" ]] && mkdir -p "$target_diffs"
+    last="/dev/null"
+    bin=diff
+    for r in "${sorted[@]}"; do
+      [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
+      IFS=$'\t'; fields=($r); IFS="$IFSORG"
+      ts=${fields[0]}
+      sz=${fields[1]}
+      f="${fields[2]}"
+      binargs=("-u" "$last" "$f")
+      [ $DEBUG -ge 2 ] && echo "[debug] diff '$last <-> $f'"
+      if [[ $diffs -eq 1 && -n "$target_diffs" ]]; then
+        $bin "${binargs[@]}" | tee "$target_diffs/$ts.diff"
+      elif [ $diffs -eq 1 ]; then
+        $bin "${binargs[@]}"
+      else
+        $bin "${binargs[@]}" > "$target_diffs/$ts.diff"
+      fi
+      last="$f"
+    done
+    [ -n "$target_diffs" ] && \
+      echo "[info] dumped ${#sorted[@]} diffs to '$target_diffs'" 1>&2
+  fi
+
+  # list
+  echo "[info] file list:"
+  date_format="%Y%b%d %H:%M:%S %z"
+  field_date=0; field_size=1; field_path=2
+  field_widths=(25 $(($maxlen_size+1)) $(($maxlen_path+1)))
+  field_order=(2 1 0)
+  # header
+  printf "%s%$((${field_widths[$field_path]}-4))s%$((${field_widths[$field_size]}-4))s%s%$((${field_widths[$field_date]}-4))s%s\n" "path" " " " " "size" " " "date"
+  # rows
   for r in "${sorted[@]}"; do
     [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
     IFS=$'\t'; fields=($r); IFS="$IFSORG"
-    ts=${fields[0]}
-    sz=${fields[1]}
-    f="${fields[2]}"
-    binargs=("-u" "$last" "$f")
-    [ $DEBUG -ge 2 ] && echo "[debug] diff '$last <-> $f'"
-    if [[ $diffs -eq 1 && -n "$target_diffs" ]]; then
-      $bin "${binargs[@]}" | tee "$target_diffs/$ts.diff"
-    elif [ $diffs -eq 1 ]; then
-      $bin "${binargs[@]}"
-    else
-      $bin "${binargs[@]}" > "$target_diffs/$ts.diff"
-    fi
-    last="$f"
+    for l in ${field_order[@]}; do
+      f="${fields[$l]}"
+      if [ $l -eq $field_path ]; then
+        # align left
+        printf "%s%$((${field_widths[$l]}-${#f}))s" "$f" " "
+      elif [ $l -eq $field_date ]; then
+        d=$(date --date "@$f" "+$date_format")
+        printf "%${field_widths[$l]}s" "$d"
+      else
+        printf "%${field_widths[$l]}s" "$f"
+      fi
+    done
+    printf '\n'
   done
-  [ -n "$target_diffs" ] && \
-    echo "[info] dumped ${#sorted[@]} diffs to '$target_diffs'" 1>&2
-fi
-
-# list
-echo "[info] file list:"
-date_format="%Y%b%d %H:%M:%S %z"
-field_date=0; field_size=1; field_path=2
-field_widths=(25 $(($maxlen_size+1)) $(($maxlen_path+1)))
-field_order=(2 1 0)
-# header
-printf "%s%$((${field_widths[$field_path]}-4))s%$((${field_widths[$field_size]}-4))s%s%$((${field_widths[$field_date]}-4))s%s\n" "path" " " " " "size" " " "date"
-# rows
-for r in "${sorted[@]}"; do
-  [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
-  IFS=$'\t'; fields=($r); IFS="$IFSORG"
-  for l in ${field_order[@]}; do
-    f="${fields[$l]}"
-    if [ $l -eq $field_path ]; then
-      # align left
-      printf "%s%$((${field_widths[$l]}-${#f}))s" "$f" " "
-    elif [ $l -eq $field_date ]; then
-      d=$(date --date "@$f" "+$date_format")
-      printf "%${field_widths[$l]}s" "$d"
-    else
-      printf "%${field_widths[$l]}s" "$f"
-    fi
-  done
-  printf '\n'
-done
 
 }
 
