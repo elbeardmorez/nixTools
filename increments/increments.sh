@@ -240,8 +240,8 @@ fnProcess() {
 
   # diffs
   if [[ $diffs -eq 1 || -n "$target_diffs" ]]; then
-    bin="$(which diff)"
-    if [ -z "$bin" ]; then
+    diff_bin="$(which diff)"
+    if [ -z "$diff_bin" ]; then
       echo "[error] no 'diff' binary found in your PATH" 1>&2
     else
       [[ -n "$target_diffs" && ! -d "$target_diffs" ]] && mkdir -p "$target_diffs"
@@ -253,14 +253,14 @@ fnProcess() {
         ts=${fields[0]}
         sz=${fields[1]}
         f="${fields[2]}"
-        binargs=("-u" "$last" "$f")
+        diff_bin_args=("-u" "$last" "$f")
         [ $DEBUG -ge 2 ] && echo "[debug] diff '$last <-> $f'"
         if [[ $diffs -eq 1 && -n "$target_diffs" ]]; then
-          $bin "${binargs[@]}" | tee "$target_diffs/$ts.diff"
+          $diff_bin "${diff_bin_args[@]}" | tee "$target_diffs/$ts.diff"
         elif [ $diffs -eq 1 ]; then
-          $bin "${binargs[@]}"
+          $diff_bin "${diff_bin_args[@]}"
         else
-          $bin "${binargs[@]}" > "$target_diffs/$ts.diff"
+          $diff_bin "${diff_bin_args[@]}" > "$target_diffs/$ts.diff"
         fi
         last="$f"
       done
