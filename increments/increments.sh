@@ -244,29 +244,29 @@ fnProcess() {
     if [ -z "$bin" ]; then
       echo "[error] no 'diff' binary found in your PATH" 1>&2
     else
-    [[ -n "$target_diffs" && ! -d "$target_diffs" ]] && mkdir -p "$target_diffs"
-    fnClean "$target_diffs" $interactive_cleaning
-    last="/dev/null"
-    for r in "${sorted[@]}"; do
-      [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
-      IFS=$'\t'; fields=($r); IFS="$IFSORG"
-      ts=${fields[0]}
-      sz=${fields[1]}
-      f="${fields[2]}"
-      binargs=("-u" "$last" "$f")
-      [ $DEBUG -ge 2 ] && echo "[debug] diff '$last <-> $f'"
-      if [[ $diffs -eq 1 && -n "$target_diffs" ]]; then
-        $bin "${binargs[@]}" | tee "$target_diffs/$ts.diff"
-      elif [ $diffs -eq 1 ]; then
-        $bin "${binargs[@]}"
-      else
-        $bin "${binargs[@]}" > "$target_diffs/$ts.diff"
-      fi
-      last="$f"
-    done
-    [ -n "$target_diffs" ] && \
-      echo "[info] dumped ${#sorted[@]} diffs to '$target_diffs'" 1>&2
-  fi
+      [[ -n "$target_diffs" && ! -d "$target_diffs" ]] && mkdir -p "$target_diffs"
+      fnClean "$target_diffs" $interactive_cleaning
+      last="/dev/null"
+      for r in "${sorted[@]}"; do
+        [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
+        IFS=$'\t'; fields=($r); IFS="$IFSORG"
+        ts=${fields[0]}
+        sz=${fields[1]}
+        f="${fields[2]}"
+        binargs=("-u" "$last" "$f")
+        [ $DEBUG -ge 2 ] && echo "[debug] diff '$last <-> $f'"
+        if [[ $diffs -eq 1 && -n "$target_diffs" ]]; then
+          $bin "${binargs[@]}" | tee "$target_diffs/$ts.diff"
+        elif [ $diffs -eq 1 ]; then
+          $bin "${binargs[@]}"
+        else
+          $bin "${binargs[@]}" > "$target_diffs/$ts.diff"
+        fi
+        last="$f"
+      done
+      [ -n "$target_diffs" ] && \
+        echo "[info] dumped ${#sorted[@]} diffs to '$target_diffs'" 1>&2
+    fi
   fi
 
   # list
