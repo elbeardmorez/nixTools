@@ -111,7 +111,7 @@ fnProcess() {
   fi
   # directory search
   rx=""; for s in "${search[@]}"; do rx+="\|$s"; done; rx="^.*/?\(${rx:2}\)$"
-  matches="$(find "$target" -iregex "$rx")"
+  matches="$(find "$target" -mindepth 1 -iregex "$rx")"
   IFS=$'\n'; files=($(echo -e "$matches")); IFS="$IFSORG"
   [ $DEBUG -ge 1 ] && echo "[debug] searched target '$target' for '${search[@]}', found ${#files[@]} file(s)" 1>&2
 
