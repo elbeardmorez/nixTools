@@ -101,9 +101,12 @@ fnProcess() {
     # archive extraction
     globs=(); for s in "${search[@]}"; do globs=("${globs[@]}" "--wildcards" "*$s*"); done
     tmp=$(fnTempDir "$SCRIPTNAME")
-    tar -C "$tmp" -x "${globs[@]}" -f "$target"
+    tar -C "$tmp" -x "${globs[@]}" -f "$target" 2>/dev/null
     res=$?
-    [ $res -ne 0 ] && return $res
+    if [ $res -ne 0 ]; then
+      [ $res -eq 2 ] && \
+        echo "[info] ignoring GNU tar 'not found in archive' 'errors'" 1>&2 || return $res
+    fi
     target=$tmp
   fi
   # directory search
