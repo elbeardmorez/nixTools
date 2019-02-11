@@ -16,6 +16,7 @@ declare target_diffs
 TARGET_MATCHES_DEFAULT="matches"
 declare target_matches
 remove_dupes=0
+interactive_cleaning=1
 target=${INCREMENTS_TARGET:-}
 search=(${INCREMENTS_SEARCH:-})
 variants=${INCREMENTS_VARIANTS:-}
@@ -40,6 +41,7 @@ SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
   -dd, --dump-diffs PATH  : write diffs to PATH (default: increments)
   -dm, --dump-matches PATH  : copy search matches to PATH
                               (default: matches)
+  -ac, --auto-clean  : automatically clean dump targets (no prompt!)
 \nenvironment variables:
   INCREMENTS_TARGET  : as detailed above
   INCREMENTS_SEARCH  : as detailed above
@@ -54,16 +56,22 @@ fnCleanUp() {
 
 fnClean() {
   declare target
+  declare interactive
   declare files
 
   target="$1" && shift
   [ ! -e "$target" ] && echo "[error] invalid target '$target'" && return 1
+  interactive=${1:-1}
 
   IFS=$'\n'; files=($(find "$target" -mindepth 1 -type "f")); IFS="$IFSORG"
   if [ ${#files[@]} -gt 0 ]; then
     res=1
-    echo -n "[user] target '$target' cleanup, purge ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s")? [y/n]: "
-    res=$(fnDecision)
+    if [ $interactive -eq 1 ]; then
+      echo -n "[user] target '$target' cleanup, purge ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s")? [y/n]: "
+      res=$(fnDecision)
+    else
+      echo "[info] target '$target' cleanup, purging ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s")"
+    fi
     [ $res -eq 1 ] && rm -rf "$target/*"
   fi
 }
@@ -136,7 +144,7 @@ fnProcess() {
   # dump matches
   if [ -n "$target_matches" ]; then
     [ ! -d "$target_matches" ] && mkdir -p "$target_matches"
-    fnClean "$target_matches"
+    fnClean "$target_matches" $interactive_cleaning
     for f in ${files[@]}; do cp -a --parents "$f" "$target_matches/"; done
     echo "[info] dumped ${#files[@]} matches to '$target_matches'" 1>&2
   fi
@@ -233,7 +241,7 @@ fnProcess() {
   # diffs
   if [[ $diffs -eq 1 || -n "$target_diffs" ]]; then
     [[ -n "$target_diffs" && ! -d "$target_diffs" ]] && mkdir -p "$target_diffs"
-    fnClean "$target_diffs"
+    fnClean "$target_diffs" $interactive_cleaning
     last="/dev/null"
     bin=diff
     for r in "${sorted[@]}"; do
@@ -300,6 +308,7 @@ while [ -n "$1" ]; do
     "dump-diffs") shift; target_diffs="$1" ;;
     "dm") target_matches="$TARGET_MATCHES_DEFAULT" ;;
     "dump-matches") shift; target_matches="$1" ;;
+    "ac"|"auto-clean") interactive_cleaning=0 ;;
     *) search[${#search[@]}]="$1" ;;
   esac
   shift

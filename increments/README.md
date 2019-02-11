@@ -22,6 +22,7 @@ where OPTIONS can be:
   -dd, --dump-diffs PATH  : write diffs to PATH (default: increments)
   -dm, --dump-matches PATH  : copy search matches to PATH
                               (default: matches)
+  -ac, --auto-clean  : automatically clean dump targets (no prompt!)
 
 environment variables:
   INCREMENTS_TARGET  : as detailed above
