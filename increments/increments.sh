@@ -52,6 +52,22 @@ fnCleanUp() {
   [ -n "$tmp" ] && [ -e "$tmp" ] && rm -rf "$tmp" 2>/dev/null 1>&2
 }
 
+fnClean() {
+  declare target
+  declare files
+
+  target="$1" && shift
+  [ ! -e "$target" ] && echo "[error] invalid target '$target'" && return 1
+
+  IFS=$'\n'; files=($(find "$target" -mindepth 1 -type "f")); IFS="$IFSORG"
+  if [ ${#files[@]} -gt 0 ]; then
+    res=1
+    echo -n "[user] target '$target' cleanup, purge ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s")? [y/n]: "
+    res=$(fnDecision)
+    [ $res -eq 1 ] && rm -rf "$target/*"
+  fi
+}
+
 fnFilesCompare() {
   [ $DEBUG -ge 5 ] && echo "[debug | fnFilesCompare]" 1>&2
   [ $# -lt 2 ] && echo "[error] not enough args" 1>&2 && return 1
@@ -120,6 +136,7 @@ fnProcess() {
   # dump matches
   if [ -n "$target_matches" ]; then
     [ ! -d "$target_matches" ] && mkdir -p "$target_matches"
+    fnClean "$target_matches"
     for f in ${files[@]}; do cp -a --parents "$f" "$target_matches/"; done
     echo "[info] dumped ${#files[@]} matches to '$target_matches'" 1>&2
   fi
@@ -216,6 +233,7 @@ fnProcess() {
   # diffs
   if [[ $diffs -eq 1 || -n "$target_diffs" ]]; then
     [[ -n "$target_diffs" && ! -d "$target_diffs" ]] && mkdir -p "$target_diffs"
+    fnClean "$target_diffs"
     last="/dev/null"
     bin=diff
     for r in "${sorted[@]}"; do
