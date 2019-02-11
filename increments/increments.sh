@@ -240,10 +240,13 @@ fnProcess() {
 
   # diffs
   if [[ $diffs -eq 1 || -n "$target_diffs" ]]; then
+    bin="$(which diff)"
+    if [ -z "$bin" ]; then
+      echo "[error] no 'diff' binary found in your PATH" 1>&2
+    else
     [[ -n "$target_diffs" && ! -d "$target_diffs" ]] && mkdir -p "$target_diffs"
     fnClean "$target_diffs" $interactive_cleaning
     last="/dev/null"
-    bin=diff
     for r in "${sorted[@]}"; do
       [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
       IFS=$'\t'; fields=($r); IFS="$IFSORG"
@@ -263,6 +266,7 @@ fnProcess() {
     done
     [ -n "$target_diffs" ] && \
       echo "[info] dumped ${#sorted[@]} diffs to '$target_diffs'" 1>&2
+  fi
   fi
 
   # list
