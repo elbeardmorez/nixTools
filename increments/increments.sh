@@ -23,11 +23,11 @@ variants=${INCREMENTS_VARIANTS:-}
 precedence=${INCREMENTS_PRECEDENCE:-}
 declare tmp
 diff_format_git=0
-git_diff_header=\
+GIT_DIFF_HEADER=\
 "From fedcba10987654321012345678910abcdef Mon Sep 17 00:00:00 2001\n"\
 "From: @NAME <@EMAIL>\nDate: @DATE\nSubject: [diff]\n\n---\n"
-git_diff_footer="--\n2.20.1"
-git_diff_dt_format="%a, %d %b %Y %T %z"  # e.g. Mon, 1 Jan 1970 00:00:00 +0000
+GIT_DIFF_FOOTER="--\n2.20.1"
+GIT_DIFF_DT_FORMAT="%a, %d %b %Y %T %z"  # e.g. Mon, 1 Jan 1970 00:00:00 +0000
 
 help() {
   echo -e "
@@ -281,13 +281,15 @@ fnProcess() {
         if [[ $diff_format_git -eq 1 && -n $target_diffs ]]; then
           diff="$target_diffs/$ts.diff"
           if [ -e "$diff" ]; then
-            git_diff_header="$(echo "$git_diff_header" | sed 's/@DATE/'"$(date -d "@$ts" "+$git_diff_dt_format")"'/')"
+            diff_header="$GIT_DIFF_HEADER"
+            diff_footer="$GIT_DIFF_FOOTER"
+            diff_header="$(echo "$diff_header" | sed 's/@DATE/'"$(date -d "@$ts" "+$GIT_DIFF_DT_FORMAT")"'/')"
             [ -n "$name" ] && \
-              git_diff_header="$(echo "$git_diff_header" | sed 's/@NAME/'"$name"'/')"
+              diff_header="$(echo "$diff_header" | sed 's/@NAME/'"$name"'/')"
             [ -n "$email" ] && \
-              git_diff_header="$(echo "$git_diff_header" | sed 's/@EMAIL/'"$email"'/')"
-            sed -i '1s/^/'"$git_diff_header"'\n/' "$diff"
-            sed -i '$s/$/\n'"$git_diff_footer"'\n/' "$diff"
+              diff_header="$(echo "$diff_header" | sed 's/@EMAIL/'"$email"'/')"
+            sed -i '1s/^/'"$diff_header"'\n/' "$diff"
+            sed -i '$s/$/\n'"$diff_footer"'\n/' "$diff"
           fi
         fi
         last="$f"
