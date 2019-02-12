@@ -26,6 +26,7 @@ where OPTIONS can be:
   -ac, --auto-clean  : automatically clean dump targets (no prompt!)
   -dfg, --diff-format-git  : add git mailinfo compatible headers to
                              diff files
+  -dnp, --diff-numeric-prefixes  : prefix diff number to file name
 
 environment variables:
   INCREMENTS_TARGET  : as detailed above

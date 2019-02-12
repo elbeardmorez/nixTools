@@ -28,6 +28,7 @@ GIT_DIFF_HEADER=\
 "From: @NAME <@EMAIL>\nDate: @DATE\nSubject: [diff]\n\n---\n"
 GIT_DIFF_FOOTER="--\n2.20.1"
 GIT_DIFF_DT_FORMAT="%a, %d %b %Y %T %z"  # e.g. Mon, 1 Jan 1970 00:00:00 +0000
+diff_numeric_prefixes=0
 
 help() {
   echo -e "
@@ -51,6 +52,7 @@ SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
   -ac, --auto-clean  : automatically clean dump targets (no prompt!)
   -dfg, --diff-format-git  : add git mailinfo compatible headers to
                              diff files
+  -dnp, --diff-numeric-prefixes  : prefix diff number to file name
 \nenvironment variables:
   INCREMENTS_TARGET  : as detailed above
   INCREMENTS_SEARCH  : as detailed above
@@ -264,6 +266,7 @@ fnProcess() {
         email="$($git_bin config --get user.email)"
       fi
       last="/dev/null"
+      l=1
       for r in "${sorted[@]}"; do
         [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
         IFS=$'\t'; fields=($r); IFS="$IFSORG"
@@ -271,17 +274,19 @@ fnProcess() {
         sz=${fields[1]}
         f="${fields[2]}"
         diff_bin_args=("-u" "$last" "$f")
+        diff_pathfile="$target_diffs/$ts.diff"
+        [ $diff_numeric_prefixes -eq 1 ] &&\
+          diff_pathfile="$(printf "%s/%04d_%s" "$target_diffs" $l "$ts.diff")"
         [ $DEBUG -ge 2 ] && echo "[debug] diff '$last <-> $f'"
         if [[ $diffs -eq 1 && -n "$target_diffs" ]]; then
-          $diff_bin "${diff_bin_args[@]}" | tee "$target_diffs/$ts.diff"
+          $diff_bin "${diff_bin_args[@]}" | tee "$diff_pathfile"
         elif [ $diffs -eq 1 ]; then
           $diff_bin "${diff_bin_args[@]}"
         else
-          $diff_bin "${diff_bin_args[@]}" > "$target_diffs/$ts.diff"
+          $diff_bin "${diff_bin_args[@]}" > "$diff_pathfile"
         fi
         if [[ $diff_format_git -eq 1 && -n $target_diffs ]]; then
-          diff="$target_diffs/$ts.diff"
-          if [ -e "$diff" ]; then
+          if [ -e "$diff_pathfile" ]; then
             diff_header="$GIT_DIFF_HEADER"
             diff_footer="$GIT_DIFF_FOOTER"
             diff_header="$(echo "$diff_header" | sed 's/@DATE/'"$(date -d "@$ts" "+$GIT_DIFF_DT_FORMAT")"'/')"
@@ -289,11 +294,12 @@ fnProcess() {
               diff_header="$(echo "$diff_header" | sed 's/@NAME/'"$name"'/')"
             [ -n "$email" ] && \
               diff_header="$(echo "$diff_header" | sed 's/@EMAIL/'"$email"'/')"
-            sed -i '1s/^/'"$diff_header"'\n/' "$diff"
-            sed -i '$s/$/\n'"$diff_footer"'\n/' "$diff"
+            sed -i '1s/^/'"$diff_header"'\n/' "$diff_pathfile"
+            sed -i '$s/$/\n'"$diff_footer"'\n/' "$diff_pathfile"
           fi
         fi
         last="$f"
+        l=$(($l+1))
       done
       [ -n "$target_diffs" ] && \
         echo "[info] dumped ${#sorted[@]} diffs to '$target_diffs'" 1>&2
@@ -345,6 +351,7 @@ while [ -n "$1" ]; do
     "dump-matches") shift; target_matches="$1" ;;
     "ac"|"auto-clean") interactive_cleaning=0 ;;
     "dfg"|"diff-format-git") diff_format_git=1 ;;
+    "dnp"|"diff-numeric-prefixes") diff_numeric_prefixes=1 ;;
     *) search[${#search[@]}]="$1" ;;
   esac
   shift
