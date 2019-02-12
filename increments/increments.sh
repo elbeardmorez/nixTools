@@ -145,9 +145,10 @@ fnProcess() {
   rx=""; for s in "${search[@]}"; do rx+="\|$s"; done; rx="^.*/?\(${rx:2}\)$"
   matches="$(find "$target" -mindepth 1 -iregex "$rx")"
   IFS=$'\n'; files=($(echo -e "$matches")); IFS="$IFSORG"
-  [ $DEBUG -ge 1 ] && echo "[debug] searched target '$target' for '${search[@]}', found ${#files[@]} file(s)" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug] searched target '$target' for '${search[@]}'" 1>&2
 
   [ ${#files[@]} -eq 0 ] && echo "[info] no files found" && return 1
+  echo "[info] matched ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s")" 1>&2
 
   # dump matches
   if [ -n "$target_matches" ]; then
@@ -226,7 +227,7 @@ fnProcess() {
   fi
 
   matches=$(echo -e "$sorted" | wc -l)
-  echo "[info] matched ${matches}$([ ${#files[@]} -ne ${#sorted[@]} ] && echo " unique") file$([ $matches -ne 1 ] && echo "s")" 1>&2
+  [ ${#files[@]} -ne ${#sorted[@]} ] && echo "[info] ${matches} unique file$([ $matches -ne 1 ] && echo "s")" 1>&2
 
   # precedence
   if [ -n "$precedence" ]; then
