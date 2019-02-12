@@ -70,7 +70,8 @@ $ ls -1 increments
 - md5sum
 - tee
 - diff
-- GNU tar ('--wildcards' extension)
+- tar [GNU - '--wildcards' extension]
+- date [GNU coreutils - '-d' and '@']
 
 **optional**  
 - git
