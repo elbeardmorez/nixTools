@@ -222,7 +222,7 @@ fnProcess() {
     done
     compared_dupe="${compared_dupe:2}"
     [ $DEBUG -ge 2 ] && echo -e "[debug] duplicate tested table\n$compared_dupe" 1>&2
-    sorted="$(echo -e "$compared_dupe" | sort -t$'\t' -k1 | sed '/\t1/d;s/\t0$//')"
+    sorted="$(echo -e "$compared_dupe" | sort -t$'\t' -k1 | sed '/\t1$/d;s/\t0$//')"
     [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted duplicate free table\n$sorted" 1>&2
   fi
 
