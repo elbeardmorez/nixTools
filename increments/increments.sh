@@ -22,6 +22,12 @@ search=(${INCREMENTS_SEARCH:-})
 variants=${INCREMENTS_VARIANTS:-}
 precedence=${INCREMENTS_PRECEDENCE:-}
 declare tmp
+diff_format_git=0
+git_diff_header=\
+"From fedcba10987654321012345678910abcdef Mon Sep 17 00:00:00 2001\n"\
+"From: @NAME <@EMAIL>\nDate: @DATE\nSubject: [diff]\n\n---\n"
+git_diff_footer="--\n2.20.1"
+git_diff_dt_format="%a, %d %b %Y %T %z"  # e.g. Mon, 1 Jan 1970 00:00:00 +0000
 
 help() {
   echo -e "
@@ -42,6 +48,8 @@ SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
   -dm, --dump-matches PATH  : copy search matches to PATH
                               (default: matches)
   -ac, --auto-clean  : automatically clean dump targets (no prompt!)
+  -dfg, --diff-format-git  : add git mailinfo compatible headers to
+                             diff files
 \nenvironment variables:
   INCREMENTS_TARGET  : as detailed above
   INCREMENTS_SEARCH  : as detailed above
@@ -246,6 +254,13 @@ fnProcess() {
     else
       [[ -n "$target_diffs" && ! -d "$target_diffs" ]] && mkdir -p "$target_diffs"
       fnClean "$target_diffs" $interactive_cleaning
+      git_bin="$(which git)"
+      name=""
+      email=""
+      if [ -n "$git_bin" ]; then
+        name="$($git_bin config --get user.name)"
+        email="$($git_bin config --get user.email)"
+      fi
       last="/dev/null"
       for r in "${sorted[@]}"; do
         [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
@@ -261,6 +276,18 @@ fnProcess() {
           $diff_bin "${diff_bin_args[@]}"
         else
           $diff_bin "${diff_bin_args[@]}" > "$target_diffs/$ts.diff"
+        fi
+        if [[ $diff_format_git -eq 1 && -n $target_diffs ]]; then
+          diff="$target_diffs/$ts.diff"
+          if [ -e "$diff" ]; then
+            git_diff_header="$(echo "$git_diff_header" | sed 's/@DATE/'"$(date -d "@$ts" "+$git_diff_dt_format")"'/')"
+            [ -n "$name" ] && \
+              git_diff_header="$(echo "$git_diff_header" | sed 's/@NAME/'"$name"'/')"
+            [ -n "$email" ] && \
+              git_diff_header="$(echo "$git_diff_header" | sed 's/@EMAIL/'"$email"'/')"
+            sed -i '1s/^/'"$git_diff_header"'\n/' "$diff"
+            sed -i '$s/$/\n'"$git_diff_footer"'\n/' "$diff"
+          fi
         fi
         last="$f"
       done
@@ -313,6 +340,7 @@ while [ -n "$1" ]; do
     "dm") target_matches="$TARGET_MATCHES_DEFAULT" ;;
     "dump-matches") shift; target_matches="$1" ;;
     "ac"|"auto-clean") interactive_cleaning=0 ;;
+    "dfg"|"diff-format-git") diff_format_git=1 ;;
     *) search[${#search[@]}]="$1" ;;
   esac
   shift

@@ -23,6 +23,8 @@ where OPTIONS can be:
   -dm, --dump-matches PATH  : copy search matches to PATH
                               (default: matches)
   -ac, --auto-clean  : automatically clean dump targets (no prompt!)
+  -dfg, --diff-format-git  : add git mailinfo compatible headers to
+                             diff files
 
 environment variables:
   INCREMENTS_TARGET  : as detailed above
@@ -62,10 +64,15 @@ $ ls -1 increments
 ```
 
 ## dependencies
+
+**required**  
 - sed
 - md5sum
 - tee
 - diff
 - GNU tar ('--wildcards' extension)
+
+**optional**  
+- git
 
 ## todo
