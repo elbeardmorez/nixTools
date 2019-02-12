@@ -37,10 +37,11 @@ SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
   -v VARIANTS, --variants VARIANTS  : consider search variants given
                                       by application of (sed) regexp
                                       transformations in VARIANTS file
-  -pp, --path-precedence  : pipe ('|') delimited list of partial
-                            paths for matching on search results
-                            in order to override the default order
-                            of the ultimate set when desired
+  -pp PATHS, --path-precedence PATHS : pipe ('|') delimited list of
+                                       partial paths for matching on
+                                       search results in order to
+                                       override the default order of
+                                       the ultimate set when desired
   -nd, --no-duplicates  : use only first instance of any duplicate
                           files matched
   -d, --diffs  : output incremental diffs of search matches
