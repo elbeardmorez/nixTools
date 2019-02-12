@@ -80,7 +80,7 @@ fnClean() {
     else
       echo "[info] target '$target' cleanup, purging ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s")"
     fi
-    [ $res -eq 1 ] && rm -rf "$target/*"
+    [ $res -eq 1 ] && rm -r "$target/"*
   fi
 }
 
