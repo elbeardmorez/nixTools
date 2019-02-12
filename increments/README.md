@@ -9,9 +9,9 @@ SYNTAX: increments_ [OPTIONS] search [search2 ..]
 
 where OPTIONS can be:
   -t TARGET, --target TARGET:  search TARGET (path / archive)
-  -v, --variants VARIANTS  : consider search variants given by
-                             application of (sed) regexp
-                             transformations in VARIANTS file
+  -v VARIANTS, --variants VARIANTS  : consider search variants given
+                                      by application of (sed) regexp
+                                      transformations in VARIANTS file
   -pp, --path-precedence  : pipe ('|') delimited list of partial
                             paths for matching on search results
                             in order to override the default order
