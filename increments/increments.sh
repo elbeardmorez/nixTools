@@ -291,8 +291,7 @@ fnProcess() {
         else
           $diff_bin "${diff_bin_args[@]}" > "$diff_pathfile"
         fi
-        if [[ $diff_format_git -eq 1 && -n $target_diffs ]]; then
-          if [ -e "$diff_pathfile" ]; then
+        if [[ $diff_format_git -eq 1 && -e $diff_pathfile && -e "$diff_pathfile" ]]; then
             diff_header="$GIT_DIFF_HEADER"
             diff_footer="$GIT_DIFF_FOOTER"
             diff_header="$(echo "$diff_header" | sed 's/@DATE/'"$(date -d "@$ts" "+$GIT_DIFF_DT_FORMAT")"'/')"
@@ -302,7 +301,6 @@ fnProcess() {
               diff_header="$(echo "$diff_header" | sed 's/@EMAIL/'"$email"'/')"
             sed -i '1s/^/'"$diff_header"'\n/' "$diff_pathfile"
             sed -i '$s/$/\n'"$diff_footer"'\n/' "$diff_pathfile"
-          fi
         fi
         last="$f"
         l=$(($l+1))
