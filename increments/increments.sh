@@ -151,7 +151,8 @@ fnProcess() {
     rx=""; for s in "${search[@]}"; do rx+="\|$s"; done; rx="^.*/?\(${rx:2}\)$"
     files="$(find "$target" -mindepth 1 -iregex "$rx")"
     matches+="\n$files"
-    [ $DEBUG -ge 1 ] && echo "[debug] searched target '$target' for '${search[@]}'" 1>&2
+    count=$(echo -e "$files" | wc -l)
+    [ $DEBUG -ge 1 ] && echo "[debug] searched target '$target' for '${search[@]}, matched $count file$([ $count -ne 1 ] && echo "s")'" 1>&2
   done
   matches="${matches:2}"
   IFS=$'\n'; files=($(echo -e "$matches")); IFS="$IFSORG"
