@@ -17,6 +17,7 @@ TARGET_MATCHES_DEFAULT="matches"
 declare target_matches
 remove_dupes=0
 interactive_cleaning=1
+declare -a targets
 target=${INCREMENTS_TARGET:-}
 search=(${INCREMENTS_SEARCH:-})
 variants=${INCREMENTS_VARIANTS:-}
@@ -34,7 +35,8 @@ help() {
   echo -e "
 SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
 \nwhere OPTIONS can be:
-  -t TARGET, --target TARGET:  search TARGET (path / archive)
+  -t TARGETS, --target TARGETS  : pipe ('|') delimited list of search
+                                  targets (paths / tar archives)
   -v VARIANTS, --variants VARIANTS  : consider search variants given
                                       by application of (sed) regexp
                                       transformations in VARIANTS file
@@ -130,8 +132,9 @@ fnProcess() {
   fi
 
   # search
-  declare -a files
+  declare files
   declare matches
+  for target in "${targets[@]}"; do
   if [ ! -d "$target" ]; then
     # archive extraction
     globs=(); for s in "${search[@]}"; do globs=("${globs[@]}" "--wildcards" "*$s*"); done
@@ -146,10 +149,12 @@ fnProcess() {
   fi
   # directory search
   rx=""; for s in "${search[@]}"; do rx+="\|$s"; done; rx="^.*/?\(${rx:2}\)$"
-  matches="$(find "$target" -mindepth 1 -iregex "$rx")"
-  IFS=$'\n'; files=($(echo -e "$matches")); IFS="$IFSORG"
+    files="$(find "$target" -mindepth 1 -iregex "$rx")"
+    matches+="\n$files"
   [ $DEBUG -ge 1 ] && echo "[debug] searched target '$target' for '${search[@]}'" 1>&2
-
+  done
+  matches="${matches:2}"
+  IFS=$'\n'; files=($(echo -e "$matches")); IFS="$IFSORG"
   [ ${#files[@]} -eq 0 ] && echo "[info] no files found" && return 1
   echo "[info] matched ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s")" 1>&2
 
@@ -362,6 +367,8 @@ done
 ## search
 [ ${#search[@]} -eq 0 ] && help && echo "[error] no search items specified" && exit 1
 ## target
+IFS=$'|'; targets=($(echo "$target")); IFS="$IFSORG"
+for target in "${targets[@]}"; do
 if [ ! -e "$target" ]; then
   echo "[error] invalid search target set '$target'. exiting!" && exit 1
 else
@@ -373,6 +380,7 @@ else
       echo "[error] target file type '$type' unsupported, expected '$type_expected' archive" && exit
   fi
 fi
+done
 
 # run
 fnProcess

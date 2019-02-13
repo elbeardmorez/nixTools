@@ -7,8 +7,9 @@ given a search set and a target, find all files satisfying the search under/in t
 ```
 SYNTAX: increments_ [OPTIONS] search [search2 ..]
 
+  -t TARGETS, --target TARGETS  : pipe ('|') delimited list of search
 where OPTIONS can be:
-  -t TARGET, --target TARGET:  search TARGET (path / archive)
+                                  targets (paths / tar archives)
   -v VARIANTS, --variants VARIANTS  : consider search variants given
                                       by application of (sed) regexp
                                       transformations in VARIANTS file
