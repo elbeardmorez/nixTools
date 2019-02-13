@@ -135,23 +135,23 @@ fnProcess() {
   declare files
   declare matches
   for target in "${targets[@]}"; do
-  if [ ! -d "$target" ]; then
-    # archive extraction
-    globs=(); for s in "${search[@]}"; do globs=("${globs[@]}" "--wildcards" "*$s*"); done
-    tmp=$(fnTempDir "$SCRIPTNAME")
-    tar -C "$tmp" -x "${globs[@]}" -f "$target" 2>/dev/null
-    res=$?
-    if [ $res -ne 0 ]; then
-      [ $res -eq 2 ] && \
-        echo "[info] ignoring GNU tar 'not found in archive' 'errors'" 1>&2 || return $res
+    if [ ! -d "$target" ]; then
+      # archive extraction
+      globs=(); for s in "${search[@]}"; do globs=("${globs[@]}" "--wildcards" "*$s*"); done
+      tmp=$(fnTempDir "$SCRIPTNAME")
+      tar -C "$tmp" -x "${globs[@]}" -f "$target" 2>/dev/null
+      res=$?
+      if [ $res -ne 0 ]; then
+        [ $res -eq 2 ] && \
+          echo "[info] ignoring GNU tar 'not found in archive' 'errors'" 1>&2 || return $res
+      fi
+      target=$tmp
     fi
-    target=$tmp
-  fi
-  # directory search
-  rx=""; for s in "${search[@]}"; do rx+="\|$s"; done; rx="^.*/?\(${rx:2}\)$"
+    # directory search
+    rx=""; for s in "${search[@]}"; do rx+="\|$s"; done; rx="^.*/?\(${rx:2}\)$"
     files="$(find "$target" -mindepth 1 -iregex "$rx")"
     matches+="\n$files"
-  [ $DEBUG -ge 1 ] && echo "[debug] searched target '$target' for '${search[@]}'" 1>&2
+    [ $DEBUG -ge 1 ] && echo "[debug] searched target '$target' for '${search[@]}'" 1>&2
   done
   matches="${matches:2}"
   IFS=$'\n'; files=($(echo -e "$matches")); IFS="$IFSORG"
@@ -369,17 +369,17 @@ done
 ## target
 IFS=$'|'; targets=($(echo "$target")); IFS="$IFSORG"
 for target in "${targets[@]}"; do
-if [ ! -e "$target" ]; then
-  echo "[error] invalid search target set '$target'. exiting!" && exit 1
-else
-  if [ -f "$target" ]; then
-    # ensure it's a supported file
-    type="$(file --brief --mime-type "$target")"
-    type_required="application/x-tar"
-    [ "x$type" != "x$type_required" ] &&
-      echo "[error] target file type '$type' unsupported, expected '$type_expected' archive" && exit
+  if [ ! -e "$target" ]; then
+    echo "[error] invalid search target set '$target'. exiting!" && exit 1
+  else
+    if [ -f "$target" ]; then
+      # ensure it's a supported file
+      type="$(file --brief --mime-type "$target")"
+      type_required="application/x-tar"
+      [ "x$type" != "x$type_required" ] &&
+        echo "[error] target file type '$type' unsupported, expected '$type_expected' archive" && exit
+    fi
   fi
-fi
 done
 
 # run
