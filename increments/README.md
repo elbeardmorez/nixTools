@@ -34,6 +34,7 @@ environment variables:
   INCREMENTS_SEARCH  : as detailed above
   INCREMENTS_VARIANTS  : as detailed above
   INCREMENTS_PRECEDENCE  : as detailed above
+  GIT_DIFF_SUBJECT  : subject line for any incremental diffs generated
 ```
 
 ## examples

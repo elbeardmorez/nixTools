@@ -26,10 +26,11 @@ declare tmp
 diff_format_git=0
 GIT_DIFF_HEADER=\
 "From fedcba10987654321012345678910abcdef Mon Sep 17 00:00:00 2001\n"\
-"From: @NAME <@EMAIL>\nDate: @DATE\nSubject: [diff]\n\n---\n"
+"From: @NAME <@EMAIL>\nDate: @DATE\nSubject: @SUBJECT\n\n---\n"
 GIT_DIFF_FOOTER="--\n2.20.1"
 GIT_DIFF_DT_FORMAT="%a, %d %b %Y %T %z"  # e.g. Mon, 1 Jan 1970 00:00:00 +0000
 diff_numeric_prefixes=0
+GIT_DIFF_SUBJECT=${GIT_DIFF_SUBJECT:-"[diff]"}
 
 help() {
   echo -e "
@@ -60,6 +61,7 @@ SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
   INCREMENTS_SEARCH  : as detailed above
   INCREMENTS_VARIANTS  : as detailed above
   INCREMENTS_PRECEDENCE  : as detailed above
+  GIT_DIFF_SUBJECT  : subject line for any incremental diffs generated
 "
 }
 
@@ -299,6 +301,7 @@ fnProcess() {
             diff_header="$(echo "$diff_header" | sed 's/@NAME/'"$name"'/')"
           [ -n "$email" ] && \
             diff_header="$(echo "$diff_header" | sed 's/@EMAIL/'"$email"'/')"
+          diff_header="$(echo "$diff_header" | sed 's/@SUBJECT/'"$GIT_DIFF_SUBJECT"'/')"
           sed -i '1s/^/'"$diff_header"'\n/' "$diff_pathfile"
           sed -i '$s/$/\n'"$diff_footer"'\n/' "$diff_pathfile"
         fi
