@@ -18,7 +18,7 @@ if [ $# -lt 1 ]; then
   help
   exit 1
 fi
-FILESEARCH="$1"
+SEARCH="$1"
 if [ $# -gt 1 ]; then if [ "x$2" == "xno" ]; then INTERACTIVE="no"; fi; fi
 if [ $# -gt 2 ]; then
   FILE_RESULTS="$2"
@@ -28,18 +28,18 @@ fi
 files=
 found="FALSE"
 
-if [ -f $FILESEARCH ]; then #test local
+if [ -f $SEARCH ]; then #test local
   found="TRUE"
   if [ "x${results[0]}" == "x" ]; then
-    results="$FILESEARCH\t"
+    results="$SEARCH\t"
   else
-    results="${results[@]}""$FILESEARCH\t"
+    results="${results[@]}""$SEARCH\t"
   fi
-  if [ ! "x$FILE_RESULTS" == "x"  ]; then echo "$FILESEARCH" >> "$FILE_RESULTS"; fi
-elif [[ ! "x$(dirname $FILESEARCH)" == "x." || "x${FILESEARCH:0:1}" == "x." ]]; then #create file
+  if [ ! "x$FILE_RESULTS" == "x"  ]; then echo "$SEARCH" >> "$FILE_RESULTS"; fi
+elif [[ ! "x$(dirname $SEARCH)" == "x." || "x${SEARCH:0:1}" == "x." ]]; then #create file
   if [ "x$INTERACTIVE" == "xyes" ]; then
     #new file. offer creation
-    echo -n "[user] file '$FILESEARCH' does not exist, create it? [y/n]: " 1>&2
+    echo -n "[user] file '$SEARCH' does not exist, create it? [y/n]: " 1>&2
     retry="TRUE"
     while [ "x$retry" == "xTRUE" ]; do
       read -n 1 -s result
@@ -49,15 +49,15 @@ elif [[ ! "x$(dirname $FILESEARCH)" == "x." || "x${FILESEARCH:0:1}" == "x." ]]; 
           retry="FALSE"
           found="TRUE"
           #ensure path
-          if [ ! -d "$(dirname $FILESEARCH)" ]; then mkdir -p "$(dirname $FILESEARCH)"; fi
-          touch "$FILESEARCH"
+          if [ ! -d "$(dirname $SEARCH)" ]; then mkdir -p "$(dirname $SEARCH)"; fi
+          touch "$SEARCH"
           #add file
           if [ "x${results[0]}" == "x" ]; then
-            results="$FILESEARCH\t"
+            results="$SEARCH\t"
           else
-            results="$results""$FILESEARCH\t"
+            results="$results""$SEARCH\t"
           fi
-          if [ ! "x$FILE_RESULTS" == "x"  ]; then echo "$FILESEARCH" >> "$FILE_RESULTS"; fi
+          if [ ! "x$FILE_RESULTS" == "x"  ]; then echo "$SEARCH" >> "$FILE_RESULTS"; fi
           ;;
         "n" | "N")
           echo $result 1>&2
@@ -71,7 +71,7 @@ else #use search paths
     if [ ! -e "$path" ]; then
       echo "[debug] $path no longer exists!" 1>&2
     else
-      files2=($(find $path -name "$FILESEARCH"))
+      files2=($(find $path -name "$SEARCH"))
       for file in "${files2[@]}"; do
         if [[ -f "$file" || -h "$file" ]]; then
           if [ "x${files[0]}" == "x" ]; then
