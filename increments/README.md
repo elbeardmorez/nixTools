@@ -136,7 +136,7 @@ Subject: [mod] slack.sh,
 ## dependencies
 
 **required**  
-- sed
+- sed [GNU - '\t' usage]
 - md5sum
 - tee
 - diff
