@@ -20,7 +20,7 @@ if [ $# -lt 1 ]; then
 fi
 FILESEARCH="$1"
 if [ $# -gt 1 ]; then if [ "x$2" == "xno" ]; then INTERACTIVE="no"; fi; fi
-if [ $# -gt 2 ]; then 
+if [ $# -gt 2 ]; then
   FILERESULTS="$2"
   if [ ! -d $(dirname "$FILERESULTS") ]; then mkdir -p $(dirname "$FILERESULTS"); fi
 fi
@@ -32,7 +32,7 @@ if [ -f $FILESEARCH ]; then #test local
   found="TRUE"
   if [ "x${results[0]}" == "x" ]; then
     results="$FILESEARCH\t"
-  else 
+  else
     results="${results[@]}""$FILESEARCH\t"
   fi
   if [ ! "x$outfile" == "x"  ]; then echo "$FILESEARCH" >> "$outfile"; fi
@@ -47,14 +47,14 @@ elif [[ ! "x$(dirname $FILESEARCH)" == "x." || "x${FILESEARCH:0:1}" == "x." ]]; 
         "y" | "Y")
           echo $result 1>&2
           retry="FALSE"
-	  found="TRUE"
-	  #ensure path
+          found="TRUE"
+          #ensure path
           if [ ! -d "$(dirname $FILESEARCH)" ]; then mkdir -p "$(dirname $FILESEARCH)"; fi
           touch "$FILESEARCH"
           #add file
           if [ "x${results[0]}" == "x" ]; then
             results="$FILESEARCH\t"
-          else 
+          else
             results="$results""$FILESEARCH\t"
           fi
           if [ ! "x$outfile" == "x"  ]; then echo "$FILESEARCH" >> "$outfile"; fi
@@ -62,8 +62,8 @@ elif [[ ! "x$(dirname $FILESEARCH)" == "x." || "x${FILESEARCH:0:1}" == "x." ]]; 
         "n" | "N")
           echo $result 1>&2
           retry="FALSE"
-          ;;  
-      esac    
+          ;;
+      esac
     done
   fi
 else #use search paths
@@ -83,7 +83,7 @@ else #use search paths
       done
     fi
   done
-  
+
   results=""
   if [ ${#files[0]} -gt 0 ]; then
     found="TRUE"
@@ -93,7 +93,7 @@ else #use search paths
         #add
         if [ "x${results[0]}" == "x" ]; then
           results="$file\t"
-        else 
+        else
           results="$results""$file\t"
         fi
         if [ ! "x$outfile" == "x"  ]; then echo "$file" >> "$outfile"; fi
@@ -109,7 +109,7 @@ else #use search paths
               retry="FALSE"
               if [ "x${results[0]}" == "x" ]; then
                 results="$file\t"
-              else 
+              else
                 results="$results""$file\t"
               fi
               if [ ! "x$outfile" == "x"  ]; then echo "$file" >> "$outfile"; fi
@@ -117,19 +117,19 @@ else #use search paths
             "n" | "N")
               echo $result 1>&2
               retry="FALSE"
-              ;;  
+              ;;
             "c" | "C")
               echo $result 1>&2
               retry="FALSE"
-              cancel="TRUE" 
+              cancel="TRUE"
               ;;
-          esac    
+          esac
         done
       fi
-      if [ "x$cancel" == "xTRUE" ]; then break; fi      
+      if [ "x$cancel" == "xTRUE" ]; then break; fi
     done
   fi
-fi  
+fi
 
 if [[ "x$found" == "xFALSE" || "x$results" == "x" ]]; then
   echo ""
