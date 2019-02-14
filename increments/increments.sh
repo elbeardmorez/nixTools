@@ -327,8 +327,8 @@ fnProcess() {
           [ -n "$target_base_path" ] && \
             target_base_path="$(echo "$target_base_path" | sed 's/\/*$//g')\/"
           target_file="$DIFF_TARGET_FILE"
-          sed -i '/^-\{3\}[ \t]*./{/\/dev\/null/b;s/\([+-]\{3\}[ \t]*\).*\/\(.*\)$/\1a\/'"${target_base_path}${target_file:-\2}"'/}' "$diff_pathfile"
-          sed -i '/^+\{3\}[ \t]*./{/\/dev\/null/b;s/\([+-]\{3\}[ \t]*\).*\/\(.*\)$/\1b\/'"${target_base_path}${target_file:-\2}"'/}' "$diff_pathfile"
+          sed -i '/^-\{3\}[ \t]*./{/\/dev\/null/b;s/\([+-]\{3\}[ \t]*\).*\/\([^\t]*\)\(.*\)$/\1a\/'"${target_base_path}${target_file:-\2}"'\3/}' "$diff_pathfile"
+          sed -i '/^+\{3\}[ \t]*./{/\/dev\/null/b;s/\([+-]\{3\}[ \t]*\).*\/\([^\t]*\)\(.*\)$/\1b\/'"${target_base_path}${target_file:-\2}"'\3/}' "$diff_pathfile"
         fi
         last="$f"
         l=$(($l+1))
