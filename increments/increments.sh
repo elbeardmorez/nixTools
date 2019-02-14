@@ -24,6 +24,7 @@ variants=${INCREMENTS_VARIANTS:-}
 precedence=${INCREMENTS_PRECEDENCE:-}
 declare tmp
 diff_format_git=0
+diff_format_paths=0
 GIT_DIFF_HEADER=\
 "From fedcba10987654321012345678910abcdef Mon Sep 17 00:00:00 2001\n"\
 "From: @NAME <@EMAIL>\nDate: @DATE\nSubject: @SUBJECT\n\n---\n"
@@ -31,6 +32,8 @@ GIT_DIFF_FOOTER="--\n2.20.1"
 GIT_DIFF_DT_FORMAT="%a, %d %b %Y %T %z"  # e.g. Mon, 1 Jan 1970 00:00:00 +0000
 diff_numeric_prefixes=0
 GIT_DIFF_SUBJECT=${GIT_DIFF_SUBJECT:-"[diff]"}
+DIFF_TARGET_BASE_PATH=${DIFF_TARGET_BASE_PATH:-""}
+DIFF_TARGET_FILE=${DIFF_TARGET_FILE:-""}
 
 help() {
   echo -e "
@@ -53,6 +56,13 @@ SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
   -dm, --dump-matches PATH  : copy search matches to PATH
                               (default: matches)
   -ac, --auto-clean  : automatically clean dump targets (no prompt!)
+  -dfp, --diff-format-paths  : format paths in any incremental diffs
+                               generated to the standard
+                               'a[/PATH]/FILE' 'b[/PATH]/FILE pair.
+                               by default, PATH is stripped, and FILE
+                               is set to the latter of the diff pair's
+                               names. see environment variable below
+                               for overrides
   -dfg, --diff-format-git  : add git mailinfo compatible headers to
                              diff files
   -dnp, --diff-numeric-prefixes  : prefix diff number to file name
@@ -61,6 +71,11 @@ SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
   INCREMENTS_SEARCH  : as detailed above
   INCREMENTS_VARIANTS  : as detailed above
   INCREMENTS_PRECEDENCE  : as detailed above
+  DIFF_TARGET_BASE_PATH  : base path of file to be use in any
+                           incremental diffs generated e.g.
+                           'a/GIT_DIFF_BASE_PATH/FILE'
+  DIFF_TARGET_FILE  : file name override for any incremental diffs
+                      generated. e.g. 'b/DIFF_TARGET_FILE'
   GIT_DIFF_SUBJECT  : subject line for any incremental diffs generated
 "
 }
@@ -294,6 +309,7 @@ fnProcess() {
           $diff_bin "${diff_bin_args[@]}" > "$diff_pathfile"
         fi
         if [[ $diff_format_git -eq 1 && -e $diff_pathfile && -e "$diff_pathfile" ]]; then
+          # add header / footer
           diff_header="$GIT_DIFF_HEADER"
           diff_footer="$GIT_DIFF_FOOTER"
           diff_header="$(echo "$diff_header" | sed 's/@DATE/'"$(date -d "@$ts" "+$GIT_DIFF_DT_FORMAT")"'/')"
@@ -304,6 +320,15 @@ fnProcess() {
           diff_header="$(echo "$diff_header" | sed 's/@SUBJECT/'"$GIT_DIFF_SUBJECT"'/')"
           sed -i '1s/^/'"$diff_header"'\n/' "$diff_pathfile"
           sed -i '$s/$/\n'"$diff_footer"'\n/' "$diff_pathfile"
+        fi
+        if [[ $diff_format_paths -eq 1 && -e $diff_pathfile && -e "$diff_pathfile" ]]; then
+          # modify target paths
+          target_base_path="$DIFF_TARGET_BASE_PATH"
+          [ -n "$target_base_path" ] && \
+            target_base_path="$(echo "$target_base_path" | sed 's/\/*$//g')\/"
+          target_file="$DIFF_TARGET_FILE"
+          sed -i '/^-\{3\}[ \t]*./{/\/dev\/null/b;s/\([+-]\{3\}[ \t]*\).*\/\(.*\)$/\1a\/'"${target_base_path}${target_file:-\2}"'/}' "$diff_pathfile"
+          sed -i '/^+\{3\}[ \t]*./{/\/dev\/null/b;s/\([+-]\{3\}[ \t]*\).*\/\(.*\)$/\1b\/'"${target_base_path}${target_file:-\2}"'/}' "$diff_pathfile"
         fi
         last="$f"
         l=$(($l+1))
@@ -358,6 +383,7 @@ while [ -n "$1" ]; do
     "dump-matches") shift; target_matches="$1" ;;
     "ac"|"auto-clean") interactive_cleaning=0 ;;
     "dfg"|"diff-format-git") diff_format_git=1 ;;
+    "dfp"|"diff-format-paths") diff_format_paths=1 ;;
     "dnp"|"diff-numeric-prefixes") diff_numeric_prefixes=1 ;;
     *) search[${#search[@]}]="$1" ;;
   esac
