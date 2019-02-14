@@ -39,7 +39,7 @@ IFS=$'\t\n'
 if [ -d "$search" ]; then
   IFS=$'\n'; docs=(`find "$search" -type f`); IFS="$IFSORG"
 else
-  docs=($(search_ "$search")) #interactive nested script working as long as stdout is only used for the output
+  docs=($(search_ -i "$search")) #interactive nested script working as long as stdout is only used for the output
 fi
 result=$?
 

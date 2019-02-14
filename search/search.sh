@@ -1,27 +1,43 @@
 #!/bin/sh
 
 SCRIPTNAME="${0##*/}"
-INTERACTIVE=yes
-FILE_RESULTS=""
-PATHS=(~/documents)
 
-function help
-{
-  echo -e "usage '$SCRIPTNAME NAME [INTERACTIVE=yes] [FILE_RESULTS=\"\"]'"
-  echo -e "\nwhere 'NAME':\t[partial] file name to search for in a list of predefined paths"
-  echo -e "\n      'INTERACTIVE':\tyes/no. setting will result in no option to create the search file, and any matches will be automatically accepted"
-  echo -e "\n      'FILE_RESULTS':\tfile to dump search results per line"
-  echo -e "\npredefined paths are currently:"
-  for path in "${PATHS[@]}"; do echo "$path"; done
+PATHS=(~/documents)
+FILE_RESULTS=""
+SEARCH=""
+interactive=0
+
+help() {
+  echo -e "SYNTAX '$SCRIPTNAME [OPTIONS] SEARCH
+\nwhere 'OPTIONS' can be\n
+  -h, --help  : this help information
+  -i, --interactive  : enable verification prompt for each match
+                       (default: off / auto-accept)
+  -t TARGET, --target TARGET  : file to dump search results, one per line
+\nand 'SEARCH' is  : a (partial) file name to search for in the list of
+                     predefined search paths*
+\n*predefined paths are currently: $(for path in "${PATHS[@]}"; do echo -e "\n$path"; done)
+"
 }
 if [ $# -lt 1 ]; then
   help
   exit 1
 fi
-SEARCH="$1"
-if [ $# -gt 1 ]; then if [ "x$2" == "xno" ]; then INTERACTIVE="no"; fi; fi
-if [ $# -gt 2 ]; then
-  FILE_RESULTS="$2"
+
+# parse options
+while [ -n "$1" ]; do
+  arg="$(echo "$1" | sed 's/[ ]*-*//g')"
+  case "$arg" in
+    "h"|"help") help && exit ;;
+    "i"|"interactive") interactive=1 ;;
+    "t"|"target") shift && FILE_RESULTS="$1" ;;
+    *) [ -n "$SEARCH" ] && help && echo "[error] unknown arg '$arg'"; SEARCH="$1" ;;
+  esac
+  shift
+done
+
+# option verification
+if [ -n "$FILE_RESULTS" ]; then
   if [ ! -d $(dirname "$FILE_RESULTS") ]; then mkdir -p $(dirname "$FILE_RESULTS"); fi
 fi
 
@@ -37,7 +53,7 @@ if [ -f $SEARCH ]; then #test local
   fi
   if [ ! "x$FILE_RESULTS" == "x"  ]; then echo "$SEARCH" >> "$FILE_RESULTS"; fi
 elif [[ ! "x$(dirname $SEARCH)" == "x." || "x${SEARCH:0:1}" == "x." ]]; then #create file
-  if [ "x$INTERACTIVE" == "xyes" ]; then
+  if [ $interactive -eq 1 ]; then
     #new file. offer creation
     echo -n "[user] file '$SEARCH' does not exist, create it? [y/n]: " 1>&2
     retry="TRUE"
@@ -89,7 +105,7 @@ else #use search paths
     found="TRUE"
     cancel="FALSE"
     for file in "${files[@]}"; do
-      if [[ ${#files[@]} == 1 || "x$INTERACTIVE" == "xno" ]]; then
+      if [[ ${#files[@]} == 1 || $interactive -eq 0 ]]; then
         #add
         if [ "x${results[0]}" == "x" ]; then
           results="$file\t"
