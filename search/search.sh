@@ -2,7 +2,7 @@
 
 SCRIPTNAME="${0##*/}"
 INTERACTIVE=yes
-FILERESULTS=""
+FILE_RESULTS=""
 PATHS=(~/documents)
 
 function help
@@ -21,8 +21,8 @@ fi
 FILESEARCH="$1"
 if [ $# -gt 1 ]; then if [ "x$2" == "xno" ]; then INTERACTIVE="no"; fi; fi
 if [ $# -gt 2 ]; then
-  FILERESULTS="$2"
-  if [ ! -d $(dirname "$FILERESULTS") ]; then mkdir -p $(dirname "$FILERESULTS"); fi
+  FILE_RESULTS="$2"
+  if [ ! -d $(dirname "$FILE_RESULTS") ]; then mkdir -p $(dirname "$FILE_RESULTS"); fi
 fi
 
 files=
@@ -35,7 +35,7 @@ if [ -f $FILESEARCH ]; then #test local
   else
     results="${results[@]}""$FILESEARCH\t"
   fi
-  if [ ! "x$outfile" == "x"  ]; then echo "$FILESEARCH" >> "$outfile"; fi
+  if [ ! "x$FILE_RESULTS" == "x"  ]; then echo "$FILESEARCH" >> "$FILE_RESULTS"; fi
 elif [[ ! "x$(dirname $FILESEARCH)" == "x." || "x${FILESEARCH:0:1}" == "x." ]]; then #create file
   if [ "x$INTERACTIVE" == "xyes" ]; then
     #new file. offer creation
@@ -57,7 +57,7 @@ elif [[ ! "x$(dirname $FILESEARCH)" == "x." || "x${FILESEARCH:0:1}" == "x." ]]; 
           else
             results="$results""$FILESEARCH\t"
           fi
-          if [ ! "x$outfile" == "x"  ]; then echo "$FILESEARCH" >> "$outfile"; fi
+          if [ ! "x$FILE_RESULTS" == "x"  ]; then echo "$FILESEARCH" >> "$FILE_RESULTS"; fi
           ;;
         "n" | "N")
           echo $result 1>&2
@@ -96,7 +96,7 @@ else #use search paths
         else
           results="$results""$file\t"
         fi
-        if [ ! "x$outfile" == "x"  ]; then echo "$file" >> "$outfile"; fi
+        if [ ! "x$FILE_RESULTS" == "x"  ]; then echo "$file" >> "$FILE_RESULTS"; fi
       else
         result=
         echo -n "[user] search match. use file: '$file'? [y/n/c] " 1>&2
@@ -112,7 +112,7 @@ else #use search paths
               else
                 results="$results""$file\t"
               fi
-              if [ ! "x$outfile" == "x"  ]; then echo "$file" >> "$outfile"; fi
+              if [ ! "x$FILE_RESULTS" == "x"  ]; then echo "$file" >> "$FILE_RESULTS"; fi
               ;;
             "n" | "N")
               echo $result 1>&2
