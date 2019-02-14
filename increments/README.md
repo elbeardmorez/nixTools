@@ -51,7 +51,7 @@ environment variables:
 
 ## examples
 ```
-$ increments.sh -t test/source/ x.cpp
+$ increments_ -t test/source/ x.cpp
 [info] matched 2 files
 
 path                 size                     date
@@ -59,7 +59,7 @@ test/source/2/x.cpp    29 2018Jul14 16:06:33 +0100
 ```
 
 ```
-$ ./increments.sh --target test/source/ --variants ./variants x.cpp
+$ increments_ --target test/source/ --variants ./variants x.cpp
 [info] matched 4 files
 
 path                  size                     date
@@ -70,13 +70,67 @@ test/source/2/x.cpp     29 2018Jul14 16:06:33 +0100
 ```
 
 ```
-$ increments.sh -t test/source/ --diffs x.cpp
+$ increments_ -t test/source/ --diffs x.cpp
 ...
 [info] dumped 2 diffs to 'increments'
 
 $ ls -1 increments
 1531580747.diff
 1531580793.diff
+```
+
+**example session**
+```
+$ cat ./variants
+/\(.*\)/\1~/
+
+$ nm=slack;\
+  GIT_DIFF_SUBJECT="[mod] $nm.sh, "\
+  DIFF_TARGET_BASE_PATH="$nm/"\
+  DIFF_TARGET_FILE="$nm.sh"\
+    increments_ -t "/backup/elbeardo.tar|\        : pipe delimited list of targets
+                    $HOME/development/bash"\
+                -v ./variants\                    : search variants file
+                -nd\                              : remove duplicates
+                --dump-diffs "diffs/$nm.sh"\      : push diff to dir
+                --dump-matches "backup/$nm.sh"\   : push matches to dir
+                -ac\                              : auto-clean dump dirs
+                -dfg -dfp -dnp\                   : format diffs
+                "/_$nm"                           : search term
+[info] ignoring GNU tar 'not found in archive' 'errors'
+[info] matched 83 files
+[info] dumped 83 matches to 'backup/slack.sh'
+[info] 5 unique files
+[info] dumped 5 diffs to 'diffs/slack.sh'
+[info] file list:
+path                                                                       size                     date
+/tmp/increments.sh.RSrW3lZZzJ/backup/monthly.10/development/bash/_slack~  12064 2013Sep24 07:45:37 +0100
+/tmp/increments.sh.RSrW3lZZzJ/backup/monthly.10/development/bash/_slack   12054 2013Sep24 10:44:26 +0100
+/tmp/increments.sh.RSrW3lZZzJ/backup/daily.10/development/bash/_slack~    12678 2014Jul17 10:26:12 +0100
+/tmp/increments.sh.RSrW3lZZzJ/backup/daily.10/development/bash/_slack     12679 2014Jul17 10:27:37 +0100
+~/development/bash/~sort/_slack~                                          21285 2019Feb07 18:05:52 +0000
+
+$ ls -1 diffs/slack.sh
+0001_1380005137.diff
+0002_1380015866.diff
+0003_1405589172.diff
+0004_1405589257.diff
+0005_1549562752.diff
+
+$ sample=diffs/slack.sh/0001_1380005137.diff; head -n10 $sample && echo '...' && tail -n3 $sample
+From fedcba10987654321012345678910abcdef Mon Sep 17 00:00:00 2001
+From: Pete Beardmore <pete.beardmore@msn.com>
+Date: Tue, 24 Sep 2013 07:45:37 +0100
+Subject: [mod] slack.sh,
+
+---
+
+--- /dev/null   2019-02-07 19:04:32.633333967 +0000
++++ b/slack/slack.sh    2013-09-24 07:45:37.000000000 +0100
+@@ -0,0 +1,407 @@
+...
+--
+2.20.1
 ```
 
 ## dependencies
