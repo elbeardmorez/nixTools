@@ -47,7 +47,7 @@ cmdmv="$([ $TEST -eq 1 ] && echo "echo ")mv"
 
 if [ $result -eq 0 ]; then
   if [ "x${docs[0]}" == "x" ]; then
-    echo "[user] no files named '$search' found for $OPTION" 
+    echo "[user] no files named '$search' found for $OPTION"
   else
     for file in "${docs[@]}"; do
       if [[ -f "$file" || -h "$file" ]]; then
@@ -144,5 +144,5 @@ if [ $result -eq 0 ]; then
         esac
       fi
     done
-  fi  
+  fi
 fi
