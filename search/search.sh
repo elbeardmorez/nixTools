@@ -101,7 +101,7 @@ else
   for path in "${paths[@]}"; do
     path="$(eval "echo $path")"  # resolve target
     if [ ! -e "$path" ]; then
-      echo "[info] path '$path' no longer exists!" 1>&2
+      echo "[info] path '$path' invalid or it no longer exists, ignoring" 1>&2
     else
       files2=($(find $path -name "$SEARCH"))
       for file in "${files2[@]}"; do
