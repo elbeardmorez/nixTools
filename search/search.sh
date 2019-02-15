@@ -19,12 +19,9 @@ help() {
 \n*predefined paths are currently: $(for path in "${PATHS[@]}"; do echo -e "\n$path"; done)
 "
 }
-if [ $# -lt 1 ]; then
-  help
-  exit 1
-fi
 
 # parse options
+[ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
 while [ -n "$1" ]; do
   arg="$(echo "$1" | sed 's/[ ]*-*//g')"
   case "$arg" in
@@ -38,23 +35,25 @@ done
 
 # option verification
 if [ -n "$FILE_RESULTS" ]; then
-  if [ ! -d $(dirname "$FILE_RESULTS") ]; then mkdir -p $(dirname "$FILE_RESULTS"); fi
+  [ -d "$(dirname "$FILE_RESULTS")" ] || mkdir -p "$(dirname "$FILE_RESULTS")"
 fi
 
-files=
+declare files
 found="FALSE"
 
-if [ -f $SEARCH ]; then #test local
+if [ -f $SEARCH ]; then
+  # prioritise local files
   found="TRUE"
   if [ "x${results[0]}" == "x" ]; then
     results="$SEARCH\t"
   else
     results="${results[@]}""$SEARCH\t"
   fi
-  if [ ! "x$FILE_RESULTS" == "x"  ]; then echo "$SEARCH" >> "$FILE_RESULTS"; fi
-elif [[ ! "x$(dirname $SEARCH)" == "x." || "x${SEARCH:0:1}" == "x." ]]; then #create file
+  [ -n "$FILE_RESULTS" ] && echo "$SEARCH" >> "$FILE_RESULTS"
+elif [[ ! "x$(dirname $SEARCH)" == "x." || "x${SEARCH:0:1}" == "x." ]]; then
+  # create file
   if [ $interactive -eq 1 ]; then
-    #new file. offer creation
+    # new file. offer creation
     echo -n "[user] file '$SEARCH' does not exist, create it? [y/n]: " 1>&2
     retry="TRUE"
     while [ "x$retry" == "xTRUE" ]; do
@@ -82,10 +81,11 @@ elif [[ ! "x$(dirname $SEARCH)" == "x." || "x${SEARCH:0:1}" == "x." ]]; then #cr
       esac
     done
   fi
-else #use search paths
+else
+  # use search paths
   for path in "${PATHS[@]}"; do
     if [ ! -e "$path" ]; then
-      echo "[debug] $path no longer exists!" 1>&2
+      echo "[info] path '$path' no longer exists!" 1>&2
     else
       files2=($(find $path -name "$SEARCH"))
       for file in "${files2[@]}"; do
@@ -106,7 +106,7 @@ else #use search paths
     cancel="FALSE"
     for file in "${files[@]}"; do
       if [[ ${#files[@]} == 1 || $interactive -eq 0 ]]; then
-        #add
+        # add
         if [ "x${results[0]}" == "x" ]; then
           results="$file\t"
         else
@@ -114,7 +114,7 @@ else #use search paths
         fi
         if [ ! "x$FILE_RESULTS" == "x"  ]; then echo "$file" >> "$FILE_RESULTS"; fi
       else
-        result=
+        result=""
         echo -n "[user] search match. use file: '$file'? [y/n/c] " 1>&2
         retry="TRUE"
         while [ "x$retry" == "xTRUE" ]; do
