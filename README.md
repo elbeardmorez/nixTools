@@ -13,13 +13,13 @@ date related functionality
 diff related functionality
 
 ### [git.sh](git)
-git wrapper adding several features and various customised calls to the underlying binary using minimal aliases. falls through to git binary otherwise
+git wrapper adding several features and various customised calls to the underlying binary using minimal aliases. commands fall through to git binary
 
 ### [increments.sh](increments)
-given a search set and a target, find all files satisfying the search under the target location and return a match list ordered by modification date to represent an incremental set, from which a dump of ordered incremental diffs is optionally created
+given a search set and a target, find all files satisfying the search under/in the target and return a match list ordered by modification date to represent an incremental set, from which a dump of ordered incremental diffs is optionally created
 
 ### [slack.sh](slack)
-script to aid in the building and installation of source and package based software on a Slackware system
+script to aid in the building and installation of source and package based software on a Slackware 64 multilib system
 
 ### [socket.sh](socket)
 netcat wrapper to simplify several use cases
