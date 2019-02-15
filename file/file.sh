@@ -1,4 +1,13 @@
 #!/bin/sh
+
+# compatibility
+if [ -n "$BASH_VERSION" ]; then
+  CMDARGS_READ_SINGLECHAR=("-s" "-n1")
+elif [ -n "$ZSH_VERSION" ]; then
+  CMDARGS_READ_SINGLECHAR=("-s" "-k1")
+  setopt KSH_ARRAYS
+fi
+
 SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
 
@@ -136,7 +145,7 @@ for file in "${files[@]}"; do
       bRetry=1
       while [ $bRetry -eq 1 ]; do
         echo -en '\033[1D\033[K'
-        read -n 1 -s result
+        read ${CMDARGS_READ_SINGLECHAR[@]} result
         case "$result" in
           "y"|"Y")
             echo $result
