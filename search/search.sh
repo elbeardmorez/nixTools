@@ -22,7 +22,7 @@ help() {
                                  per line
 \nand 'SEARCH' is  : a (partial) file name to search for in the list of
                      predefined search paths*
-\n*predefined paths are currently: $(for path in "${PATHS[@]}"; do echo -e "\n$path"; done)
+\n*predefined paths are currently: $(for p in "${PATHS[@]}"; do echo -e "\n$p"; done)
 "
 }
 
@@ -98,12 +98,12 @@ else
   if [ $search_targets -eq 1 ]; then
     IFS=$'\n'; paths=($(cat "$SEARCH_TARGETS")); IFS="$IFSORG"
   fi
-  for path in "${paths[@]}"; do
-    path="$(eval "echo $path")"  # resolve target
-    if [ ! -e "$path" ]; then
-      echo "[info] path '$path' invalid or it no longer exists, ignoring" 1>&2
+  for p in "${paths[@]}"; do
+    p="$(eval "echo $p")"  # resolve target
+    if [ ! -e "$p" ]; then
+      echo "[info] path '$p' invalid or it no longer exists, ignoring" 1>&2
     else
-      files2=($(find $path -name "$SEARCH"))
+      files2=($(find $p -name "$SEARCH"))
       for file in "${files2[@]}"; do
         if [[ -f "$file" || -h "$file" ]]; then
           if [ "x${files[0]}" == "x" ]; then
