@@ -99,6 +99,7 @@ else
     IFS=$'\n'; paths=($(cat "$SEARCH_TARGETS")); IFS="$IFSORG"
   fi
   for path in "${paths[@]}"; do
+    path="$(eval "echo $path")"  # resolve target
     if [ ! -e "$path" ]; then
       echo "[info] path '$path' no longer exists!" 1>&2
     else
