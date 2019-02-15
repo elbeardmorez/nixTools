@@ -10,9 +10,28 @@ RENAME_OPTIONS="lower|spaces|underscores|dashes"
 cmdmv="$([ $TEST -eq 1 ] && echo "echo ")mv"
 
 help() {
-  echo -e "usage '$SCRIPTNAME [option] file'
-\nwhere 'option':\t supported values are 'edit', 'dump', 'grep'
-\n\t'file':\tfile (partial) name to search for via 'search.sh'
+  echo -e "SYNTAX: $SCRIPTNAME [OPTION [OPTION ARGS]] TARGET
+\nwhere OPTION can be:\n
+  -h, --help  : this help information
+  -s [SIDECOUNT], --strip [SIDECOUNT]  : remove characters from target
+                                         file name
+    where SIDE  : either 'l' / 'r' denoting the side to remove char
+                  from (default: r)
+          COUNT  : the number of characters to remove from the given
+                   side (default: 1)
+  -u, --uniq  : remove duplicate lines from target file
+  -e, --edit  : edit target file
+  -d, --dump  : cat target file to stdout
+  -f SEARCH, --find SEARCH  : grep target file for SEARCH string
+  -t [LINES] [END], --trim [LINES] [END]  : trim target file
+    where LINES  : number of lines to trim (default: 1)
+          END  : either 'top' / 'bottom' denoting the end to trim from
+                 (default: bottom)
+  -r [TRANSFORMS], --rename [TRANSFORMS]  : rename files using one or
+                                            more supported transforms
+    where TRANSFORMS  : delimited list comprising 'lower', 'upper',
+                        'spaces', 'underscores', 'dashes'
+\nand TARGET is:  a (partial) file name to locate via 'search.sh'
 "
 }
 
@@ -28,11 +47,20 @@ function fnRegexp()
   echo "$sExp"
 }
 
+# parse options
+[ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
 OPTION=edit
-[ $# -lt 1 ] && help && exit 1
-[ $# -gt 1 ] && OPTION="$1" && shift
-search="$1" && shift
+arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
+[ -n "$(echo "$arg" | sed -n '/\(h\|help\|s\|strip\|u\|uniq\|e\|edit\|d\|dump\|cat\|f\|find\|grep\|search\|t\|trim\|r\|rename\)/p')" ] && OPTION="$arg" && shift
 
+declare -a args
+declare search
+while [ -n "$1" ]; do
+  [ $# -gt 1 ] && args[${#args[@]}]="$1" || search="$1"
+  shift
+done
+
+# locate TARGET, search
 if [ -d "$search" ]; then
   IFS=$'\n'; docs=($(find "$search" -type f)); IFS="$IFSORG"
 else
@@ -44,12 +72,14 @@ result=$?
 [[ $result -ne 0 || -z ${docs[0]} ]] &&\
   echo "[user] no files named '$search' found for '$OPTION'" && exit 0
 
+# process
 for file in "${docs[@]}"; do
   ! [[ -f "$file" || -h "$file" ]] &&\
     echo "[info] skipping non-file '$file'" && continue
   case "$OPTION" in
-    "strip")
-      strip=${1:-"r1"}
+    "s"|"strip")
+      strip="r1"
+      [ ${#args[@]} -gt 0 ] && strip="${args[0]}"
       side=$(echo "$strip" | sed -n 's/^\([lr]\?\)\([0-9]\?\)$/\1/p')
       [ "x$side" == "x" ] && side="r" && strip="$side$strip"
       [ ${#strip} -eq 1 ] && strip="${strip}1"
@@ -69,38 +99,38 @@ for file in "${docs[@]}"; do
       mv -i "$file" "$file2"
       ;;
 
-    "uniq")
+   "u"|"uniq")
       fTemp=$(tempfile)
       uniq "$file" > "$fTemp"
       mv "$fTemp" "$file"
       ;;
 
-    "edit")
+    "e"|"edit")
       echo "[user] editing file: '$file'"
       sleep 1
       $EDITOR "$file"
       ;;
 
-    "dump"|"cat")
+    "d"|"dump"|"cat")
       echo "[user] dumping contents of file: '$file'" 1>&2
       sleep 1
       cat "$file"
       ;;
 
-    "grep"|"find"|"search")
+    "f"|"find"|"grep"|"search")
       echo "[user] searching contents of file: '$file'"
       sleep 1
-      grep "$1" "$file"
+      grep "${args[0]}" "$file"
       ;;
 
-    "trim")
+    "t"|"trim")
       count=1
-      [ $# -gt 0 ] && count=$1 && shift
+      [ ${args[@]} -gt 0 ] && count=${args[0]}
       [ "x$(echo "$count" | sed -n '/^[0-9]\+$/p')" == "x" ] &&\
         echo "[error] illegal 'count' parameter argument" && exit 1
       top=0
-      if [[ $# -gt 0 && -n "$(echo "$1" | sed -n '/\(top\|bottom\)/Ip')" ]]; then
-        [ -n "$(echo "$1" | sed -n '/top/Ip')" ] && top=1 && shift
+      if [[ ${#args[@]} -gt 1 && -n "$(echo "${args[1]}" | sed -n '/\(top\|bottom\)/Ip')" ]]; then
+        [ -n "$(echo "${args[1]}" | sed -n '/top/Ip')" ] && top=1
       fi
       echo -n "[user] trim $count lines from $([ $top -eq 1 ] && echo "top" || echo "bottom") of file '$file'? [(y)es/(n)o/e(x)it]:  " 1>&2
       bRetry=1
@@ -134,11 +164,11 @@ for file in "${docs[@]}"; do
       done
       ;;
 
-    "rename")
-      [ $# -gt 0 ] && FILTER="$1" && shift
+    "r"|"rename")
+      [ ${#args[@]} -gt 0 ] && FILTER="${args[0]}" && shift
       file="$(echo "$file" | grep -vP '(^\.{1,2}$|'"$(fnRegexp "$FILTER" grep)"'\/$)')"
       [ -z "$file" ] && continue
-      [ $# -gt 0 ] && RENAME_OPTIONS="$1" && shift
+      [ ${#args[@]} -gt 0 ] && RENAME_OPTIONS="${args[0]}" && shift
       IFS='|, '; options=($RENAME_OPTIONS); IFS=$IFSORG
       for option in "${options[@]}"; do
         case "$option" in
