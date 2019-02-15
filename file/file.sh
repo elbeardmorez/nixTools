@@ -7,7 +7,7 @@ EDITOR="${EDITOR:-vim}"
 CHARSED='].[|.'
 CHARGREP='].[' # '[.' is invalid syntax to sed
 RENAME_OPTIONS="lower|spaces|underscores|dashes"
-cmdmv="$([ $TEST -eq 1 ] && echo "echo ")mv"
+CMD_MV="$([ $TEST -eq 1 ] && echo "echo ")mv"
 
 help() {
   echo -e "SYNTAX: $SCRIPTNAME [OPTION [OPTION ARGS]] TARGET
@@ -49,9 +49,9 @@ function fnRegexp()
 
 # parse options
 [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
-OPTION=edit
+option=edit
 arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-[ -n "$(echo "$arg" | sed -n '/\(h\|help\|s\|strip\|u\|uniq\|e\|edit\|d\|dump\|cat\|f\|find\|grep\|search\|t\|trim\|r\|rename\)/p')" ] && OPTION="$arg" && shift
+[ -n "$(echo "$arg" | sed -n '/\(h\|help\|s\|strip\|u\|uniq\|e\|edit\|d\|dump\|cat\|f\|find\|grep\|search\|t\|trim\|r\|rename\)/p')" ] && option="$arg" && shift
 
 declare -a args
 declare search
@@ -62,21 +62,21 @@ done
 
 # locate TARGET, search
 if [ -d "$search" ]; then
-  IFS=$'\n'; docs=($(find "$search" -type f)); IFS="$IFSORG"
+  IFS=$'\n'; files=($(find "$search" -type f)); IFS="$IFSORG"
 else
   # interactive nested script working as long as stdout is only used for the output
-  IFS=$'\t\n'; docs=($(search_ -i "$search")); IFS="$IFSORG"
+  IFS=$'\t\n'; files=($(search_ -i "$search")); IFS="$IFSORG"
 fi
-result=$?
+res=$?
 
-[[ $result -ne 0 || -z ${docs[0]} ]] &&\
-  echo "[user] no files named '$search' found for '$OPTION'" && exit 0
+[[ $res -ne 0 || -z ${files[0]} ]] &&\
+  echo "[user] no files named '$search' found for '$option'" && exit 0
 
 # process
-for file in "${docs[@]}"; do
+for file in "${files[@]}"; do
   ! [[ -f "$file" || -h "$file" ]] &&\
     echo "[info] skipping non-file '$file'" && continue
-  case "$OPTION" in
+  case "$option" in
     "s"|"strip")
       strip="r1"
       [ ${#args[@]} -gt 0 ] && strip="${args[0]}"
@@ -143,11 +143,11 @@ for file in "${docs[@]}"; do
             if [ $top -eq 1 ]; then
               fTemp=$(mktemp)
               tail -n $(($(wc -l "$file" | cut -d' ' -f1)-$count)) "$file" 2>/dev/null > $fTemp
-              $cmdmv "$fTemp" "$file"
+              $CMD_MV "$fTemp" "$file"
             else
               fTemp=$(mktemp)
               head -n $(($(wc -l "$file" | cut -d' ' -f1)-$count)) "$file" 2>/dev/null > $fTemp
-              $cmdmv "$fTemp" "$file"
+              $CMD_MV "$fTemp" "$file"
             fi
             bRetry=0
             ;;
@@ -181,7 +181,7 @@ for file in "${docs[@]}"; do
               "underscores") file2="$(echo $file | awk -F'\n' '{gsub("_","."); print}')" ;;
               "dashes") file2="$(echo $file | awk -F'\n' '{gsub("-","."); print}')" ;;
             esac
-            if [ ! -e "$dir$file2" ]; then $cmdmv -i "$dir$file" "$dir$file2" 2>/dev/null; fi
+            if [ ! -e "$dir$file2" ]; then $CMD_MV -i "$dir$file" "$dir$file2" 2>/dev/null; fi
             ;;
 
           *)
