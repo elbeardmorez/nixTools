@@ -42,12 +42,12 @@ else
 fi
 result=$?
 
-if [ $result -eq 0 ]; then
-  if [ "x${docs[0]}" == "x" ]; then
-    echo "[user] no files named '$search' found for $OPTION"
-  else
+[[ $result -ne 0 || -z ${docs[0]} ]] &&\
+  echo "[user] no files named '$search' found for '$OPTION'" && exit 0
+
     for file in "${docs[@]}"; do
-      if [[ -f "$file" || -h "$file" ]]; then
+  ! [[ -f "$file" || -h "$file" ]] &&\
+    echo "[info] skipping non-file '$file'" && continue
         case "$OPTION" in
           "strip")
             strip=${1:-"r1"}
@@ -159,7 +159,4 @@ if [ $result -eq 0 ]; then
             done
             ;;
         esac
-      fi
     done
-  fi
-fi
