@@ -18,6 +18,9 @@ git wrapper adding several features and various customised calls to the underlyi
 ### [increments.sh](increments)
 given a search set and a target, find all files satisfying the search under/in the target and return a match list ordered by modification date to represent an incremental set, from which a dump of ordered incremental diffs is optionally created
 
+### [search.sh](search)
+ease location of your (regularly used) files. offers optionally interactive selection prompt for search match verification and for 'local' searches, target files are created where not found. thin wrapper around `find`, aimed for use with other onward scripts
+
 ### [slack.sh](slack)
 script to aid in the building and installation of source and package based software on a Slackware 64 multilib system
 
