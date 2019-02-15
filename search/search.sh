@@ -1,10 +1,13 @@
 #!/bin/sh
 
 SCRIPTNAME="${0##*/}"
+IFSORG="$IFS"
 
 PATHS=(~/documents)
 FILE_RESULTS=""
+SEARCH_TARGETS="$HOME/.search"
 SEARCH=""
+search_targets=0
 interactive=0
 
 help() {
@@ -13,7 +16,10 @@ help() {
   -h, --help  : this help information
   -i, --interactive  : enable verification prompt for each match
                        (default: off / auto-accept)
-  -t TARGET, --target TARGET  : file to dump search results, one per line
+  -t, --target TARGETS  : file containing search targets, one per line
+                          (default: ~/.search)
+  -r TARGET, --results TARGET  : file to dump search results to, one
+                                 per line
 \nand 'SEARCH' is  : a (partial) file name to search for in the list of
                      predefined search paths*
 \n*predefined paths are currently: $(for path in "${PATHS[@]}"; do echo -e "\n$path"; done)
@@ -27,7 +33,9 @@ while [ -n "$1" ]; do
   case "$arg" in
     "h"|"help") help && exit ;;
     "i"|"interactive") interactive=1 ;;
-    "t"|"target") shift && FILE_RESULTS="$1" ;;
+    "t") search_targets=1 ;;
+    "target") search_targets=1 && shift && SEARCH_TARGETS="$1" ;;
+    "r"|"results") shift && FILE_RESULTS="$1" ;;
     *) [ -n "$SEARCH" ] && help && echo "[error] unknown arg '$arg'"; SEARCH="$1" ;;
   esac
   shift
@@ -36,6 +44,9 @@ done
 # option verification
 if [ -n "$FILE_RESULTS" ]; then
   [ -d "$(dirname "$FILE_RESULTS")" ] || mkdir -p "$(dirname "$FILE_RESULTS")"
+fi
+if [ $search_targets -eq 1 ]; then
+  [ ! -f "$SEARCH_TARGETS" ] && echo "[error] invalid search targets file '$SEARCH_TARGETS'" && exit 1
 fi
 
 declare files
@@ -83,7 +94,11 @@ elif [[ ! "x$(dirname $SEARCH)" == "x." || "x${SEARCH:0:1}" == "x." ]]; then
   fi
 else
   # use search paths
-  for path in "${PATHS[@]}"; do
+  paths="${PATHS[@]}"
+  if [ $search_targets -eq 1 ]; then
+    IFS=$'\n'; paths=($(cat "$SEARCH_TARGETS")); IFS="$IFSORG"
+  fi
+  for path in "${paths[@]}"; do
     if [ ! -e "$path" ]; then
       echo "[info] path '$path' no longer exists!" 1>&2
     else
