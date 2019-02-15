@@ -3,7 +3,7 @@ SCRIPTNAME="${0##*/}"
 TEST=0
 
 OPTION=edit
-EDITOR=vim
+EDITOR="${EDITOR:-vim}"
 IFSORG="$IFS"
 CHARSED='].[|.'
 CHARGREP='].[' # '[.' is invalid syntax to sed
