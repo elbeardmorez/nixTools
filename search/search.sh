@@ -133,4 +133,7 @@ if [ ${#results[@]} -gt 0 ]; then
   results="${s:2}"
   [ -n "$FILE_RESULTS" ] && echo -e "$results" >> "$FILE_RESULTS"
   echo -e "$results"
+else
+  [ ${#files[@]} -eq 0 ] &&\
+    echo "[info] no matches for search '$SEARCH'" 1>&2
 fi
