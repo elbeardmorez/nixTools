@@ -50,17 +50,11 @@ if [ $search_targets -eq 1 ]; then
 fi
 
 declare files
-found="FALSE"
+declare -a results
 
 if [ -f $SEARCH ]; then
   # prioritise local files
-  found="TRUE"
-  if [ "x${results[0]}" == "x" ]; then
-    results="$SEARCH\t"
-  else
-    results="${results[@]}""$SEARCH\t"
-  fi
-  [ -n "$FILE_RESULTS" ] && echo "$SEARCH" >> "$FILE_RESULTS"
+  results[${#results[@]}]="$SEARCH"
 elif [[ ! "x$(dirname $SEARCH)" == "x." || "x${SEARCH:0:1}" == "x." ]]; then
   # create file
   if [ $interactive -eq 1 ]; then
@@ -75,15 +69,9 @@ elif [[ ! "x$(dirname $SEARCH)" == "x." || "x${SEARCH:0:1}" == "x." ]]; then
           retry="FALSE"
           found="TRUE"
           #ensure path
-          if [ ! -d "$(dirname $SEARCH)" ]; then mkdir -p "$(dirname $SEARCH)"; fi
+          [ -d "$(dirname $SEARCH)" ] || mkdir -p "$(dirname $SEARCH)"
           touch "$SEARCH"
-          #add file
-          if [ "x${results[0]}" == "x" ]; then
-            results="$SEARCH\t"
-          else
-            results="$results""$SEARCH\t"
-          fi
-          if [ ! "x$FILE_RESULTS" == "x"  ]; then echo "$SEARCH" >> "$FILE_RESULTS"; fi
+          results[${#results[@]}]="$SEARCH"
           ;;
         "n" | "N")
           echo $result 1>&2
@@ -103,32 +91,14 @@ else
     if [ ! -e "$p" ]; then
       echo "[info] path '$p' invalid or it no longer exists, ignoring" 1>&2
     else
-      files2=($(find $p -name "$SEARCH"))
-      for file in "${files2[@]}"; do
-        if [[ -f "$file" || -h "$file" ]]; then
-          if [ "x${files[0]}" == "x" ]; then
-            files=("$file")
-          else
-            files=("${files[@]}" "$file")
-          fi
-        fi
-      done
+      IFS=$'\n'; files2=($(find $p -name "$SEARCH" \( -type f -o -type l \))); IFS="$IFSORG"
+      for file in "${files2[@]}"; do files[${#files[@]}]="$file"; done
     fi
   done
 
-  results=""
-  if [ ${#files[0]} -gt 0 ]; then
-    found="TRUE"
-    cancel="FALSE"
     for file in "${files[@]}"; do
       if [[ ${#files[@]} == 1 || $interactive -eq 0 ]]; then
-        # add
-        if [ "x${results[0]}" == "x" ]; then
-          results="$file\t"
-        else
-          results="$results""$file\t"
-        fi
-        if [ ! "x$FILE_RESULTS" == "x"  ]; then echo "$file" >> "$FILE_RESULTS"; fi
+      results[${#results[@]}]="$file"
       else
         result=""
         echo -n "[user] search match. use file: '$file'? [y/n/c] " 1>&2
@@ -139,12 +109,7 @@ else
             "y" | "Y")
               echo $result 1>&2
               retry="FALSE"
-              if [ "x${results[0]}" == "x" ]; then
-                results="$file\t"
-              else
-                results="$results""$file\t"
-              fi
-              if [ ! "x$FILE_RESULTS" == "x"  ]; then echo "$file" >> "$FILE_RESULTS"; fi
+            results[${#results[@]}]="$file"
               ;;
             "n" | "N")
               echo $result 1>&2
@@ -158,13 +123,14 @@ else
           esac
         done
       fi
-      if [ "x$cancel" == "xTRUE" ]; then break; fi
+    [ "x$cancel" == "xTRUE" ] && break
     done
   fi
-fi
 
-if [[ "x$found" == "xFALSE" || "x$results" == "x" ]]; then
-  echo ""
-else
-  echo -e ${results:0:$[${#results}-2]}
+if [ ${#results[@]} -gt 0 ]; then
+  s=""
+  for f in "${results[@]}"; do s+="\n$f"; done
+  results="${s:2}"
+  [ -n "$FILE_RESULTS" ] && echo -e "$results" >> "$FILE_RESULTS"
+  echo -e "$results"
 fi
