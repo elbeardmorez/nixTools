@@ -140,7 +140,9 @@ for file in "${files[@]}"; do
       end="top"
       if [ ${#args[@]} -gt 1 ]; then
         arg="$(echo "${args[1]}" | awk '{print(tolower($0))}')"
-        [[ "x$arg" == "xtop" || "x$arg" == "xbottom" ]] && end="$arg"
+        ! [[ "x$arg" == "xtop" || "x$arg" == "xbottom" ]] &&
+          echo "[error] invalid 'end' arg '${args[1]}'" && exit 1
+        end="$arg"
       fi
       echo -n "[user] trim $count line$([ $count -ne 1 ] && echo "s") from $end of file '$file'? [(y)es/(n)o/(c)ancel]: " 1>&2
       res=$(fnDecision)
