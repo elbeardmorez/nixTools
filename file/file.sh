@@ -68,16 +68,18 @@ while [ -n "$1" ]; do
 done
 
 # locate TARGET, search
+declare -a files
 if [ -d "$search" ]; then
   IFS=$'\n'; files=($(find "$search" -type f)); IFS="$IFSORG"
+  [ ${#files[@]} -eq 0 ] &&\
+    echo "[info] no matches for search '$search'"
 else
   # interactive nested script working as long as stdout is only used for the output
-  IFS=$'\t\n'; files=($(search_ -i "$search")); IFS="$IFSORG"
+  IFS=$'\n'; files=($(search_ -i "$search")); IFS="$IFSORG"
 fi
-res=$?
 
-[[ $res -ne 0 || -z ${files[0]} ]] &&\
-  echo "[user] no files named '$search' found for '$option'" && exit 0
+[ ${#files[@]} -gt 0 ] &&\
+    echo "[info] ${#files[@]} match$([ ${#files[@]} -ne 1 ] && echo "es") selected for option '$option'" || exit
 
 # process
 for file in "${files[@]}"; do
