@@ -133,10 +133,10 @@ for file in "${files[@]}"; do
       ;;
 
     "t"|"trim")
-      count=1
-      [ ${args[@]} -gt 0 ] && count=${args[0]}
-      [ "x$(echo "$count" | sed -n '/^[0-9]\+$/p')" == "x" ] &&\
-        echo "[error] illegal 'count' parameter argument" && exit 1
+      lines=1
+      [ ${args[@]} -gt 0 ] && lines=${args[0]}
+      [ "x$(echo "$lines" | sed -n '/^[0-9]\+$/p')" == "x" ] &&\
+        echo "[error] invalid 'lines' arg '$lines'" && exit 1
       end="top"
       if [ ${#args[@]} -gt 1 ]; then
         arg="$(echo "${args[1]}" | awk '{print(tolower($0))}')"
@@ -144,14 +144,14 @@ for file in "${files[@]}"; do
           echo "[error] invalid 'end' arg '${args[1]}'" && exit 1
         end="$arg"
       fi
-      echo -n "[user] trim $count line$([ $count -ne 1 ] && echo "s") from $end of file '$file'? [(y)es/(n)o/(c)ancel]: " 1>&2
+      echo -n "[user] trim $lines line$([ $lines -ne 1 ] && echo "s") from $end of file '$file'? [(y)es/(n)o/(c)ancel]: " 1>&2
       res=$(fnDecision)
       [ $res -eq -1 ] && exit
       if [ $res -eq 1 ]; then
         tmp="$(fnTempFile $SCRIPTNAME)"
-        lines=$(($(wc -l "$file" | cut -d' ' -f1)-$count))
+        rlines=$(($(wc -l "$file" | cut -d' ' -f1)-$lines))
         cutter="$([ "x$end" == "xtop" ] && echo "tail" || echo "head")"
-        $cutter -n $lines "$file" 2>/dev/null > "$tmp"
+        $cutter -n $rlines "$file" 2>/dev/null > "$tmp"
         $CMD_MV "$tmp" "$file"
       fi
       ;;
