@@ -38,7 +38,8 @@ help() {
                                             more supported transforms
     where TRANSFORMS  : delimited list comprising 'lower', 'upper',
                         'spaces', 'underscores', 'dashes'
-\nand TARGET is:  a (partial) file name to locate via 'search.sh'
+\nand TARGET is:  either a directory of files, or a (partial) file name
+                  to be located via 'search.sh'
 "
 }
 
