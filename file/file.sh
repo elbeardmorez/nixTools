@@ -137,21 +137,19 @@ for file in "${files[@]}"; do
       [ ${args[@]} -gt 0 ] && count=${args[0]}
       [ "x$(echo "$count" | sed -n '/^[0-9]\+$/p')" == "x" ] &&\
         echo "[error] illegal 'count' parameter argument" && exit 1
-      top=0
-      if [[ ${#args[@]} -gt 1 && -n "$(echo "${args[1]}" | sed -n '/\(top\|bottom\)/Ip')" ]]; then
-        [ -n "$(echo "${args[1]}" | sed -n '/top/Ip')" ] && top=1
+      end="top"
+      if [ ${#args[@]} -gt 1 ]; then
+        arg="$(echo "${args[1]}" | awk '{print(tolower($0))}')"
+        [[ "x$arg" == "xtop" || "x$arg" == "xbottom" ]] && end="$arg"
       fi
-      echo -n "[user] trim $count line$([ $count -ne 1 ] && echo "s") from $([ $top -eq 1 ] && echo "top" || echo "bottom") of file '$file'? [(y)es/(n)o/(c)ancel]: " 1>&2
+      echo -n "[user] trim $count line$([ $count -ne 1 ] && echo "s") from $end of file '$file'? [(y)es/(n)o/(c)ancel]: " 1>&2
       res=$(fnDecision)
       [ $res -eq -1 ] && exit
       if [ $res -eq 1 ]; then
         tmp="$(fnTempFile $SCRIPTNAME)"
         lines=$(($(wc -l "$file" | cut -d' ' -f1)-$count))
-        if [ $top -eq 1 ]; then
-          tail -n $lines "$file" 2>/dev/null > "$tmp"
-        else
-          head -n $lines "$file" 2>/dev/null > "$tmp"
-        fi
+        cutter="$([ "x$end" == "xtop" ] && echo "tail" || echo "head")"
+        $cutter -n $lines "$file" 2>/dev/null > "$tmp"
         $CMD_MV "$tmp" "$file"
       fi
       ;;
