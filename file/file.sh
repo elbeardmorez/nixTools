@@ -67,6 +67,9 @@ while [ -n "$1" ]; do
   shift
 done
 
+# help short circuit
+[[ "x$option" == "xh" || "x$option" == "xhelp" ]] && help && exit
+
 # locate TARGET, search
 declare -a files
 if [ -d "$search" ]; then
