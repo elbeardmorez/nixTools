@@ -1,12 +1,10 @@
 #!/bin/sh
 
-# compatibility
-if [ -n "$BASH_VERSION" ]; then
-  CMDARGS_READ_SINGLECHAR=("-s" "-n1")
-elif [ -n "$ZSH_VERSION" ]; then
-  CMDARGS_READ_SINGLECHAR=("-s" "-k1")
-  setopt KSH_ARRAYS
-fi
+# includes
+set -e
+x="$(dirname "$0")/$(basename "$0")"; [ ! -f "$x" ] && x="$(which $0)"; x="$(readlink -e "$x" || echo "$x")"
+. ${x%/*}/../func_common.sh
+set +e
 
 SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
@@ -109,9 +107,9 @@ for file in "${files[@]}"; do
       ;;
 
    "u"|"uniq")
-      fTemp=$(tempfile)
-      uniq "$file" > "$fTemp"
-      mv "$fTemp" "$file"
+      tmp="$(fnTempFile $SCRIPTNAME)"
+      uniq "$file" > "$tmp"
+      mv "$tmp" "$file"
       ;;
 
     "e"|"edit")
@@ -141,36 +139,19 @@ for file in "${files[@]}"; do
       if [[ ${#args[@]} -gt 1 && -n "$(echo "${args[1]}" | sed -n '/\(top\|bottom\)/Ip')" ]]; then
         [ -n "$(echo "${args[1]}" | sed -n '/top/Ip')" ] && top=1
       fi
-      echo -n "[user] trim $count lines from $([ $top -eq 1 ] && echo "top" || echo "bottom") of file '$file'? [(y)es/(n)o/e(x)it]:  " 1>&2
-      bRetry=1
-      while [ $bRetry -eq 1 ]; do
-        echo -en '\033[1D\033[K'
-        read ${CMDARGS_READ_SINGLECHAR[@]} result
-        case "$result" in
-          "y"|"Y")
-            echo $result
-            if [ $top -eq 1 ]; then
-              fTemp=$(mktemp)
-              tail -n $(($(wc -l "$file" | cut -d' ' -f1)-$count)) "$file" 2>/dev/null > $fTemp
-              $CMD_MV "$fTemp" "$file"
-            else
-              fTemp=$(mktemp)
-              head -n $(($(wc -l "$file" | cut -d' ' -f1)-$count)) "$file" 2>/dev/null > $fTemp
-              $CMD_MV "$fTemp" "$file"
-            fi
-            bRetry=0
-            ;;
-          "n"|"N")
-            echo $result
-            bRetry=0
-            ;;
-          "x"|"X")
-            echo $result
-            exit 0
-            ;;
-          *) echo -n " " 1>&2 ;;
-        esac
-      done
+      echo -n "[user] trim $count lines from $([ $top -eq 1 ] && echo "top" || echo "bottom") of file '$file'? [(y)es/(n)o/(c)ancel]: " 1>&2
+      res=$(fnDecision)
+      [ $res -eq -1 ] && exit
+      if [ $res -eq 1 ]; then
+        tmp="$(fnTempFile $SCRIPTNAME)"
+        lines=$(($(wc -l "$file" | cut -d' ' -f1)-$count))
+        if [ $top -eq 1 ]; then
+          tail -n $lines "$file" 2>/dev/null > "$tmp"
+        else
+          head -n $lines "$file" 2>/dev/null > "$tmp"
+        fi
+        $CMD_MV "$tmp" "$file"
+      fi
       ;;
 
     "r"|"rename")
