@@ -141,7 +141,7 @@ for file in "${files[@]}"; do
       if [[ ${#args[@]} -gt 1 && -n "$(echo "${args[1]}" | sed -n '/\(top\|bottom\)/Ip')" ]]; then
         [ -n "$(echo "${args[1]}" | sed -n '/top/Ip')" ] && top=1
       fi
-      echo -n "[user] trim $count lines from $([ $top -eq 1 ] && echo "top" || echo "bottom") of file '$file'? [(y)es/(n)o/(c)ancel]: " 1>&2
+      echo -n "[user] trim $count line$([ $count -ne 1 ] && echo "s") from $([ $top -eq 1 ] && echo "top" || echo "bottom") of file '$file'? [(y)es/(n)o/(c)ancel]: " 1>&2
       res=$(fnDecision)
       [ $res -eq -1 ] && exit
       if [ $res -eq 1 ]; then
