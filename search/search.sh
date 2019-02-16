@@ -1,5 +1,11 @@
 #!/bin/sh
 
+# includes
+set -e
+x="$(dirname "$0")/$(basename "$0")"; [ ! -f "$x" ] && x="$(which $0)"; x="$(readlink -e "$x" || echo "$x")"
+. ${x%/*}/../func_common.sh
+set +e
+
 SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
 
@@ -60,25 +66,12 @@ elif [[ ! "x$(dirname $SEARCH)" == "x." || "x${SEARCH:0:1}" == "x." ]]; then
   if [ $interactive -eq 1 ]; then
     # new file. offer creation
     echo -n "[user] file '$SEARCH' does not exist, create it? [y/n]: " 1>&2
-    retry="TRUE"
-    while [ "x$retry" == "xTRUE" ]; do
-      read -n 1 -s result
-      case "$result" in
-        "y" | "Y")
-          echo $result 1>&2
-          retry="FALSE"
-          found="TRUE"
-          # ensure path
-          [ -d "$(dirname $SEARCH)" ] || mkdir -p "$(dirname $SEARCH)"
-          touch "$SEARCH"
-          results[${#results[@]}]="$SEARCH"
-          ;;
-        "n" | "N")
-          echo $result 1>&2
-          retry="FALSE"
-          ;;
-      esac
-    done
+    res=$(fnDecision)
+    [ $res -eq 0 ] && exit
+    # ensure path
+    [ -d "$(dirname $SEARCH)" ] || mkdir -p "$(dirname $SEARCH)"
+    touch "$SEARCH"
+    results[${#results[@]}]="$SEARCH"
   fi
 else
   # use search paths
@@ -101,29 +94,12 @@ else
       results[${#results[@]}]="$file"
     else
       result=""
-      echo -n "[user] search match. use file: '$file'? [y/n/c] " 1>&2
-      retry="TRUE"
-      while [ "x$retry" == "xTRUE" ]; do
-        read -n 1 -s result
-        case "$result" in
-          "y" | "Y")
-            echo $result 1>&2
-            retry="FALSE"
-            results[${#results[@]}]="$file"
-            ;;
-          "n" | "N")
-            echo $result 1>&2
-            retry="FALSE"
-            ;;
-          "c" | "C")
-            echo $result 1>&2
-            retry="FALSE"
-            cancel="TRUE"
-            ;;
-        esac
-      done
+      echo -n "[user] search match, use file '$file'? [y/n/c]: " 1>&2
+      res=$(fnDecision)
+      [ $res -eq -1 ] && exit  # !break, no partial results
+      [ $res -eq 0 ] && continue
+      results[${#results[@]}]="$file"
     fi
-    [ "x$cancel" == "xTRUE" ] && break
   done
 fi
 
