@@ -68,7 +68,7 @@ elif [[ ! "x$(dirname $SEARCH)" == "x." || "x${SEARCH:0:1}" == "x." ]]; then
           echo $result 1>&2
           retry="FALSE"
           found="TRUE"
-          #ensure path
+          # ensure path
           [ -d "$(dirname $SEARCH)" ] || mkdir -p "$(dirname $SEARCH)"
           touch "$SEARCH"
           results[${#results[@]}]="$SEARCH"
@@ -96,36 +96,36 @@ else
     fi
   done
 
-    for file in "${files[@]}"; do
-      if [[ ${#files[@]} == 1 || $interactive -eq 0 ]]; then
+  for file in "${files[@]}"; do
+    if [[ ${#files[@]} == 1 || $interactive -eq 0 ]]; then
       results[${#results[@]}]="$file"
-      else
-        result=""
-        echo -n "[user] search match. use file: '$file'? [y/n/c] " 1>&2
-        retry="TRUE"
-        while [ "x$retry" == "xTRUE" ]; do
-          read -n 1 -s result
-          case "$result" in
-            "y" | "Y")
-              echo $result 1>&2
-              retry="FALSE"
+    else
+      result=""
+      echo -n "[user] search match. use file: '$file'? [y/n/c] " 1>&2
+      retry="TRUE"
+      while [ "x$retry" == "xTRUE" ]; do
+        read -n 1 -s result
+        case "$result" in
+          "y" | "Y")
+            echo $result 1>&2
+            retry="FALSE"
             results[${#results[@]}]="$file"
-              ;;
-            "n" | "N")
-              echo $result 1>&2
-              retry="FALSE"
-              ;;
-            "c" | "C")
-              echo $result 1>&2
-              retry="FALSE"
-              cancel="TRUE"
-              ;;
-          esac
-        done
-      fi
+            ;;
+          "n" | "N")
+            echo $result 1>&2
+            retry="FALSE"
+            ;;
+          "c" | "C")
+            echo $result 1>&2
+            retry="FALSE"
+            cancel="TRUE"
+            ;;
+        esac
+      done
+    fi
     [ "x$cancel" == "xTRUE" ] && break
-    done
-  fi
+  done
+fi
 
 if [ ${#results[@]} -gt 0 ]; then
   s=""
