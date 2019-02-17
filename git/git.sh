@@ -144,6 +144,18 @@ fnLog() {
   done
 }
 
+fnRebase() {
+  [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
+  commit=$(fnCommit "$@")
+  res=$?; [ $res -ne 0 ] && return $res
+  sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
+  # ensure parent exists, else assume root
+  git rev-parse --verify "$sha^1"
+  root=$([ $? -ne 0 ] && echo 1 || echo 0)
+  echo "rebasing from commit '$commit'"
+  [ $root -eq 1 ] && git rebase -i --root || git rebase -i $sha~1
+}
+
 fnProcess() {
   command="help" && [ $# -gt 0 ] && command="$1" && shift
   case "$command" in
@@ -207,15 +219,7 @@ fnProcess() {
       git format-patch -k -$n $sha
       ;;
     "rb"|"rebase")
-      [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
-      commit=$(fnCommit "$@")
-      res=$?; [ $res -ne 0 ] && return $res
-      sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
-      # ensure parent exists, else assume root
-      git rev-parse --verify "$sha^1"
-      root=$([ $? -ne 0 ] && echo 1 || echo 0)
-      echo "rebasing from commit '$commit'"
-      [ $root -eq 1 ] && git rebase -i --root || git rebase -i $sha~1
+      fnRebase "$@"
       ;;
     "co"|"checkout")
       git checkout "$@"
@@ -286,7 +290,7 @@ fnProcess() {
         echo -n "[user] (s)how, (r)ebase from, or (i)gnore commit '$id'? [s/r/i/x]: "
         res="$(fnDecision "s|r|i|x")"
         [ "x$res" == "xs" ] && git show "$id"
-        [ "x$res" == "xr" ] && git_ rebase "$id" && exit
+        [ "x$res" == "xr" ] && fnRebase "$id" && exit
         [ "x$res" == "xi" ] && continue
         [ "x$res" == "xx" ] && exit
       done
