@@ -30,7 +30,7 @@ if [ ${#commands[@]} -eq 0 ]; then
   IFS=$'\n'; commands=($(tail -n10 "$(sh -i -c 'echo $HISTFILE')")); IFS="$IFSORG"
 fi
 for command in "${commands[@]}"; do
-  command=$(echo $command | sed 's|^\s*[0-9]*\s*\(.*\)$|\1|g') 
+  command=$(echo $command | sed 's|^\s*[0-9]*\s*\(.*\)$|\1|g')
   if [ ! "x$command" == "x" ]; then
     bRetry=1
     bAdd=0
@@ -44,12 +44,12 @@ for command in "${commands[@]}"; do
           read -n 1 -s result
           case "$result" in
             "y"|"Y"|"a"|"A") echo $result; bRetry2=0; bRetry=0; bAdd=1 ;;
-            "n"|"N") echo $result; bRetry2=0; bRetry=0 ;;  
+            "n"|"N") echo $result; bRetry2=0; bRetry=0 ;;
             "e"|"E") echo $result; bRetry2=0; read -e -i "$command" command ;;
             "x"|"X") echo $result; exit 0 ;;
           esac
         done
-      fi 
+      fi
       [ $bAdd -eq 1 ] && echo "$command" >> "$target" && bAdd=0
     done
   fi
