@@ -299,7 +299,7 @@ fnProcess() {
         echo -n "[user] (s)how, (r)ebase from, or (i)gnore commit '$id'? [s/r/i/x]: "
         res="$(fnDecision "s|r|i|x")"
         [ "x$res" == "xs" ] && git show "$id"
-        [ "x$res" == "xr" ] && fnRebase "$id" && exit
+        [ "x$res" == "xr" ] && fnRebase "$id" -- --autostash && exit
         [ "x$res" == "xi" ] && continue
         [ "x$res" == "xx" ] && exit
       done
