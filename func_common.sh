@@ -20,7 +20,9 @@ fnDecision() {
     read "${CMDARGS_READ_SINGLECHAR[@]}"
     r="$(echo "$REPLY" | tr '[A-Z]' '[a-z]')"
     match=0
-    for k in "${keys[@]}"; do [ "x$k" = "x$r" ] && match=1 && echo "$r" && break; done
+    for k in "${keys[@]}"; do
+      [ "x$k" = "x$r" ] && match=1 && echo "$r" 1>&2 && echo "$r" && break;
+    done
     [ $match -eq 1 ] && break
   done
   [ "x$r" = "xy" ] && return 0 || return 1
