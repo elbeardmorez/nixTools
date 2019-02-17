@@ -38,7 +38,8 @@ help() {
                         description string. use N to limit the search
                         range to the last N commits
   b|blame <PATH> <SEARCH>  : filter blame output for PATH on SEARCH
-                             and offer 'show commit' per match
+                             and offer 'show' / 'rebase' options per
+                             match
   cl|clone <REPO>  : clone repo
   co|checkout      : checkout files / branches
   ca|commit-amend          : commit, amending previous
@@ -282,8 +283,12 @@ fnProcess() {
         data="${x#*|}"
         echo -e "[info] file: $file | ln#: $line | auth: ${c_red}${auth}${c_off} | date: $(date -d "@$dt1" "+%d %b %Y %H:%M:%S") $dt2"
         echo -e "\n$data\n"
-        echo -n "[user] show commit '$id'? [y/n]: "
-        if fnDecision; then git show "$id" && echo; fi
+        echo -n "[user] (s)how, (r)ebase from, or (i)gnore commit '$id'? [s/r/i/x]: "
+        res="$(fnDecision "s|r|i|x")"
+        [ "x$res" == "xs" ] && git show "$id"
+        [ "x$res" == "xr" ] && git_ rebase "$id" && exit
+        [ "x$res" == "xi" ] && continue
+        [ "x$res" == "xx" ] && exit
       done
       ;;
     *)
