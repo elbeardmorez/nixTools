@@ -53,5 +53,5 @@ where <OPTION> can be:
   rd|rescue-dangling  : dump any orphaned commits still accessable to
                         a 'commits' directory
 
-*note: optional binary args are supported for command: log
+*note: optional binary args are supported for commands: log, rebase
 ```

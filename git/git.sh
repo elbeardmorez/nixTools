@@ -54,7 +54,7 @@ help() {
                      HEAD of 'linked'
   rd|rescue-dangling  : dump any orphaned commits still accessable to
                         a 'commits' directory
-\n*note: optional binary args are supported for command: log
+\n*note: optional binary args are supported for commands: log, rebase
 "
 }
 
@@ -145,15 +145,24 @@ fnLog() {
 }
 
 fnRebase() {
+  # process args
   [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
-  commit=$(fnCommit "$@")
+  declare -a cmdargs
+  cmdargs[${#cmdargs[@]}]="-i"
+  declare -a args
+  while [ -n "$1" ]; do
+    [ "x$1" = "x--" ] && shift && cmdargs=("${cmdargs[@]}" "$@") && break
+    args[${#args[@]}]="$1"
+    shift
+  done
+  commit=$(fnCommit "${args[@]}")
   res=$?; [ $res -ne 0 ] && return $res
-  sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
+  sha="$(echo $commit | sed -n 's/\([^ ]*\).*/\1/p')"
   # ensure parent exists, else assume root
   git rev-parse --verify "$sha^1"
-  root=$([ $? -ne 0 ] && echo 1 || echo 0)
-  echo "rebasing from commit '$commit'"
-  [ $root -eq 1 ] && git rebase -i --root || git rebase -i $sha~1
+  [ $? -ne 0 ] && cmdargs[${#cmdargs[@]}]="--root" || cmdargs[${#cmdargs[@]}]="$sha~1"
+  echo "[info] rebasing interactively from commit '$commit'"
+  git rebase "${cmdargs[@]}"
 }
 
 fnProcess() {
