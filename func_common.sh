@@ -9,20 +9,21 @@ elif [ -n "$ZSH_VERSION" ]; then
 fi
 
 # constants
+IFSORG="$IFS"
+ESCAPE_SED='].[|/-'
 c_off='\033[0m'
 c_red='\033[0;31m'
 
-ESCAPE_SED='].[|/-'
-
 fnDecision() {
+  IFS='|'; keys=(${1:-y|n}); IFS="$IFSORG"
   while [ 1 -eq 1 ]; do
     read "${CMDARGS_READ_SINGLECHAR[@]}"
-    case "$REPLY" in
-      "y"|"Y") echo "$REPLY" 1>&2; echo 1; break ;;
-      "n"|"N") echo "$REPLY" 1>&2; echo 0; break ;;
-      "c"|"C") echo "$REPLY" 1>&2; echo -1; break ;;
-    esac
+    r="$(echo "$REPLY" | tr '[A-Z]' '[a-z]')"
+    match=0
+    for k in "${keys[@]}"; do [ "x$k" = "x$r" ] && match=1 && echo "$r" && break; done
+    [ $match -eq 1 ] && break
   done
+  [ "x$r" = "xy" ] && return 0 || return 1
 }
 
 fnNextFile() {

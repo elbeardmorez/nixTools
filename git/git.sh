@@ -247,9 +247,7 @@ fnProcess() {
       sha_current=`git log --oneline -n1 | cut -d' ' -f1`
       sha_target=`git log --oneline $target | grep $sha_current -B $num | head -n1 | cut -d' ' -f1`
       echo -n "[info] fast-forwarding $num commits, '$sha_current' -> '$sha_target' on branch '$target', ok? [y/n]: "
-      res=$(fnDecision)
-      [ "x$res" = "x1" ] && \
-        git checkout $sha_target
+      if fnDecision; then git checkout $sha_target; fi
       ;;
     "rd"|"rescue-dangling")
       IFS=$'\n'; commits=($(git fsck --no-reflog | awk '/dangling commit/ {print $3}')); IFS="$IFSORG"
@@ -257,10 +255,10 @@ fnProcess() {
         echo "[info] no dangling commits found in repo"
       else
         echo -n "[info] rescue ${#commits[@]} dangling commit$([ ${#commits[@]} -ne 1 ] && echo "s") found in repo? [y/n]: "
-        res=$(fnDecision)
-        [ "x$res" = "x1" ] && \
-          mkdir commits && \
+        if fnDecision; then
+          mkdir commits
           for c in ${commits[@]}; do git log -n1 -p $c > commits/$c.diff; done
+        fi
       fi
       ;;
     "b"|"blame")
@@ -285,8 +283,7 @@ fnProcess() {
         echo -e "[info] file: $file | ln#: $line | auth: ${c_red}${auth}${c_off} | date: $(date -d "@$dt1" "+%d %b %Y %H:%M:%S") $dt2"
         echo -e "\n$data\n"
         echo -n "[user] show commit '$id'? [y/n]: "
-        res=$(fnDecision)
-        [ $res -eq 1 ] && git show "$id" && echo
+        if fnDecision; then git show "$id" && echo; fi
       done
       ;;
     *)

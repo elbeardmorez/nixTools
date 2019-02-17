@@ -95,14 +95,14 @@ fnClean() {
 
   IFS=$'\n'; files=($(find "$target" -mindepth 1 -type "f")); IFS="$IFSORG"
   if [ ${#files[@]} -gt 0 ]; then
-    res=1
+    res="y"
     if [ $interactive -eq 1 ]; then
       echo -n "[user] target '$target' cleanup, purge ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s")? [y/n]: "
       res=$(fnDecision)
     else
       echo "[info] target '$target' cleanup, purging ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s")"
     fi
-    [ $res -eq 1 ] && rm -r "$target/"*
+    [ "x$res" == "xy" ] && rm -r "$target/"*
   fi
 }
 

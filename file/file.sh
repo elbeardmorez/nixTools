@@ -149,9 +149,9 @@ for file in "${files[@]}"; do
         end="$arg"
       fi
       echo -n "[user] trim $lines line$([ $lines -ne 1 ] && echo "s") from $end of file '$file'? [(y)es/(n)o/(c)ancel]: " 1>&2
-      res=$(fnDecision)
-      [ $res -eq -1 ] && exit
-      if [ $res -eq 1 ]; then
+      res="$(fnDecision "y|n|c")"
+      [ "x$res" == "xc" ] && exit
+      if [ "x$res" == "xy" ]; then
         tmp="$(fnTempFile $SCRIPTNAME)"
         rlines=$(($(wc -l "$file" | cut -d' ' -f1)-$lines))
         cutter="$([ "x$end" == "xtop" ] && echo "tail" || echo "head")"
