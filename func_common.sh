@@ -15,7 +15,7 @@ c_off='\033[0m'
 c_red='\033[0;31m'
 
 fnDecision() {
-  IFS='|'; keys=(${1:-y|n}); IFS="$IFSORG"
+  IFS='|'; keys=($(echo "${1:-y|n}")); IFS="$IFSORG"
   while [ 1 -eq 1 ]; do
     read "${CMDARGS_READ_SINGLECHAR[@]}"
     r="$(echo "$REPLY" | tr '[A-Z]' '[a-z]')"
