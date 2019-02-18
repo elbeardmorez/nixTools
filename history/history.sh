@@ -32,20 +32,22 @@ fi
 shift
 
 echo "[user] target file: '$target'"
-commands=("$@")
-if [ ${#commands[@]} -eq 0 ]; then
-  IFS=$'\n'; commands=($(tail -n10 "$(sh -i -c 'echo $HISTFILE')")); IFS="$IFSORG"
+
+declare -a cmds
+cmds=("$@")
+if [ ${#cmds[@]} -eq 0 ]; then
+  IFS=$'\n'; cmds=($(tail -n10 "$(sh -i -c 'echo $HISTFILE')")); IFS="$IFSORG"
 fi
 l=0
-while [ $l -lt ${#commands[@]} ]; do
-  command="$(echo "${commands[$l]}" | sed 's|^\s*[0-9]*\s*\(.*\)$|\1|g')"
-  [ -z "$command" ] && l=$(($l+1)) && continue
-  echo -n "[user] append command '$command?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: "
+while [ $l -lt ${#cmds[@]} ]; do
+  cmd="$(echo "${cmds[$l]}" | sed 's|^\s*[0-9]*\s*\(.*\)$|\1|g')"
+  [ -z "$cmd" ] && l=$(($l+1)) && continue
+  echo -n "[user] append command '$cmd?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: "
   res="$(fnDecision "y|n|e|a|x")"
   case "$res" in
-    "y") l=$(($l+1)) && echo "$command" >> "$target" && continue ;;
-    "a") for l2 in $(seq $l 1 $((${#commands[@]}-1))); do echo "${commands[$l2]}" >> "$target"; done; exit ;;
-    "e") read -e -i "$command" commands[$l] ;;
+    "y") l=$(($l+1)) && echo "$cmd" >> "$target" && continue ;;
+    "a") for l2 in $(seq $l 1 $((${#cmds[@]}-1))); do echo "${cmds[$l2]}" >> "$target"; done; exit ;;
+    "e") read -e -i "$cmd" cmds[$l] ;;
     "n") l=$(($l+1)) && continue ;;
     "x") exit ;;
   esac
