@@ -36,11 +36,11 @@ echo "[user] target file: '$target'"
 declare -a cmds
 cmds=("$@")
 if [ ${#cmds[@]} -eq 0 ]; then
-  IFS=$'\n'; cmds=($(tail -n10 "$(sh -i -c 'echo $HISTFILE')")); IFS="$IFSORG"
+  IFS=$'\n'; cmds=($(tail -n10 "$($(fnShell) -i -c 'echo $HISTFILE')" | sed 's/^\s*:\s*[0-9]\{10\}:[0-9]\+;//')); IFS="$IFSORG"
 fi
 l=0
 while [ $l -lt ${#cmds[@]} ]; do
-  cmd="$(echo "${cmds[$l]}" | sed 's|^\s*[0-9]*\s*\(.*\)$|\1|g')"
+  cmd="${cmds[$l]}"
   [ -z "$cmd" ] && l=$(($l+1)) && continue
   echo -n "[user] append command '$cmd?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: "
   res="$(fnDecision "y|n|e|a|x")"
