@@ -19,7 +19,7 @@ fnEditLine() {
   if [ -n "$BASH_VERSION" ]; then
     read -e -i "$var" var
   elif [ -n "$ZSH_VERSION" ]; then
-    vared var
+    var="$(zsh -i -c 'var="'"$var"'"; vared var; echo "$var"')"
   fi
   echo "$var"
 }
