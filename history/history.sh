@@ -47,7 +47,7 @@ while [ $l -lt ${#cmds[@]} ]; do
   case "$res" in
     "y") l=$(($l+1)) && echo "$cmd" >> "$target" && continue ;;
     "a") for l2 in $(seq $l 1 $((${#cmds[@]}-1))); do echo "${cmds[$l2]}" >> "$target"; done; exit ;;
-    "e") read -e -i "$cmd" cmds[$l] ;;
+    "e") cmds[$l]="$(fnEditLine "${cmds[$l]}")" ;;
     "n") l=$(($l+1)) && continue ;;
     "x") exit ;;
   esac
