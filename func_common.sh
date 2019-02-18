@@ -14,6 +14,16 @@ ESCAPE_SED='].[|/-'
 c_off='\033[0m'
 c_red='\033[0;31m'
 
+fnShell() {
+  if [ -n "$BASH_VERSION" ]; then
+    echo "bash"
+  elif [ -n "$ZSH_VERSION" ]; then
+    echo "zsh"
+  else
+    echo "sh"
+  fi
+}
+
 fnEditLine() {
   var="$1"
   if [ -n "$BASH_VERSION" ]; then
