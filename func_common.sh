@@ -14,6 +14,16 @@ ESCAPE_SED='].[|/-'
 c_off='\033[0m'
 c_red='\033[0;31m'
 
+fnEditLine() {
+  var="$1"
+  if [ -n "$BASH_VERSION" ]; then
+    read -e -i "$var" var
+  elif [ -n "$ZSH_VERSION" ]; then
+    vared var
+  fi
+  echo "$var"
+}
+
 fnDecision() {
   IFS='|'; keys=($(echo "${1:-y|n}")); IFS="$IFSORG"
   while [ 1 -eq 1 ]; do
