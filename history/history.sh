@@ -1,4 +1,11 @@
 #!/bin/sh
+
+# includes
+set -e
+x="$(dirname "$0")/$(basename "$0")"; [ ! -f "$x" ] && x="$(which $0)"; x="$(readlink -e "$x" || echo "$x")"
+. ${x%/*}/../func_common.sh
+set +e
+
 SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
 
@@ -29,28 +36,17 @@ commands=("$@")
 if [ ${#commands[@]} -eq 0 ]; then
   IFS=$'\n'; commands=($(tail -n10 "$(sh -i -c 'echo $HISTFILE')")); IFS="$IFSORG"
 fi
-for command in "${commands[@]}"; do
-  command=$(echo $command | sed 's|^\s*[0-9]*\s*\(.*\)$|\1|g')
-  if [ ! "x$command" == "x" ]; then
-    bRetry=1
-    bAdd=0
-    while [ "$bRetry" -eq 1 ]; do
-      if [[ "x$result" == "xa" || "x$result" == "xA" ]]; then
-        bRetry=0; bAdd=1
-      else
-        echo -n "append command: $command? [(y)es/(n)o/(e)dit/(a)ll/e(x)it] "
-        bRetry2=1
-        while [ "$bRetry2" -eq 1 ]; do
-          read -n 1 -s result
-          case "$result" in
-            "y"|"Y"|"a"|"A") echo $result; bRetry2=0; bRetry=0; bAdd=1 ;;
-            "n"|"N") echo $result; bRetry2=0; bRetry=0 ;;
-            "e"|"E") echo $result; bRetry2=0; read -e -i "$command" command ;;
-            "x"|"X") echo $result; exit 0 ;;
-          esac
-        done
-      fi
-      [ $bAdd -eq 1 ] && echo "$command" >> "$target" && bAdd=0
-    done
-  fi
+l=0
+while [ $l -lt ${#commands[@]} ]; do
+  command="$(echo "${commands[$l]}" | sed 's|^\s*[0-9]*\s*\(.*\)$|\1|g')"
+  [ -z "$command" ] && l=$(($l+1)) && continue
+  echo -n "[user] append command '$command?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: "
+  res="$(fnDecision "y|n|e|a|x")"
+  case "$res" in
+    "y") l=$(($l+1)) && echo "$command" >> "$target" && continue ;;
+    "a") for l2 in $(seq $l 1 $((${#commands[@]}-1))); do echo "${commands[$l2]}" >> "$target"; done; exit ;;
+    "e") read -e -i "$command" commands[$l] ;;
+    "n") l=$(($l+1)) && continue ;;
+    "x") exit ;;
+  esac
 done
