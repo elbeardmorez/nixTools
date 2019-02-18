@@ -46,9 +46,9 @@ while [ $l -lt ${#cmds[@]} ]; do
   res="$(fnDecision "y|n|e|a|x")"
   case "$res" in
     "y") l=$(($l+1)) && echo "$cmd" >> "$target" && continue ;;
-    "a") for l2 in $(seq $l 1 $((${#cmds[@]}-1))); do echo "${cmds[$l2]}" >> "$target"; done; exit ;;
+    "a") for l2 in $(seq $l 1 $((${#cmds[@]}-1))); do echo "${cmds[$l2]}" >> "$target"; done; exit 0 ;;
     "e") cmds[$l]="$(fnEditLine "${cmds[$l]}")" ;;
     "n") l=$(($l+1)) && continue ;;
-    "x") exit ;;
+    "x") exit 0 ;;
   esac
 done
