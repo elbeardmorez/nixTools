@@ -18,6 +18,9 @@ diff related functionality
 ### [git.sh](git)
 git wrapper adding several features and various customised calls to the underlying binary using minimal aliases. commands fall through to git binary
 
+### [history.sh](history)
+push a set of (command) strings to a target file. where no (command) strings are specified, commands are taken from the appropriate HISTFILE. (command) strings are verified prior to appending via a prompt which offers editing. the target file is located via the 'search.sh' script
+
 ### [increments.sh](increments)
 given a search set and a target, find all files satisfying the search under/in the target and return a match list ordered by modification date to represent an incremental set, from which a dump of ordered incremental diffs is optionally created
 
