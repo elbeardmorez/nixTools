@@ -21,7 +21,7 @@ help() {
 target="$1" && shift
 if [ ! -f "$target" ]; then
   search="$target"
-  target="$(search_ "$search")"
+  target="$(search_ -i "$search")"
   [ ! -f "$target" ] &&\
     echo "[error] searching for target '$search' failed" && exit 1
 fi
