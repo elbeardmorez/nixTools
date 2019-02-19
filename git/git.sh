@@ -261,7 +261,7 @@ fnProcess() {
       sha_current=`git log --oneline -n1 | cut -d' ' -f1`
       sha_target=`git log --oneline $target | grep $sha_current -B $num | head -n1 | cut -d' ' -f1`
       echo -n "[info] fast-forwarding $num commits, '$sha_current' -> '$sha_target' on branch '$target', ok? [y/n]: "
-      if fnDecision; then git checkout $sha_target; fi
+      fnDecision >/dev/null && git checkout $sha_target
       ;;
     "rd"|"rescue-dangling")
       IFS=$'\n'; commits=($(git fsck --no-reflog | awk '/dangling commit/ {print $3}')); IFS="$IFSORG"
@@ -269,10 +269,9 @@ fnProcess() {
         echo "[info] no dangling commits found in repo"
       else
         echo -n "[info] rescue ${#commits[@]} dangling commit$([ ${#commits[@]} -ne 1 ] && echo "s") found in repo? [y/n]: "
-        if fnDecision; then
-          mkdir commits
+        fnDecision >/dev/null &&\
+          mkdir commits &&\
           for c in ${commits[@]}; do git log -n1 -p $c > commits/$c.diff; done
-        fi
       fi
       ;;
     "b"|"blame")

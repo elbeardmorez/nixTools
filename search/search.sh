@@ -66,7 +66,7 @@ elif [[ ! "x$(dirname $SEARCH)" == "x." || "x${SEARCH:0:1}" == "x." ]]; then
   if [ $interactive -eq 1 ]; then
     # new file. offer creation
     echo -n "[user] file '$SEARCH' does not exist, create it? [y/n]: " 1>&2
-    if ! fnDecision; then exit; fi
+    fnDecision >/dev/null || exit
     # ensure path
     [ -d "$(dirname $SEARCH)" ] || mkdir -p "$(dirname $SEARCH)"
     touch "$SEARCH"

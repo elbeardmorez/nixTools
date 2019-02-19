@@ -92,7 +92,7 @@ fnClean() {
   IFS=$'\n'; files=($(find . -regex '.*/'"$file"'\(\_[0-9]+\)?$')); IFS="$IFSORG"
   if [ ${#files[@]} -gt 0 ]; then
     echo -n "[user] default cleaning, purge ${#files[@]} blob$([ ${#files[@]} -ne 1 ] && echo "s")? [y/n]: "
-    if fnDecision; then for f in "${files[@]}"; do rm "$f"; done; fi
+    fnDecision >/dev/null && for f in "${files[@]}"; do rm "$f"; done
   fi
 }
 
