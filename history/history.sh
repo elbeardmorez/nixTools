@@ -9,29 +9,23 @@ set +e
 SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
 
-function help
-{
-  echo -e "usage '$SCRIPTNAME target COMMAND1 [COMMAND2] [COMMAND3..]'\n"
-  echo -e "where 'target':\tfile to append command history to"
-  echo -e "      '[COMMANDx]':\ta command for append approval"
-  echo ""
+help() {
+  echo -e "usage '$SCRIPTNAME target COMMAND1 [COMMAND2] [COMMAND3..]'
+\nwhere 'target':\tfile to append command history to
+        '[COMMANDx]':\ta command for append approval
+"
 }
-if [ $# -lt 1 ]; then
-  help
-  exit 1
-fi
 
-target=$1
+[ $# -lt 1 ] && help && exit 1
+
+target="$1" && shift
 if [ ! -f "$target" ]; then
-  target=$(search_ "$target")
-  if [ ! -f "$target" ]; then
-    echo "[error] cannot find existing target file: '$1'"
-    exit 1
-  fi
+  search="$target"
+  target="$(search_ "$search")"
+  [ ! -f "$target" ] &&\
+    echo "[error] searching for target '$search' failed" && exit 1
 fi
-shift
-
-echo "[user] target file: '$target'"
+echo "[info] target file '$target' set"
 
 declare -a cmds
 cmds=("$@")
