@@ -9,29 +9,45 @@ set +e
 SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
 
+declare target
+declare -a cmds
+
 help() {
-  echo -e "usage '$SCRIPTNAME target COMMAND1 [COMMAND2] [COMMAND3..]'
-\nwhere 'target':\tfile to append command history to
-        '[COMMANDx]':\ta command for append approval
+  echo -e "
+SYNTAX: $SCRIPTNAME [OPTIONS] TARGET [COMMAND [COMMAND2.. ]]'
+\nwhere:\n
+  OPTIONS can be:
+    -h, --help  : this help information
+\n  TARGET  : is a file to append commands to
+\n  COMMANDs  : are a set of commands to verify
+\nnote: where no COMMAND args are passed, the file specified by
+      HISTFILE will be used as a source
 "
 }
 
-[ $# -lt 1 ] && help && exit 1
+# process args
+[ $# -lt 1 ] && help && echo "[error] not enough args!" && exit 1
+while [ -n "$1" ]; do
+  arg="$(echo "$1" | awk '{gsub(/^ *-*/,"",$0); print(tolower($0))}')"
+  case "$arg" in
+    "h"|"help") help && exit 0 ;;
+    *) [ -z "$target" ] && target="$1" || cmds[${#cmds[@]}]="$1" ;;
+  esac
+  shift
+done
 
-target="$1" && shift
+# arg validation
 if [ ! -f "$target" ]; then
   search="$target"
   target="$(search_ -i "$search")"
-  [ ! -f "$target" ] &&\
-    echo "[error] searching for target '$search' failed" && exit 1
+  [ ! -f "$target" ] && exit 1
 fi
 echo "[info] target file '$target' set"
 
-declare -a cmds
-cmds=("$@")
 if [ ${#cmds[@]} -eq 0 ]; then
   IFS=$'\n'; cmds=($(tail -n10 "$($(fnShell) -i -c 'echo $HISTFILE')" | sed 's/^\s*:\s*[0-9]\{10\}:[0-9]\+;//')); IFS="$IFSORG"
 fi
+
 l=0
 while [ $l -lt ${#cmds[@]} ]; do
   cmd="${cmds[$l]}"
