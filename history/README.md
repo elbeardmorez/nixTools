@@ -11,6 +11,8 @@ where:
 
   OPTIONS can be:
     -h, --help  : this help information
+    -c COUNT, --count COUNT  : read last COUNT history entries
+                               (default: 10)
 
   TARGET  : is a file to append commands to
 

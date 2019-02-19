@@ -9,6 +9,7 @@ set +e
 SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
 
+count=10
 declare target
 declare -a cmds
 
@@ -18,6 +19,8 @@ SYNTAX: $SCRIPTNAME [OPTIONS] TARGET [COMMAND [COMMAND2.. ]]'
 \nwhere:\n
   OPTIONS can be:
     -h, --help  : this help information
+    -c COUNT, --count COUNT  : read last COUNT history entries
+                               (default: 10)
 \n  TARGET  : is a file to append commands to
 \n  COMMANDs  : are a set of commands to verify
 \nnote: where no COMMAND args are passed, the file specified by
@@ -31,6 +34,7 @@ while [ -n "$1" ]; do
   arg="$(echo "$1" | awk '{gsub(/^ *-*/,"",$0); print(tolower($0))}')"
   case "$arg" in
     "h"|"help") help && exit 0 ;;
+    "c"|"count") shift && count=$1 ;;
     *) [ -z "$target" ] && target="$1" || cmds[${#cmds[@]}]="$1" ;;
   esac
   shift
@@ -45,7 +49,7 @@ fi
 echo "[info] target file '$target' set"
 
 if [ ${#cmds[@]} -eq 0 ]; then
-  IFS=$'\n'; cmds=($(tail -n10 "$($(fnShell) -i -c 'echo $HISTFILE')" | sed 's/^\s*:\s*[0-9]\{10\}:[0-9]\+;//')); IFS="$IFSORG"
+  IFS=$'\n'; cmds=($(tail -n$count "$($(fnShell) -i -c 'echo $HISTFILE')" | sed 's/^\s*:\s*[0-9]\{10\}:[0-9]\+;//')); IFS="$IFSORG"
 fi
 
 l=0
