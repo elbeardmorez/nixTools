@@ -10,7 +10,8 @@ SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
 
-count=10
+DEFAULT_COUNT=10
+declare count
 declare target
 declare -a cmds
 
@@ -20,8 +21,8 @@ SYNTAX: $SCRIPTNAME [OPTIONS] TARGET [COMMAND [COMMAND2.. ]]'
 \nwhere:\n
   OPTIONS can be:
     -h, --help  : this help information
-    -c COUNT, --count COUNT  : read last COUNT history entries
-                               (default: 10)
+    -c [COUNT], --count [COUNT]  : read last COUNT history entries
+                                   (default: 10)
 \n  TARGET  : is a file to append commands to
 \n  COMMANDs  : are a set of commands to verify
 \nnote: where no COMMAND args are passed, the file specified by
@@ -35,7 +36,7 @@ while [ -n "$1" ]; do
   arg="$(echo "$1" | awk '{gsub(/^ *-*/,"",$0); print(tolower($0))}')"
   case "$arg" in
     "h"|"help") help && exit 0 ;;
-    "c"|"count") shift && count=$1 ;;
+    "c"|"count") count=$DEFAULT_COUNT && shift && [[ $# -gt 1 && -n "$(echo "$1" | sed -n '/^[0-9]\+$/p')" ]] && count=$1 ;;
     *) [ -z "$target" ] && target="$1" || cmds[${#cmds[@]}]="$1" ;;
   esac
   shift
@@ -51,19 +52,19 @@ if [ ! -f "$target" ]; then
 fi
 [ $DEBUG -gt 0 ] && echo "[debug] target file '$target' set"
 # ensure commands
-if [ ${#cmds[@]} -eq 0 ]; then
   # read from stdin
-  if [ ! -t 0 ]; then
-    # read piped commands
-    IFS=$'\n'; cmds=($(cat)); IFS="$IFSORG"
-    [ $DEBUG -gt 0 ] && echo "[debug] added ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") from stdin"
-  fi
+if [ ! -t 0 ]; then
+  x=${#cmds[@]}
+  # read piped commands
+  IFS=$'\n'; cmds=("${cmds[@]}" $(cat)); IFS="$IFSORG"
+  [ $DEBUG -gt 0 ] && echo "[debug] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from stdin"
 fi
-if [ ${#cmds[@]} -eq 0 ]; then
+if [[ -n "$count" || ${#cmds[@]} -eq 0 ]]; then
+  x=${#cmds[@]}
   # read from history file
   histfile="$($(fnShell) -i -c 'echo $HISTFILE')"
-  IFS=$'\n'; cmds=($(tail -n$count "$histfile" | sed 's/^\s*:\s*[0-9]\{10\}:[0-9]\+;//')); IFS="$IFSORG"
-  [ $DEBUG -gt 0 ] && echo "[debug] added ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") from hisory file '$historyfile'"
+  IFS=$'\n'; cmds=("${cmds[@]}" $(tail -n$count "$histfile" | sed 's/^\s*:\s*[0-9]\{10\}:[0-9]\+;//')); IFS="$IFSORG"
+  [ $DEBUG -gt 0 ] && echo "[debug] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from history file '$histfile'"
 fi
 
 # ensure a usable pipe for user input
