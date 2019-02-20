@@ -55,13 +55,17 @@ if [ ${#cmds[@]} -eq 0 ]; then
   if [ ! -t 0 ]; then
     # read piped commands
     IFS=$'\n'; cmds=($(cat)); IFS="$IFSORG"
-    # ensure a usable pipe for user input
-    exec < /dev/tty || (echo "[error] cannot set usable stdin!" && exit 1)
   fi
 fi
 if [ ${#cmds[@]} -eq 0 ]; then
   # read from history file
   IFS=$'\n'; cmds=($(tail -n$count "$($(fnShell) -i -c 'echo $HISTFILE')" | sed 's/^\s*:\s*[0-9]\{10\}:[0-9]\+;//')); IFS="$IFSORG"
+fi
+
+# ensure a usable pipe for user input
+if [ ! -t 0 ]; then
+  # pipes are inherited so the parent's stdin will be untouched
+  exec < /dev/tty || (echo "[error] cannot set usable stdin!" && exit 1)
 fi
 
 l=0
