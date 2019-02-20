@@ -33,3 +33,33 @@ similarly, the POSIX `fc` requires an explicit call `fc -R` before any `fc -l` c
 hence this implementation sticks with the fairly generic 'identify current shell's history file and go from there' routine. it assumes that interactive shells are sufficiently user oriented - e.g. parse sufficient setup files, to provide the all important `HISTFILE` environment variable for extraction.
 
 where you don't have your shell setup to automatically sync your shell activities to the HISTFILE on-the-fly (e.g. zsh's default setup?!), calling the likes of `history -a` prior to use of this script could be an option, or as an alias `alias history_="history -a && history_"`, else one could pass the commands through xargs with `history 10 | xargs -I{} sh -c "history_ ./x '{}'"` (note: the script now ensures that its stdin is pointing at a usable terminal for requesting user input, hence redirection of its stdin by the calling (parent) process (e.g. when piping commands) will work without any need to explicitly reset it for the subshell process (e.g. by suffixing `< /dev/tty` in the above command).
+
+## examples
+```
+$ history -10 | history_ -s -c 5 history_.examples '# history_ sessions'
+[info] no matches for search 'history_.examples'
+
+$ history -10 | history_ -s -c 5 ./history_.examples '# history_ sessions'
+[user] file './history_.examples' does not exist, create it? [y/n]: y
+[user] append command '# history_ sessions?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]:
+
+...
+
+$ history -20 | history_ -c 5 history_.examples '# history_ sessions'
+[info] added 1 command from args
+[info] added 5 commands from stdin
+[info] added 5 commands from history file '/root/.bash_history'
+[info] target file 'history_.examples' set
+[info] 11 commands for consideration
+[user] append command '# history_ sessions?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: y
+[user] append command 'git stash pop?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: n
+[user] append command 'history -10 | DEBUG=1 sh -c "history_ -c 3 ./x 'abc > 123'"?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: y
+[user] append command 'git add -p?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: n
+[user] append command 'git commit --amend --no-edit?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: n
+[user] append command 'git log?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: n
+[user] append command 'history -10 | sh -c "history_ -c 3 ./x 'abc > mip'"?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: y
+[user] append command 'history -10 | history_ -c 5 ./x '# history sessions'?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: y
+[user] append command 'history -10 | xargs -I'{}' bash -c 'history_ ./x "{}" < /dev/tty'?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: y
+[user] append command 'history -10 | xargs bash -c 'history_ ./x < /dev/tty'?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: y
+[user] append command 'history -10 | xargs sh -c 'history_ ./x < /dev/tty'?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: y
+```
