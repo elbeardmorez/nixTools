@@ -14,6 +14,7 @@ DEFAULT_COUNT=10
 declare count
 declare target
 declare -a cmds
+filter='s/^\s*:\s*[0-9]\{10\}:[0-9]\+;//'
 
 help() {
   echo -e "
@@ -56,14 +57,14 @@ fi
 if [ ! -t 0 ]; then
   x=${#cmds[@]}
   # read piped commands
-  IFS=$'\n'; cmds=("${cmds[@]}" $(cat)); IFS="$IFSORG"
+  IFS=$'\n'; cmds=("${cmds[@]}" $(sed "$filter")); IFS="$IFSORG"
   [ $DEBUG -gt 0 ] && echo "[debug] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from stdin"
 fi
 if [[ -n "$count" || ${#cmds[@]} -eq 0 ]]; then
   x=${#cmds[@]}
   # read from history file
   histfile="$($(fnShell) -i -c 'echo $HISTFILE')"
-  IFS=$'\n'; cmds=("${cmds[@]}" $(tail -n$count "$histfile" | sed 's/^\s*:\s*[0-9]\{10\}:[0-9]\+;//')); IFS="$IFSORG"
+  IFS=$'\n'; cmds=("${cmds[@]}" $(tail -n$count "$histfile" | sed "$filter")); IFS="$IFSORG"
   [ $DEBUG -gt 0 ] && echo "[debug] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from history file '$histfile'"
 fi
 
