@@ -13,6 +13,7 @@ DEBUG=${DEBUG:-0}
 DEFAULT_COUNT=10
 declare count
 declare target
+silent=0
 declare -a cmds
 filter='s/\s*\(:\s*[0-9]\{10\}:[0-9]\+;\|[0-9]\+\)\s*//'
 
@@ -24,6 +25,7 @@ SYNTAX: $SCRIPTNAME [OPTIONS] TARGET [COMMAND [COMMAND2.. ]]'
     -h, --help  : this help information
     -c [COUNT], --count [COUNT]  : read last COUNT history entries
                                    (default: 10)
+    -s. --silent  : disable info messages
 \n  TARGET  : is a file to append commands to
 \n  COMMANDs  : are a set of commands to verify
 \nnote: where no COMMAND args are passed, the file specified by
@@ -38,11 +40,12 @@ while [ -n "$1" ]; do
   case "$arg" in
     "h"|"help") help && exit 0 ;;
     "c"|"count") count=$DEFAULT_COUNT && shift && [[ $# -gt 1 && -n "$(echo "$1" | sed -n '/^[0-9]\+$/p')" ]] && count=$1 ;;
+    "s"|"silent") silent=1 ;;
     *) [ -z "$target" ] && target="$1" || cmds[${#cmds[@]}]="$1" ;;
   esac
   shift
 done
-[ $DEBUG -gt 0 ] && echo "[debug] added ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") from args"
+[ $silent -ne 1 ] && echo "[info] added ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") from args"
 
 # arg validation
 ## ensure target
@@ -51,21 +54,21 @@ if [ ! -f "$target" ]; then
   target="$(search_ -i "$search")"
   [ ! -f "$target" ] && exit 1
 fi
-[ $DEBUG -gt 0 ] && echo "[debug] target file '$target' set"
+[ $silent -ne 1 ] && echo "[info] target file '$target' set"
 # ensure commands
   # read from stdin
 if [ ! -t 0 ]; then
   x=${#cmds[@]}
   # read piped commands
   IFS=$'\n'; cmds=("${cmds[@]}" $(sed "$filter")); IFS="$IFSORG"
-  [ $DEBUG -gt 0 ] && echo "[debug] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from stdin"
+  [ $silent -ne 1 ] && echo "[info] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from stdin"
 fi
 if [[ -n "$count" || ${#cmds[@]} -eq 0 ]]; then
   x=${#cmds[@]}
   # read from history file
   histfile="$($(fnShell) -i -c 'echo $HISTFILE')"
   IFS=$'\n'; cmds=("${cmds[@]}" $(tail -n$count "$histfile" | sed "$filter")); IFS="$IFSORG"
-  [ $DEBUG -gt 0 ] && echo "[debug] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from history file '$histfile'"
+  [ $silent -ne 1 ] && echo "[info] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from history file '$histfile'"
 fi
 
 # ensure a usable pipe for user input
@@ -75,7 +78,7 @@ if [ ! -t 0 ]; then
 fi
 
 l=0
-[ $DEBUG -gt 0 ] && echo "[debug] ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") for consideration"
+[ $silent -ne 1 ] && echo "[info] ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") for consideration"
 while [ $l -lt ${#cmds[@]} ]; do
   cmd="${cmds[$l]}"
   [ -z "$cmd" ] && l=$(($l+1)) && continue
