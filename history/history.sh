@@ -14,7 +14,7 @@ DEFAULT_COUNT=10
 declare count
 declare target
 declare -a cmds
-filter='s/^\s*:\s*[0-9]\{10\}:[0-9]\+;//'
+filter='s/\s*\(:\s*[0-9]\{10\}:[0-9]\+;\|[0-9]\+\)\s*//'
 
 help() {
   echo -e "
