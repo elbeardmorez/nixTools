@@ -40,6 +40,7 @@ while [ -n "$1" ]; do
   esac
   shift
 done
+[ $DEBUG -gt 0 ] && echo "[debug] added ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") from args"
 
 # arg validation
 ## ensure target
@@ -55,11 +56,14 @@ if [ ${#cmds[@]} -eq 0 ]; then
   if [ ! -t 0 ]; then
     # read piped commands
     IFS=$'\n'; cmds=($(cat)); IFS="$IFSORG"
+    [ $DEBUG -gt 0 ] && echo "[debug] added ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") from stdin"
   fi
 fi
 if [ ${#cmds[@]} -eq 0 ]; then
   # read from history file
-  IFS=$'\n'; cmds=($(tail -n$count "$($(fnShell) -i -c 'echo $HISTFILE')" | sed 's/^\s*:\s*[0-9]\{10\}:[0-9]\+;//')); IFS="$IFSORG"
+  histfile="$($(fnShell) -i -c 'echo $HISTFILE')"
+  IFS=$'\n'; cmds=($(tail -n$count "$histfile" | sed 's/^\s*:\s*[0-9]\{10\}:[0-9]\+;//')); IFS="$IFSORG"
+  [ $DEBUG -gt 0 ] && echo "[debug] added ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") from hisory file '$historyfile'"
 fi
 
 # ensure a usable pipe for user input
@@ -69,6 +73,7 @@ if [ ! -t 0 ]; then
 fi
 
 l=0
+[ $DEBUG -gt 0 ] && echo "[debug] ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") for consideration"
 while [ $l -lt ${#cmds[@]} ]; do
   cmd="${cmds[$l]}"
   [ -z "$cmd" ] && l=$(($l+1)) && continue
