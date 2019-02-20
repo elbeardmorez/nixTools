@@ -41,14 +41,25 @@ while [ -n "$1" ]; do
 done
 
 # arg validation
+## ensure target
 if [ ! -f "$target" ]; then
   search="$target"
   target="$(search_ -i "$search")"
   [ ! -f "$target" ] && exit 1
 fi
 echo "[info] target file '$target' set"
-
+# ensure commands
 if [ ${#cmds[@]} -eq 0 ]; then
+  # read from stdin
+  if [ ! -t 0 ]; then
+    # read piped commands
+    IFS=$'\n'; cmds=($(cat)); IFS="$IFSORG"
+    # ensure a usable pipe for user input
+    exec < /dev/tty || (echo "[error] cannot set usable stdin!" && exit 1)
+  fi
+fi
+if [ ${#cmds[@]} -eq 0 ]; then
+  # read from history file
   IFS=$'\n'; cmds=($(tail -n$count "$($(fnShell) -i -c 'echo $HISTFILE')" | sed 's/^\s*:\s*[0-9]\{10\}:[0-9]\+;//')); IFS="$IFSORG"
 fi
 
