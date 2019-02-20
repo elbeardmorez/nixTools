@@ -8,6 +8,7 @@ set +e
 
 SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
+DEBUG=${DEBUG:-0}
 
 count=10
 declare target
@@ -47,7 +48,7 @@ if [ ! -f "$target" ]; then
   target="$(search_ -i "$search")"
   [ ! -f "$target" ] && exit 1
 fi
-echo "[info] target file '$target' set"
+[ $DEBUG -gt 0 ] && echo "[debug] target file '$target' set"
 # ensure commands
 if [ ${#cmds[@]} -eq 0 ]; then
   # read from stdin
