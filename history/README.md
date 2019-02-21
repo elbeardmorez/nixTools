@@ -14,6 +14,8 @@ where:
     -c [COUNT], --count [COUNT]  : read last COUNT history entries
                                    (default: 10)
     -s. --silent  : disable info messages
+    -nfl. --no-filter-last  : don't attempt to filter lsst commands
+                              (e.g. the call to this script)
 
   TARGET  : is a file to append commands to
 

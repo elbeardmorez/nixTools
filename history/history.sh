@@ -16,6 +16,9 @@ declare target
 silent=0
 declare -a cmds
 filter='s/\s*\(:\s*[0-9]\{10\}:[0-9]\+;\|[0-9]\+\)\s*//'
+declare -a blacklist
+filter_last=1
+blacklist[${#blacklist[@]}]="$SCRIPTNAME"
 
 help() {
   echo -e "
@@ -26,6 +29,8 @@ SYNTAX: $SCRIPTNAME [OPTIONS] TARGET [COMMAND [COMMAND2.. ]]'
     -c [COUNT], --count [COUNT]  : read last COUNT history entries
                                    (default: 10)
     -s. --silent  : disable info messages
+    -nfl. --no-filter-last  : don't attempl to filter lsst commands
+                              (e.g. the call to this script)
 \n  TARGET  : is a file to append commands to
 \n  COMMANDs  : are a set of commands to verify
 \nnote: where no COMMAND args are passed, the file specified by
@@ -41,6 +46,7 @@ while [ -n "$1" ]; do
     "h"|"help") help && exit 0 ;;
     "c"|"count") count=$DEFAULT_COUNT && shift && [[ $# -gt 1 && -n "$(echo "$1" | sed -n '/^[0-9]\+$/p')" ]] && count=$1 ;;
     "s"|"silent") silent=1 ;;
+    "nfl"|"no-filter-last") filter_last=0 ;;
     *) [ -z "$target" ] && target="$1" || cmds[${#cmds[@]}]="$1" ;;
   esac
   shift
@@ -48,18 +54,26 @@ done
 [ $silent -ne 1 ] && echo "[info] added ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") from args"
 
 # arg validation
+filter_blacklist=""
+[ $filter_last -eq 1 ] &&\
+  for s in "${blacklist[@]}"; do filter_blacklist+="\|$s"; done &&\
+  filter_blacklist=${filter_blacklist:2}
 ## ensure commands
 if [ ! -t 0 ]; then
   x=${#cmds[@]}
   # read piped from stdin
-  IFS=$'\n'; cmds=("${cmds[@]}" $(sed "$filter")); IFS="$IFSORG"
+  IFS=$'\n'; cmds_next=($(sed "$filter"$([ $filter_last -eq 1 ] && echo ';${/\('"$filter_blacklist"'\)/d;}'))); IFS="$IFSORG"
+  cmds=("${cmds[@]}" "${cmds_next[@]}")
   [ $silent -ne 1 ] && echo "[info] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from stdin"
 fi
 if [[ -n "$count" || ${#cmds[@]} -eq 0 ]]; then
   x=${#cmds[@]}
   # read from history file
   histfile="$($(fnShell) -i -c 'echo $HISTFILE' 2>/dev/null)"
-  IFS=$'\n'; cmds=("${cmds[@]}" $(tail -n$count "$histfile" | sed "$filter")); IFS="$IFSORG"
+  IFS=$'\n'; cmds_next=($(tail -n$([ $filter_last -eq 1 ] && echo $(($count+1)) || echo $count) "$histfile" | sed "$filter"$([ $filter_last -eq 1 ] && echo ';${/\('"$filter_blacklist"'\)/d;}'))); IFS="$IFSORG"
+  [ ${#cmds_next[@]} -gt $count ] &&\
+    cmds_next=("${cmds_next:1}")  # filter wasn't hit
+  cmds=("${cmds[@]}" "${cmds_next[@]}")
   [ $silent -ne 1 ] && echo "[info] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from history file '$histfile'"
 fi
 # ensure a usable pipe for user input
