@@ -94,7 +94,7 @@ l=0
 while [ $l -lt ${#cmds[@]} ]; do
   cmd="${cmds[$l]}"
   [ -z "$cmd" ] && l=$(($l+1)) && continue
-  echo -n "[user] append command '$cmd?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: "
+  echo -n "[user] append command '$cmd'? [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: "
   res="$(fnDecision "y|n|e|a|x")"
   case "$res" in
     "y") l=$(($l+1)) && echo "$cmd" >> "$target" && continue ;;
