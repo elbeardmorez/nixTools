@@ -35,6 +35,8 @@ where <OPTION> can be:
   rb|rebase <ID> [N]  : interactively rebase back from id or partial
                         description string. use N to limit the search
                         range to the last N commits
+  rbs|rebase-stash <ID> [N]  : same as 'rebase', but uses git's
+                               'autostash' feature
   b|blame <PATH> <SEARCH>  : filter blame output for PATH on SEARCH
                              and offer 'show' / 'rebase' options per
                              match
