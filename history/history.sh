@@ -48,18 +48,10 @@ done
 [ $silent -ne 1 ] && echo "[info] added ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") from args"
 
 # arg validation
-## ensure target
-if [ ! -f "$target" ]; then
-  search="$target"
-  target="$(search_ -i "$search")"
-  [ ! -f "$target" ] && exit 1
-fi
-[ $silent -ne 1 ] && echo "[info] target file '$target' set"
-# ensure commands
-  # read from stdin
+## ensure commands
 if [ ! -t 0 ]; then
   x=${#cmds[@]}
-  # read piped commands
+  # read piped from stdin
   IFS=$'\n'; cmds=("${cmds[@]}" $(sed "$filter")); IFS="$IFSORG"
   [ $silent -ne 1 ] && echo "[info] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from stdin"
 fi
@@ -70,12 +62,18 @@ if [[ -n "$count" || ${#cmds[@]} -eq 0 ]]; then
   IFS=$'\n'; cmds=("${cmds[@]}" $(tail -n$count "$histfile" | sed "$filter")); IFS="$IFSORG"
   [ $silent -ne 1 ] && echo "[info] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from history file '$histfile'"
 fi
-
 # ensure a usable pipe for user input
 if [ ! -t 0 ]; then
   # pipes are inherited so the parent's stdin will be untouched
   exec < /dev/tty || (echo "[error] cannot set usable stdin!" && exit 1)
 fi
+## ensure target
+if [ ! -f "$target" ]; then
+  search="$target"
+  target="$(search_ -i "$search")"
+  [ ! -f "$target" ] && exit 1
+fi
+[ $silent -ne 1 ] && echo "[info] target file '$target' set"
 
 l=0
 [ $silent -ne 1 ] && echo "[info] ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") for consideration"
