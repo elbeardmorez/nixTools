@@ -58,7 +58,7 @@ fi
 if [[ -n "$count" || ${#cmds[@]} -eq 0 ]]; then
   x=${#cmds[@]}
   # read from history file
-  histfile="$($(fnShell) -i -c 'echo $HISTFILE')"
+  histfile="$($(fnShell) -i -c 'echo $HISTFILE' 2>/dev/null)"
   IFS=$'\n'; cmds=("${cmds[@]}" $(tail -n$count "$histfile" | sed "$filter")); IFS="$IFSORG"
   [ $silent -ne 1 ] && echo "[info] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from history file '$histfile'"
 fi
