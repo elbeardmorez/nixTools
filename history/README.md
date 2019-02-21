@@ -51,8 +51,8 @@ $ history -20 | history_ -c 5 history_.examples '# history_ sessions'
 [info] added 1 command from args
 [info] added 5 commands from stdin
 [info] added 5 commands from history file '/root/.bash_history'
-[info] target file 'history_.examples' set
 [info] 11 commands for consideration
+[info] target file 'history_.examples' set
 [user] append command '# history_ sessions?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: y
 [user] append command 'git stash pop?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: n
 [user] append command 'history -10 | DEBUG=1 sh -c "history_ -c 3 ./x 'abc > 123'"?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: y

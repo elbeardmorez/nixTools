@@ -51,7 +51,7 @@ while [ -n "$1" ]; do
   esac
   shift
 done
-[ $silent -ne 1 ] && echo "[info] added ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") from args"
+[[ $silent -ne 1 && ${#cmds[@]} -gt 0 ]] && echo "[info] added ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") from args"
 
 # arg validation
 filter_blacklist=""
@@ -64,7 +64,7 @@ if [ ! -t 0 ]; then
   # read piped from stdin
   IFS=$'\n'; cmds_next=($(sed "$filter"$([ $filter_last -eq 1 ] && echo ';${/\('"$filter_blacklist"'\)/d;}'))); IFS="$IFSORG"
   cmds=("${cmds[@]}" "${cmds_next[@]}")
-  [ $silent -ne 1 ] && echo "[info] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from stdin"
+  [[ $silent -ne 1 && $((${#cmds[@]}-x)) -gt 0 ]] && echo "[info] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from stdin"
 fi
 if [[ -n "$count" || ${#cmds[@]} -eq 0 ]]; then
   x=${#cmds[@]}
@@ -74,13 +74,14 @@ if [[ -n "$count" || ${#cmds[@]} -eq 0 ]]; then
   [ ${#cmds_next[@]} -gt $count ] &&\
     cmds_next=("${cmds_next:1}")  # filter wasn't hit
   cmds=("${cmds[@]}" "${cmds_next[@]}")
-  [ $silent -ne 1 ] && echo "[info] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from history file '$histfile'"
+  [[ $silent -ne 1 && $((${#cmds[@]}-x)) -gt 0 ]] && echo "[info] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from history file '$histfile'"
 fi
 # ensure a usable pipe for user input
 if [ ! -t 0 ]; then
   # pipes are inherited so the parent's stdin will be untouched
   exec < /dev/tty || (echo "[error] cannot set usable stdin!" && exit 1)
 fi
+[ $silent -ne 1 ] && echo "[info] ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") for consideration"
 ## ensure target
 if [ ! -f "$target" ]; then
   search="$target"
@@ -90,7 +91,6 @@ fi
 [ $silent -ne 1 ] && echo "[info] target file '$target' set"
 
 l=0
-[ $silent -ne 1 ] && echo "[info] ${#cmds[@]} command$([ ${#cmds[@]} -ne 1 ] && echo "s") for consideration"
 while [ $l -lt ${#cmds[@]} ]; do
   cmd="${cmds[$l]}"
   [ -z "$cmd" ] && l=$(($l+1)) && continue
