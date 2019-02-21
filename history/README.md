@@ -63,3 +63,7 @@ $ history -20 | history_ -c 5 history_.examples '# history_ sessions'
 [user] append command 'history -10 | xargs bash -c 'history_ ./x < /dev/tty'?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: y
 [user] append command 'history -10 | xargs sh -c 'history_ ./x < /dev/tty'?' [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: y
 ```
+
+## dependencies
+- sed
+- awk
