@@ -66,7 +66,9 @@ if [ ! -t 0 ]; then
   cmds=("${cmds[@]}" "${cmds_next[@]}")
   [[ $silent -ne 1 && $((${#cmds[@]}-x)) -gt 0 ]] && echo "[info] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from stdin"
 fi
-if [[ -n "$count" || ${#cmds[@]} -eq 0 ]]; then
+[[ ${#cmds[@]} -eq 0 && -z "$count" ]] &&\
+  count=$DEFAULT_COUNT  # enable history file fallback
+if [ -n "$count" ]; then
   x=${#cmds[@]}
   # read from history file
   histfile="$($(fnShell) -i -c 'echo $HISTFILE' 2>/dev/null)"
