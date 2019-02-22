@@ -74,7 +74,7 @@ if [ -n "$count" ]; then
   histfile="$($(fnShell) -i -c 'echo $HISTFILE' 2>/dev/null)"
   IFS=$'\n'; cmds_next=($(tail -n$([ $filter_last -eq 1 ] && echo $(($count+1)) || echo $count) "$histfile" | sed "$filter"$([ $filter_last -eq 1 ] && echo ';${/\('"$filter_blacklist"'\)/d;}'))); IFS="$IFSORG"
   [ ${#cmds_next[@]} -gt $count ] &&\
-    cmds_next=("${cmds_next:1}")  # filter wasn't hit
+    cmds_next=("${cmds_next[@]:1}")  # filter wasn't hit
   cmds=("${cmds[@]}" "${cmds_next[@]}")
   [[ $silent -ne 1 && $((${#cmds[@]}-x)) -gt 0 ]] && echo "[info] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from history file '$histfile'"
 fi
