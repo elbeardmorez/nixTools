@@ -10,7 +10,7 @@ SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
 
-DEFAULT_COUNT=10
+COUNT_DEFAULT=10
 declare count
 declare target
 silent=0
@@ -44,7 +44,7 @@ while [ -n "$1" ]; do
   arg="$(echo "$1" | awk '{gsub(/^ *-*/,"",$0); print(tolower($0))}')"
   case "$arg" in
     "h"|"help") help && exit 0 ;;
-    "c"|"count") count=$DEFAULT_COUNT && shift && [[ $# -gt 1 && -n "$(echo "$1" | sed -n '/^[0-9]\+$/p')" ]] && count=$1 ;;
+    "c"|"count") count=$COUNT_DEFAULT && shift && [[ $# -gt 1 && -n "$(echo "$1" | sed -n '/^[0-9]\+$/p')" ]] && count=$1 ;;
     "s"|"silent") silent=1 ;;
     "nfl"|"no-filter-last") filter_last=0 ;;
     *) [ -z "$target" ] && target="$1" || cmds[${#cmds[@]}]="$1" ;;
@@ -67,7 +67,7 @@ if [ ! -t 0 ]; then
   [[ $silent -ne 1 && $((${#cmds[@]}-x)) -gt 0 ]] && echo "[info] added $((${#cmds[@]}-x)) command$([ $((${#cmds[@]}-x)) -ne 1 ] && echo "s") from stdin"
 fi
 [[ ${#cmds[@]} -eq 0 && -z "$count" ]] &&\
-  count=$DEFAULT_COUNT  # enable history file fallback
+  count=$COUNT_DEFAULT  # enable history file fallback
 if [ -n "$count" ]; then
   x=${#cmds[@]}
   # read from history file
