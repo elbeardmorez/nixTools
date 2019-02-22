@@ -44,7 +44,7 @@ while [ -n "$1" ]; do
   arg="$(echo "$1" | awk '{gsub(/^ *-*/,"",$0); print(tolower($0))}')"
   case "$arg" in
     "h"|"help") help && exit 0 ;;
-    "c"|"count") count=$COUNT_DEFAULT && shift && [[ $# -gt 1 && -n "$(echo "$1" | sed -n '/^[0-9]\+$/p')" ]] && count=$1 ;;
+    "c"|"count") count=$COUNT_DEFAULT && shift && [[ $# -gt 0 && -n "$(echo "$1" | sed -n '/^[0-9]\+$/p')" ]] && count=$1 ;;
     "s"|"silent") silent=1 ;;
     "nfl"|"no-filter-last") filter_last=0 ;;
     *) [ -z "$target" ] && target="$1" || cmds[${#cmds[@]}]="$1" ;;
