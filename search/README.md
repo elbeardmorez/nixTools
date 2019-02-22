@@ -12,8 +12,9 @@ where 'OPTIONS' can be
   -h, --help  : this help information
   -i, --interactive  : enable verification prompt for each match
                        (default: off / auto-accept)
-  -t, --target TARGETS  : file containing search targets, one per line
-                          (default: ~/.search)
+  -t TARGET, --target TARGETS  : override path to file containing
+                                 search targets, one per line
+                                 (default: ~/.search)
   -r TARGET, --results TARGET  : file to dump search results to, one
                                  per line
 

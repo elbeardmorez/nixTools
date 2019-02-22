@@ -22,8 +22,9 @@ help() {
   -h, --help  : this help information
   -i, --interactive  : enable verification prompt for each match
                        (default: off / auto-accept)
-  -t, --target TARGETS  : file containing search targets, one per line
-                          (default: ~/.search)
+  -t TARGET, --target TARGETS  : override path to file containing
+                                 search targets, one per line
+                                 (default: ~/.search)
   -r TARGET, --results TARGET  : file to dump search results to, one
                                  per line
 \nand 'SEARCH' is  : a (partial) file name to search for in the list of
@@ -39,8 +40,7 @@ while [ -n "$1" ]; do
   case "$arg" in
     "h"|"help") help && exit ;;
     "i"|"interactive") interactive=1 ;;
-    "t") search_targets=1 ;;
-    "target") search_targets=1 && shift && SEARCH_TARGETS="$1" ;;
+    "t"|"target") search_targets=1 && shift && SEARCH_TARGETS="$1" ;;
     "r"|"results") shift && FILE_RESULTS="$1" ;;
     *) [ -n "$SEARCH" ] && help && echo "[error] unknown arg '$arg'"; SEARCH="$1" ;;
   esac
@@ -74,10 +74,7 @@ elif [[ ! "x$(dirname $SEARCH)" == "x." || "x${SEARCH:0:1}" == "x." ]]; then
   fi
 else
   # use search paths
-  paths="${PATHS[@]}"
-  if [ $search_targets -eq 1 ]; then
-    IFS=$'\n'; paths=($(cat "$SEARCH_TARGETS")); IFS="$IFSORG"
-  fi
+  [ -f "$SEARCH_TARGETS" ] && IFS=$'\n'; paths=($(cat "$SEARCH_TARGETS")); IFS="$IFSORG" || paths=("${PATHS[@]}")
   for p in "${paths[@]}"; do
     p="$(eval "echo $p")"  # resolve target
     if [ ! -e "$p" ]; then
