@@ -41,6 +41,7 @@ fnDecision() {
   while [ 1 -eq 1 ]; do
     read "${CMDARGS_READ_SINGLECHAR[@]}"
     r="$(echo "$REPLY" | tr '[A-Z]' '[a-z]')"
+    while [ -n "$REPLY" ]; do REPLY="" && read -t 0.1; done  # clear stdin
     match=0
     for k in "${keys[@]}"; do
       [ "x$k" = "x$r" ] && match=1 && echo "$r" 1>&2 && echo "$r" && break;
