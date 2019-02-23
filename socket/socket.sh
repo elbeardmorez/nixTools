@@ -87,7 +87,7 @@ fnSend() {
 
 fnClean() {
   file="$1"
-  IFS=$'\n'; files=($(find . -regex '.*/'"$file"'\(\_[0-9]+\)?$')); IFS="$IFSORG"
+  IFS=$'\n'; files=($(find . -maxdepth 1 -regex '.*/'"$file"'\(\_[0-9]+\)?$')); IFS="$IFSORG"
   if [ ${#files[@]} -gt 0 ]; then
     echo -n "[user] default cleaning, purge ${#files[@]} blob$([ ${#files[@]} -ne 1 ] && echo "s")? [y/n]: "
     fnDecision >/dev/null && for f in "${files[@]}"; do rm "$f"; done
