@@ -175,7 +175,9 @@ fnProcess() {
       fi
       [ ${#data[@]} -eq 0 ] && echo "[error] no blobs to published" && exit 1
       echo "[user] pushing ${#data[@]} blob$([ ${#data[@]} -ne 1 ] && echo "s") to '$SERVER:$PORT'"
-      for d in "${data[@]}"; do
+      l=0
+      while [ $l -lt ${#data[@]} ]; do
+        d=${data[$l]}
         success=1
         attempt=1
         blob_type="$([ $raw -eq 1 ] && echo "data" || echo "file")"
@@ -183,7 +185,7 @@ fnProcess() {
         res=$?
         if [ $res -ne 0 ]; then
           success=0
-          for attempt in `seq 2 1 $(($RETRIES+1))`; do
+          for attempt in $(seq 2 1 $(($RETRIES+1))); do
             [ $DEBUG -gt 0 ] && echo "[debug] failed to push $blob_type '$d' [attempt: $(($attempt-1))]"
             sleep $retry_delay
             fnSend "$d"
@@ -196,7 +198,8 @@ fnProcess() {
         else
           echo "[info] failed pushing $blob_type '$d' after $attempt attempts, check server side process" && exit 1
         fi
-        sleep 0.5
+        l=$(($l+1))
+        [ $l -lt ${#data[@]} ] && sleep 0.5
       done
       ;;
   esac
