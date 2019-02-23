@@ -15,6 +15,7 @@ SEARCH_TARGETS="$HOME/.search"
 SEARCH=""
 search_targets=0
 interactive=0
+verbose=0
 
 help() {
   echo -e "SYNTAX '$SCRIPTNAME [OPTIONS] SEARCH
@@ -27,6 +28,7 @@ help() {
                                  (default: ~/.search)
   -r TARGET, --results TARGET  : file to dump search results to, one
                                  per line
+  -v, --verbose                : output additional info
 \nand 'SEARCH' is  : a (partial) file name to search for in the list of
                      predefined search paths*
 \n*predefined paths are currently: $(for p in "${PATHS[@]}"; do echo -e "\n$p"; done)
@@ -42,6 +44,7 @@ while [ -n "$1" ]; do
     "i"|"interactive") interactive=1 ;;
     "t"|"target") search_targets=1 && shift && SEARCH_TARGETS="$1" ;;
     "r"|"results") shift && FILE_RESULTS="$1" ;;
+    "v"|"verbose") verbose=1 ;;
     *) [ -n "$SEARCH" ] && help && echo "[error] unknown arg '$arg'"; SEARCH="$1" ;;
   esac
   shift
@@ -77,11 +80,11 @@ else
   [ -f "$SEARCH_TARGETS" ] && IFS=$'\n'; paths=($(cat "$SEARCH_TARGETS")); IFS="$IFSORG" || paths=("${PATHS[@]}")
   for p in "${paths[@]}"; do
     p="$(eval "echo $p")"  # resolve target
-    if [ ! -e "$p" ]; then
-      echo "[info] path '$p' invalid or it no longer exists, ignoring" 1>&2
-    else
+    if [ -e "$p" ]; then
       IFS=$'\n'; files2=($(find $p -name "$SEARCH" \( -type f -o -type l \))); IFS="$IFSORG"
       for file in "${files2[@]}"; do files[${#files[@]}]="$file"; done
+    elif [ $verbose -eq 1 ]; then
+      echo "[info] path '$p' invalid or it no longer exists, ignoring" 1>&2
     fi
   done
 

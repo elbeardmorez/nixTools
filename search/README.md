@@ -17,6 +17,7 @@ where 'OPTIONS' can be
                                  (default: ~/.search)
   -r TARGET, --results TARGET  : file to dump search results to, one
                                  per line
+  -v, --verbose                : output additional info
 
 and 'SEARCH' is  : a (partial) file name to search for in the list of
                      predefined search paths*
