@@ -188,7 +188,7 @@ fnProcess() {
           done
            [ $success -eq 0 ] && echo "[error] pushing data failed, check server side process" && exit 1
         fi
-        sleep 0.1
+        sleep 0.5
       done
       ;;
   esac
