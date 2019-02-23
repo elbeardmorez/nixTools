@@ -7,6 +7,7 @@ x="$(dirname "$0")/$(basename "$0")"; [ ! -f "$x" ] && x="$(which $0)"; x="$(rea
 set +e
 
 SCRIPTNAME=${0##*/}
+DEBUG=${DEBUG:-0}
 
 if [ "x$(nc -h 2>&1 | grep '\-c, --close')" != "x" ]; then
   CMDARGS_NC_CLOSE=("-c")
@@ -69,7 +70,6 @@ where OPTION can be:
 
 fnSend() {
   d="$1"
-  verbose=${2:-1}
   raw=$([ -e "$d" ] && echo 0 || echo 1)
   if [ $raw -eq 0 ]; then
     root="." &&
@@ -82,8 +82,6 @@ fnSend() {
     (echo "$d"; sleep $delay_close) | nc ${CMDARGS_NC_CLOSE[@]} $SERVER $PORT
   fi
   res=$?
-  [[ $res -ne 0 && $verbose -eq 1 ]] &&
-    echo "[info] failed to push $([ $raw -eq 1 ] && echo "data" || echo "file") '$d'"
   return $res
 }
 
@@ -175,18 +173,28 @@ fnProcess() {
           shift
         done
       fi
-      [ ${#data[@]} -eq 0 ] && echo "[error] no push data" && exit 1
+      [ ${#data[@]} -eq 0 ] && echo "[error] no blobs to published" && exit 1
       echo "[user] pushing ${#data[@]} blob$([ ${#data[@]} -ne 1 ] && echo "s") to '$SERVER:$PORT'"
       for d in "${data[@]}"; do
+        success=1
+        attempt=1
+        blob_type="$([ $raw -eq 1 ] && echo "data" || echo "file")"
         fnSend "$d"
-        if [ $? -ne 0 ]; then
+        res=$?
+        if [ $res -ne 0 ]; then
           success=0
-          for x in `seq 1 1 $RETRIES`; do
+          for attempt in `seq 2 1 $(($RETRIES+1))`; do
+            [ $DEBUG -gt 0 ] && echo "[debug] failed to push $blob_type '$d' [attempt: $(($attempt-1))]"
             sleep $retry_delay
-            fnSend "$d" 0 # quietly
-            [ $? -eq 0 ] && success=1 && echo "[info] success on retry attempt ${x}" && break
+            fnSend "$d"
+            res=$?
+            [ $res -eq 0 ] && success=1 && break
           done
-           [ $success -eq 0 ] && echo "[error] pushing data failed, check server side process" && exit 1
+        fi
+        if [ $success -eq 1 ]; then
+          echo "[info] success pushing $blob_type '$d'$([ $attempt -gt 1 ] && echo " after $attempt attempts")"
+        else
+          echo "[info] failed pushing $blob_type '$d' after $attempt attempts, check server side process" && exit 1
         fi
         sleep 0.5
       done
