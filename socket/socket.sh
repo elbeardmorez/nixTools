@@ -23,6 +23,7 @@ RETRY_DELAY=0.1
 DELAY_CLOSE=1
 PRESERVE_PATHS=0
 SOCKET=""
+declare -a sockets
 
 help() {
   echo -e "
@@ -85,6 +86,20 @@ fnSend() {
   return $res
 }
 
+fnDump() {
+  declare socket
+  declare file
+  socket="$1"
+  file="$2"
+  mv "$socket" "$file";
+  # socket_ archive?
+  [ "x$(file --brief --mime-type "$file")" = "xapplication/x-tar" ] &&\
+    [ "x$(tar --test-label -f "$file")" = "xsocket_" ] &&\
+      echo "[info] exploding archive in background" &&\
+        tar -xvf "$file" &&\
+          rm "$file"
+}
+
 fnClean() {
   file="$1"
   IFS=$'\n'; files=($(find . -maxdepth 1 -regex '.*/'"$file"'\(\_[0-9]+\)?$')); IFS="$IFSORG"
@@ -95,7 +110,8 @@ fnClean() {
 }
 
 fnCleanUp() {
-  [ -n $SOCKET ] && [ -e $SOCKET ] && rm $SOCKET >/dev/null 2>&1
+  wait  # ensure any subprocesses have completed
+  for socket in "${sockets[@]}"; do [ -e $socket ] && rm $socket >/dev/null 2>&1; done
 }
 
 fnProcess() {
@@ -123,21 +139,17 @@ fnProcess() {
       file="data"
       [ $clean -eq 1 ] && fnClean "$file"
       echo "[info]$([ $persistent -eq 1 ] && echo " persistent") socket opened"
-      SOCKET="$(fnTempFile "$SCRIPTNAME" "$([ $localsocket -eq 1 ] && echo ".")")"
-      [ $? -ne 0 ] && exit 1
       while [[ 1 == 1 ]]; do
+        SOCKET="$(fnTempFile "$SCRIPTNAME" "$([ $localsocket -eq 1 ] && echo ".")")"
+        [ $? -ne 0 ] && exit 1
+        sockets[${#sockets[@]}]=$SOCKET
         nc "${args[@]}" > "$SOCKET"
         size=`du -h $SOCKET | cut -d'	' -f1`
         if [ "$size" != "0" ]; then
-          file=$(fnNextFile $file "_")
-          mv "$SOCKET" $file
-          echo "[info] $size bytes dumped to '$file'"
-          if [[ "x$(file --brief --mime-type "$file")" == "xapplication/x-tar" ]]; then
-            # socket_ archive?
-            [[ "x$(tar --test-label -f "$file")" == "xsocket_" ]] && \
-              echo "[info] exploding archive in background" && \
-              (tar -xvf "$file" && rm $file) &
-          fi
+          file="$(fnNextFile "$file" "_")"
+          touch $file
+          echo "[info] dumping $size bytes to '$file'"
+          fnDump "$SOCKET" "$file" &
           [ $persistent -eq 0 ] && break
         else
           echo "[info] socket closed"
