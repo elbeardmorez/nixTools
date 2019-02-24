@@ -36,7 +36,7 @@ fnEditLine() {
 
 fnDecision() {
   declare question
-  [ $# -gt 1 ] && question="$1" && shift
+  [[ $# -gt 1 || -n "$(echo "$1" | sed -n '/?$/p')" ]] && question="$1" && shift
   IFS='|'; options=($(echo "${1:-y|n}")); IFS="$IFSORG"
   [ ! -t 0 ] &&\
     "[error] stdin is not attacted to a suitable input device" 1>&2 && return 1
