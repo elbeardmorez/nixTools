@@ -190,13 +190,14 @@ fnProcess() {
       l=0
       while [ $l -lt ${#data[@]} ]; do
         d=${data[$l]}
-        success=1
+        success=0
         attempt=1
         blob_type="$([ $raw -eq 1 ] && echo "data" || echo "file")"
         fnSend "$d"
         res=$?
-        if [ $res -ne 0 ]; then
-          success=0
+        if [ $res -eq 0 ]; then
+          success=1
+        else
           for attempt in $(seq 2 1 $(($RETRIES+1))); do
             [ $DEBUG -gt 0 ] && echo "[debug] failed to push $blob_type '$d' [attempt: $(($attempt-1))]"
             sleep $retry_delay
