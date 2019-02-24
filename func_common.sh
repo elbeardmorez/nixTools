@@ -36,11 +36,16 @@ fnEditLine() {
 
 fnDecision() {
   declare question
+  declare soptions
+  declare -a options
   [[ $# -gt 1 || -n "$(echo "$1" | sed -n '/?$/p')" ]] && question="$1" && shift
-  IFS='|'; options=($(echo "${1:-y|n}")); IFS="$IFSORG"
+  soptions="${1:-y|n}"
+  [ -z "$(echo "$soptions" | sed -n '/|/p')" ] &&\
+    soptions="$(echo "$1" | sed 's/\([[:alpha:]]\)/|\1/g;s/^|//')"
+  IFS='|'; options=($(echo "$soptions")); IFS="$IFS_ORG"
   [ ! -t 0 ] &&\
     "[error] stdin is not attacted to a suitable input device" 1>&2 && return 1
-  [ -n "$question" ] && echo -n "$question [$options]: " 1>&2
+  [ -n "$question" ] && echo -n "$question [$soptions]: " 1>&2
   while [ 1 -eq 1 ]; do
     read "${CMDARGS_READ_SINGLECHAR[@]}"
     r="$(echo "$REPLY" | tr '[A-Z]' '[a-z]')"
