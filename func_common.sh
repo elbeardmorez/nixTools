@@ -35,9 +35,12 @@ fnEditLine() {
 }
 
 fnDecision() {
+  declare question
+  [ $# -gt 1 ] && question="$1" && shift
   IFS='|'; options=($(echo "${1:-y|n}")); IFS="$IFSORG"
   [ ! -t 0 ] &&\
     "[error] stdin is not attacted to a suitable input device" 1>&2 && return 1
+  [ -n "$question" ] && echo -n "$question [$options]: " 1>&2
   while [ 1 -eq 1 ]; do
     read "${CMDARGS_READ_SINGLECHAR[@]}"
     r="$(echo "$REPLY" | tr '[A-Z]' '[a-z]')"
