@@ -35,7 +35,7 @@ fnEditLine() {
 }
 
 fnDecision() {
-  IFS='|'; keys=($(echo "${1:-y|n}")); IFS="$IFSORG"
+  IFS='|'; options=($(echo "${1:-y|n}")); IFS="$IFSORG"
   [ ! -t 0 ] &&\
     "[error] stdin is not attacted to a suitable input device" 1>&2 && return 1
   while [ 1 -eq 1 ]; do
@@ -43,8 +43,8 @@ fnDecision() {
     r="$(echo "$REPLY" | tr '[A-Z]' '[a-z]')"
     while [ -n "$REPLY" ]; do REPLY="" && read -t 0.1; done  # clear stdin
     match=0
-    for k in "${keys[@]}"; do
-      [ "x$k" = "x$r" ] && match=1 && echo "$r" 1>&2 && echo "$r" && break;
+    for option in "${options[@]}"; do
+      [ "x$option" = "x$r" ] && match=1 && echo "$r" 1>&2 && echo "$r" && break;
     done
     [ $match -eq 1 ] && break
   done
