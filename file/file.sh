@@ -11,8 +11,6 @@ IFSORG="$IFS"
 
 TEST=0
 EDITOR="${EDITOR:-vim}"
-CHARSED='].[|.'
-CHARGREP='].[' # '[.' is invalid syntax to sed
 RENAME_OPTIONS="lower|spaces|underscores|dashes"
 CMD_MV="$([ $TEST -eq 1 ] && echo "echo ")mv"
 
@@ -41,18 +39,6 @@ help() {
 \nand TARGET is:  either a directory of files, or a (partial) file name
                   to be located via 'search.sh'
 "
-}
-
-function fnRegexp()
-{
-  #escape reserved characters
-  sExp="$1" && shift
-  sType= && [ $# -gt 0 ] && sType="$1"
-  case "$sType" in
-    "grep") sExp=$(echo "$sExp" | sed 's/\(['$CHARGREP']\)/\\\1/g') ;;
-    *) sExp=$(echo "$sExp" | sed 's/\(['$CHARSED']\)/\\\1/g') ;;
-  esac
-  echo "$sExp"
 }
 
 # parse options
@@ -162,7 +148,7 @@ for file in "${files[@]}"; do
 
     "r"|"rename")
       [ ${#args[@]} -gt 0 ] && FILTER="${args[0]}" && shift
-      file="$(echo "$file" | grep -vP '(^\.{1,2}$|'"$(fnRegexp "$FILTER" grep)"'\/$)')"
+      file="$(echo "$file" | grep -vP '(^\.{1,2}$|'"$(fn_rx_escape "grep" "$FILTER")"'\/$)')"
       [ -z "$file" ] && continue
       [ ${#args[@]} -gt 0 ] && RENAME_OPTIONS="${args[0]}" && shift
       IFS='|, '; options=($RENAME_OPTIONS); IFS=$IFSORG
