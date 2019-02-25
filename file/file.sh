@@ -11,7 +11,7 @@ IFSORG="$IFS"
 
 TEST=0
 EDITOR="${EDITOR:-vim}"
-RENAME_OPTIONS="lower|spaces|underscores|dashes"
+RENAME_TRANSFORMS="lower|spaces|underscores|dashes"
 CMD_MV="$([ $TEST -eq 1 ] && echo "echo ")mv"
 
 help() {
@@ -147,18 +147,19 @@ for file in "${files[@]}"; do
       ;;
 
     "r"|"rename")
-      [ ${#args[@]} -gt 0 ] && FILTER="${args[0]}" && shift
+      [ ${#args[@]} -gt 0 ] && filter="${args[0]}" && shift
       file="$(echo "$file" | grep -vP '(^\.{1,2}$|'"$(fn_rx_escape "grep" "$FILTER")"'\/$)')"
       [ -z "$file" ] && continue
-      [ ${#args[@]} -gt 0 ] && RENAME_OPTIONS="${args[0]}" && shift
-      IFS='|, '; options=($RENAME_OPTIONS); IFS=$IFSORG
-      for option in "${options[@]}"; do
-        case "$option" in
+      transforms="$RENAME_TRANSFORMS"
+      [ ${#args[@]} -gt 0 ] && transforms="${#args[@]}" && shift
+      IFS='|, '; transforms=($(echo $transforms)); IFS=$IFSORG
+      for transform in "${transforms[@]}"; do
+        case "$transform" in
           "lower"|"upper"|"spaces"|"underscores"|"dashes")
             dir="$(dirname "$file")/"
             file=${file##*/}
-            case "$option" in
-              "lower"|"upper") file2="$(echo $file | awk -F'\n' '{print to'$option'($1)}')" ;;
+            case "$transform" in
+              "lower"|"upper") file2="$(echo $file | awk -F'\n' '{print to'$transform'($1)}')" ;;
               "spaces") file2="$(echo $file | awk -F'\n' '{gsub("[[:space:]]","."); print}')" ;;
               "underscores") file2="$(echo $file | awk -F'\n' '{gsub("_","."); print}')" ;;
               "dashes") file2="$(echo $file | awk -F'\n' '{gsub("-","."); print}')" ;;
@@ -167,7 +168,7 @@ for file in "${files[@]}"; do
             ;;
 
           *)
-            echo "[info] unsupported rename option '$option'"
+            echo "[info] unsupported rename transform '$transform'"
             ;;
         esac
       done
