@@ -37,6 +37,24 @@ fn_output_data() {
   echo "'$var': '${data[*]}'" >> "$f_entry"
 }
 
+fn_read_data() {
+  var="$1"
+  data=$(cat $f_entry | awk '
+BEGIN { data = ""; search = "'$var'"; matchx = 0; rx = "^"search": " };
+{
+  if ($0 ~ rx) {
+    matchx=1; data = substr($0, length(search)+4);
+  } else if (matchx == 1) {
+    if ($0 ~ /^[a-zA-z0-9_]*: /)
+      matchx = 0;
+    else
+      data = data$0;
+  }
+}
+END { print data; }')
+  echo "$data"
+}
+
 fn_publish() {
   dt="$1"
   title="$2"

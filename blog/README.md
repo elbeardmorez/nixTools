@@ -18,3 +18,4 @@ where OPTION is:
 - tr
 - sed
 - date [GNU coreutils - '-d' and '@']
+- awk
