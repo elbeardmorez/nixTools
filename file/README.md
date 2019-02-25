@@ -24,10 +24,17 @@ where OPTION can be:
     where LINES  : number of lines to trim (default: 1)
           END  : either 'top' / 'bottom' denoting the end to trim from
                  (default: bottom)
-  -r [TRANSFORMS], --rename [TRANSFORMS]  : rename files using one or
-                                            more supported transforms
-    where TRANSFORMS  : delimited list comprising 'lower', 'upper',
-                        'spaces', 'underscores', 'dashes'
+  -r [FILTER] [TRANSFORMS], --rename [FILTER] [TRANSFORMS]
+    : rename files using one or more supported transforms
+    where FILTER  : string to match against target files. no match will
+                    result in skipping
+          TRANSFORMS  : delimited list comprising:
+            'lower'  : convert all alpha characters to lower case
+            'upper'  : convert all alpha characters to upper case
+            'spaces'  : replace with periods ('.')
+            'underscores' : replace with periods ('.')
+            'dashes' : replace with periods ('.')
+            (default: lower|spaces|underscores|dashes)
 
 and TARGET is:  either a directory of files, or a (partial) file name
                 to be located via 'search.sh'
