@@ -10,6 +10,7 @@ fi
 
 # constants
 IFSORG="$IFS"
+ESCAPE_GREP='].['
 ESCAPE_SED='].[|/-'
 c_off='\033[0m'
 c_red='\033[0;31m'
@@ -108,11 +109,18 @@ fnTempDir() {
   echo "$tmp"
 }
 
-fnRegexp() {
+fn_rx_escape() {
   # escape reserved characters
+  type="$1" && shift
   exp="$1" && shift
-  [ $DEBUG -ge 3 ] && echo "[debug] raw expression: '$exp', sed protected chars: '$ESCAPE_SED'" 1>&2
-  exp="$(echo "$exp" | sed 's/\(['$ESCAPE_SED']\)/\\\1/g')"
+  declare escape
+  case "$type" in
+    "grep") escape="$ESCAPE_GREP" ;;
+    "sed") escape="$ESCAPE_SED" ;;
+    *) echo "[error] unsupported regexp type" 1>&2 && return 1
+  esac
+  [ $DEBUG -ge 3 ] && echo "[debug] raw expression: '$exp', $type protected chars: '$escape'" 1>&2
+  exp="$(echo "$exp" | sed 's/\(['"$escape"']\)/\\\1/g')"
   [ $DEBUG -ge 3 ] && echo "[debug] protected expression: '$exp'" 1>&2
   echo "$exp"
 }

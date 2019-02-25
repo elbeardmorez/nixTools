@@ -261,7 +261,7 @@ fnProcess() {
     s="$sorted"
     l=0
     for pss in "${precedence_sets_searches[@]}"; do
-      s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*'"$(fnRegexp "$pss")"'[^\t]*\)$/_'$l'_\t\1/')"
+      s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*'"$(fn_rx_escape "sed" "$pss")"'[^\t]*\)$/_'$l'_\t\1/')"
       l=$(($l+1))
     done
     s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*\)$/_'$l'_\t\1/')"
