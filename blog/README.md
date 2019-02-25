@@ -10,6 +10,8 @@ SYNTAX: blog_ [OPTION]
 where OPTION is:
   new      : create a new entry
   publish  : (re)build and push temp data to 'publshed' target
+  mod [SEARCH] : modify current unpublished item or a published item
+                 via title search using matching SEARCH
 ```
 
 ## dependencies
