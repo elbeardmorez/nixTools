@@ -31,9 +31,9 @@ where OPTION can be:
           TRANSFORMS  : delimited list comprising:
             'lower'  : convert all alpha characters to lower case
             'upper'  : convert all alpha characters to upper case
-            'spaces'  : replace with periods ('.')
-            'underscores' : replace with periods ('.')
-            'dashes' : replace with periods ('.')
+            'spaces'  : compress and replace with periods ('.')
+            'underscores' : compress and replace with periods ('.')
+            'dashes' : compress and replace with periods ('.')
             (default: lower|spaces|underscores|dashes)
 
 and TARGET is:  either a directory of files, or a (partial) file name
