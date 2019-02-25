@@ -39,7 +39,7 @@ fn_output_data() {
 
 fn_read_data() {
   var="$1"
-  data=$(cat $f_entry | awk '
+  data=$(awk '
 BEGIN { data = ""; search = "'$var'"; matchx = 0; rx = "^"search": " };
 {
   if ($0 ~ rx) {
@@ -51,7 +51,7 @@ BEGIN { data = ""; search = "'$var'"; matchx = 0; rx = "^"search": " };
       data = data$0;
   }
 }
-END { print data; }')
+END { print data; }' < $f_entry)
   echo "$data"
 }
 
@@ -86,7 +86,7 @@ case "$option" in
 
   "publish")
     dt_created=$(head -n1 "$f_entry")
-    title=$(cat $f_entry | sed -n 's/'\'title\'': \(.*\)/\1/p')
+    title=$(sed -n 's/'\'title\'': \(.*\)/\1/p' "$f_entry")
     fnDecision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
     ;;
 
@@ -97,7 +97,7 @@ case "$option" in
     [ ${#matches[@]} -ne 1 ] && echo "[error] couldn't find unique blog entry using search term '$search'" && exit 1
     echo "found entry '${match[0]}'"
     mv ${matches[0]} $f_entry.tmp
-    cat $f_entry.tmp | sed -n '/^'\'"date created"\''/p' > $f_entry
+    sed -n '/^'\'"date created"\''/p' "$f_entry.tmp" > $f_entry
     res=$(fnDecision "edit title?" "ynx")
     [ "x$res" = "xx" ] && exit 0
     [ "x$res" = "xy" ] && title="$(fn_input_data "new title")"
@@ -105,11 +105,11 @@ case "$option" in
     res="$(fnDecision "edit content?" "ynx")"
     [ "x$res" = "xx" ] && exit 0
     [ "x$res" = "xy" ] &&\
-      cat $f_entry | sed - > $f_content &&\
+      cp $f_entry $f_content &&\
       $EDITOR $f_content
 
     dt_created=$(head -n1 "$f_entry")
-    title=$(cat $f_entry | sed -n 's/'\'title\'': \(.*\)/\1/p')
+    title=$(sed -n 's/'\'title\'': \(.*\)/\1/p' "$f_entry")
     fnDecision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
     ;;
 esac
