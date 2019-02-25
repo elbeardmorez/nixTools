@@ -11,7 +11,8 @@ IFSORG="$IFS"
 
 TEST=0
 EDITOR="${EDITOR:-vim}"
-RENAME_TRANSFORMS="lower|spaces|underscores|dashes"
+RENAME_TRANSFORMS="lower|upper|spaces|underscores|dashes"
+RENAME_TRANSFORMS_DEFAULT="lower|spaces|underscores|dashes"
 CMD_MV="$([ $TEST -eq 1 ] && echo "echo ")mv"
 
 help() {
@@ -150,27 +151,25 @@ for file in "${files[@]}"; do
       [ ${#args[@]} -gt 0 ] && filter="${args[0]}" && shift
       file="$(echo "$file" | grep -vP '(^\.{1,2}$|'"$(fn_rx_escape "grep" "$FILTER")"'\/$)')"
       [ -z "$file" ] && continue
-      transforms="$RENAME_TRANSFORMS"
-      [ ${#args[@]} -gt 0 ] && transforms="${#args[@]}" && shift
+      transforms="$RENAME_TRANSFORMS_DEFAULT"
+      if [ ${#args[@]} -gt 0 ]; then
+        transforms="${args[@]}" && shift
+        for transform in "${transforms[@]}"; do
+          [ -z "$(echo "$transform" | sed -n '/\('"$(echo "$RENAME_TRANSFORMS" | sed 's/|/\\|/g')"'\)/p')" ] &&\
+            echo "[error] unsupported rename transform '$transform'" && exit 1
+        done
+      fi
       IFS='|, '; transforms=($(echo $transforms)); IFS=$IFSORG
       for transform in "${transforms[@]}"; do
+        dir="$(dirname "$file")/"
+        file=${file##*/}
         case "$transform" in
-          "lower"|"upper"|"spaces"|"underscores"|"dashes")
-            dir="$(dirname "$file")/"
-            file=${file##*/}
-            case "$transform" in
-              "lower"|"upper") file2="$(echo $file | awk -F'\n' '{print to'$transform'($1)}')" ;;
-              "spaces") file2="$(echo $file | awk -F'\n' '{gsub("[[:space:]]","."); print}')" ;;
-              "underscores") file2="$(echo $file | awk -F'\n' '{gsub("_","."); print}')" ;;
-              "dashes") file2="$(echo $file | awk -F'\n' '{gsub("-","."); print}')" ;;
-            esac
-            if [ ! -e "$dir$file2" ]; then $CMD_MV -i "$dir$file" "$dir$file2" 2>/dev/null; fi
-            ;;
-
-          *)
-            echo "[info] unsupported rename transform '$transform'"
-            ;;
+          "lower"|"upper") file2="$(echo $file | awk -F'\n' '{print to'$transform'($1)}')" ;;
+          "spaces") file2="$(echo $file | awk -F'\n' '{gsub("[[:space:]]","."); print}')" ;;
+          "underscores") file2="$(echo $file | awk -F'\n' '{gsub("_","."); print}')" ;;
+          "dashes") file2="$(echo $file | awk -F'\n' '{gsub("-","."); print}')" ;;
         esac
+        if [ ! -e "$dir$file2" ]; then $CMD_MV -i "$dir$file" "$dir$file2" 2>/dev/null; fi
       done
       ;;
   esac
