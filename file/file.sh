@@ -172,12 +172,14 @@ for file in "${files[@]}"; do
       dir="$(dirname "$file")/"
       source="${file##*/}"
       target="$source"
+      compress_periods=0
       for transform in "${transforms[@]}"; do
         case "$transform" in
           "lower"|"upper")
             target="$(echo "$target" | awk -F'\n' '{print to'$transform'($1)}')"
             ;;
           "spaces"|"underscores"|"dashes")
+            compress_periods=1
             declare replace
             case "$transform" in
               "spaces") replace="[:space:]" ;;
@@ -188,6 +190,8 @@ for file in "${files[@]}"; do
             ;;
         esac
       done
+      [ $compress_periods -eq 1 ] &&\
+        target="$(echo "$target" | awk -F'\n' '{gsub(/\.+/,"."); print}')"
       [ ! -e "$dir$target" ] && $CMD_MV -i "$dir$source" "$dir$target" 2>/dev/null
       ;;
   esac
