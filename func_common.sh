@@ -9,6 +9,7 @@ elif [ -n "$ZSH_VERSION" ]; then
 fi
 
 # constants
+DEBUG=${DEBUG:-0}
 IFSORG="$IFS"
 ESCAPE_GREP='].['
 ESCAPE_SED='].[|/-'
