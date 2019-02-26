@@ -53,7 +53,7 @@ help() {
 [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
 option=edit
 arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-[ -n "$(echo "$arg" | sed -n '/\(h\|help\|s\|strip\|u\|uniq\|e\|edit\|d\|dump\|cat\|f\|find\|grep\|search\|t\|trim\|r\|rename\)/p')" ] && option="$arg" && shift
+[ -n "$(echo "$arg" | sed -n '/^\(h\|help\|s\|strip\|u\|uniq\|e\|edit\|d\|dump\|cat\|f\|find\|grep\|search\|t\|trim\|r\|rename\)$/p')" ] && option="$arg" && shift
 
 declare -a args
 declare target
