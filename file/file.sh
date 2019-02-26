@@ -80,8 +80,6 @@ fi
 
 # process
 for file in "${files[@]}"; do
-  ! [[ -f "$file" || -h "$file" ]] &&\
-    echo "[info] skipping non-file '$file'" && continue
   case "$option" in
     "s"|"strip")
       strip="r1"
