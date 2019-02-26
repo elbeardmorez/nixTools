@@ -56,32 +56,31 @@ arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
 [ -n "$(echo "$arg" | sed -n '/\(h\|help\|s\|strip\|u\|uniq\|e\|edit\|d\|dump\|cat\|f\|find\|grep\|search\|t\|trim\|r\|rename\)/p')" ] && option="$arg" && shift
 
 declare -a args
-declare search
+declare target
 while [ -n "$1" ]; do
-  [ $# -gt 1 ] && args[${#args[@]}]="$1" || search="$1"
+  [ $# -gt 1 ] && args[${#args[@]}]="$1" || target="$1"
   shift
 done
 
 # help short circuit
 [[ "x$option" == "xh" || "x$option" == "xhelp" ]] && help && exit
 
-# locate TARGET, search
-declare -a files
-if [ -d "$search" ]; then
-  IFS=$'\n'; files=($(find "$search" -type f)); IFS="$IFSORG"
+# set targets
+declare -a targets
+if [ -d "$target" ]; then
+  IFS=$'\n'; targets=($(find "$target" -type f)); IFS="$IFSORG"
 else
-  IFS=$'\n'; files=($(search_ -i "$search")); IFS="$IFSORG"
+  IFS=$'\n'; targets=($(search_ -i "$target")); IFS="$IFSORG"
 fi
 
-if [ ${#files[@]} -gt 0 ]; then
-  echo "[info] ${#files[@]} match$([ ${#files[@]} -ne 1 ] && echo "es") selected for option '$option'"
+if [ ${#targets[@]} -gt 0 ]; then
+  echo "[info] ${#targets[@]} target$([ ${#targets[@]} -ne 1 ] && echo "s") set for option '$option'"
 else
-  echo "[info] no matches for search '$search'"
-  exit 0
+  echo "[info] no targets set for '$target'" && exit 0
 fi
 
 # process
-for file in "${files[@]}"; do
+for target in "${targets[@]}"; do
   case "$option" in
     "s"|"strip")
       strip="r1"
@@ -95,38 +94,38 @@ for file in "${files[@]}"; do
         echo "[error] args [l|r]x" && exit 1
 
       if [ "x$side" == "xl" ]; then
-        file2="${file:$size}"
+        target2="${target:$size}"
       else
-        file2="${file:0:$((${#file}-$size))}"
+        target2="${target:0:$((${#target}-$size))}"
       fi
-      echo "# stripping file: '$file', side: '$side', size: '$size', file2: '$file2'"
-      [[ -e "file2" || "x${file2}" == "x" ]] &&
-        echo "skipping mv '$file' -> '$file2'" && continue
-      mv -i "$file" "$file2"
+      echo "# stripping target: '$target', side: '$side', size: '$size', target2: '$target2'"
+      [[ -e "target2" || "x${target2}" == "x" ]] &&
+        echo "skipping mv '$target' -> '$target2'" && continue
+      mv -i "$target" "$target2"
       ;;
 
    "u"|"uniq")
       tmp="$(fnTempFile $SCRIPTNAME)"
-      uniq "$file" > "$tmp"
-      mv "$tmp" "$file"
+      uniq "$target" > "$tmp"
+      mv "$tmp" "$target"
       ;;
 
     "e"|"edit")
-      echo "[user] editing file: '$file'"
+      echo "[user] editing target: '$target'"
       sleep 1
-      $EDITOR "$file"
+      $EDITOR "$target"
       ;;
 
     "d"|"dump"|"cat")
-      echo "[user] dumping contents of file: '$file'" 1>&2
+      echo "[user] dumping contents of target: '$target'" 1>&2
       sleep 1
-      cat "$file"
+      cat "$target"
       ;;
 
     "f"|"find"|"grep"|"search")
-      echo "[user] searching contents of file: '$file'"
+      echo "[user] searching contents of target: '$target'"
       sleep 1
-      grep "${args[0]}" "$file"
+      grep "${args[0]}" "$target"
       ;;
 
     "t"|"trim")
@@ -141,22 +140,22 @@ for file in "${files[@]}"; do
           echo "[error] invalid 'end' arg '${args[1]}'" && exit 1
         end="$arg"
       fi
-      echo -n "[user] trim $lines line$([ $lines -ne 1 ] && echo "s") from $end of file '$file'? [(y)es/(n)o/(c)ancel]: " 1>&2
+      echo -n "[user] trim $lines line$([ $lines -ne 1 ] && echo "s") from $end of target '$target'? [(y)es/(n)o/(c)ancel]: " 1>&2
       res="$(fnDecision "y|n|c")"
       [ "x$res" == "xc" ] && exit
       if [ "x$res" == "xy" ]; then
         tmp="$(fnTempFile $SCRIPTNAME)"
-        rlines=$(($(wc -l "$file" | cut -d' ' -f1)-$lines))
+        rlines=$(($(wc -l "$target" | cut -d' ' -f1)-$lines))
         cutter="$([ "x$end" == "xtop" ] && echo "tail" || echo "head")"
-        $cutter -n $rlines "$file" 2>/dev/null > "$tmp"
-        $CMD_MV "$tmp" "$file"
+        $cutter -n $rlines "$target" 2>/dev/null > "$tmp"
+        $CMD_MV "$tmp" "$target"
       fi
       ;;
 
     "r"|"rename")
       [ ${#args[@]} -gt 0 ] && filter="${args[0]}" && shift
-      file="$(echo "$file" | grep -vP '(^\.{1,2}$|'"$(fn_rx_escape "grep" "$FILTER")"'\/$)')"
-      [ -z "$file" ] && continue
+      target="$(echo "$target" | grep -vP '(^\.{1,2}$|'"$(fn_rx_escape "grep" "$FILTER")"'\/$)')"
+      [ -z "$target" ] && continue
       transforms="$RENAME_TRANSFORMS_DEFAULT"
       if [ ${#args[@]} -gt 0 ]; then
         transforms="${args[@]}" && shift
@@ -166,16 +165,15 @@ for file in "${files[@]}"; do
         done
       fi
       IFS='|, '; transforms=($(echo $transforms)); IFS=$IFSORG
-      declare source
-      declare target
-      dir="$(dirname "$file")/"
-      source="${file##*/}"
-      target="$source"
+      declare target2
+      dir="$(dirname "$target")/"
+      target="${target##*/}"
+      target2="$target"
       compress_periods=0
       for transform in "${transforms[@]}"; do
         case "$transform" in
           "lower"|"upper")
-            target="$(echo "$target" | awk -F'\n' '{print to'$transform'($1)}')"
+            target2="$(echo "$target2" | awk -F'\n' '{print to'$transform'($1)}')"
             ;;
           "spaces"|"underscores"|"dashes")
             compress_periods=1
@@ -185,13 +183,13 @@ for file in "${files[@]}"; do
               "underscores") repace="_" ;;
               "dashes") replace="-" ;;
             esac
-            target="$(echo "$target" | awk -F'\n' '{gsub(/['"$replace"']+/,"."); print}')"
+            target2="$(echo "$target2" | awk -F'\n' '{gsub(/['"$replace"']+/,"."); print}')"
             ;;
         esac
       done
       [ $compress_periods -eq 1 ] &&\
-        target="$(echo "$target" | awk -F'\n' '{gsub(/\.+/,"."); print}')"
-      [ ! -e "$dir$target" ] && $CMD_MV -i "$dir$source" "$dir$target" 2>/dev/null
+        target2="$(echo "$target2" | awk -F'\n' '{gsub(/\.+/,"."); print}')"
+      [ ! -e "$dir$target2" ] && $CMD_MV -i "$dir$target" "$dir$target2" 2>/dev/null
       ;;
   esac
 done
