@@ -167,9 +167,9 @@ for file in "${files[@]}"; do
         done
       fi
       IFS='|, '; transforms=($(echo $transforms)); IFS=$IFSORG
+      dir="$(dirname "$file")/"
+      file=${file##*/}
       for transform in "${transforms[@]}"; do
-        dir="$(dirname "$file")/"
-        file=${file##*/}
         case "$transform" in
           "lower"|"upper") file2="$(echo $file | awk -F'\n' '{print to'$transform'($1)}')" ;;
           "spaces") file2="$(echo $file | awk -F'\n' '{gsub(/[[:space:]]+/,"."); print}')" ;;
