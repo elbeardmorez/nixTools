@@ -58,7 +58,7 @@ arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
 declare -a args
 declare target
 while [ -n "$1" ]; do
-  [ $# -gt 1 ] && args[${#args[@]}]="$1" || target="$1"
+  [ $# -gt 1 ] && args[${#args[@]}]=$1 || target="$1"
   shift
 done
 
