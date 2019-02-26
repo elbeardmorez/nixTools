@@ -69,14 +69,16 @@ done
 declare -a files
 if [ -d "$search" ]; then
   IFS=$'\n'; files=($(find "$search" -type f)); IFS="$IFSORG"
-  [ ${#files[@]} -eq 0 ] &&\
-    echo "[info] no matches for search '$search'"
 else
   IFS=$'\n'; files=($(search_ -i "$search")); IFS="$IFSORG"
 fi
 
-[ ${#files[@]} -gt 0 ] &&\
-    echo "[info] ${#files[@]} match$([ ${#files[@]} -ne 1 ] && echo "es") selected for option '$option'" || exit
+if [ ${#files[@]} -gt 0 ]; then
+  echo "[info] ${#files[@]} match$([ ${#files[@]} -ne 1 ] && echo "es") selected for option '$option'"
+else
+  echo "[info] no matches for search '$search'"
+  exit 0
+fi
 
 # process
 for file in "${files[@]}"; do
