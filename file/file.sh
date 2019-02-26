@@ -171,12 +171,19 @@ for file in "${files[@]}"; do
       file=${file##*/}
       for transform in "${transforms[@]}"; do
         case "$transform" in
-          "lower"|"upper") file2="$(echo $file | awk -F'\n' '{print to'$transform'($1)}')" ;;
-          "spaces") file2="$(echo $file | awk -F'\n' '{gsub(/[[:space:]]+/,"."); print}')" ;;
-          "underscores") file2="$(echo $file | awk -F'\n' '{gsub(/_+/,"."); print}')" ;;
-          "dashes") file2="$(echo $file | awk -F'\n' '{gsub(/-+/,"."); print}')" ;;
+          "lower"|"upper")
+            file2="$(echo $file | awk -F'\n' '{print to'$transform'($1)}')"
+            ;;
+          "spaces"|"underscores"|"dashes")
+            declare replace
+            case "$transform" in
+              "spaces") replace="[:space:]" ;;
+              "underscores") repace="_" ;;
+              "dashes") replace="-" ;;
+            esac
+            file2="$(echo $file | awk -F'\n' '{gsub(/['"$replace"']+/,"."); print}')" ;;
         esac
-        if [ ! -e "$dir$file2" ]; then $CMD_MV -i "$dir$file" "$dir$file2" 2>/dev/null; fi
+        [ ! -e "$dir$file2" ] && $CMD_MV -i "$dir$file" "$dir$file2" 2>/dev/null
       done
       ;;
   esac
