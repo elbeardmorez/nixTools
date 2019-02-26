@@ -8,8 +8,8 @@ set +e
 
 SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
+TEST=${TEST:-0}
 
-TEST=0
 EDITOR="${EDITOR:-vim}"
 RENAME_TRANSFORMS="lower|upper|spaces|underscores|dashes"
 RENAME_TRANSFORMS_DEFAULT="lower|spaces|underscores|dashes"
