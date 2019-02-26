@@ -14,6 +14,8 @@ EDITOR="${EDITOR:-vim}"
 RENAME_TRANSFORMS="lower|upper|spaces|underscores|dashes"
 RENAME_TRANSFORMS_DEFAULT="lower|spaces|underscores|dashes"
 CMD_MV="$([ $TEST -eq 1 ] && echo "echo ")mv"
+CMD_CP="$([ $TEST -eq 1 ] && echo "echo ")cp"
+CMD_CP_ARGS=("-a")
 
 help() {
   echo -e "SYNTAX: $SCRIPTNAME [OPTION [OPTION ARGS]] TARGET
@@ -44,6 +46,12 @@ help() {
             'underscores' : compress and replace with periods ('.')
             'dashes' : compress and replace with periods ('.')
             (default: lower|spaces|underscores|dashes)
+  -dp [DEST] [SUFFIX], --dupe [DEST] [SUFFIX]
+    : duplicate TARGET to TARGET.orig, DEST, or {TARGET}{DEST}
+      dependent upon optional arguments
+    where DEST  : either a path or a suffix to copy the TARGET to
+          SUFFIX  : either 0 or 1, determining what DEST is used as
+                    (default: 0)
 \nand TARGET is:  either a directory of files, or a (partial) file name
                   to be located via 'search.sh'
 "
@@ -53,7 +61,7 @@ help() {
 [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
 option=edit
 arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-[ -n "$(echo "$arg" | sed -n '/^\(h\|help\|s\|strip\|u\|uniq\|e\|edit\|d\|dump\|cat\|f\|find\|grep\|search\|t\|trim\|r\|rename\)$/p')" ] && option="$arg" && shift
+[ -n "$(echo "$arg" | sed -n '/^\(h\|help\|s\|strip\|u\|uniq\|e\|edit\|d\|dump\|cat\|f\|find\|grep\|search\|t\|trim\|r\|rename\|dp\|dupe\)$/p')" ] && option="$arg" && shift
 
 declare -a args
 declare target
@@ -68,7 +76,10 @@ done
 # set targets
 declare -a targets
 if [ -d "$target" ]; then
-  IFS=$'\n'; targets=($(find "$target" -type f)); IFS="$IFSORG"
+  case "$option" in
+    "dp"|"dupe") targets=("$target") ;;
+    *) IFS=$'\n'; targets=($(find "$target" -type f)); IFS="$IFSORG" ;;
+  esac
 else
   IFS=$'\n'; targets=($(search_ -i "$target")); IFS="$IFSORG"
 fi
@@ -190,6 +201,30 @@ for target in "${targets[@]}"; do
       [ $compress_periods -eq 1 ] &&\
         target2="$(echo "$target2" | awk -F'\n' '{gsub(/\.+/,"."); print}')"
       [ ! -e "$dir$target2" ] && $CMD_MV -i "$dir$target" "$dir$target2" 2>/dev/null
+      ;;
+
+    "dp"|"dupe")
+      declare target2
+      declare target_suffix
+
+      # args
+      [ ! -e "$target" ] && echo "[error] invalid target '$target'" && exit 1
+      target2="$target"
+      [ ${#args[@]} -gt 0 ] && target2="${args[0]}"
+      target_suffix=".orig"
+      [ ${#args[@]} -gt 1 ] && [ ${args[1]} -eq 1 ] && target_suffix="$target2" && target2="$target"
+
+      # setup
+      target="$(echo "$target" | sed 's/\/$//')"
+      [ "x$(dirname "$target")" == "./" ] &&\
+        target="$(echo "$PWD/$target" | sed 's/\/.\//\//g')"
+      [ "x$(dirname "$target2")" == "./" ] &&\
+        target2="$(echo "$PWD/$target2" | sed 's/\/.\//\//g')"
+      [ "x$target" == "x$target2" ] && target2+="$target_suffix"
+
+      # duplicate
+      [ $DEBUG -gt 0 ] && echo "[debug] type: '$([ -d "$target" ] && echo "dir" || echo "file")', command: '$CMD_CP ${CMD_CP_ARGS[*]}', targets: '$target' -> '$target2'"
+      $CMD_CP ${CMD_CP_ARGS[@]} "$target" "$target2"
       ;;
   esac
 done

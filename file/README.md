@@ -35,6 +35,12 @@ where OPTION can be:
             'underscores' : compress and replace with periods ('.')
             'dashes' : compress and replace with periods ('.')
             (default: lower|spaces|underscores|dashes)
+  -dp [DEST] [SUFFIX], --dupe [DEST] [SUFFIX]
+    : duplicate TARGET to TARGET.orig, DEST, or {TARGET}{DEST}
+      dependent upon optional arguments
+    where DEST  : either a path or a suffix to copy the TARGET to
+          SUFFIX  : either 0 or 1, determining what DEST is used as
+                    (default: 0)
 
 and TARGET is:  either a directory of files, or a (partial) file name
                 to be located via 'search.sh'
