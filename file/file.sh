@@ -72,7 +72,6 @@ if [ -d "$search" ]; then
   [ ${#files[@]} -eq 0 ] &&\
     echo "[info] no matches for search '$search'"
 else
-  # interactive nested script working as long as stdout is only used for the output
   IFS=$'\n'; files=($(search_ -i "$search")); IFS="$IFSORG"
 fi
 
