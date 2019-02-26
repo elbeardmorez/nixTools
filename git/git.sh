@@ -284,7 +284,7 @@ fnProcess() {
       file="$1" && shift
       res="$(git log "$file" >/dev/null 2>&1)"
       [ $? -ne 0 ] && echo "[error] invalid path '$file'" && exit 1
-      search="$1"
+      search="$(fn_rx_escape "grep" "$1")"
       IFS=$'\n'; matches=($(git blame -lt "$file" | grep "$search")); IFS="$IFSORG"
       echo "[info] ${#matches[@]} hit$([ ${#matches[@]} -ne 1 ] && echo "s") for search string '$search' on file '$file'"
       [ ${#matches[@]} -eq 0 ] && exit
