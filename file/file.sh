@@ -167,12 +167,15 @@ for file in "${files[@]}"; do
         done
       fi
       IFS='|, '; transforms=($(echo $transforms)); IFS=$IFSORG
+      declare source
+      declare target
       dir="$(dirname "$file")/"
-      file=${file##*/}
+      source="${file##*/}"
+      target="$source"
       for transform in "${transforms[@]}"; do
         case "$transform" in
           "lower"|"upper")
-            file2="$(echo $file | awk -F'\n' '{print to'$transform'($1)}')"
+            target="$(echo "$target" | awk -F'\n' '{print to'$transform'($1)}')"
             ;;
           "spaces"|"underscores"|"dashes")
             declare replace
@@ -181,10 +184,11 @@ for file in "${files[@]}"; do
               "underscores") repace="_" ;;
               "dashes") replace="-" ;;
             esac
-            file2="$(echo $file | awk -F'\n' '{gsub(/['"$replace"']+/,"."); print}')" ;;
+            target="$(echo "$target" | awk -F'\n' '{gsub(/['"$replace"']+/,"."); print}')"
+            ;;
         esac
-        [ ! -e "$dir$file2" ] && $CMD_MV -i "$dir$file" "$dir$file2" 2>/dev/null
       done
+      [ ! -e "$dir$target" ] && $CMD_MV -i "$dir$source" "$dir$target" 2>/dev/null
       ;;
   esac
 done
