@@ -42,6 +42,9 @@ where OPTION can be:
     where DEST  : either a path or a suffix to copy the TARGET to
           SUFFIX  : either 0 or 1, determining what DEST is used as
                     (default: 0)
+  -m DEST, --move DEST  : move TARGET to DEST - a path, or an alias
+                          which can be found in the rc file
+                          ('~/.nixTools/$SCRIPTNAME')
 
 and TARGET is:  either a directory of files, or a (partial) file name
                 to be located via 'search.sh'

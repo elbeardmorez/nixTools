@@ -13,6 +13,7 @@ TEST=${TEST:-0}
 EDITOR="${EDITOR:-vim}"
 RENAME_TRANSFORMS="lower|upper|spaces|underscores|dashes"
 RENAME_TRANSFORMS_DEFAULT="lower|spaces|underscores|dashes"
+MOVE_ALIASES="$HOME/.nixTools/$SCRIPTNAME"
 CMD_MV="$([ $TEST -eq 1 ] && echo "echo ")mv"
 CMD_MV_ARGS=("-i")
 CMD_CP="$([ $TEST -eq 1 ] && echo "echo ")cp"
@@ -54,6 +55,9 @@ help() {
     where DEST  : either a path or a suffix to copy the TARGET to
           SUFFIX  : either 0 or 1, determining what DEST is used as
                     (default: 0)
+  -m DEST, --move DEST  : move TARGET to DEST - a path, or an alias
+                          which can be found in the rc file
+                          ('~/.nixTools/$SCRIPTNAME')
 \nand TARGET is:  either a directory of files, or a (partial) file name
                   to be located via 'search.sh'
 "
@@ -63,7 +67,7 @@ help() {
 [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
 option=edit
 arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-[ -n "$(echo "$arg" | sed -n '/^\(h\|help\|s\|strip\|u\|uniq\|e\|edit\|d\|dump\|cat\|f\|find\|grep\|search\|t\|trim\|r\|rename\|dp\|dupe\)$/p')" ] && option="$arg" && shift
+[ -n "$(echo "$arg" | sed -n '/^\(h\|help\|s\|strip\|u\|uniq\|e\|edit\|d\|dump\|cat\|f\|find\|grep\|search\|t\|trim\|r\|rename\|dp\|dupe\|m\|move\)$/p')" ] && option="$arg" && shift
 
 declare -a args
 declare target
@@ -79,7 +83,7 @@ done
 declare -a targets
 if [ -d "$target" ]; then
   case "$option" in
-    "dp"|"dupe") targets=("$target") ;;
+    "dp"|"dupe"|"m"|"move") targets=("$target") ;;
     *) IFS=$'\n'; targets=($(find "$target" -type f)); IFS="$IFSORG" ;;
   esac
 else
@@ -238,6 +242,37 @@ for target in "${targets[@]}"; do
       # duplicate
       [ $DEBUG -gt 0 ] && echo "[debug] type: '$([ -d "$target" ] && echo "dir" || echo "file")', command: '$CMD_CP ${CMD_CP_ARGS[*]}', targets: '$target' -> '$target2'"
       $CMD_CP ${CMD_CP_ARGS[@]} "$target" "$target2"
+      ;;
+
+    "m"|"move")
+      declare target2
+
+      # args
+      [ ! -e "$target" ] && echo "[error] invalid target '$target'" && exit 1
+      [ ${#args[@]} -lt 1 ] && help && echo "[error] not enough args" && exit 1
+      target2="${args[0]}"
+
+      # match alias if available
+      if [ -e "$MOVE_ALIASES" ]; then
+        # ignore '#' commented lines
+        IFS=$'\n'; lines=($(sed '/[ ]*#/d' "$MOVE_ALIASES")); IFS="$IFSORG"
+        for kv in "${lines[@]}"; do
+          k="${kv%%=*}"
+          [ "x$k" == "x$target2" ] && target2="${kv#*=}" && break
+        done
+      fi
+
+      # setup
+      [ "x$(dirname "$target")" == "./" ] &&\
+        target="$(echo "$PWD/$target" | sed 's/\/.\//\//g')"
+      [ "x$(dirname "$target2")" == "./" ] &&\
+        target2="$(echo "$PWD/$target2" | sed 's/\/.\//\//g')"
+      target="$(fn_resolve "$target")"
+      target2="$(fn_resolve "$target2")"
+
+      # move
+      [ $DEBUG -gt 0 ] && echo "[debug] type: '$([ -d "$target" ] && echo "dir" || echo "file")', command: '$CMD_MV ${CMD_MV_ARGS[*]}', targets: '$target' -> '$target2'"
+      $CMD_MV ${CMD_MV_ARGS[@]} "$target" "$target2"
       ;;
   esac
 done
