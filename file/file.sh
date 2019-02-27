@@ -14,6 +14,7 @@ EDITOR="${EDITOR:-vim}"
 RENAME_TRANSFORMS="lower|upper|spaces|underscores|dashes"
 RENAME_TRANSFORMS_DEFAULT="lower|spaces|underscores|dashes"
 CMD_MV="$([ $TEST -eq 1 ] && echo "echo ")mv"
+CMD_MV_ARGS=("-i")
 CMD_CP="$([ $TEST -eq 1 ] && echo "echo ")cp"
 CMD_CP_ARGS=("-a")
 
@@ -113,7 +114,7 @@ for target in "${targets[@]}"; do
       echo "# stripping target: '$target', side: '$side', size: '$size', target2: '$target2'"
       [[ -e "target2" || "x${target2}" == "x" ]] &&
         echo "skipping mv '$target' -> '$target2'" && continue
-      mv -i "$target" "$target2"
+      $CMD_MV ${CMD_MV_ARGS[@]} "$target" "$target2"
       ;;
 
    "u"|"uniq")
@@ -211,7 +212,7 @@ for target in "${targets[@]}"; do
       done
       [ $compress_periods -eq 1 ] &&\
         target2="$(echo "$target2" | awk -F'\n' '{gsub(/\.+/,"."); print}')"
-      [ ! -e "$dir$target2" ] && $CMD_MV -i "$dir$target" "$dir$target2" 2>/dev/null
+      [ ! -e "$dir$target2" ] && $CMD_MV ${CMD_MV_ARGS[@]} "$dir$target" "$dir$target2" 2>/dev/null
       ;;
 
     "dp"|"dupe")
