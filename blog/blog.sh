@@ -64,10 +64,13 @@ fn_publish() {
 }
 
 option=new
-[ $# -gt 0 ] && option="$1" && shift
+if [ $# -gt 0 ]; then
+  arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
+  [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\|publish\|mod\)$/p')" ] && option="$arg" && shift
+fi
 
 case "$option" in
-  "h"|"-h"|"help"|"-help"|"--help")
+  "h"|"help")
     help && exit
     ;;
 
@@ -111,5 +114,9 @@ case "$option" in
     dt_created=$(head -n1 "$f_entry")
     title=$(sed -n 's/'\'title\'': \(.*\)/\1/p' "$f_entry")
     fnDecision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
+    ;;
+
+  *)
+    echo "[error] unsupported option '$option'"
     ;;
 esac
