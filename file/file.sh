@@ -188,13 +188,16 @@ for target in "${targets[@]}"; do
             ;;
           "spaces"|"underscores"|"dashes")
             compress_periods=1
+            declare search
             declare replace
             case "$transform" in
-              "spaces") replace="[:space:]" ;;
-              "underscores") repace="_" ;;
-              "dashes") replace="-" ;;
+              "spaces") search="[:space:]" ;;
+              "underscores") search="_" ;;
+              "dashes") search="-" ;;
             esac
-            target2="$(echo "$target2" | awk -F'\n' '{gsub(/['"$replace"']+/,"."); print}')"
+            replace="."
+            [ $DEBUG -gt 0 ] && echo "[debug] rename transform '$search' -> '$replace'" 1>&2
+            target2="$(echo "$target2" | awk -F'\n' '{gsub(/['"$search"']+/,"'$replace'"); print}')"
             ;;
         esac
       done
