@@ -41,18 +41,18 @@ fn_output_data() {
 fn_read_data() {
   var="$1"
   data=$(awk '
-BEGIN { data = ""; search = "'"$var"'"; matchx = 0; rx = "^"search": " };
+BEGIN { data = ""; search = "'"$var"'"; matchx = 0; rx = "^'\''"search"'\'':" };
 {
   if ($0 ~ rx) {
     matchx=1; data = substr($0, length(search)+4);
   } else if (matchx == 1) {
-    if ($0 ~ /^[a-zA-z0-9_]*: /)
+    if ($0 ~ /^'\''[a-zA-z0-9_]+'\'': /)
       matchx = 0;
     else
       data = data$0;
   }
 }
-END { print data; }' < $f_entry)
+END { gsub(/^[ '\'']*/,"",data); gsub(/[ '\'']*$/,"",data); print data;}' < $f_entry)
   echo "$data"
 }
 
