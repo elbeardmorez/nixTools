@@ -16,7 +16,7 @@ date related functionality
 diff related functionality
 
 ### [file.sh](file)
-'swiss-army knife' for all tasks file related.. well, a few tasks anyway. currently,  wrappers / routines for renaming, removing duplicate lines, trimming lines, editing, dumping and searching. target file(s) are set as either a directory of files. or, those located (interactively where multiple are matched) through 'search.sh'
+'swiss-army knife' for all tasks file related.. well, a few tasks anyway. currently,  wrappers / routines for cleaning names (stripping leading / trailing chars, removing chars, changing case), removing duplicate lines, trimming lines, editing, dumping, duplicating and searching. target file(s) are set as either a directory of files, or those located (interactively where multiple are matched) through 'search.sh'
 
 ### [git.sh](git)
 git wrapper adding several features and various customised calls to the underlying binary using minimal aliases. commands fall through to git binary
