@@ -11,7 +11,7 @@ IFSORG="$IFS"
 
 PATHS=(~/documents)
 FILE_RESULTS=""
-SEARCH_TARGETS="$HOME/.search"
+SEARCH_TARGETS="$HOME/.nixTools/$SCRIPTNAME"
 SEARCH=""
 search_targets=0
 interactive=0
