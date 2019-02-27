@@ -227,7 +227,6 @@ for target in "${targets[@]}"; do
       [ ${#args[@]} -gt 1 ] && [ ${args[1]} -eq 1 ] && target_suffix="$target2" && target2="$target"
 
       # setup
-      target="$(echo "$target" | sed 's/\/$//')"
       [ "x$(dirname "$target")" == "./" ] &&\
         target="$(echo "$PWD/$target" | sed 's/\/.\//\//g')"
       [ "x$(dirname "$target2")" == "./" ] &&\

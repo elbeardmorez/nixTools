@@ -127,3 +127,11 @@ fn_rx_escape() {
   [ $DEBUG -ge 3 ] && echo "[debug] protected expression: '$exp'" 1>&2
   echo "$exp"
 }
+
+fn_resolve() {
+  target="$1"
+  # home
+  [ -n "$(echo "$target" | sed -n '/^~/p')" ] &&\
+    target="$(echo "$target" | sed 's/^~/'"$(fn_rx_escape "sed" "$HOME")"'/')"
+  echo "$target"
+}
