@@ -13,6 +13,7 @@ DEBUG=${DEBUG:-0}
 IFSORG="$IFS"
 ESCAPE_GREP='].['
 ESCAPE_SED='].[|/-'
+ESCAPE_AWK='.\/|[('
 c_off='\033[0m'
 c_red='\033[0;31m'
 
@@ -118,6 +119,7 @@ fn_rx_escape() {
   case "$type" in
     "grep") escape="$ESCAPE_GREP" ;;
     "sed") escape="$ESCAPE_SED" ;;
+    "awk") escape="$ESCAPE_AWK" ;;
     *) echo "[error] unsupported regexp type" 1>&2 && return 1
   esac
   [ $DEBUG -ge 3 ] && echo "[debug] raw expression: '$exp', $type protected chars: '$escape'" 1>&2
