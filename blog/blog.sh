@@ -41,7 +41,7 @@ fn_output_data() {
 fn_read_data() {
   var="$1"
   data=$(awk '
-BEGIN { data = ""; search = "'$var'"; matchx = 0; rx = "^"search": " };
+BEGIN { data = ""; search = "'"$var"'"; matchx = 0; rx = "^"search": " };
 {
   if ($0 ~ rx) {
     matchx=1; data = substr($0, length(search)+4);
