@@ -59,6 +59,7 @@ END { gsub(/^[ '\'']*/,"",data); gsub(/[ '\'']*$/,"",data); print data;}' < $f_e
 fn_publish() {
   dt="$1"
   title="$2"
+  [ -z "$(echo "$dt" | sed -n '/^[0-9]\+$/p')" ] && dt="$(date -d "$dt" "+%s")"
   title="$(echo "$title"| tr " " ".")"
   [ ! -d "$published" ] && mkdir -p $published
     cp $f_entry "$published/${dt}_${title}"
