@@ -49,7 +49,7 @@ BEGIN { data = ""; search = "'"$var"'"; matchx = 0; rx = "^'\''"search"'\'':" };
     if ($0 ~ /^'\''[a-zA-z0-9_]+'\'': /)
       matchx = 0;
     else
-      data = data$0;
+      data = data"\n"$0;
   }
 }
 END { gsub(/^[ '\'']*/,"",data); gsub(/[ '\'']*$/,"",data); print data;}' < $f_entry)
