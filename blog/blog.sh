@@ -61,7 +61,7 @@ fn_publish() {
   title="$2"
   title="$(echo "$title"| tr " " ".")"
   [ ! -d "$published" ] && mkdir -p $published
-    cp $f_entry "$published/$dt_$title"
+    cp $f_entry "$published/${dt}_${title}"
 }
 
 option=new
