@@ -45,6 +45,7 @@ help() {
             'spaces'  : compress and replace with periods ('.')
             'underscores' : compress and replace with periods ('.')
             'dashes' : compress and replace with periods ('.')
+            'X=[Y]'  : custom character replacements
             (default: lower|spaces|underscores|dashes)
   -dp [DEST] [SUFFIX], --dupe [DEST] [SUFFIX]
     : duplicate TARGET to TARGET.orig, DEST, or {TARGET}{DEST}
@@ -171,7 +172,7 @@ for target in "${targets[@]}"; do
       if [ ${#args[@]} -gt 0 ]; then
         transforms="${args[@]}" && shift
         for transform in "${transforms[@]}"; do
-          [ -z "$(echo "$transform" | sed -n '/\('"$(echo "$RENAME_TRANSFORMS" | sed 's/|/\\|/g')"'\)/p')" ] &&\
+          [ -z "$(echo "$transform" | sed -n '/\('"$(echo "$RENAME_TRANSFORMS" | sed 's/|/\\|/g')"'\|.\+=.*\)/p')" ] &&\
             echo "[error] unsupported rename transform '$transform'" && exit 1
         done
       fi
@@ -182,20 +183,27 @@ for target in "${targets[@]}"; do
       target2="$target"
       compress_periods=0
       for transform in "${transforms[@]}"; do
+        declare search
+        declare replace
         case "$transform" in
           "lower"|"upper")
             target2="$(echo "$target2" | awk -F'\n' '{print to'$transform'($1)}')"
             ;;
           "spaces"|"underscores"|"dashes")
             compress_periods=1
-            declare search
-            declare replace
             case "$transform" in
               "spaces") search="[:space:]" ;;
               "underscores") search="_" ;;
               "dashes") search="-" ;;
             esac
             replace="."
+            [ $DEBUG -gt 0 ] && echo "[debug] rename transform '$search' -> '$replace'" 1>&2
+            target2="$(echo "$target2" | awk -F'\n' '{gsub(/['"$search"']+/,"'$replace'"); print}')"
+            ;;
+         *=*)
+            compress_periods=1
+            search="$(fn_rx_escape "awk" "${transform%=*}")"
+            replace="$(fn_rx_escape "awk" "${transform#*=}")"
             [ $DEBUG -gt 0 ] && echo "[debug] rename transform '$search' -> '$replace'" 1>&2
             target2="$(echo "$target2" | awk -F'\n' '{gsub(/['"$search"']+/,"'$replace'"); print}')"
             ;;
