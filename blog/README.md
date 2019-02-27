@@ -5,13 +5,15 @@ simple script for creating blog entry data in a basic key/value flat backend (fi
 
 ## usage
 ```
-SYNTAX: blog_ [OPTION]
+SYNTAX: blog_ [OPTION [OPTIONARGS]]
 
-where OPTION is:
-  new      : create a new entry
+where OPTION can be:
+
+  h, help  : this help information
+  new  : creates a new blog entry
   publish  : (re)build and push temp data to 'publshed' target
-  mod [SEARCH] : modify current unpublished item or a published item
-                 via title search using matching SEARCH
+  mod [SEARCH]  : modify current unpublished item or a published item
+                  via title search on SEARCH
 ```
 
 ## dependencies

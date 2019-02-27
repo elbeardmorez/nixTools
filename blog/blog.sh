@@ -14,12 +14,13 @@ f_entry=/tmp/blog_.entry
 f_content=/tmp/blog_.content
 
 help() {
-  echo -e "SYNTAX: $SCRIPTNAME [OPTION]
-\nwhere OPTION is:
-  new      : create a new entry
+  echo -e "\nSYNTAX: $SCRIPTNAME [OPTION [OPTIONARGS]]
+\nwhere OPTION can be:\n
+  h, help  : this help information
+  new  : creates a new blog entry
   publish  : (re)build and push temp data to 'publshed' target
-  mod [SEARCH] : modify current unpublished item or a published item
-                 via title search using matching SEARCH
+  mod [SEARCH]  : modify current unpublished item or a published item
+                  via title search on SEARCH
 "
 }
 
