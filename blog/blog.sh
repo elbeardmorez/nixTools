@@ -90,8 +90,8 @@ case "$option" in
     ;;
 
   "publish")
-    dt_created=$(head -n1 "$f_entry")
-    title=$(sed -n 's/'\'title\'': \(.*\)/\1/p' "$f_entry")
+    dt_created=$(fn_read_data "date created" "$f_entry")
+    title=$(fn_read_data "title" "$f_entry")
     fnDecision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
     ;;
 
@@ -113,8 +113,8 @@ case "$option" in
       cp $f_entry $f_content &&\
       $EDITOR $f_content
 
-    dt_created=$(head -n1 "$f_entry")
-    title=$(sed -n 's/'\'title\'': \(.*\)/\1/p' "$f_entry")
+    dt_created=$(fn_read_data "date created" "$f_entry")
+    title=$(fn_read_data "title" "$f_entry")
     fnDecision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
     ;;
 
