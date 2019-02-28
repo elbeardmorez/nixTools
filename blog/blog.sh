@@ -53,7 +53,7 @@ BEGIN { data = ""; search = "'"$var"'"; matchx = 0; rx = "^'\''"search"'\'':" };
       data = data"\n"$0;
   }
 }
-END { gsub(/^[ '\'']*/,"",data); gsub(/[ '\'']*$/,"",data); print data;}' < $entry)
+END { gsub(/^[ '\'']*/,"",data); gsub(/[ '\'']*$/,"",data); print data;}' < "$entry")
   echo "$data"
 }
 
@@ -85,7 +85,7 @@ case "$option" in
     fn_output_data "title" "$title"
     echo "edit content:"
     sleep 2
-    $EDITOR $f_content
+    $EDITOR "$f_content"
     fn_output_data "content" "$(cat $f_content)"
     fnDecision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
     ;;
@@ -102,8 +102,8 @@ case "$option" in
     IFS=$'\n'; matches=($(grep -rl "'title':.*$search.*" "$published")); IFS="$IFSORG"
     [ ${#matches[@]} -ne 1 ] && echo "[error] couldn't find unique blog entry using search term '$search'" && exit 1
     echo "found entry '${match[0]}'"
-    mv ${matches[0]} $f_entry.tmp
-    sed -n '/^'\'"date created"\''/p' "$f_entry.tmp" > $f_entry
+    mv "${matches[0]}" "$f_entry.tmp"
+    sed -n '/^'\'"date created"\''/p' "$f_entry.tmp" > "$f_entry"
     res=$(fnDecision "edit title?" "ynx")
     [ "x$res" = "xx" ] && exit 0
     [ "x$res" = "xn" ] &&\
