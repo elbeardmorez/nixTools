@@ -98,12 +98,15 @@ case "$option" in
     ;;
 
   "mod")
+    # find entry
     search="$1"
     search=$(echo "$search" | tr " " ".")
     IFS=$'\n'; matches=($(grep -rl "'title':.*$(fn_rx_escape "grep" "$search").*" "$published")); IFS="$IFSORG"
     [ ${#matches[@]} -ne 1 ] && echo "[error] couldn't find unique blog entry using search term '$search'" && exit 1
-    echo "found entry '${match[0]}'"
+    echo "[info] matched entry '${match[0]}'"
     mv "${matches[0]}" "$f_entry.tmp"
+
+    # edit title
     sed -n '/^'\'"date created"\''/p' "$f_entry.tmp" > "$f_entry"
     res=$(fnDecision "edit title?" "ynx")
     [ "x$res" = "xx" ] && exit 0
@@ -113,6 +116,7 @@ case "$option" in
       title="$(fn_input_data "new title")" &&\
       fn_output_data "title" "$title"
 
+    # edit content
     res="$(fnDecision "edit content?" "ynx")"
     [ "x$res" = "xx" ] && exit 0
     [ "x$res" = "xn" ] &&\
@@ -122,6 +126,7 @@ case "$option" in
       $EDITOR $f_content &&\
       fn_output_data "content" "$(cat $f_content)"
 
+    # publish
     dt_created="$(fn_read_data "date created" "$f_entry.tmp")"
     title="$(fn_read_data "title" "$f_entry.tmp")"
     fnDecision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
