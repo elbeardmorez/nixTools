@@ -106,13 +106,20 @@ case "$option" in
     sed -n '/^'\'"date created"\''/p' "$f_entry.tmp" > $f_entry
     res=$(fnDecision "edit title?" "ynx")
     [ "x$res" = "xx" ] && exit 0
-    [ "x$res" = "xy" ] && title="$(fn_input_data "new title")"
+    [ "x$res" = "xn" ] &&\
+      fn_output_data "title" "$(fn_read_data "title" "$f_entry.tmp")"
+    [ "x$res" = "xy" ] &&\
+      title="$(fn_input_data "new title")" &&\
+      fn_output_data "title" "$title"
 
     res="$(fnDecision "edit content?" "ynx")"
     [ "x$res" = "xx" ] && exit 0
+    [ "x$res" = "xn" ] &&\
+      fn_output_data "content" "$(fn_read_data "content" "$f_entry.tmp")"
     [ "x$res" = "xy" ] &&\
-      cp $f_entry $f_content &&\
-      $EDITOR $f_content
+      echo "$(fn_input_data "content")" > $f_content &&\
+      $EDITOR $f_content &&\
+      fn_output_data "content" "$(cat $f_content)"
 
     dt_created="$(fn_read_data "date created" "$f_entry.tmp")"
     title="$(fn_read_data "title" "$f_entry.tmp")"
