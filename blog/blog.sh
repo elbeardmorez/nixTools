@@ -40,6 +40,7 @@ fn_output_data() {
 
 fn_read_data() {
   var="$1" && shift
+  entry="${1:-$f_entry}"
   data=$(awk '
 BEGIN { data = ""; search = "'"$var"'"; matchx = 0; rx = "^'\''"search"'\'':" };
 {
@@ -52,7 +53,7 @@ BEGIN { data = ""; search = "'"$var"'"; matchx = 0; rx = "^'\''"search"'\'':" };
       data = data"\n"$0;
   }
 }
-END { gsub(/^[ '\'']*/,"",data); gsub(/[ '\'']*$/,"",data); print data;}' < $f_entry)
+END { gsub(/^[ '\'']*/,"",data); gsub(/[ '\'']*$/,"",data); print data;}' < $entry)
   echo "$data"
 }
 
@@ -90,8 +91,8 @@ case "$option" in
     ;;
 
   "publish")
-    dt_created=$(fn_read_data "date created" "$f_entry")
-    title=$(fn_read_data "title" "$f_entry")
+    dt_created="$(fn_read_data "date created")"
+    title="$(fn_read_data "title")"
     fnDecision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
     ;;
 
@@ -113,8 +114,8 @@ case "$option" in
       cp $f_entry $f_content &&\
       $EDITOR $f_content
 
-    dt_created=$(fn_read_data "date created" "$f_entry")
-    title=$(fn_read_data "title" "$f_entry")
+    dt_created="$(fn_read_data "date created" "$f_entry.tmp")"
+    title="$(fn_read_data "title" "$f_entry.tmp")"
     fnDecision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
     ;;
 
