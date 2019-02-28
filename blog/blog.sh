@@ -40,7 +40,7 @@ fn_output_data() {
 
 fn_read_data() {
   var="$1" && shift
-  entry="${1:-$f_entry}"
+  target="$1"
   data=$(awk '
 BEGIN { data = ""; search = "'"$var"'"; matchx = 0; rx = "^'\''"search"'\'':" };
 {
@@ -53,7 +53,7 @@ BEGIN { data = ""; search = "'"$var"'"; matchx = 0; rx = "^'\''"search"'\'':" };
       data = data"\n"$0;
   }
 }
-END { gsub(/^[ '\'']*/,"",data); gsub(/[ '\'']*$/,"",data); print data;}' < "$entry")
+END { gsub(/^[ '\'']*/,"",data); gsub(/[ '\'']*$/,"",data); print data;}' < "$target")
   echo "$data"
 }
 
@@ -92,8 +92,8 @@ case "$option" in
     ;;
 
   "publish")
-    dt_created="$(fn_read_data "date created")"
-    title="$(fn_read_data "title")"
+    dt_created="$(fn_read_data "date created" "$f_entry")"
+    title="$(fn_read_data "title" "$f_entry")"
     fnDecision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
     ;;
 
