@@ -28,7 +28,7 @@ fn_input_data() {
   type="$1"
   echo -n "$type [enter]: " 1>&2
   read
-  echo ""
+  echo "" 1>&2
   echo "$REPLY"
 }
 
