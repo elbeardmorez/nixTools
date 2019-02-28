@@ -53,7 +53,7 @@ BEGIN {data=""; matchx=0; rx="^'\''"search"'\'':"};
       data=data"\n"$0;
   }
 }
-END {gsub(/^[ '\'']*/,"",data); gsub(/[ '\'']*$/,"",data); print data}' < "$target")
+END {gsub(/^[ ]*'\''/,"",data); gsub(/'\''[ ]*$/,"",data); print data}' < "$target")
   echo "$data"
 }
 
