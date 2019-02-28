@@ -31,9 +31,12 @@ case "$type" in
       [ ! -d ./"$type" ] && mkdir "$type"
       cd "$type"
     fi
-    args=(`echo $@ | tr "-" "."`)
+    # cleanups args
+    args=()
+    for s in "$@"; do args[${#args[@]}]="`echo "$s" | tr "\- " "." | tr "A-Z" "a-z"`"; done
     name="${args[$[$# - 1]]}"
     target="`echo "${args[@]}" | sed 's/ /.-./g'`"
+    [ $DEBUG -gt 0 ] && echo "name: $name, target: $target" 1>&2
     [ ! -d $target ] && mkdir -p $target
     cd $target || exit 1
     IFS=$'\n'; files=(`find ./ -maxdepth 1 -iregex ".*$name.*\(pdf\|zip\)"`); IFS=$IFSORG
