@@ -88,13 +88,19 @@ case "$option" in
     sleep 2
     $EDITOR "$f_content"
     fn_output_data "content" "$(cat $f_content)"
-    fnDecision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
+    if fnDecision "publish?" >/dev/null; then
+      fn_publish "$dt_created" "$title"
+      rm $f_entry
+    fi
     ;;
 
   "publish")
     dt_created="$(fn_read_data "date created" "$f_entry")"
     title="$(fn_read_data "title" "$f_entry")"
-    fnDecision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
+    if fnDecision "publish?" >/dev/null; then
+      fn_publish "$dt_created" "$title"
+      rm $f_entry
+    fi
     ;;
 
   "mod")
