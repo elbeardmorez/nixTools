@@ -99,7 +99,7 @@ case "$option" in
   "mod")
     search="$1"
     search=$(echo "$search" | tr " " ".")
-    IFS=$'\n'; matches=($(grep -rl "'title':.*$search.*" "$published")); IFS="$IFSORG"
+    IFS=$'\n'; matches=($(grep -rl "'title':.*$(fn_rx_escape "grep" "$search").*" "$published")); IFS="$IFSORG"
     [ ${#matches[@]} -ne 1 ] && echo "[error] couldn't find unique blog entry using search term '$search'" && exit 1
     echo "found entry '${match[0]}'"
     mv "${matches[0]}" "$f_entry.tmp"
