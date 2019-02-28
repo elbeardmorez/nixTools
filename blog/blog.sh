@@ -42,18 +42,18 @@ fn_read_data() {
   var="$1" && shift
   target="$1"
   data=$(awk '
-BEGIN { data = ""; search = "'"$var"'"; matchx = 0; rx = "^'\''"search"'\'':" };
+BEGIN {data=""; search="'"$var"'"; matchx=0; rx="^'\''"search"'\'':"};
 {
   if ($0 ~ rx) {
-    matchx=1; data = substr($0, length(search)+4);
+    matchx=1; data=substr($0, length(search)+4);
   } else if (matchx == 1) {
     if ($0 ~ /^'\''[a-zA-z0-9_]+'\'': /)
-      matchx = 0;
+      matchx=0;
     else
-      data = data"\n"$0;
+      data=data"\n"$0;
   }
 }
-END { gsub(/^[ '\'']*/,"",data); gsub(/[ '\'']*$/,"",data); print data;}' < "$target")
+END {gsub(/^[ '\'']*/,"",data); gsub(/[ '\'']*$/,"",data); print data}' < "$target")
   echo "$data"
 }
 
