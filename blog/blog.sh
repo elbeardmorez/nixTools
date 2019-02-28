@@ -79,6 +79,7 @@ case "$option" in
 
   "new")
     rm "$f_entry" 2>/dev/null
+    rm "$f_content" 2>/dev/null
     dt_created=$(date +"%s")
     fn_output_data "date created" "$(date -d "@$dt_created" +"%d%b%Y %H:%M:%S")"
     title="$(fn_input_data "title")"
@@ -124,6 +125,7 @@ case "$option" in
     dt_created="$(fn_read_data "date created" "$f_entry.tmp")"
     title="$(fn_read_data "title" "$f_entry.tmp")"
     fnDecision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
+    rm $f_entry.tmp
     ;;
 
   *)
