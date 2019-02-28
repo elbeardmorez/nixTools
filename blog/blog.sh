@@ -32,10 +32,39 @@ fn_input_data() {
   echo "$REPLY"
 }
 
-fn_output_data() {
+fn_write_data() {
   var="$1" && shift
+  target="$1" && shift
   data="$@"
-  echo "'$var': '${data[*]}'" >> "$f_entry"
+  current="$(fn_read_data "$var" "$target")"
+  if [ -z "$current" ]; then
+    # add entry
+    echo "'$var': '${data[*]}'" >> "$target"
+  else
+    # overwrite entry
+    current="'$var': '$current'"
+    IFS=$'\n'; lines=($(echo -e "$current")); IFS="$IFSORG"
+    first="$(fn_rx_escape "awk" "${lines[0]}")"
+    last="$(fn_rx_escape "awk" "${lines[$((${#lines[@]}-1))]}")"
+    update="'$var': '$data'"
+    awk -v update="$update" -v first="$first" -v last="$last" '
+BEGIN {data=""; matchx=0; rx_first="^"first"$"; rx_last="^"last"$"};
+{
+  if ($0 ~ rx_first) {
+    matchx=1; data=data"\n"update;
+  }
+  if ($0 ~ rx_last) {
+    matchx=0;
+  } else if (matchx == 0) {
+    data=data"\n"$0;
+  }
+}
+END { gsub(/^\n/,"",data); print data}' < "$target" > "$target.tmp"
+    check="$(fn_read_data "$var" "$target.tmp")"
+    [ "x$check" != "x$data" ] && \
+      echo "[error] couldn't validate data write for '$var'" && exit 1
+    mv "$target.tmp" "$target"
+  fi
 }
 
 fn_read_data() {
@@ -81,13 +110,13 @@ case "$option" in
     rm "$f_entry" 2>/dev/null
     rm "$f_content" 2>/dev/null
     dt_created=$(date +"%s")
-    fn_output_data "date created" "$(date -d "@$dt_created" +"%d%b%Y %H:%M:%S")"
+    fn_write_data "date created" "$f_entry" "$(date -d "@$dt_created" +"%d%b%Y %H:%M:%S")"
     title="$(fn_input_data "title")"
-    fn_output_data "title" "$title"
+    fn_write_data "title" "$f_entry" "$title"
     echo "edit content:"
     sleep 2
     $EDITOR "$f_content"
-    fn_output_data "content" "$(cat $f_content)"
+    fn_write_data "content" "$f_entry" "$(cat $f_content)"
     if fnDecision "publish?" >/dev/null; then
       fn_publish "$dt_created" "$title"
       rm $f_entry
@@ -110,33 +139,39 @@ case "$option" in
     IFS=$'\n'; matches=($(grep -rl "'title':.*$(fn_rx_escape "grep" "$search").*" "$published")); IFS="$IFSORG"
     [ ${#matches[@]} -ne 1 ] && echo "[error] couldn't find unique blog entry using search term '$search'" && exit 1
     echo "[info] matched entry '${match[0]}'"
+
+    # move original
     mv "${matches[0]}" "$f_entry.tmp"
+    # edit temp version
+    cp "${matches[0]}" "$f_entry.tmp"
 
     # edit title
-    sed -n '/^'\'"date created"\''/p' "$f_entry.tmp" > "$f_entry"
     res=$(fnDecision "edit title?" "ynx")
     [ "x$res" = "xx" ] && exit 0
     [ "x$res" = "xn" ] &&\
-      fn_output_data "title" "$(fn_read_data "title" "$f_entry.tmp")"
+      fn_write_data "title" "$f_entry.tmp" "$(fn_read_data "title" "$f_entry.tmp")"
     [ "x$res" = "xy" ] &&\
       title="$(fn_input_data "new title")" &&\
-      fn_output_data "title" "$title"
+      fn_write_data "title" "$f_entry.tmp" "$title"
 
     # edit content
     res="$(fnDecision "edit content?" "ynx")"
     [ "x$res" = "xx" ] && exit 0
     [ "x$res" = "xn" ] &&\
-      fn_output_data "content" "$(fn_read_data "content" "$f_entry.tmp")"
+      fn_write_data "content" "$f_entry.tmp" "$(fn_read_data "content" "$f_entry.tmp")"
     [ "x$res" = "xy" ] &&\
-      echo "$(fn_input_data "content")" > $f_content &&\
+      echo "$(fn_read_data "content" "$f_entry.tmp")" > $f_content &&\
       $EDITOR $f_content &&\
-      fn_output_data "content" "$(cat $f_content)"
+      fn_write_data "content" "$f_entry.tmp" "$(cat $f_content)"
+
+    # overwrite original with updated
+    mv "$f_entry.tmp" "$f_entry"
 
     # publish
-    dt_created="$(fn_read_data "date created" "$f_entry.tmp")"
-    title="$(fn_read_data "title" "$f_entry.tmp")"
+    dt_created="$(fn_read_data "date created" "$f_entry")"
+    title="$(fn_read_data "title" "$f_entry")"
     fnDecision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
-    rm $f_entry.tmp
+    rm $f_entry
     ;;
 
   *)
