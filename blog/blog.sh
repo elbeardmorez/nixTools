@@ -39,7 +39,7 @@ fn_output_data() {
 }
 
 fn_read_data() {
-  var="$1"
+  var="$1" && shift
   data=$(awk '
 BEGIN { data = ""; search = "'"$var"'"; matchx = 0; rx = "^'\''"search"'\'':" };
 {
