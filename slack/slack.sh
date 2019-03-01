@@ -340,41 +340,40 @@ fnDownload() {
         mkdir -p "$target"
 
         if [ $dl_pkg -eq 1 ]; then
-
-        if [ "$REPOVER" != "current" ]; then
-          #local
-          source="$ISOPACKAGES"
-          cp -a "$source"/$type/$pkg-$version*z "$target"
-        else
-          #remote
-          if [ $DEBUG -eq 1 ]; then echo -e "PKG: \n$pkg"; fi
-          PKGINFO=$(grep -B1 -A3 "^PACKAGE NAME:[ ]*$pkg-[0-9]\+.*" "$pkglist.raw")
-          if [ $DEBUG -eq 1 ]; then echo -e "PKGINFO: \n$PKGINFO"; fi
-          PKG=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)/\1/p')
-          PKGNAME=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)-[0-9]\+.*\-.*x86.*-.*/\1/p')
-          if [ $DEBUG -eq 1 ]; then echo -e "PKGNAME: \n$PKGNAME"; fi
-          PKGLOCATION=$(echo -e "$PKGINFO" |   sed -n 's|^.*LOCATION:[ ]*.*/\(.*\).*$|\1|p')
-          if [ $DEBUG -eq 1 ]; then echo -e "#downloading package data:"; fi
-          #download
-
-          ## pkg
-          PKGLOCATION_BUILD="$(sed -n '/^[ \t]*[^#]\+$/p' $SLACKPKGMIRRORS)slackware$ARCHSUFFIX/$PKGLOCATION"
-          PKGARCH="x86_64"
-          if [ "x$ARCHSUFFIX" = "x64" ]; then
-            PKGURL="${PKGLOCATION_BUILD}/${PKG}"
+          if [ "$REPOVER" != "current" ]; then
+            #local
+            source="$ISOPACKAGES"
+            cp -a "$source"/$type/$pkg-$version*z "$target"
           else
-            PKGLOCATION_BUILD="`echo "$PKGLOCATION_BUILD" | sed -n 's/slackware64/slackware/p'`"
-            # test url to find correct x86 arch
-            for arch in "i486" "i586" "i686"; do
-              url="$PKGLOCATION_BUILD`echo "$PKG" | sed -n 's/'$PKGARCH'/'$arch'/p'`"
-              [ "x`wget -S --spider $url 2>&1 | grep 'HTTP/1.1 200 OK'`" != "x" ] && PKGURL="$url" && break
-            done
-          fi
-          if [ "x$PKGURL" != "x" ]; then
-            wget --directory-prefix="$target" $WGETOPTS "$PKGURL"
-          else
-            echo "no package build found for arch '$ARCH'!"
-          fi
+            #remote
+            if [ $DEBUG -eq 1 ]; then echo -e "PKG: \n$pkg"; fi
+            PKGINFO=$(grep -B1 -A3 "^PACKAGE NAME:[ ]*$pkg-[0-9]\+.*" "$pkglist.raw")
+            if [ $DEBUG -eq 1 ]; then echo -e "PKGINFO: \n$PKGINFO"; fi
+            PKG=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)/\1/p')
+            PKGNAME=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)-[0-9]\+.*\-.*x86.*-.*/\1/p')
+            if [ $DEBUG -eq 1 ]; then echo -e "PKGNAME: \n$PKGNAME"; fi
+            PKGLOCATION=$(echo -e "$PKGINFO" |   sed -n 's|^.*LOCATION:[ ]*.*/\(.*\).*$|\1|p')
+            if [ $DEBUG -eq 1 ]; then echo -e "#downloading package data:"; fi
+            #download
+
+            ## pkg
+            PKGLOCATION_BUILD="$(sed -n '/^[ \t]*[^#]\+$/p' $SLACKPKGMIRRORS)slackware$ARCHSUFFIX/$PKGLOCATION"
+            PKGARCH="x86_64"
+            if [ "x$ARCHSUFFIX" = "x64" ]; then
+              PKGURL="${PKGLOCATION_BUILD}/${PKG}"
+            else
+              PKGLOCATION_BUILD="`echo "$PKGLOCATION_BUILD" | sed -n 's/slackware64/slackware/p'`"
+              # test url to find correct x86 arch
+              for arch in "i486" "i586" "i686"; do
+                url="$PKGLOCATION_BUILD`echo "$PKG" | sed -n 's/'$PKGARCH'/'$arch'/p'`"
+                [ "x`wget -S --spider $url 2>&1 | grep 'HTTP/1.1 200 OK'`" != "x" ] && PKGURL="$url" && break
+              done
+            fi
+            if [ "x$PKGURL" != "x" ]; then
+              wget --directory-prefix="$target" $WGETOPTS "$PKGURL"
+            else
+              echo "no package build found for arch '$ARCH'!"
+            fi
           fi
         fi
 
@@ -389,7 +388,7 @@ fnDownload() {
             res=$?
             [ -e "$target"/robots.txt ] && `rm "$target"/robots.txt`
             [ $res -ne 0 ] && echo "wget returned non-zero exit code ($res), aborting" && return $res
-        fi
+          fi
         fi
       done
       ;;
