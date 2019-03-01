@@ -10,7 +10,7 @@ SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
 
 DEBUG=${DEBUG:-0}
-ARCH2=${ARCH:-"$(uname -m)"} && [ ${ARCH2:$[${#ARCH2}-2]:2} == 64 ] && ARCHSUFFIX=64 && ARCH2=_x86_64
+ARCH2=${ARCH:-"$(uname -m)"} && [ "x${ARCH2:$[${#ARCH2}-2]:2}" = "x64" ] && ARCHSUFFIX=64 && ARCH2=_x86_64
 BUILDTYPE=user
 WGETOPTS="--no-check-certificate"
 
@@ -159,9 +159,9 @@ fnRepoSwitch() {
   repover="$1"
   mirrors="${2:-$SLACKPKGMIRRORS}"
   current="$(sed -n '/^[ \t]*[^#]\+$/p' $mirrors)"
-  [ "x$current" == "x" ] && echo "[error] no mirrors live in mirror list" && exit 1
+  [ -z "$current" ] && echo "[error] no mirrors live in mirror list" && exit 1
   switched=0
-  if [ "x$(echo "$current" | sed -n '/slackware\(64\)\?\-'$repover'/p')" == "x" ]; then
+  if [ -z "x$(echo "$current" | sed -n '/slackware\(64\)\?\-'$repover'/p')" ]; then
     sed -i '/^[ \t]*[^#]\+$/{s/slackware\(64\)\?\-[^/]\+/slackware\1-'$repover'/}' $mirrors
     current="$(sed -n '/^[ \t]*[^#]\+$/p' $mirrors)"
     switched=1
@@ -175,7 +175,7 @@ fnUpdate() {
 
   # refresh?
   refresh=0
-  [ $# -gt 0 ] && [ "x$1" == "xforce" ] && refresh=1 && shift
+  [[ $# -gt 0 && "x$1" == "xforce" ]] && refresh=1 && shift
   [[ $refresh -eq 0 && ! -f $pkglist.raw ]] && refresh=1
   [[ $(date +%s) -gt $[ $(date -r $pkglist.all +%s) + $PKGLISTMAXAGE ] ]] && refresh=1
 
@@ -221,7 +221,7 @@ fnUpdate() {
       "slackware")
         while read line; do
           match="$(echo "$line" | sed -n 's/^\([^#]*\).*$/\1/p')"
-          [ "x$match" == "x" ] && continue
+          [ -z "$match" ] && continue
           sed -i '/.*'$match'-[^-]\+-[^-]\+-[^-]\+\( \|\t\|$\)/d' $pkglist
         done < $SLACKPKGBLACKLIST
         ;;
@@ -251,7 +251,7 @@ fnSearch() {
           cd "$source"
           results="$(find . -iname "*$search*z")"
           cd - 2>&1 > /dev/null
-          if [ "x$results" == "x" ]; then
+          if [ -z "$results" ]; then
             echo "[info] no package found" 1>&2 && return 1
           else
             fnPackageInfo "iso_package" "$results"
@@ -323,7 +323,7 @@ fnDownload() {
       for PKG in "${packages[@]}"; do
         PKG=(`echo $PKG`)
         type=${PKG[0]} && type=${type:1:$[${#type} - 2]}
-        pkg=${PKG[1]} && [ "x$pkg" == "x" ] && return 1
+        pkg=${PKG[1]} && [ -z "$pkg" ] && return 1
         version=${PKG[2]}
 
         [ $DEBUG -ge 1 ] &&
@@ -453,7 +453,7 @@ fnDownload() {
           PKGBUILD=${REPOURL['slackbuilds']}/$REPOVER/$(echo -e "$PKGINFO" | sed -n 's|^.*LOCATION:\ \.\/\(.*\)\/.*$|\1|p')/$PKGNAME.tar.gz
           [ $DEBUG -ge 1 ] && echo -e "PKGBUILD: \n$PKGBUILD"
           PKGDATA=($(echo -e "$PKGINFO" | sed -n 's|^.*DOWNLOAD'$ARCH2':\ \(.*\)$|\1|p'))
-          if [ ! "x$PKGDATA" == "x" ]; then
+          if [ -n "$PKGDATA" ]; then
             PKGDATAMD5=($(echo -e "$PKGINFO" | sed -n 's|^.*MD5SUM'$ARCH2':\ \(.*\)$|\1|p'))
           else
             PKGDATA=($(echo -e "$PKGINFO" | sed -n 's|^.*DOWNLOAD:\ \(.*\)$|\1|p'))
@@ -521,12 +521,12 @@ fnPrefixes() {
   parsed=0
   if [ "x`grep "$match" $FILE`" != "x" ]; then
     parsed=1
-    [ "x$FORCE" == "x" ] && return
+    [ -z "$FORCE" ] && return
   fi
 
-  if [ "$BUILDTYPE" == "system" ]; then
+  if [ "x$BUILDTYPE" = "xsystem" ]; then
     sed -ri '/[^\]usr/s|usr/local|usr|g' $SLACKBUILD
-  elif [ "$BUILDTYPE" == "user" ]; then
+  elif [ "x$BUILDTYPE" = "xuser" ]; then
     sed -ri '/[^\]usr/s|usr|usr/local|g' $SLACKBUILD
     sed -ri 's|(/local){2,}|/local|g' $SLACKBUILD
   fi
@@ -604,7 +604,7 @@ fnBuild() {
       else
         echo -e "\n[user] copying $file -> ./""${file##*/}\n"
         chksum=$(md5sum "$file" | cut -f1 -d" ")
-        if [ "x$DEBUG" == "x1" ]; then
+        if [ $DEBUG -gt 0 ]; then
           if [ -f "${file##*/}" ]; then
             echo -e "existing target file: ./""${file##*/}"" md5: $(md5sum "$file" | cut -f1 -d" ") size: ""$(du -ah ""${file##*/}"" | cut -f1 -d$'\t')""\n"
             stat "${file##*/}"
@@ -616,7 +616,7 @@ fnBuild() {
         fi
         l=1
         chksum2=""
-        while [[ ! "x$chksum2" == "x$chksum" && $l -le 10 ]]; do
+        while [[ "x$chksum2" != "x$chksum" && $l -le 10 ]]; do
           echo -e -n "[$(date)]\ntarget file: ./""${file##*/}"" [$l] cp success: "
           cp $file ./
           if [ $? -ne 0 ]; then
@@ -625,20 +625,20 @@ fnBuild() {
             exit 1
           else
             chksum2=$(md5sum ./"${file##*/}" | cut -f1 -d' ')
-            if [ "x$chksum" == "x$chksum2" ]; then
+            if [ "x$chksum" = "x$chksum2" ]; then
               echo -e "yes\n"
             else
               echo -e "no\n"
               echo -e "[user] md5: $chksum2 [vs $chksum]\nsize: ""$(du -ah ./""${file##*/}"" | cut -f1 -d$'\t')""\n"
             fi
-            if [ "x$DEBUG" == "x1" ]; then
+            if [ $DEBUG -gt 0 ]; then
               stat "${file##*/}"
               echo ""
             fi
           fi
           l=$[$l+1]
         done
-        if [ "x$chksum2" == "x$chksum" ]; then
+        if [ "x$chksum2" = "x$chksum" ]; then
           rm $file
         else
           echo "[debug] nfs failed to sync file copy in time"
@@ -673,11 +673,11 @@ fnBuild() {
 
       ## package info
       s=""
-      [[ $# -gt 0 && "x`echo "$1" | sed -n '/\(user\|system\|noconfig\|nobuild\|noinstall\)/p'`" == "x" ]] && s=$(fnPackageInfo "string" "$1")
+      [[ $# -gt 0 && -z "$(echo "$1" | sed -n '/\(user\|system\|noconfig\|nobuild\|noinstall\)/p')" ]] && s=$(fnPackageInfo "string" "$1")
       [ "x$s" != "x" ] && pkg="$(echo $s | cut -d'|' -f1)" && pkgver="$(echo $s | cut -d'|' -f2)" && shift
-      [ "x$pkg" == "x" ] && s="$(fnPackageInfo "dir" $(basename $(pwd)))"
+      [ -z "$pkg" ] && s="$(fnPackageInfo "dir" $(basename $(pwd)))"
       [ "x$s" != "x" ] && pkg="$(echo $s | cut -d'|' -f1)" && pkgver="$(echo $s | cut -d'|' -f2)"
-      [ "x$pkg" == "x" ] && help && echo "[error] cannot determine package details" && exit 1
+      [ -z "$pkg" ] && help && echo "[error] cannot determine package details" && exit 1
 
       ## switches
       if [ $# -gt 0 ]; then
@@ -707,9 +707,9 @@ fnBuild() {
       args="${args2[@]}"
 
       target=/usr/local
-      [ "x$BUILDTYPE" == "xsystem" ] && target="/usr"
+      [ "x$BUILDTYPE" = "xsystem" ] && target="/usr"
 
-      arch2=$ARCH && [ "x${arch2:$[${#arch2}-2]}" == "x86" ] && arch2=x86
+      arch2=$ARCH && [ "x${arch2:$[${#arch2}-2]}" = "x86" ] && arch2=x86
 
       ## build source
       if [[ ! -f "./configure" && ! -f "./autogen.sh" ]]; then
@@ -737,7 +737,7 @@ fnBuild() {
         echo CFLAGS=$CFLAGS CXXFLAGS=$CXXFLAGS LDFLAGS=$LDFLAGS \
           ./configure \
             --prefix=$target \
-            --libdir=$target/lib`[ ${arch2#*_} == "64" ] && echo 64` \
+            --libdir=$target/lib$([ "x${arch2#*_}" = "z64" ] && echo 64) \
             --sysconfdir=/etc \
             --localstatedir=/var \
             --build=$ARCH-slackware-linux-gnu \
@@ -745,7 +745,7 @@ fnBuild() {
         CFLAGS=$CFLAGS CXXFLAGS=$CXXFLAGS LDFLAGS=$LDFLAGS \
           ./configure \
             --prefix=$target \
-            --libdir=$target/lib`[ ${arch2#*_} == "64" ] && echo 64` \
+            --libdir=$target/lib$([ "x${arch2#*_}" = "x64" ] && echo 64) \
             --sysconfdir=/etc \
             --localstatedir=/var \
             --build=$ARCH-slackware-linux-gnu \
@@ -794,7 +794,7 @@ fnTest() {
           in="$(echo "$s" | cut -d' ' -f1)"
           out="$(echo "$s" | cut -d' ' -f2)"
           res=$($target "$type" "$in")
-          echo "[$target | $type | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
+          echo "[$target | $type | $in] out: '$res' | $([ "x$res" = "x$out" ] && echo "pass" || echo "fail")"
         done
         # archive
         type="archive"
@@ -804,7 +804,7 @@ fnTest() {
           in="$(echo "$s" | cut -d' ' -f1)"
           out="$(echo "$s" | cut -d' ' -f2)"
           res=$($target "$type" "$in")
-          echo "[$target | $type | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
+          echo "[$target | $type | $in] out: '$res' | $([ "x$res" = "x$out" ] && echo "pass" || echo "fail")"
         done
         # dir
         type="dir"
@@ -813,30 +813,30 @@ fnTest() {
           in="$(echo "$s" | cut -d' ' -f1)"
           out="$(echo "$s" | cut -d' ' -f2)"
           res=$($target "$type" "$in")
-          echo "[$target | "$type" | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
+          echo "[$target | "$type" | $in] out: '$res' | $([ "x$res" = "x$out" ] && echo "pass" || echo "fail")"
         done
         # iso source
         type="iso_source"
         in="./n/cyrus-sasl/cyrus-sasl-2.1.26-null-crypt.patch.gz ./n/cyrus-sasl/cyrus-sasl-2.1.26-size_t.patch.gz ./n/cyrus-sasl/cyrus-sasl-2.1.26.tar.xz"
         out="[n] cyrus-sasl 2.1.26"
         res=$($target "$type" "$in")
-        echo "[$target | $type | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
+        echo "[$target | $type | $in] out: '$res' | $([ "x$res" = "x$out" ] && echo "pass" || echo "fail")"
         # iso package
         type="iso_package"
         in="./l/giflib-5.1.1-x86_64-1.txz"
         out="[l] giflib 5.1.1"
         res=$($target "$type" "$in")
-        echo "[$target | $type | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
+        echo "[$target | $type | $in] out: '$res' | $([ "x$res" = "x$out" ] && echo "pass" || echo "fail")"
         # remote package
         type="remote"
         in="PACKAGE NAME:  ConsoleKit2-1.0.0-x86_64-3.txz\nPACKAGE LOCATION:  ./slackware64/l"
         out="[l] ConsoleKit2 1.0.0"
         res=$($target "$type" "$in")
-        echo "[$target | $type | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
+        echo "[$target | $type | $in] out: '$res' | $([ "x$res" = "x$out" ] && echo "pass" || echo "fail")"
         in="PACKAGE NAME:  pkgtools-15.0-noarch-23.txz|PACKAGE LOCATION:  ./slackware64/a"
         out="[a] pkgtools 15.0"
         res=$($target "$type" "$in")
-        echo "[$target | $type | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
+        echo "[$target | $type | $in] out: '$res' | $([ "x$res" = "x$out" ] && echo "pass" || echo "fail")"
       else
         type="$1" && shift
         in="$@"
@@ -868,7 +868,7 @@ fnTest() {
           out="$(echo "$s" | cut -d' ' -f2)"
           $($target "$in" "$f")
           res=$?
-          echo "[$target | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
+          echo "[$target | $in] out: '$res' | $([ "x$res" = "x$out" ] && echo "pass" || echo "fail")"
         done
         rm "$f"
       else
