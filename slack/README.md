@@ -29,7 +29,10 @@ where OPTION is:
   d, download PKG [ARG]  : pull packages matching 'PKG' from either
                            local or remote resources
     where [ARG] can be:
-      src, source  : also download source tarball and build script
+      np, no-package   : do not, where supported, download the slack
+                         package
+      ns, no-source   : do not, where supported. download source tarball
+                        and build script
 
   l, list [ARG1 [ARG2]]  : list packages types of ARG1, or search
                            in list

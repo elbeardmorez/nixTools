@@ -49,7 +49,10 @@ where OPTION is:
   d, download PKG [ARG]  : pull packages matching 'PKG' from either
                            local or remote resources
     where [ARG] can be:
-      src, source  : also download source tarball and build script
+      np, no-package   : do not, where supported, download the slack
+                         package
+      ns, no-source   : do not, where supported. download source tarball
+                        and build script
 
   l, list [ARG1 [ARG2]]  : list packages types of ARG1, or search
                            in list
@@ -293,21 +296,24 @@ fnSearch() {
 fnDownload() {
   pkglist=${PKGLIST}.${REPO}-${REPOVER}
 
+  dl_src=1
+  dl_pkg=1
+
   case "$REPO" in
     "slackware")
       search="$1" && shift
-      SOURCE=0
       if [ $# -gt 0 ]; then
         while [[ $# -gt 0 && "x`echo $1 | sed -n '/\(source\|src\)/p'`" != "x" ]]; do
           option="$1"
           case $option in
-            "source"|"src") SOURCE=1 && shift ;;
-            *) echo "unknown option: '$option'" && exit 1 ;;
+            "ns"|"no-source") dl_src=0 && shift ;;
+            "np"|"no-package") dl_pkg=0 && shift ;;
+            *) help && echo "[info] unknown option: '$option'" && exit 1 ;;
           esac
         done
       fi
 
-      [ $DEBUG -ge 1 ] && echo "source: '$SOURCE'"
+      [ $DEBUG -ge 1 ] && echo "[debug] dl_src: $dl_src, dl_pkg: $dl_pkg"
 
       # search
       packages="$(fnSearch "$search")"
@@ -332,12 +338,11 @@ fnDownload() {
 
         target="$pkg-$version"
         mkdir -p "$target"
+
+        if [ $dl_pkg -eq 1 ]; then
+
         if [ "$REPOVER" != "current" ]; then
           #local
-          ## sources
-          source="$ISOSOURCE"
-          cp -a "$source"/$type/$pkg/ "$target"
-          ## packages
           source="$ISOPACKAGES"
           cp -a "$source"/$type/$pkg-$version*z "$target"
         else
@@ -370,14 +375,21 @@ fnDownload() {
           else
             echo "no package build found for arch '$ARCH'!"
           fi
+          fi
+        fi
 
-          if [ $SOURCE -eq 1 ]; then
-            ## source
+        if [ $dl_src -eq 1 ]; then
+          if [ "$REPOVER" != "current" ]; then
+            # local
+            source="$ISOSOURCE"
+            cp -a "$source"/$type/$pkg/ "$target"
+          else
+            # remote
             wget -P . -r --directory-prefix="$target" --no-host-directories --cut-dirs=5 --no-parent --level=2 --reject="index.html*" $WGETOPTS ${REPOURL['slackware']}/slackware$ARCHSUFFIX-$REPOVER/source/$PKGLOCATION/$PKGNAME/
             res=$?
             [ -e "$target"/robots.txt ] && `rm "$target"/robots.txt`
             [ $res -ne 0 ] && echo "wget returned non-zero exit code ($res), aborting" && return $res
-          fi
+        fi
         fi
       done
       ;;
