@@ -140,7 +140,7 @@ fnPackageInfo() {
       echo -e "$1" | sed -n 's/.*\.\/\([a-zA-Z]\+\)\/\([^ ]*\)-\([0-9]\+\.[0-9.]\+[.0-9]*[a-zA-Z]\?\)\([_-][0-9]*\)\?.*\.t\(xz\|gz\).*/[\1] \2 \3/p'
       ;;
     "remote")
-      echo "$1" | sed -n 's/^PACKAGE NAME:[ ]*\([^ ]*\)-\([0-9._]\+[a-z]\?\)\-.*x86.*-.*LOCATION:[ ]*\.\/.*\/\([a-z]\).*/[\3] \1 \2/ip'
+      echo "$1" | sed -n 's/^PACKAGE NAME:[ ]*\([^ ]*\)-\([0-9._]\+[a-z]\?\)\-.*[^-]*-.*LOCATION:[ ]*\.\/.*\/\([a-z]\).*/[\3] \1 \2/ip'
       ;;
   esac
 }
@@ -863,6 +863,10 @@ fnTest() {
         type="remote"
         in="PACKAGE NAME:  ConsoleKit2-1.0.0-x86_64-3.txz\nPACKAGE LOCATION:  ./slackware64/l"
         out="[l] ConsoleKit2 1.0.0"
+        res=$($target "$type" "$in")
+        echo "[$target | $type | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
+        in="PACKAGE NAME:  pkgtools-15.0-noarch-23.txz|PACKAGE LOCATION:  ./slackware64/a"
+        out="[a] pkgtools 15.0"
         res=$($target "$type" "$in")
         echo "[$target | $type | $in] out: '$res' | $([ "x$res" == "x$out" ] && echo "pass" || echo "fail")"
       else
