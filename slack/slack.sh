@@ -449,30 +449,28 @@ fnDownload() {
         cancel=0
         for PKG in "${packages[@]}"; do
           download=1
-          if [ $DEBUG -eq 1 ]; then
-            result=
-            echo -n "[user] download package: '$PKG'? [y/n/c] "
-            retry=1
-            while [ $retry -eq 1 ]; do
-              read -n 1 -s result
-              case "$result" in
-                "y" | "Y")
-                  echo $result
-                  retry=0
-                  ;;
-                "n" | "N")
-                  echo $result
-                  download=0
-                  retry=0
-                  ;;
-                "c" | "C")
-                  echo $result
-                  retry=0
-                  cancel=1
-                  ;;
-              esac
-            done
-          fi
+          result=
+          echo -n "[user] download package: '$PKG'? [y/n/c] "
+          retry=1
+          while [ $retry -eq 1 ]; do
+            read -n 1 -s result
+            case "$result" in
+              "y" | "Y")
+                echo $result
+                retry=0
+                ;;
+              "n" | "N")
+                echo $result
+                download=0
+                retry=0
+                ;;
+              "c" | "C")
+                echo $result
+                retry=0
+                cancel=1
+                ;;
+            esac
+          done
           if [ $cancel -eq 1 ]; then break; fi
           if [ $download -eq 1 ]; then
             [ $DEBUG -ge 1 ] && echo -e "PKG: \n$PKG"
