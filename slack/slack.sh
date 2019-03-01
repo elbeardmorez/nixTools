@@ -127,7 +127,7 @@ fnExtract() {
   [ ! -d "$target" ] && mkdir -p "$target"
   cd "$target"
   tar -xf "$archive"
-  [ $(ls -1 | wc -l) == 1 ] && d=$(echo *) && mv "$d"/* . && rmdir "$d"
+  [ $(ls -1 | wc -l) -eq 1 ] && d=$(echo *) && mv "$d"/* . && rmdir "$d"
   cd - >/dev/null 2>&1
 }
 
