@@ -1,4 +1,11 @@
 #!/bin/sh
+
+# includes
+set -e
+x="$(dirname "$0")/$(basename "$0")"; [ ! -f "$x" ] && x="$(which $0)"; x="$(readlink -e "$x" || echo "$x")"
+. ${x%/*}/../func_common.sh
+set +e
+
 SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
 
@@ -318,81 +325,59 @@ fnDownload() {
           echo "found package: $pkg, version: $version, type: [$type]" 1>&2
 
         result=
-        echo -n "[user] download package / source: '$pkg'? [y/n/c] "
+        echo -n "[user] download package / source: '$pkg'? [y/n/c]: "
 
-        cancel=0
-        download=1
-        retry=1
-        while [ $retry -eq 1 ]; do
-          read -n 1 -s result
-          case "$result" in
-            "y" | "Y")
-              echo $result
-              retry=0
-              ;;
-            "n" | "N")
-              echo $result
-              download=0
-              retry=0
-              ;;
-            "c" | "C")
-              echo $result
-              retry=0
-              cancel=1
-              ;;
-          esac
-        done
-        [ $cancel -eq 1 ] && break
+        res="$(fnDecision "y|n|c")"
+        [ "x$res" == "xc" ] && break
+        [ "x$res" == "xn" ] && continue
 
-        if [ $download -eq 1 ]; then
-          target="$pkg-$version"
-          mkdir -p "$target"
-          if [ "$REPOVER" != "current" ]; then
-            #local
-            ## sources
-            source="$ISOSOURCE"
-            cp -a "$source"/$type/$pkg/ "$target"
-            ## packages
-            source="$ISOPACKAGES"
-            cp -a "$source"/$type/$pkg-$version*z "$target"
+        target="$pkg-$version"
+        mkdir -p "$target"
+        if [ "$REPOVER" != "current" ]; then
+          #local
+          ## sources
+          source="$ISOSOURCE"
+          cp -a "$source"/$type/$pkg/ "$target"
+          ## packages
+          source="$ISOPACKAGES"
+          cp -a "$source"/$type/$pkg-$version*z "$target"
+        else
+          #remote
+          if [ $DEBUG -eq 1 ]; then echo -e "PKG: \n$pkg"; fi
+          PKGINFO=$(grep -B1 -A3 "^PACKAGE NAME:[ ]*$pkg-[0-9]\+.*" "$pkglist.raw")
+          if [ $DEBUG -eq 1 ]; then echo -e "PKGINFO: \n$PKGINFO"; fi
+          PKG=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)/\1/p')
+          PKGNAME=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)-[0-9]\+.*\-.*x86.*-.*/\1/p')
+          if [ $DEBUG -eq 1 ]; then echo -e "PKGNAME: \n$PKGNAME"; fi
+          PKGLOCATION=$(echo -e "$PKGINFO" |   sed -n 's|^.*LOCATION:[ ]*.*/\(.*\).*$|\1|p')
+          if [ $DEBUG -eq 1 ]; then echo -e "#downloading package data:"; fi
+          #download
+
+          ## pkg
+          PKGLOCATION_BUILD="$(sed -n '/^[ \t]*[^#]\+$/p' $SLACKPKGMIRRORS)slackware$ARCHSUFFIX/$PKGLOCATION"
+          PKGARCH="x86_64"
+          if [ "x$ARCHSUFFIX" = "x64" ]; then
+            PKGURL="${PKGLOCATION_BUILD}/${PKG}"
           else
-            #remote
-            if [ $DEBUG -eq 1 ]; then echo -e "PKG: \n$pkg"; fi
-            PKGINFO=$(grep -B1 -A3 "^PACKAGE NAME:[ ]*$pkg-[0-9]\+.*" "$pkglist.raw")
-            if [ $DEBUG -eq 1 ]; then echo -e "PKGINFO: \n$PKGINFO"; fi
-            PKG=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)/\1/p')
-            PKGNAME=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)-[0-9]\+.*\-.*x86.*-.*/\1/p')
-            if [ $DEBUG -eq 1 ]; then echo -e "PKGNAME: \n$PKGNAME"; fi
-            PKGLOCATION=$(echo -e "$PKGINFO" |   sed -n 's|^.*LOCATION:[ ]*.*/\(.*\).*$|\1|p')
-            if [ $DEBUG -eq 1 ]; then echo -e "#downloading package data:"; fi
-            #download
+            PKGLOCATION_BUILD="`echo "$PKGLOCATION_BUILD" | sed -n 's/slackware64/slackware/p'`"
+            # test url to find correct x86 arch
+            for arch in "i486" "i586" "i686"; do
+              url="$PKGLOCATION_BUILD`echo "$PKG" | sed -n 's/'$PKGARCH'/'$arch'/p'`"
+              [ "x`wget -S --spider $url 2>&1 | grep 'HTTP/1.1 200 OK'`" != "x" ] && PKGURL="$url" && break
+            done
+          fi
+          if [ "x$PKGURL" != "x" ]; then
+            wget --directory-prefix="$target" $WGETOPTS "$PKGURL"
+          else
+            echo "no package build found for arch '$ARCH'!"
+          fi
 
-            ## pkg
-            PKGLOCATION_BUILD="$(sed -n '/^[ \t]*[^#]\+$/p' $SLACKPKGMIRRORS)slackware$ARCHSUFFIX/$PKGLOCATION"
-            PKGARCH="x86_64"
-            if [ "x$ARCHSUFFIX" = "x64" ]; then
-              PKGURL="${PKGLOCATION_BUILD}/${PKG}"
-            else
-              PKGLOCATION_BUILD="`echo "$PKGLOCATION_BUILD" | sed -n 's/slackware64/slackware/p'`"
-              # test url to find correct x86 arch
-              for arch in "i486" "i586" "i686"; do
-                url="$PKGLOCATION_BUILD`echo "$PKG" | sed -n 's/'$PKGARCH'/'$arch'/p'`"
-                [ "x`wget -S --spider $url 2>&1 | grep 'HTTP/1.1 200 OK'`" != "x" ] && PKGURL="$url" && break
-              done
-            fi
-            if [ "x$PKGURL" != "x" ]; then
-              wget --directory-prefix="$target" $WGETOPTS "$PKGURL"
-            else
-              echo "no package build found for arch '$ARCH'!"
-            fi
-
-            if [ $SOURCE -eq 1 ]; then
-              ## source
-              wget -P . -r --directory-prefix="$target" --no-host-directories --cut-dirs=5 --no-parent --level=2 --reject="index.html*" $WGETOPTS ${REPOURL['slackware']}/slackware$ARCHSUFFIX-$REPOVER/source/$PKGLOCATION/$PKGNAME/
-              res=$?
-              [ -e "$target"/robots.txt ] && `rm "$target"/robots.txt`
-              [ $res -ne 0 ] && echo "wget returned non-zero exit code ($res), aborting" && return $res
-            fi
+          if [ $SOURCE -eq 1 ]; then
+            ## source
+            wget -P . -r --directory-prefix="$target" --no-host-directories --cut-dirs=5 --no-parent --level=2 --reject="index.html*" $WGETOPTS ${REPOURL['slackware']}/slackware$ARCHSUFFIX-$REPOVER/source/$PKGLOCATION/$PKGNAME/
+            res=$?
+            [ -e "$target"/robots.txt ] && `rm "$target"/robots.txt`
+            [ $res -ne 0 ] && echo "wget returned non-zero exit code ($res), aborting" && return $res
           fi
         fi
       done
@@ -414,20 +399,16 @@ fnDownload() {
         for url in ${packages[@]}; do
           echo ${url##*/}
         done
-        result=""
+
         echo -n "[user] download listed packages to '$PATHTARGET'? [y/n]: "
-        read -s -n 1 result
-        if [[ "$result" == "Y" || "$result" == "y" ]]; then
-          echo "$result"
-          for url in ${packages[@]}; do
-            echo "[info] downloading package '${url##*/}'"
-            set -x
-            wget -P $PATHTARGET $WGETOPTS ${REPOURL['multilib']}/current/$url
-            set +x
-          done
-        else
-          echo ""
-        fi
+        if ! fnDecision; then exit; fi
+
+        for url in ${packages[@]}; do
+          echo "[info] downloading package '${url##*/}'"
+          set -x
+          wget -P $PATHTARGET $WGETOPTS ${REPOURL['multilib']}/current/$url
+          set +x
+        done
       fi
       ;;
 
@@ -448,58 +429,39 @@ fnDownload() {
         echo "[info] found ${#packages[@]} slackbuild package$([ ${#packages[@]} -ne 1 ] && echo "s") matching search term '$search'"
         cancel=0
         for PKG in "${packages[@]}"; do
-          download=1
-          result=
-          echo -n "[user] download package: '$PKG'? [y/n/c] "
-          retry=1
-          while [ $retry -eq 1 ]; do
-            read -n 1 -s result
-            case "$result" in
-              "y" | "Y")
-                echo $result
-                retry=0
-                ;;
-              "n" | "N")
-                echo $result
-                download=0
-                retry=0
-                ;;
-              "c" | "C")
-                echo $result
-                retry=0
-                cancel=1
-                ;;
-            esac
-          done
-          if [ $cancel -eq 1 ]; then break; fi
-          if [ $download -eq 1 ]; then
-            [ $DEBUG -ge 1 ] && echo -e "PKG: \n$PKG"
-            PKGINFO=$(grep -A9 "^SLACKBUILD PACKAGE: $PKG\$" "$pkglist")
-            [ $DEBUG -ge 1 ] && echo -e "PKGINFO: \n$PKGINFO"
-            PKGNAME=$(echo -e "$PKGINFO" | sed -n 's|^.*NAME:\ \(.*\)$|\1|p')
-            [ $DEBUG -ge 1 ] && echo -e "PKGNAME: \n$PKGNAME"
-            PKGBUILD=${REPOURL['slackbuilds']}/$REPOVER/$(echo -e "$PKGINFO" | sed -n 's|^.*LOCATION:\ \.\/\(.*\)\/.*$|\1|p')/$PKGNAME.tar.gz
-            [ $DEBUG -ge 1 ] && echo -e "PKGBUILD: \n$PKGBUILD"
-            PKGDATA=($(echo -e "$PKGINFO" | sed -n 's|^.*DOWNLOAD'$ARCH2':\ \(.*\)$|\1|p'))
-            if [ ! "x$PKGDATA" == "x" ]; then
-              PKGDATAMD5=($(echo -e "$PKGINFO" | sed -n 's|^.*MD5SUM'$ARCH2':\ \(.*\)$|\1|p'))
-            else
-              PKGDATA=($(echo -e "$PKGINFO" | sed -n 's|^.*DOWNLOAD:\ \(.*\)$|\1|p'))
-              PKGDATAMD5=($(echo -e "$PKGINFO" | sed -n 's|^.*MD5SUM:\ \(.*\)$|\1|p'))
-            fi
-            [ $DEBUG -ge 1 ] && echo -e "PKGDATA: \n${PKGDATA[@]}"
-            [ $DEBUG -ge 1 ] && echo -e "#downloading package data:"
-            #download
-            #IMPLEMENT:
-            #checksum verification
-            #checks on existing files
-            wget -P . $WGETOPTS $PKGBUILD
-            if [ $? -ne 0 ]; then return $?; fi
-            for url in "${PKGDATA[@]}"; do
-              wget -P . $WGETOPTS "$url"
-              if [ $? -ne 0 ]; then return $?; fi
-            done
+
+          echo -n "[user] download package: '$PKG'? [y/n/c]: "
+          res="$(fnDecision "y|n|c")"
+          [ "x$res" == "xc" ] && break
+          [ "x$res" == "xn" ] && continue
+
+          [ $DEBUG -ge 1 ] && echo -e "PKG: \n$PKG"
+          PKGINFO=$(grep -A9 "^SLACKBUILD PACKAGE: $PKG\$" "$pkglist")
+          [ $DEBUG -ge 1 ] && echo -e "PKGINFO: \n$PKGINFO"
+          PKGNAME=$(echo -e "$PKGINFO" | sed -n 's|^.*NAME:\ \(.*\)$|\1|p')
+          [ $DEBUG -ge 1 ] && echo -e "PKGNAME: \n$PKGNAME"
+          PKGBUILD=${REPOURL['slackbuilds']}/$REPOVER/$(echo -e "$PKGINFO" | sed -n 's|^.*LOCATION:\ \.\/\(.*\)\/.*$|\1|p')/$PKGNAME.tar.gz
+          [ $DEBUG -ge 1 ] && echo -e "PKGBUILD: \n$PKGBUILD"
+          PKGDATA=($(echo -e "$PKGINFO" | sed -n 's|^.*DOWNLOAD'$ARCH2':\ \(.*\)$|\1|p'))
+          if [ ! "x$PKGDATA" == "x" ]; then
+            PKGDATAMD5=($(echo -e "$PKGINFO" | sed -n 's|^.*MD5SUM'$ARCH2':\ \(.*\)$|\1|p'))
+          else
+            PKGDATA=($(echo -e "$PKGINFO" | sed -n 's|^.*DOWNLOAD:\ \(.*\)$|\1|p'))
+            PKGDATAMD5=($(echo -e "$PKGINFO" | sed -n 's|^.*MD5SUM:\ \(.*\)$|\1|p'))
           fi
+          [ $DEBUG -ge 1 ] && echo -e "PKGDATA: \n${PKGDATA[@]}"
+          [ $DEBUG -ge 1 ] && echo -e "#downloading package data:"
+          #download
+          #IMPLEMENT:
+          #checksum verification
+          #checks on existing files
+          wget -P . $WGETOPTS $PKGBUILD
+          if [ $? -ne 0 ]; then return $?; fi
+          for url in "${PKGDATA[@]}"; do
+            wget -P . $WGETOPTS "$url"
+            if [ $? -ne 0 ]; then return $?; fi
+          done
+
         done
       fi
       ;;
