@@ -445,9 +445,7 @@ fnDownload() {
         echo "[user] no package name containing '$search' found"
         return 0
       else
-        SUFFIX=
-        if [ ${#packages[@]} -gt 1 ]; then SUFFIX="s"; fi
-        echo "found ${#packages[@]} slackbuild$SUFFIX package$SUFFIX matching search term '$search'"
+        echo "[info] found ${#packages[@]} slackbuild package$([ ${#packages[@]} -ne 1 ] && echo "s") matching search term '$search'"
         cancel=0
         for PKG in "${packages[@]}"; do
           download=1
