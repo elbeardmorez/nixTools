@@ -163,58 +163,67 @@ fnRepoSwitch() {
 fnUpdate() {
   pkglist=${PKGLIST}.${REPO}-${REPOVER}
 
-  case "$REPO" in
-    "slackware")
-      # switches
-      refresh=0
-      filter=0
-      # refresh?
-      [ $# -gt 0 ] && [ "x$1" == "xforce" ] && refresh=1 && shift
-      [[ $refresh -eq 0 && ! -f $pkglist.all ]] && refresh=1
-      [[ $(date +%s) -gt $[ $(date -r $pkglist.all +%s) + $PKGLISTMAXAGE ] ]] && refresh=1
-      if [ $refresh -eq 1 ]; then
+  # refresh?
+  refresh=0
+  [ $# -gt 0 ] && [ "x$1" == "xforce" ] && refresh=1 && shift
+  [[ $refresh -eq 0 && ! -f $pkglist.raw ]] && refresh=1
+  [[ $(date +%s) -gt $[ $(date -r $pkglist.all +%s) + $PKGLISTMAXAGE ] ]] && refresh=1
+
+  if [ $refresh -eq 1 ]; then
+    filter=1
+    case "$REPO" in
+      "slackware")
         fnRepoSwitch $REPOVER
         slackpkg update 1>&2
         [ ! $? ] && echo "[error] updating package list through Slackpkg" && return 1
         cp $SLACKPKGLIST $pkglist.raw
         slackpkg search . > $pkglist.all
-        filter=1
-        echo "[user] '$pkglist.all' updated" 1>&2
-      else
-        echo "[user] '$pkglist.all' less than 'PKGLISTMAXAGE [${PKGLISTMAXAGE}s]' old, not updating" 1>&2
-      fi
+        ;;
 
-      # filter blacklist?
-      [[ $filter -eq 0 && ! -f $pkglist ]] && filter=1
-      [[ $filter -eq 0 && $(date -r "$SLACKPKGBLACKLIST" +%s) -gt $(date -r $pkglist +%s) ]] && filter=1
+      "multilib")
+        wget -P /tmp $WGETOPTS ${REPOURL['multilib']}/"FILELIST.TXT" -O $pkglist.raw
+        sed -n 's|.*\ \.\/'$REPOVER'\/\(.*t[gx]z$\)|\1|p' $pkglist.raw > $pkglist.all
+        ;;
 
-      if [ $filter -eq 1 ]; then
-        cp "$pkglist.all" "$pkglist"
-        lc=$(cat $pkglist | wc -l)
+      "slackbuilds")
+        PKGLISTREMOTE="${REPOURL['slackbuilds']}/$REPOVER""/SLACKBUILDS.TXT"
+        wget -P /tmp $WGETOPTS $PKGLISTREMOTE -O $pkglist.raw
+        [ ! $? ] && echo "[error] pulling package list from '$PKGLISTREMOTE'" && return 1
+        #process list
+        #add search property - name-version per package
+        sed -n "/^.*NAME:.*$/,/^.*VERSION:.*$/{/NAME:/{h;b};H;/VERSION:/{g;s|^.*NAME:\s*\(\S*\).*VERSION:\s\(\S*\)|SLACKBUILD PACKAGE: \1\-\2|p;x;p};b};p" $pkglist.raw > $pkglist.all
+        ;;
+    esac
+    echo "[user] '$pkglist.raw' updated" 1>&2
+  else
+    echo "[user] '$pkglist.raw' less than 'PKGLISTMAXAGE [${PKGLISTMAXAGE}s]' old, not updating" 1>&2
+  fi
+
+  # filter blacklist?
+  filter=0
+  [[ $filter -eq 0 && ! -f $pkglist ]] && filter=1
+  [[ $filter -eq 0 && $(date -r "$SLACKPKGBLACKLIST" +%s) -gt $(date -r $pkglist +%s) ]] && filter=1
+
+  if [ $filter -eq 1 ]; then
+    cp "$pkglist.all" "$pkglist"
+    lc=$(cat $pkglist | wc -l)
+    case "$REPO" in
+      "slackware")
         while read line; do
           match="$(echo "$line" | sed -n 's/^\([^#]*\).*$/\1/p')"
           [ "x$match" == "x" ] && continue
           sed -i '/.*'$match'-[^-]\+-[^-]\+-[^-]\+\( \|\t\|$\)/d' $pkglist
         done < $SLACKPKGBLACKLIST
-        lc2=$(cat $pkglist | wc -l)
-        echo "[user] filtered $(($lc-$lc2)) blacklisted package entries" 1>&2
-      fi
-      ;;
+        ;;
+      "multilib")
+        ;;
 
-    "multilib")
-      wget -P /tmp $WGETOPTS ${REPOURL['multilib']}/"FILELIST.TXT" -O $pkglist.all
-      sed -n 's|.*\ \.\/'$REPOVER'\/\(.*t[gx]z$\)|\1|p' $pkglist.all > $pkglist
-      ;;
-
-    "slackbuilds")
-      PKGLISTREMOTE="${REPOURL['slackbuilds']}/$REPOVER""/SLACKBUILDS.TXT"
-      wget -P /tmp $WGETOPTS $PKGLISTREMOTE -O $pkglist.all
-      [ ! $? ] && echo "[error] pulling package list from '$PKGLISTREMOTE'" && return 1
-      #process list
-      #add search property - name-version per package
-      sed -n "/^.*NAME:.*$/,/^.*VERSION:.*$/{/NAME:/{h;b};H;/VERSION:/{g;s|^.*NAME:\s*\(\S*\).*VERSION:\s\(\S*\)|SLACKBUILD PACKAGE: \1\-\2|p;x;p};b};p" $pkglist.all > $pkglist
-      ;;
-  esac
+      "slackbuilds")
+        ;;
+    esac
+    lc2=$(cat $pkglist | wc -l)
+    echo "[user] filtered $(($lc-$lc2)) blacklisted package entries" 1>&2
+  fi
 
   return $?
 }
