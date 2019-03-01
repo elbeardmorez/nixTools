@@ -296,7 +296,6 @@ fnDownload() {
   case "$REPO" in
     "slackware")
       search="$1" && shift
-      DEBUG=0
       SOURCE=0
       if [ $# -gt 0 ]; then
         while [[ $# -gt 0 && "x`echo $1 | sed -n '/\(source\|src\)/p'`" != "x" ]]; do
