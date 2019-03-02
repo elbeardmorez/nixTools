@@ -306,54 +306,73 @@ fnDownload() {
   dl_src=1
   dl_pkg=1
 
-  case "$REPO" in
-    "slackware")
-      search="$1" && shift
-      if [ $# -gt 0 ]; then
-        while [[ $# -gt 0 && "x`echo $1 | sed -n '/\(source\|src\)/p'`" != "x" ]]; do
-          option="$1"
-          case $option in
-            "ns"|"no-source") dl_src=0 && shift ;;
-            "np"|"no-package") dl_pkg=0 && shift ;;
-            *) help && echo "[info] unknown option: '$option'" && exit 1 ;;
-          esac
-        done
-      fi
+  search="$1" && shift
+  if [ $# -gt 0 ]; then
+    while [[ $# -gt 0 && "x`echo $1 | sed -n '/\(source\|src\)/p'`" != "x" ]]; do
+      option="$1"
+      case $option in
+        "ns"|"no-source") dl_src=0 && shift ;;
+        "np"|"no-package") dl_pkg=0 && shift ;;
+        *) help && echo "[info] unknown option: '$option'" && exit 1 ;;
+      esac
+    done
+  fi
 
-      [ $DEBUG -ge 1 ] && echo "[debug] dl_src: $dl_src, dl_pkg: $dl_pkg"
+  [ $DEBUG -ge 1 ] && echo "[debug] dl_src: $dl_src, dl_pkg: $dl_pkg"
 
-      # search
-      packages="$(fnSearch "$search")"
-      [ ! $? ] && return 1
+  # search
+  packages="$(fnSearch "$search")"
+  [ ! $? ] && return 1
 
-      IFS=$'\n'; packages=($packages); IFS="$IFSORG"
-      for PKG in "${packages[@]}"; do
-        parts=(`echo $parts`)
+  IFS=$'\n'; packages=($packages); IFS="$IFSORG"
+  [ ${#packages[@]} -eq 0 ] &&
+    echo "[user] no packages found for search '$search'" && return 0
+
+  echo "[info] found ${#packages[@]} package$([ ${#packages[@]} -ne 1 ] && echo "s") matching search '$search'"
+
+  for package in "${packages[@]}"; do
+
+    # process package description
+    case "$REPO" in
+      "slackware")
+        parts=($(echo "$package"))
         type=${parts[0]} && type=${type:1:$[${#type} - 2]}
         pkg=${parts[1]} && [ -z "$pkg" ] && return 1
         version=${parts[2]}
+        ;;
 
-        [ $DEBUG -ge 1 ] &&
-          echo "[info] found package: $pkg, version: $version, type: [$type]" 1>&2
+      "multilib")
+        pkg="$package"
+        ;;
 
-        result=
-        echo -n "[user] download package / source: '$pkg'? [y/n/c]: "
+      "slackbuilds")
+        pkg="${package%-*}"
+        version="${package##*-}"
+        ;;
 
-        res="$(fnDecision "y|n|c")"
-        [ "x$res" == "xc" ] && break
-        [ "x$res" == "xn" ] && continue
+    esac
 
-        target="$pkg-$version"
-        mkdir -p "$target"
+    echo -e "[info] found package: $pkg$([ -n "$version" ] && echo ", version: $version")$([ -n "$type" ] && echo ", type: [$type]")\n" 1>&2
 
-        # determine targets
-        location_src=""
-        location_pkg=""
+    echo -n "[user] download package / source? [y/n/c]: "
 
+    res="$(fnDecision "y|n|c")"
+    [ "x$res" == "xc" ] && break
+    [ "x$res" == "xn" ] && continue
+
+    target="$pkg-$version"
+    mkdir -p "$target"
+
+    # determine targets
+    declare location_pkg
+    declare -a location_src
+
+    case "$REPO" in
+      "slackware")
         if [ "x$REPOVER" != "xcurrent" ]; then
           # local
-          location_src="$ISOSOURCE/$type/$pkg"
           location_pkg="$ISOPACKAGES/$type"
+          location_src[${#location_src[@]}]="$ISOSOURCE/$type/$pkg"
         else
           # remote
           pkg_info=$(grep -B1 -A3 "^PACKAGE NAME:[ ]*$pkg-[0-9]\+.*" "$pkglist.raw")
@@ -381,125 +400,81 @@ fnDownload() {
           fi
 
           # src
-          location_src="${REPOURL['slackware']}/slackware$ARCHSUFFIX-$REPOVER/source/$pkg_dir/$pkg_name/"
+          location_src[${#location_src[@]}]="${REPOURL['slackware']}/slackware$ARCHSUFFIX-$REPOVER/source/$pkg_dir/$pkg_name/"
         fi
+        ;;
 
-        # pull
-        if [ $dl_pkg -eq 1 ]; then
-          if [ -z "$location_pkg" ]; then
-            echo "[error] no build found for package '$pkg [$ARCH]'"
-          else
-            echo "[info] pulling source data:"
-            if [ "$REPOVER" != "current" ]; then
-              cp -a "$location_pkg" "$target"
-            else
-              wget --directory-prefix="$target" $WGETOPTS "$location_pkg"
-            fi
-          fi
+      "multilib")
+        location_pkg=${REPOURL['multilib']}/current/$package
+        ;;
+
+      "slackbuilds")
+        pkg_info=$(grep -A9 "^SLACKBUILD PACKAGE: $pkg-$version\$" "$pkglist")
+        pkg_name=$(echo -e "$pkg_info" | sed -n 's|^.*NAME:\ \(.*\)$|\1|p')
+        pkg_build=${REPOURL['slackbuilds']}/$REPOVER/$(echo -e "$pkg_info" | sed -n 's|^.*LOCATION:\ \.\/\(.*\)\/.*$|\1|p')/$pkg_name.tar.gz
+        pkg_src=($(echo -e "$pkg_info" | sed -n 's|^.*DOWNLOAD'$ARCH2':\ \(.*\)$|\1|p'))
+        if [ -n "$pkg_src" ]; then
+          pkg_src_md5=($(echo -e "$pkg_info" | sed -n 's|^.*MD5SUM'$ARCH2':\ \(.*\)$|\1|p'))
+        else
+          pkg_src=($(echo -e "$pkg_info" | sed -n 's|^.*DOWNLOAD:\ \(.*\)$|\1|p'))
+          pkg_src_md5=($(echo -e "$pkg_info" | sed -n 's|^.*MD5SUM:\ \(.*\)$|\1|p'))
         fi
-        if [ $dl_src -eq 1 ]; then
-          if [ -z "$location_src" ]; then
-            echo "[error] no source found for package '$pkg' [$ARCH]"
-          else
-            echo "[info] pulling source data:"
-            if [ "$REPOVER" != "current" ]; then
-              cp -a "$location_src"/$pkg-$version*z "$target"
-            else
-              wget -P . -r --directory-prefix="$target" --no-host-directories --cut-dirs=5 --no-parent --level=2 --reject="index.html*" $WGETOPTS "$location_src"
-              res=$?
-              [ -e "$target"/robots.txt ] && `rm "$target"/robots.txt`
-              [ $res -ne 0 ] && echo "[error] wget returned non-zero exit code ($res), aborting" && return $res
-            fi
-          fi
+        if [ $DEBUG -ge 1 ]; then
+          echo -e "match pkg info:\n$pkg_info"
+          echo -e "match pkg name:\n$pkg_name"
+          echo -e "match pkg build:\n$pkg_build"
+          echo -e "match pkg src:\n${pkg_src[@]}"
         fi
-      done
-      ;;
+       location_src=("$pkg_build" "${pkg_src[@]}")
+       ;;
 
-    "multilib")
-      search="$1" && shift
+    esac
 
-      target="multilib"
-      [ ! -d '$target' ] && mkdir "$target"
-
-      # search
-      packages="$(fnSearch "$search")"
-      [ ! $? ] && return 1
-
-      IFS=$'\n'; packages=($packages); IFS="$IFSORG"
-
-      echo "[info] found ${#packages[@]} package$([ ${#packages[@]} -ne 1 ] && echo "s") matching search term '$search'"
-      if [ ${#packages[@]} -gt 0 ]; then
-        echo ""
-        for url in ${packages[@]}; do
-          echo ${url##*/}
-        done
-
-        echo -n "[user] download listed packages to '$target'? [y/n]: "
-        if ! fnDecision; then exit; fi
-
-        for url in ${packages[@]}; do
-          echo "[info] downloading package '${url##*/}'"
-          set -x
-          wget -P $target $WGETOPTS ${REPOURL['multilib']}/current/$url
-          set +x
-        done
-      fi
-      ;;
-
-    "slackbuilds")
-      search="$1"
-
-      # search
-      packages="$(fnSearch "$search")"
-      [ ! $? ] && return 1
-
-      IFS=$'\n'; packages=($packages); IFS="$IFSORG"
-
-      # error if none, continue if unique, list if multiple matches
-      if [ ${#packages[@]} -eq 0 ]; then
-        echo "[user] no package name containing '$search' found"
-        return 0
+    # pull
+    # IMPLEMENT:
+    # -checksum verification
+    # -checks on existing files
+    if [ $dl_pkg -eq 1 ]; then
+      if [ -z "$location_pkg" ]; then
+        echo "[info] no build found for package '$pkg [$ARCH]'"
       else
-        echo "[info] found ${#packages[@]} slackbuild package$([ ${#packages[@]} -ne 1 ] && echo "s") matching search term '$search'"
-        cancel=0
-        for PKG in "${packages[@]}"; do
-
-          echo -n "[user] download package: '$PKG'? [y/n/c]: "
-          res="$(fnDecision "y|n|c")"
-          [ "x$res" == "xc" ] && break
-          [ "x$res" == "xn" ] && continue
-
-          [ $DEBUG -ge 1 ] && echo -e "PKG: \n$PKG"
-          PKGINFO=$(grep -A9 "^SLACKBUILD PACKAGE: $PKG\$" "$pkglist")
-          [ $DEBUG -ge 1 ] && echo -e "PKGINFO: \n$PKGINFO"
-          PKGNAME=$(echo -e "$PKGINFO" | sed -n 's|^.*NAME:\ \(.*\)$|\1|p')
-          [ $DEBUG -ge 1 ] && echo -e "PKGNAME: \n$PKGNAME"
-          PKGBUILD=${REPOURL['slackbuilds']}/$REPOVER/$(echo -e "$PKGINFO" | sed -n 's|^.*LOCATION:\ \.\/\(.*\)\/.*$|\1|p')/$PKGNAME.tar.gz
-          [ $DEBUG -ge 1 ] && echo -e "PKGBUILD: \n$PKGBUILD"
-          PKGDATA=($(echo -e "$PKGINFO" | sed -n 's|^.*DOWNLOAD'$ARCH2':\ \(.*\)$|\1|p'))
-          if [ -n "$PKGDATA" ]; then
-            PKGDATAMD5=($(echo -e "$PKGINFO" | sed -n 's|^.*MD5SUM'$ARCH2':\ \(.*\)$|\1|p'))
-          else
-            PKGDATA=($(echo -e "$PKGINFO" | sed -n 's|^.*DOWNLOAD:\ \(.*\)$|\1|p'))
-            PKGDATAMD5=($(echo -e "$PKGINFO" | sed -n 's|^.*MD5SUM:\ \(.*\)$|\1|p'))
-          fi
-          [ $DEBUG -ge 1 ] && echo -e "PKGDATA: \n${PKGDATA[@]}"
-          [ $DEBUG -ge 1 ] && echo -e "#downloading package data:"
-          #download
-          #IMPLEMENT:
-          #checksum verification
-          #checks on existing files
-          wget -P . $WGETOPTS $PKGBUILD
-          if [ $? -ne 0 ]; then return $?; fi
-          for url in "${PKGDATA[@]}"; do
-            wget -P . $WGETOPTS "$url"
-            if [ $? -ne 0 ]; then return $?; fi
-          done
-
-        done
+        echo "[info] pulling source data:"
+        if [ "$REPOVER" != "current" ]; then
+          cp -a "$location_pkg" "$target"
+        else
+          wget --directory-prefix="$target" $WGETOPTS "$location_pkg"
+        fi
       fi
-      ;;
-  esac
+    fi
+    if [ $dl_src -eq 1 ]; then
+      if [ ${#location_src[@]} -eq 0 ]; then
+        echo "[info] no source found for package '$pkg' [$ARCH]"
+      else
+        echo "[info] pulling source data:"
+        if [[ "x$REPO" == "xslackware" && "$REPOVER" != "current" ]]; then
+          [ $DEBUG -ge 1 ] && echo "[debug] copying'${url##*/}'"
+          cp -a "$location_src"/$pkg-$version*z "$target"
+        else
+          declare res
+          if [ ${#location_src[@]} -eq 1 ]; then
+            [ $DEBUG -ge 1 ] && echo "[debug] downloading '${location_src##*/}'"
+            wget -P . -r --directory-prefix="$target" --no-host-directories --cut-dirs=5 --no-parent --level=2 --reject="index.html*" $WGETOPTS "${location_src[0]}"
+            res=$?
+            [ -e "$target"/robots.txt ] && $(rm "$target"/robots.txt)
+            [ $res -ne 0 ] && echo "[error] wget returned non-zero exit code ($res), aborting" && return $res
+          else
+            for url in "${location_src[@]}"; do
+              wget -P . --directory-prefix="$target" $WGETOPTS "$url"
+              res=$?
+              [ $res -ne 0 ] && break
+            done
+            [ -e "$target"/robots.txt ] && $(rm "$target"/robots.txt)
+            [ $res -ne 0 ] && echo "[error] wget returned non-zero exit code ($res), aborting" && return $res
+          fi
+        fi
+      fi
+    fi
+  done
 }
 
 fnList() {
