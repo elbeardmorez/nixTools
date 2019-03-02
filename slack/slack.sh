@@ -346,6 +346,17 @@ fnDownload() {
         target="$pkg-$version"
         mkdir -p "$target"
 
+        if [ "$REPOVER" != "current" ]; then
+          # parse remote package list
+          if [ $DEBUG -eq 1 ]; then echo -e "PKG: \n$pkg"; fi
+          PKGINFO=$(grep -B1 -A3 "^PACKAGE NAME:[ ]*$pkg-[0-9]\+.*" "$pkglist.raw")
+          if [ $DEBUG -eq 1 ]; then echo -e "PKGINFO: \n$PKGINFO"; fi
+          PKG=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)/\1/p')
+          PKGNAME=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)-[0-9]\+.*\-.*x86.*-.*/\1/p')
+          if [ $DEBUG -eq 1 ]; then echo -e "PKGNAME: \n$PKGNAME"; fi
+          PKGLOCATION=$(echo -e "$PKGINFO" |   sed -n 's|^.*LOCATION:[ ]*.*/\(.*\).*$|\1|p')
+        fi
+
         if [ $dl_pkg -eq 1 ]; then
           if [ "$REPOVER" != "current" ]; then
             #local
@@ -353,16 +364,7 @@ fnDownload() {
             cp -a "$source"/$type/$pkg-$version*z "$target"
           else
             #remote
-            if [ $DEBUG -eq 1 ]; then echo -e "PKG: \n$pkg"; fi
-            PKGINFO=$(grep -B1 -A3 "^PACKAGE NAME:[ ]*$pkg-[0-9]\+.*" "$pkglist.raw")
-            if [ $DEBUG -eq 1 ]; then echo -e "PKGINFO: \n$PKGINFO"; fi
-            PKG=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)/\1/p')
-            PKGNAME=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)-[0-9]\+.*\-.*x86.*-.*/\1/p')
-            if [ $DEBUG -eq 1 ]; then echo -e "PKGNAME: \n$PKGNAME"; fi
-            PKGLOCATION=$(echo -e "$PKGINFO" |   sed -n 's|^.*LOCATION:[ ]*.*/\(.*\).*$|\1|p')
             if [ $DEBUG -eq 1 ]; then echo -e "#downloading package data:"; fi
-            #download
-
             ## pkg
             PKGLOCATION_BUILD="$(sed -n '/^[ \t]*[^#]\+$/p' $SLACKPKGMIRRORS)slackware$ARCHSUFFIX/$PKGLOCATION"
             arch_pkglist="x86_64"
@@ -391,11 +393,11 @@ fnDownload() {
             cp -a "$source"/$type/$pkg/ "$target"
           else
             # remote
-            wget -P . -r --directory-prefix="$target" --no-host-directories --cut-dirs=5 --no-parent --level=2 --reject="index.html*" $WGETOPTS ${REPOURL['slackware']}/slackware$ARCHSUFFIX-$REPOVER/source/$PKGLOCATION/$PKGNAME/
-            res=$?
-            [ -e "$target"/robots.txt ] && `rm "$target"/robots.txt`
-            [ $res -ne 0 ] && echo "wget returned non-zero exit code ($res), aborting" && return $res
-          fi
+          wget -P . -r --directory-prefix="$target" --no-host-directories --cut-dirs=5 --no-parent --level=2 --reject="index.html*" $WGETOPTS ${REPOURL['slackware']}/slackware$ARCHSUFFIX-$REPOVER/source/$PKGLOCATION/$PKGNAME/
+          res=$?
+          [ -e "$target"/robots.txt ] && `rm "$target"/robots.txt`
+          [ $res -ne 0 ] && echo "wget returned non-zero exit code ($res), aborting" && return $res
+        fi
         fi
       done
       ;;
