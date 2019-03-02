@@ -328,13 +328,13 @@ fnDownload() {
 
       IFS=$'\n'; packages=($packages); IFS="$IFSORG"
       for PKG in "${packages[@]}"; do
-        PKG=(`echo $PKG`)
-        type=${PKG[0]} && type=${type:1:$[${#type} - 2]}
-        pkg=${PKG[1]} && [ -z "$pkg" ] && return 1
-        version=${PKG[2]}
+        parts=(`echo $parts`)
+        type=${parts[0]} && type=${type:1:$[${#type} - 2]}
+        pkg=${parts[1]} && [ -z "$pkg" ] && return 1
+        version=${parts[2]}
 
         [ $DEBUG -ge 1 ] &&
-          echo "found package: $pkg, version: $version, type: [$type]" 1>&2
+          echo "[info] found package: $pkg, version: $version, type: [$type]" 1>&2
 
         result=
         echo -n "[user] download package / source: '$pkg'? [y/n/c]: "
@@ -346,57 +346,70 @@ fnDownload() {
         target="$pkg-$version"
         mkdir -p "$target"
 
-        if [ "$REPOVER" != "current" ]; then
-          # parse remote package list
-          if [ $DEBUG -eq 1 ]; then echo -e "PKG: \n$pkg"; fi
-          PKGINFO=$(grep -B1 -A3 "^PACKAGE NAME:[ ]*$pkg-[0-9]\+.*" "$pkglist.raw")
-          if [ $DEBUG -eq 1 ]; then echo -e "PKGINFO: \n$PKGINFO"; fi
-          PKG=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)/\1/p')
-          PKGNAME=$(echo -e "$PKGINFO" | sed -n 's/^.*NAME:[ ]*\(.*\)-[0-9]\+.*\-.*x86.*-.*/\1/p')
-          if [ $DEBUG -eq 1 ]; then echo -e "PKGNAME: \n$PKGNAME"; fi
-          PKGLOCATION=$(echo -e "$PKGINFO" |   sed -n 's|^.*LOCATION:[ ]*.*/\(.*\).*$|\1|p')
+        # determine targets
+        location_src=""
+        location_pkg=""
+
+        if [ "x$REPOVER" != "xcurrent" ]; then
+          # local
+          location_src="$ISOSOURCE/$type/$pkg"
+          location_pkg="$ISOPACKAGES/$type"
+        else
+          # remote
+          pkg_info=$(grep -B1 -A3 "^PACKAGE NAME:[ ]*$pkg-[0-9]\+.*" "$pkglist.raw")
+          pkg_file=$(echo -e "$pkg_info" | sed -n 's/^.*NAME:[ ]*\(.*\)/\1/p')
+          pkg_name=$(echo -e "$pkg_info" | sed -n 's/^.*NAME:[ ]*\(.*\)-[0-9]\+.*\-.*x86.*-.*/\1/p')
+          pkg_dir=$(echo -e "$pkg_info" |   sed -n 's|^.*LOCATION:[ ]*.*/\(.*\).*$|\1|p')
+          if [ $DEBUG -gea 1 ]; then
+            echo -e "match pkg info:\n$pkg_info"
+            echo -e "match pkg name:\n$pkg_name"
+            echo -e "match pkg file:\n$pkg_file"
+            echo -e "match pkg dir:\n$pkg_dir"
+          fi
+
+          ## pkg
+          location_pkg="$(sed -n '/^[ \t]*[^#]\+$/p' $SLACKPKGMIRRORS)slackware$ARCHSUFFIX/$pkg_dir/$pkg_file"
+          if [ "x$ARCHSUFFIX" != "x64" ]; then
+            # test x86 arch path variants
+            [ $DEBUG -ge 1 ] && echo "[debug] testing x86 arch path variants" 1>&2
+            arch_pkglist="x86_64"
+            location_pkg="$(echo "$location_pkg" | sed -n 's/slackware64/slackware/p')"
+            for arch in "i486" "i586" "i686"; do
+              url="$location_pkg/$(echo "$pkg_file" | sed -n 's/'$arch_pkglist'/'$arch'/p')"
+              [ -n "$(wget -S --spider $url 2>&1 | grep 'HTTP/1.1 200 OK')" ] && location_pkg="$url" && break
+            done
+          fi
+
+          # src
+          location_src="${REPOURL['slackware']}/slackware$ARCHSUFFIX-$REPOVER/source/$pkg_dir/$pkg_name/"
         fi
 
+        # pull
         if [ $dl_pkg -eq 1 ]; then
-          if [ "$REPOVER" != "current" ]; then
-            #local
-            source="$ISOPACKAGES"
-            cp -a "$source"/$type/$pkg-$version*z "$target"
+          if [ -z "$location_pkg" ]; then
+            echo "[error] no build found for package '$pkg [$ARCH]'"
           else
-            #remote
-            if [ $DEBUG -eq 1 ]; then echo -e "#downloading package data:"; fi
-            ## pkg
-            PKGLOCATION_BUILD="$(sed -n '/^[ \t]*[^#]\+$/p' $SLACKPKGMIRRORS)slackware$ARCHSUFFIX/$PKGLOCATION"
-            arch_pkglist="x86_64"
-            if [ "x$ARCHSUFFIX" = "x64" ]; then
-              PKGURL="${PKGLOCATION_BUILD}/${PKG}"
+            echo "[info] pulling source data:"
+            if [ "$REPOVER" != "current" ]; then
+              cp -a "$location_pkg" "$target"
             else
-              PKGLOCATION_BUILD="`echo "$PKGLOCATION_BUILD" | sed -n 's/slackware64/slackware/p'`"
-              # test url to find correct x86 arch
-              for arch in "i486" "i586" "i686"; do
-                url="$PKGLOCATION_BUILD`echo "$PKG" | sed -n 's/'$arch_pkglist'/'$arch'/p'`"
-                [ "x`wget -S --spider $url 2>&1 | grep 'HTTP/1.1 200 OK'`" != "x" ] && PKGURL="$url" && break
-              done
-            fi
-            if [ "x$PKGURL" != "x" ]; then
-              wget --directory-prefix="$target" $WGETOPTS "$PKGURL"
-            else
-              echo "no package build found for arch '$ARCH'!"
+              wget --directory-prefix="$target" $WGETOPTS "$location_pkg"
             fi
           fi
         fi
-
         if [ $dl_src -eq 1 ]; then
-          if [ "$REPOVER" != "current" ]; then
-            # local
-            source="$ISOSOURCE"
-            cp -a "$source"/$type/$pkg/ "$target"
+          if [ -z "$location_src" ]; then
+            echo "[error] no source found for package '$pkg' [$ARCH]"
           else
-            # remote
-            wget -P . -r --directory-prefix="$target" --no-host-directories --cut-dirs=5 --no-parent --level=2 --reject="index.html*" $WGETOPTS ${REPOURL['slackware']}/slackware$ARCHSUFFIX-$REPOVER/source/$PKGLOCATION/$PKGNAME/
-            res=$?
-            [ -e "$target"/robots.txt ] && `rm "$target"/robots.txt`
-            [ $res -ne 0 ] && echo "wget returned non-zero exit code ($res), aborting" && return $res
+            echo "[info] pulling source data:"
+            if [ "$REPOVER" != "current" ]; then
+              cp -a "$location_src"/$pkg-$version*z "$target"
+            else
+              wget -P . -r --directory-prefix="$target" --no-host-directories --cut-dirs=5 --no-parent --level=2 --reject="index.html*" $WGETOPTS "$location_src"
+              res=$?
+              [ -e "$target"/robots.txt ] && `rm "$target"/robots.txt`
+              [ $res -ne 0 ] && echo "[error] wget returned non-zero exit code ($res), aborting" && return $res
+            fi
           fi
         fi
       done
