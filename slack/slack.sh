@@ -174,11 +174,13 @@ fnRepoSwitch() {
 }
 
 fnUpdate() {
+  verbose=1
   pkglist=${PKGLIST}.${REPO}-${REPOVER}
 
   # refresh?
   refresh=0
   [[ $# -gt 0 && "x$1" == "xforce" ]] && refresh=1 && shift
+  [[ $# -gt 0 && "x$1" == "xno-verbose" ]] && verbose=0 && shift
   [[ $refresh -eq 0 && ! -f $pkglist.raw ]] && refresh=1
   [[ $(date +%s) -gt $[ $(date -r $pkglist.all +%s) + $PKGLISTMAXAGE ] ]] && refresh=1
 
@@ -207,9 +209,11 @@ fnUpdate() {
         sed -n "/^.*NAME:.*$/,/^.*VERSION:.*$/{/NAME:/{h;b};H;/VERSION:/{g;s|^.*NAME:\s*\(\S*\).*VERSION:\s\(\S*\)|SLACKBUILD PACKAGE: \1\-\2|p;x;p};b};p" $pkglist.raw > $pkglist.all
         ;;
     esac
+    # always inform user of update
     echo "[user] '$pkglist.raw' updated" 1>&2
   else
-    echo "[user] '$pkglist.raw' less than 'PKGLISTMAXAGE [${PKGLISTMAXAGE}s]' old, not updating" 1>&2
+    # only inform user on no update if verbosity hasn't been turned off
+    [ $verbose -eq 1 ] && echo "[user] '$pkglist.raw' less than 'PKGLISTMAXAGE [${PKGLISTMAXAGE}s]' old, not updating" 1>&2
   fi
 
   # filter blacklist?
@@ -266,7 +270,7 @@ fnSearch() {
       else
         # search remote
         # ensure list or die
-        fnUpdate
+        fnUpdate "no-verbose"
         [ ! $? ] && return 1
 
         results="$(sed -n '/^PACKAGE NAME:[ ]*.*'"$search"'.*/{N;s/\n\(.\)/|\1/;p}' $pkglist.raw)"
@@ -276,7 +280,7 @@ fnSearch() {
 
     "multilib")
       # ensure list or die
-      fnUpdate
+      fnUpdate "no-verbose"
       [ ! $? ] && return 1
 
       search="$1"
@@ -285,7 +289,7 @@ fnSearch() {
 
     "slackbuilds")
       # ensure list or die
-      fnUpdate
+      fnUpdate "no-verbose"
       [ ! $? ] && return 1
 
       search="$1"
@@ -492,7 +496,7 @@ fnList() {
       [[ "x$(echo "$1" | sed -n '/[-]*\(new\|uninstalled\|up\|\upg\|upd\|update\|\updates\|upgrade\|upgrades\|search\)"/p')" != "x" || $# -gt 1 ]] && option="$1" && shift
 
       pkglist=/tmp/packages.current
-      fnUpdate
+      fnUpdate "no-verbose"
 
       case "$option" in
         "new"|"uninstalled") grep -iP '^\[uninstalled\]' $pkglist | sort ;;
