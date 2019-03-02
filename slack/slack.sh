@@ -417,7 +417,9 @@ fnDownload() {
 
     "multilib")
       search="$1" && shift
-      PATHTARGET=~/packages/
+
+      target="multilib"
+      [ ! -d '$target' ] && mkdir "$target"
 
       # search
       packages="$(fnSearch "$search")"
@@ -432,13 +434,13 @@ fnDownload() {
           echo ${url##*/}
         done
 
-        echo -n "[user] download listed packages to '$PATHTARGET'? [y/n]: "
+        echo -n "[user] download listed packages to '$target'? [y/n]: "
         if ! fnDecision; then exit; fi
 
         for url in ${packages[@]}; do
           echo "[info] downloading package '${url##*/}'"
           set -x
-          wget -P $PATHTARGET $WGETOPTS ${REPOURL['multilib']}/current/$url
+          wget -P $target $WGETOPTS ${REPOURL['multilib']}/current/$url
           set +x
         done
       fi
