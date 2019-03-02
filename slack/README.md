@@ -18,9 +18,12 @@ usage: slack.sh [OPTION] [OPTION ARGS]
 where OPTION is:
 
   # slack packages / sources list:
-  u, update  : update lists of packages from all repositories
-               (configured through Slackpkg) and their current state
-               on the system
+  u, update [ARG]  : update lists of packages from all repositories
+                     (configured through Slackpkg) and their current
+                     state on the system
+    where [ARG] can be:
+      force  : force package list update regardless of last refresh
+               time
 
   s, search PKG  : wildcard search package 'PKG' locally (slackware
                    isos) or remotely (slackware repository) based on

@@ -38,9 +38,12 @@ usage: $SCRIPTNAME [OPTION] [OPTION ARGS]\n
 where OPTION is:
 
   # slack packages / sources list:
-  u, update  : update lists of packages from all repositories
-               (configured through Slackpkg) and their current state
-               on the system
+  u, update [ARG]  : update lists of packages from all repositories
+                     (configured through Slackpkg) and their current
+                     state on the system
+    where [ARG] can be:
+      force  : force package list update regardless of last refresh
+               time
 
   s, search PKG  : wildcard search package 'PKG' locally (slackware
                    isos) or remotely (slackware repository) based on
@@ -915,7 +918,7 @@ s="$(echo "$1" | awk '{s=tolower($0); gsub(/^[-]*/, "", s); print s}')"
 '\)$/p')" != "x" ] && option="$s" && shift
 
 case "$option" in
-  "update"|"u") fnUpdate "force" ;;
+  "update"|"u") fnUpdate "$@" ;;
   "mlupdate"|"mlu") REPO=multilib REPOVER=${REPOVER:-${REPOVERDEFAULTS[$REPO]}} fnUpdate "$@" ;;
   "sbupdate"|"sbu") REPO=slackbuilds REPOVER=${REPOVER:-${REPOVERDEFAULTS[$REPO]}} fnUpdate "$@" ;;
   "search"|"s") fnSearch "$@" ;;
