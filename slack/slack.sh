@@ -365,14 +365,14 @@ fnDownload() {
 
             ## pkg
             PKGLOCATION_BUILD="$(sed -n '/^[ \t]*[^#]\+$/p' $SLACKPKGMIRRORS)slackware$ARCHSUFFIX/$PKGLOCATION"
-            PKGARCH="x86_64"
+            arch_pkglist="x86_64"
             if [ "x$ARCHSUFFIX" = "x64" ]; then
               PKGURL="${PKGLOCATION_BUILD}/${PKG}"
             else
               PKGLOCATION_BUILD="`echo "$PKGLOCATION_BUILD" | sed -n 's/slackware64/slackware/p'`"
               # test url to find correct x86 arch
               for arch in "i486" "i586" "i686"; do
-                url="$PKGLOCATION_BUILD`echo "$PKG" | sed -n 's/'$PKGARCH'/'$arch'/p'`"
+                url="$PKGLOCATION_BUILD`echo "$PKG" | sed -n 's/'$arch_pkglist'/'$arch'/p'`"
                 [ "x`wget -S --spider $url 2>&1 | grep 'HTTP/1.1 200 OK'`" != "x" ] && PKGURL="$url" && break
               done
             fi

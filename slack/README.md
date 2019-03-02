@@ -1,7 +1,7 @@
 # slack.sh
 
 ## description
-script to aid in the building and installation of source and package based software on a Slackware system
+script to aid in the building and installation of source and package based software on a Slackware 64 multilib system
 
 this might be of use to someone who likes 'living on the edge' with a mix of major/current release packages, their own tweaked builds and non-packaged / aka 'raw source' installations
 
