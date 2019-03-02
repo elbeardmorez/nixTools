@@ -393,11 +393,11 @@ fnDownload() {
             cp -a "$source"/$type/$pkg/ "$target"
           else
             # remote
-          wget -P . -r --directory-prefix="$target" --no-host-directories --cut-dirs=5 --no-parent --level=2 --reject="index.html*" $WGETOPTS ${REPOURL['slackware']}/slackware$ARCHSUFFIX-$REPOVER/source/$PKGLOCATION/$PKGNAME/
-          res=$?
-          [ -e "$target"/robots.txt ] && `rm "$target"/robots.txt`
-          [ $res -ne 0 ] && echo "wget returned non-zero exit code ($res), aborting" && return $res
-        fi
+            wget -P . -r --directory-prefix="$target" --no-host-directories --cut-dirs=5 --no-parent --level=2 --reject="index.html*" $WGETOPTS ${REPOURL['slackware']}/slackware$ARCHSUFFIX-$REPOVER/source/$PKGLOCATION/$PKGNAME/
+            res=$?
+            [ -e "$target"/robots.txt ] && `rm "$target"/robots.txt`
+            [ $res -ne 0 ] && echo "wget returned non-zero exit code ($res), aborting" && return $res
+          fi
         fi
       done
       ;;
