@@ -248,54 +248,53 @@ fnUpdate() {
 fnSearch() {
   pkglist=${PKGLIST}.${REPO}-${REPOVER}
 
+  if ! [[ "x$REPO" == "xslackware" && "$REPOVER" != "current" ]]; then
+    # ensure remote package list or die
+    fnUpdate "no-verbose"
+    [ ! $? ] && return 1
+  fi
+
+  declare raw_type
+  declare results
+
   case "$REPO" in
     "slackware")
       search="$1" && shift
       if [ "$REPOVER" != "current" ]; then
-        # search packages iso
+        # search local iso
+        raw_type="iso_package"
         source="$ISOPACKAGES"
-        if [ -d "$source" ]; then
-          cd "$source"
-          results="$(find . -iname "*$search*z")"
-          cd - 2>&1 > /dev/null
-          if [ -z "$results" ]; then
-            echo "[info] no package found" 1>&2 && return 1
-          else
-            fnPackageInfo "iso_package" "$results"
-            return
-          fi
-        else
-          echo "[error] invalid package location: '$source'" 1>&2
-        fi
+        [ ! -d "$source" ] && \
+          echo "[error] invalid package location: '$source'" 1>&2 && return 1
+        cd "$source"
+        results="$(find . -iname "*$search*z")"
+        cd - 2>&1 > /dev/null
       else
         # search remote
-        # ensure list or die
-        fnUpdate "no-verbose"
-        [ ! $? ] && return 1
-
+        raw_type="remote"
         results="$(sed -n '/^PACKAGE NAME:[ ]*.*'"$search"'.*/{N;s/\n\(.\)/|\1/;p}' $pkglist.raw)"
-        fnPackageInfo "remote" "$results"
       fi
       ;;
 
     "multilib")
-      # ensure list or die
-      fnUpdate "no-verbose"
-      [ ! $? ] && return 1
-
       search="$1"
-      grep -P "$search" $pkglist
+      results="$(grep -P "$search" $pkglist)"
       ;;
 
     "slackbuilds")
-      # ensure list or die
-      fnUpdate "no-verbose"
-      [ ! $? ] && return 1
-
       search="$1"
-      sed -n 's/^SLACKBUILD PACKAGE: \(.*'"$search"'.*\)/\1/ip' $pkglist
+      results="$(sed -n 's/^SLACKBUILD PACKAGE: \(.*'"$search"'.*\)/\1/ip' $pkglist)"
       ;;
   esac
+
+  if [ -z "$results" ]; then
+    echo "[info] no matches for search '$search'" 1>&2 && return 1
+  else
+    IFS=$'\n'; packages=($(echo "$results")); IFS="$IFSORG"
+    echo "[info] found ${#packages[@]} package$([ ${#packages[@]} -ne 1 ] && echo "s") matching search '$search'" 1>&2
+    # parse raw
+    [ -n "$raw_type" ] && fnPackageInfo "$raw_type" "$results" || echo -e "$results"
+  fi
 
   return $?
 }
@@ -325,10 +324,7 @@ fnDownload() {
   [ ! $? ] && return 1
 
   IFS=$'\n'; packages=($(echo "$packages")); IFS="$IFSORG"
-  [ ${#packages[@]} -eq 0 ] &&
-    echo "[user] no packages found for search '$search'" && return 0
-
-  echo "[info] found ${#packages[@]} package$([ ${#packages[@]} -ne 1 ] && echo "s") matching search '$search'"
+  [ ${#packages[@]} -eq 0 ] && return 0
 
   for package in "${packages[@]}"; do
 
