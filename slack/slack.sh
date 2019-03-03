@@ -16,14 +16,14 @@ WGETOPTS="--no-check-certificate"
 
 # static
 declare -A REPOVERDEFAULTS
-REPOVERDEFAULTS['slackware']='current'
-REPOVERDEFAULTS['multilib']='current'
-REPOVERDEFAULTS['slackbuilds']='14.2'
+REPOVERDEFAULTS["slackware"]="current"
+REPOVERDEFAULTS["multilib"]="current"
+REPOVERDEFAULTS["slackbuilds"]="14.2"
 declare -A REPOURL
-REPOURL['slackware']='https://mirror.slackbuilds.org/slackware'
-REPOURL['multilib']='http://slackware.com/~alien/multilib'
-REPOURL['slackbuilds']='http://slackbuilds.org/slackbuilds'
-PKGLIST='/tmp/_slack.packages'
+REPOURL["slackware"]="https://mirror.slackbuilds.org/slackware"
+REPOURL["multilib"]="http://slackware.com/~alien/multilib"
+REPOURL["slackbuilds"]="http://slackbuilds.org/slackbuilds"
+PKGLIST="/tmp/_slack.packages"
 PKGLISTMAXAGE=$[7*24*60*60]
 SLACKPKGLIST=/var/lib/slackpkg/PACKAGES.TXT
 SLACKPKGBLACKLIST=/etc/slackpkg/blacklist
@@ -128,7 +128,7 @@ environment variable switches:
 
 fnConfig() {
   REPO="${REPO:-slackware}"
-  REPOVER=${REPOVER:-${REPOVERDEFAULTS[$REPO]}}
+  REPOVER=${REPOVER:-${REPOVERDEFAULTS["$REPO"]}}
   ISOPACKAGES=/mnt/iso/slackware$ARCHSUFFIX-$REPOVER/slackware$ARCHSUFFIX
   ISOSOURCE=/mnt/iso/slackware-$REPOVER-source/source
 }
