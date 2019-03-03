@@ -14,12 +14,11 @@ ARCH2=${ARCH:-"$(uname -m)"} && [ "x${ARCH2:$[${#ARCH2}-2]:2}" = "x64" ] && ARCH
 BUILDTYPE=user
 WGETOPTS="--no-check-certificate"
 
-REPO="${REPO:-slackware}"
+# static
 declare -A REPOVERDEFAULTS
 REPOVERDEFAULTS['slackware']='current'
 REPOVERDEFAULTS['multilib']='current'
 REPOVERDEFAULTS['slackbuilds']='14.2'
-REPOVER=${REPOVER:-${REPOVERDEFAULTS[$REPO]}}
 declare -A REPOURL
 REPOURL['slackware']='https://mirror.slackbuilds.org/slackware'
 REPOURL['multilib']='http://slackware.com/~alien/multilib'
@@ -29,8 +28,12 @@ PKGLISTMAXAGE=$[7*24*60*60]
 SLACKPKGLIST=/var/lib/slackpkg/PACKAGES.TXT
 SLACKPKGBLACKLIST=/etc/slackpkg/blacklist
 SLACKPKGMIRRORS=/etc/slackpkg/mirrors
-ISOPACKAGES=/mnt/iso/slackware$ARCHSUFFIX-$REPOVER/slackware$ARCHSUFFIX
-ISOSOURCE=/mnt/iso/slackware-$REPOVER-source/source
+
+# dynamic
+declare REPO
+declare REPOVER
+declare ISOPACKAGES
+declare ISOSOURCE
 
 help() {
   echo -e "
@@ -121,6 +124,13 @@ environment variable switches:
   REPOVER  : 'current' (default), sets the target version for package
              / source searching and downloading
 "
+}
+
+fnConfig() {
+  REPO="${REPO:-slackware}"
+  REPOVER=${REPOVER:-${REPOVERDEFAULTS[$REPO]}}
+  ISOPACKAGES=/mnt/iso/slackware$ARCHSUFFIX-$REPOVER/slackware$ARCHSUFFIX
+  ISOSOURCE=/mnt/iso/slackware-$REPOVER-source/source
 }
 
 fnExtract() {
@@ -910,15 +920,15 @@ s="$(echo "$1" | awk '{s=tolower($0); gsub(/^[-]*/, "", s); print s}')"
 '\)$/p')" != "x" ] && option="$s" && shift
 
 case "$option" in
-  "update"|"u") fnUpdate "$@" ;;
-  "mlupdate"|"mlu") REPO=multilib REPOVER=${REPOVER:-${REPOVERDEFAULTS[$REPO]}} fnUpdate "$@" ;;
-  "sbupdate"|"sbu") REPO=slackbuilds REPOVER=${REPOVER:-${REPOVERDEFAULTS[$REPO]}} fnUpdate "$@" ;;
-  "search"|"s") fnSearch "$@" ;;
-  "mlsearch"|"mls") REPO=multilib REPOVER=${REPOVER:-${REPOVERDEFAULTS[$REPO]}} fnSearch "$@" ;;
-  "sbsearch"|"sbs") REPO=slackbuilds REPOVER=${REPOVER:-${REPOVERDEFAULTS[$REPO]}} fnSearch "$@" ;;
-  "download"|"d") fnDownload "$@" ;;
-  "mldownload"|"mld") REPO=multilib REPOVER=${REPOVER:-${REPOVERDEFAULTS[$REPO]}} fnDownload "$@" ;;
-  "sbdownload"|"sbd") REPO=slackbuilds REPOVER=${REPOVER:-${REPOVERDEFAULTS[$REPO]}} fnDownload "$@" ;;
+  "update"|"u") REPO=slackware; fnConfig; fnUpdate "$@" ;;
+  "mlupdate"|"mlu") REPO=multilib; fnConfig; fnUpdate "$@" ;;
+  "sbupdate"|"sbu") REPO=slackbuilds fnConfig; fnUpdate "$@" ;;
+  "search"|"s") REPO=slackware; fnConfig; fnSearch "$@" ;;
+  "mlsearch"|"mls") REPO=multilib; fnConfig; fnSearch "$@" ;;
+  "sbsearch"|"sbs") REPO=slackbuilds; fnConfig; fnSearch "$@" ;;
+  "download"|"d") REPO=slackware; fnConfig; fnDownload "$@" ;;
+  "mldownload"|"mld") REPO=multilib; fnConfig; fnDownload "$@" ;;
+  "sbdownload"|"sbd") REPO=slackbuilds; fnConfig; fnDownload "$@" ;;
   "list"|"l") fnList "$@" ;;
   "buildscript"|"bs") fnBuild 'script' "$@" ;;
   "buildautotool"|"bat") fnBuild 'autotools' "$@" ;;
