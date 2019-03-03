@@ -324,7 +324,7 @@ fnDownload() {
   packages="$(fnSearch "$search")"
   [ ! $? ] && return 1
 
-  IFS=$'\n'; packages=($packages); IFS="$IFSORG"
+  IFS=$'\n'; packages=($(echo "$packages")); IFS="$IFSORG"
   [ ${#packages[@]} -eq 0 ] &&
     echo "[user] no packages found for search '$search'" && return 0
 
