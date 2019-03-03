@@ -179,6 +179,7 @@ fnUpdate() {
 
   # refresh?
   refresh=0
+  filter=0
   [[ $# -gt 0 && "x$1" == "xforce" ]] && refresh=1 && shift
   [[ $# -gt 0 && "x$1" == "xno-verbose" ]] && verbose=0 && shift
   [[ $refresh -eq 0 && ! -f $pkglist.raw ]] && refresh=1
@@ -217,7 +218,6 @@ fnUpdate() {
   fi
 
   # filter blacklist?
-  filter=0
   [[ $filter -eq 0 && ! -f $pkglist ]] && filter=1
   [[ $filter -eq 0 && $(date -r "$SLACKPKGBLACKLIST" +%s) -gt $(date -r $pkglist +%s) ]] && filter=1
 
