@@ -87,12 +87,14 @@ END {gsub(/^[ ]*'\''/,"",data); gsub(/'\''[ ]*$/,"",data); print data}' < "$targ
 }
 
 fn_publish() {
-  dt="$1"
-  title="$2"
+  target="$1"
+  dt="$(fn_read_data "date created" "$target")"
+  title="$(fn_read_data "title" "$target")"
   [ -z "$(echo "$dt" | sed -n '/^[0-9]\+$/p')" ] && dt="$(date -d "$dt" "+%s")"
   title="$(echo "$title"| tr " " ".")"
-  [ ! -d "$published" ] && mkdir -p $published
-    cp $f_entry "$published/${dt}_${title}"
+  [ ! -d "$published" ] && mkdir -p "$published"
+  cp "$target" "$published/${dt}_${title}"
+  return $?
 }
 
 option=new
@@ -109,27 +111,19 @@ case "$option" in
   "new")
     rm "$f_entry" 2>/dev/null
     rm "$f_content" 2>/dev/null
-    dt_created=$(date +"%s")
-    fn_write_data "date created" "$f_entry" "$(date -d "@$dt_created" +"%d%b%Y %H:%M:%S")"
-    title="$(fn_input_data "title")"
-    fn_write_data "title" "$f_entry" "$title"
+    fn_write_data "date created" "$f_entry" "$(date +"%d%b%Y %H:%M:%S")"
+    fn_write_data "title" "$f_entry" "$(fn_input_data "title")"
     echo "edit content:"
     sleep 2
     $EDITOR "$f_content"
     fn_write_data "content" "$f_entry" "$(cat $f_content)"
-    if fn_decision "publish?" >/dev/null; then
-      fn_publish "$dt_created" "$title"
-      rm $f_entry
-    fi
+    fn_decision "publish?" >/dev/null &&\
+      fn_publish "$f_entry" && rm "$f_entry"
     ;;
 
   "publish")
-    dt_created="$(fn_read_data "date created" "$f_entry")"
-    title="$(fn_read_data "title" "$f_entry")"
-    if fn_decision "publish?" >/dev/null; then
-      fn_publish "$dt_created" "$title"
-      rm $f_entry
-    fi
+    fn_decision "publish?" >/dev/null &&\
+      fn_publish "$f_entry" && rm "$f_entry"
     ;;
 
   "mod")
@@ -151,8 +145,7 @@ case "$option" in
     [ "x$res" = "xn" ] &&\
       fn_write_data "title" "$f_entry.tmp" "$(fn_read_data "title" "$f_entry.tmp")"
     [ "x$res" = "xy" ] &&\
-      title="$(fn_input_data "new title")" &&\
-      fn_write_data "title" "$f_entry.tmp" "$title"
+      fn_write_data "title" "$f_entry.tmp" "$(fn_input_data "new title")"
 
     # edit content
     res="$(fn_decision "edit content?" "ynx")"
@@ -168,10 +161,8 @@ case "$option" in
     mv "$f_entry.tmp" "$f_entry"
 
     # publish
-    dt_created="$(fn_read_data "date created" "$f_entry")"
-    title="$(fn_read_data "title" "$f_entry")"
-    fn_decision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
-    rm $f_entry
+    fn_decision "publish?" >/dev/null &&\
+      fn_publish "$f_entry" && rm "$f_entry"
     ;;
 
   *)
