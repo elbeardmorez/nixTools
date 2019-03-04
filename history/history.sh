@@ -71,7 +71,7 @@ fi
 if [ -n "$count" ]; then
   x=${#cmds[@]}
   # read from history file
-  histfile="$($(fnShell) -i -c 'echo $HISTFILE' 2>/dev/null)"
+  histfile="$($(fn_shell) -i -c 'echo $HISTFILE' 2>/dev/null)"
   IFS=$'\n'; cmds_next=($(tail -n$([ $filter_last -eq 1 ] && echo $(($count+1)) || echo $count) "$histfile" | sed "$filter"$([ $filter_last -eq 1 ] && echo ';${/\('"$filter_blacklist"'\)/d;}'))); IFS="$IFSORG"
   [ ${#cmds_next[@]} -gt $count ] &&\
     cmds_next=("${cmds_next[@]:1}")  # filter wasn't hit
@@ -97,11 +97,11 @@ while [ $l -lt ${#cmds[@]} ]; do
   cmd="${cmds[$l]}"
   [ -z "$cmd" ] && l=$(($l+1)) && continue
   echo -n "[user] append command '$cmd'? [(y)es/(n)o/(e)dit/(a)ll/e(x)it]: "
-  res="$(fnDecision "y|n|e|a|x")"
+  res="$(fn_decision "y|n|e|a|x")"
   case "$res" in
     "y") l=$(($l+1)) && echo "$cmd" >> "$target" && continue ;;
     "a") for l2 in $(seq $l 1 $((${#cmds[@]}-1))); do echo "${cmds[$l2]}" >> "$target"; done; exit 0 ;;
-    "e") cmds[$l]="$(fnEditLine "${cmds[$l]}")" ;;
+    "e") cmds[$l]="$(fn_edit_line "${cmds[$l]}")" ;;
     "n") l=$(($l+1)) && continue ;;
     "x") exit 0 ;;
   esac

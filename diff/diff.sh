@@ -38,11 +38,11 @@ SYNTAX: $SCRIPTNAME [MODE] [OPTION [ARG] ..] dir|file dir2|file2
 "
 }
 
-fnCleanUp() {
+fn_clean_up() {
   [ -n $f_excludes ] && [ -e $f_excludes ] && rm $f_excludes >/dev/null 2>&1
 }
 
-fnProcess() {
+fn_process() {
   mode="$1" && shift
   type="$1" && shift
 
@@ -50,7 +50,7 @@ fnProcess() {
     "diff")
       [ "x$type" = "xdir" ] && diff_options[${#diff_options[@]}]="-r"
 
-      target="$(fnTempFile "$SCRIPTNAME")"
+      target="$(fn_temp_file "$SCRIPTNAME")"
       touch "$target"
 
       [ $DEBUG -gt 0 ] && echo "[debug] diff  ${diff_options_default[@]} ${diff_options[@]} \"$file1\" \"$file2\" | grep -ve \"^Only in\" | grep -ve \"^[Bb]inary\"" | tee -a "$target"
@@ -65,14 +65,14 @@ fnProcess() {
       fi
       ;;
     "filelist")
-      [ "x$type" != "xdir" ] && echo "[user] filelist mode unsupported for type '$type'" && fnCleanUp && exit 1
+      [ "x$type" != "xdir" ] && echo "[user] filelist mode unsupported for type '$type'" && fn_clean_up && exit 1
 
       # compare files in directories
       description1="$(cd "$file1" && pwd | tr '/ ' '^.')"
       description2="$(cd "$file2" && pwd | tr '/ '  '^.')"
 
-      target1="$(fnTempFile "$SCRIPTNAME")_dir1_$description1"
-      target2="$(fnTempFile "$SCRIPTNAME")_dir2_$description2"
+      target1="$(fn_temp_file "$SCRIPTNAME")_dir1_$description1"
+      target2="$(fn_temp_file "$SCRIPTNAME")_dir2_$description2"
 
       $(cd "$file1"; find . -name "*" -printf "%p\t%s\n" | sort > "$target1")
       $(cd "$file2"; find . -name "*" -printf "%p\t%s\n" | sort > "$target2")
@@ -84,13 +84,13 @@ fnProcess() {
          done < "$fExcludes"
       fi
 
-      target="$(fnTempFile "$SCRIPTNAME")"
+      target="$(fn_temp_file "$SCRIPTNAME")"
       diff ${diff_options[@]} $target1 $target2 > "${target}_dir"
 
       $diff_viewer "$target1" "$target2" >/dev/null 2>&1 &
       ;;
   esac
-  fnCleanUp
+  fn_clean_up
 }
 
 # args
@@ -167,4 +167,4 @@ if [ $DEBUG -gt 0 ]; then
   fi
 fi
 
-fnProcess "$mode" "$type"
+fn_process "$mode" "$type"

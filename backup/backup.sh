@@ -69,7 +69,7 @@ where [OPTIONS] can be:\n
 }
 
 
-fnSetSources() {
+fn_set_sources() {
 
   include=$(cat $INCLUDE)
 
@@ -98,7 +98,7 @@ fnSetSources() {
   return 0
 }
 
-fnSetIntervals() {
+fn_set_intervals() {
   valid=""
   IFS=','; intervals=($(echo "$INTERVALS")); IFS="$IFSORG"
   for i in "${intervals[@]}"; do
@@ -138,7 +138,7 @@ fnSetIntervals() {
   s=""
   now="$(date "+%d %b %Y %T UTC")"
   for interval in $(echo "$valid"); do
-    s+="\n$(fnEpochSeconds "$now" "${intervals_epoch["$interval"]}")\t$interval"
+    s+="\n$(fn_epoch_seconds "$now" "${intervals_epoch["$interval"]}")\t$interval"
   done
   s="${s:2}"
   ordered="$(echo -e "$s" | sort -n -u | sed 's/^[ \t]*[0-9]\+[ \t]*\([^ \t]*\)[ \t]*$/\1/' | tr '\n' ',' | sed 's/,$//')"
@@ -147,12 +147,12 @@ fnSetIntervals() {
   return 0
 }
 
-fnGetLastBackup() {
+fn_get_last_backup() {
   interval="$1"
   [ -f "$BACKUP_ROOT/.$interval" ] && cat "$BACKUP_ROOT/.$interval" || echo "01 Jan 1970"
 }
 
-fnEpochSeconds() {
+fn_epoch_seconds() {
   dt="$1"
   epoch="$2"
   dt_seconds=$(date -d "$dt" "+%s")
@@ -160,7 +160,7 @@ fnEpochSeconds() {
   echo $epoch_seconds
 }
 
-fnGetLastExpectedBackup() {
+fn_get_last_expected_backup() {
   interval="$1"
   epoch=${intervals_epoch["$interval"]}
   anchor=${intervals_anchor["$interval"]}
@@ -168,7 +168,7 @@ fnGetLastExpectedBackup() {
   now="$(date "+%d %b %Y %T UTC")"
   now_seconds=$(date -d "$now" "+%s")
 
-  epoch_seconds=$(fnEpochSeconds "$now" "$epoch")
+  epoch_seconds=$(fn_epoch_seconds "$now" "$epoch")
   anchor_seconds=$(date -d "$(date "+$anchor UTC")" "+%s")
 
   # closest previous epoch
@@ -179,11 +179,11 @@ fnGetLastExpectedBackup() {
   echo "$epoch_last"
 }
 
-fnPerformBackup() {
+fn_perform_backup() {
   interval="$1"
 
-  dt_last_expected="$(fnGetLastExpectedBackup "$interval")"
-  dt_last="$(fnGetLastBackup "$interval")"
+  dt_last_expected="$(fn_get_last_expected_backup "$interval")"
+  dt_last="$(fn_get_last_backup "$interval")"
 
   backup=0
   [[ $(date -d "$dt_last_expected" +%s) -gt $(date -d "$dt_last" +%s) || $FORCE -eq 1 ]] && backup=1
@@ -271,12 +271,12 @@ fnPerformBackup() {
 }
 
 # cascading backups
-fnBackup() {
+fn_backup() {
   initialised=0
   IFS=','; intervals=($(echo "$INTERVALS")); IFS="$IFSORG"
   for interval in "${intervals[@]}"; do
     [[ $initialised -eq 0 && "$interval" != "$TYPE" ]] && continue
-    fnPerformBackup "$interval"
+    fn_perform_backup "$interval"
     initialised=1
     [ $NO_CASCADE -ne 0 ] && break
   done
@@ -315,14 +315,14 @@ fi
 [ ! -x $RSYNC ] && echo "[error] no rsync binary found$([ -n "$RSYNC" ] && echo " at '$RSYNC'")" && exit 1
 
 # parse includes
-fnSetSources
+fn_set_sources
 ret=$? && [ $ret -ne 0 ] && exit $ret
 
 # parse intervals
-fnSetIntervals
+fn_set_intervals
 ret=$? && [ $ret -ne 0 ] && exit $ret
 [ -z "$(echo "$TYPE" | sed -n '/'$(echo "$INTERVALS" | sed 's/,/\\|/g')'/p')" ] && \
   echo "[error] unrecognised interval type '$TYPE'" && exit 1
 
 # process backup
-fnBackup
+fn_backup

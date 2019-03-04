@@ -126,14 +126,14 @@ environment variable switches:
 "
 }
 
-fnConfig() {
+fn_config() {
   REPO="${REPO:-slackware}"
   REPOVER=${REPOVER:-${REPOVERDEFAULTS["$REPO"]}}
   ISOPACKAGES=/mnt/iso/slackware$ARCHSUFFIX-$REPOVER/slackware$ARCHSUFFIX
   ISOSOURCE=/mnt/iso/slackware-$REPOVER-source/source
 }
 
-fnExtract() {
+fn_extract() {
   archive="$1"
   target="$2"
   [ -f "./$archive" ] && archive="$(pwd)/$archive"
@@ -144,7 +144,7 @@ fnExtract() {
   cd - >/dev/null 2>&1
 }
 
-fnPackageInfo() {
+fn_package_info() {
   type="$1" && shift
   case "$type" in
     "string")
@@ -168,7 +168,7 @@ fnPackageInfo() {
   esac
 }
 
-fnRepoSwitch() {
+fn_repo_switch() {
   repover="$1"
   mirrors="${2:-$SLACKPKGMIRRORS}"
   current="$(sed -n '/^[ \t]*[^#]\+$/p' $mirrors)"
@@ -183,7 +183,7 @@ fnRepoSwitch() {
   return $switched
 }
 
-fnUpdate() {
+fn_update() {
   verbose=1
   pkglist=${PKGLIST}.${REPO}-${REPOVER}
 
@@ -199,7 +199,7 @@ fnUpdate() {
     filter=1
     case "$REPO" in
       "slackware")
-        fnRepoSwitch $REPOVER
+        fn_repo_switch $REPOVER
         slackpkg update 1>&2
         [ ! $? ] && echo "[error] updating package list through Slackpkg" && return 1
         cp $SLACKPKGLIST $pkglist.raw
@@ -255,12 +255,12 @@ fnUpdate() {
   return $?
 }
 
-fnSearch() {
+fn_search() {
   pkglist=${PKGLIST}.${REPO}-${REPOVER}
 
   if ! [[ "x$REPO" == "xslackware" && "$REPOVER" != "current" ]]; then
     # ensure remote package list or die
-    fnUpdate "no-verbose"
+    fn_update "no-verbose"
     [ ! $? ] && return 1
   fi
 
@@ -303,13 +303,13 @@ fnSearch() {
     IFS=$'\n'; packages=($(echo "$results")); IFS="$IFSORG"
     echo "[info] found ${#packages[@]} package$([ ${#packages[@]} -ne 1 ] && echo "s") matching search '$search'" 1>&2
     # parse raw
-    [ -n "$raw_type" ] && fnPackageInfo "$raw_type" "$results" || echo -e "$results"
+    [ -n "$raw_type" ] && fn_package_info "$raw_type" "$results" || echo -e "$results"
   fi
 
   return $?
 }
 
-fnDownload() {
+fn_download() {
   pkglist=${PKGLIST}.${REPO}-${REPOVER}
 
   dl_src=1
@@ -330,7 +330,7 @@ fnDownload() {
   [ $DEBUG -ge 1 ] && echo "[debug] dl_src: $dl_src, dl_pkg: $dl_pkg"
 
   # search
-  packages="$(fnSearch "$search")"
+  packages="$(fn_search "$search")"
   [ ! $? ] && return 1
 
   IFS=$'\n'; packages=($(echo "$packages")); IFS="$IFSORG"
@@ -362,7 +362,7 @@ fnDownload() {
 
     echo -n "[user] download package / source? [y/n/c]: "
 
-    res="$(fnDecision "y|n|c")"
+    res="$(fn_decision "y|n|c")"
     [ "x$res" == "xc" ] && break
     [ "x$res" == "xn" ] && continue
 
@@ -483,7 +483,7 @@ fnDownload() {
   done
 }
 
-fnList() {
+fn_list() {
 
   #args
   [ $# -eq 0 ] && help && echo "[error] not enough args" && exit 1
@@ -494,7 +494,7 @@ fnList() {
       [[ "x$(echo "$1" | sed -n '/[-]*\(new\|uninstalled\|up\|\upg\|upd\|update\|\updates\|upgrade\|upgrades\|search\)"/p')" != "x" || $# -gt 1 ]] && option="$1" && shift
 
       pkglist=/tmp/packages.current
-      fnUpdate "no-verbose"
+      fn_update "no-verbose"
 
       case "$option" in
         "new"|"uninstalled") grep -iP '^\[uninstalled\]' $pkglist | sort ;;
@@ -514,7 +514,7 @@ fnList() {
   esac
 }
 
-fnPrefixes() {
+fn_prefixes() {
   FILE="$1"
   BUILDTYPE="$2"
   FORCE="$3"
@@ -540,7 +540,7 @@ fnPrefixes() {
     sed -n -i '1{s/\(.*\)/\1\n'"$flag"'/mp;b};p' "$FILE"
 }
 
-fnBuild() {
+fn_build() {
   type="$1" && shift
 
   case $type in
@@ -570,7 +570,7 @@ fnBuild() {
       if [ $BUILD -eq 1 ]; then
         if [ ! -f $PKGNAME.[Ss]lack[Bb]uild ]; then
           if [ -f $PKGNAME.tar.?z ]; then
-            fnExtract ./$PKGNAME.tar.?z "$PKGNAME"
+            fn_extract ./$PKGNAME.tar.?z "$PKGNAME"
             [ ! -d ./$PKGNAME ] &&
               echo "tarbomb? no '$PKGNAME' dir found after extraction of '$PKGNAME.tar.?z'" && exit 1
             cd ./"$PKGNAME"
@@ -587,7 +587,7 @@ fnBuild() {
         SLACKBUILD=$(ls ./$PKGNAME.?lack?uild)
         [ -h $SLACKBUILD ] && SLACKBUILD=$(readlink $SLACKBUILD)
 
-        fnPrefixes "$SLACKBUILD" "$BUILDTYPE" "$FORCE"
+        fn_prefixes "$SLACKBUILD" "$BUILDTYPE" "$FORCE"
 
         chmod +x $SLACKBUILD
         echo "[user] building package: $PKGNAME"
@@ -678,9 +678,9 @@ fnBuild() {
 
       ## package info
       s=""
-      [[ $# -gt 0 && -z "$(echo "$1" | sed -n '/\(user\|system\|noconfig\|nobuild\|noinstall\)/p')" ]] && s=$(fnPackageInfo "string" "$1")
+      [[ $# -gt 0 && -z "$(echo "$1" | sed -n '/\(user\|system\|noconfig\|nobuild\|noinstall\)/p')" ]] && s=$(fn_package_info "string" "$1")
       [ "x$s" != "x" ] && pkg="$(echo $s | cut -d'|' -f1)" && pkgver="$(echo $s | cut -d'|' -f2)" && shift
-      [ -z "$pkg" ] && s="$(fnPackageInfo "dir" $(basename $(pwd)))"
+      [ -z "$pkg" ] && s="$(fn_package_info "dir" $(basename $(pwd)))"
       [ "x$s" != "x" ] && pkg="$(echo $s | cut -d'|' -f1)" && pkgver="$(echo $s | cut -d'|' -f2)"
       [ -z "$pkg" ] && help && echo "[error] cannot determine package details" && exit 1
 
@@ -726,7 +726,7 @@ fnBuild() {
           archive="$(echo $pkg-$pkgver*.t*z)" # glob expand
           if [ -f "$archive" ]; then
             dir="$pkg-$pkgver-$arch2"
-            fnExtract "$archive" "$dir"
+            fn_extract "$archive" "$dir"
             [ -d "$dir" ] && cd "$dir" >/dev/null 2>&1
           fi
         fi
@@ -774,7 +774,7 @@ fnBuild() {
   esac
 }
 
-fnConvert() {
+fn_convert() {
   IFS=$'\n'; pkg=($(echo "$1" | sed 's/\([^-]*\)\-\([0-9.gitsvnba]*\)-\(x86_64\|i[4-6]86\|$\)-\([0-9]\|$\)\(_\?[a-zA-Z0-9]*\|$\)\(\.tar.*\|\.t[gx].*\|\)/\1\n\2\n\3\n\4/')); IFS=$IFSORG
   [ ${#pkg[@]} -ne 4 ] && echo "[error] cannot parse 'pkg-ver-arch-build' parts for '$1'" && exit 1
 #  for s in "${pkg[@]}"; do echo $s; done
@@ -785,10 +785,10 @@ fnConvert() {
   ldconfig && ldconfig -p | grep ${pkg%%-*}
 }
 
-fnTest() {
+fn_test() {
   target="$1" && shift
   case $target in
-    "fnPackageInfo")
+    "fn_package_info")
       if [ $# -eq 0 ]; then
         # string
         type="string"
@@ -849,13 +849,13 @@ fnTest() {
         echo "[$target | $type | ${in[@]}] out: '$res' | $([ "x$res" != "x" ] && echo "pass" || echo "fail")"
       fi
       ;;
-    "fnExtract")
+    "fn_extract")
       in=($@)
       $target ${in[@]}
       res=$([[ $? -eq 0 && -d "${in[1]}" ]] && echo $(ls -1 ${in[1]} | wc -l) || echo 0)
       echo "[$target | ${in[@]}] extracted count: '$res' | $([ $res -gt 0 ] && echo "pass" || echo "fail")"
       ;;
-    "fnRepoSwitch")
+    "fn_repo_switch")
       if [ $# -eq 0 ]; then
         f="$(tempfile)"
         echo '
@@ -920,20 +920,20 @@ s="$(echo "$1" | awk '{s=tolower($0); gsub(/^[-]*/, "", s); print s}')"
 '\)$/p')" != "x" ] && option="$s" && shift
 
 case "$option" in
-  "update"|"u") REPO=slackware; fnConfig; fnUpdate "$@" ;;
-  "mlupdate"|"mlu") REPO=multilib; fnConfig; fnUpdate "$@" ;;
-  "sbupdate"|"sbu") REPO=slackbuilds fnConfig; fnUpdate "$@" ;;
-  "search"|"s") REPO=slackware; fnConfig; fnSearch "$@" ;;
-  "mlsearch"|"mls") REPO=multilib; fnConfig; fnSearch "$@" ;;
-  "sbsearch"|"sbs") REPO=slackbuilds; fnConfig; fnSearch "$@" ;;
-  "download"|"d") REPO=slackware; fnConfig; fnDownload "$@" ;;
-  "mldownload"|"mld") REPO=multilib; fnConfig; fnDownload "$@" ;;
-  "sbdownload"|"sbd") REPO=slackbuilds; fnConfig; fnDownload "$@" ;;
-  "list"|"l") fnList "$@" ;;
-  "buildscript"|"bs") fnBuild 'script' "$@" ;;
-  "buildautotool"|"bat") fnBuild 'autotools' "$@" ;;
-  "convert"|"cv") fnConvert "$@" ;;
-  "test") fnTest "$@" ;;
+  "update"|"u") REPO=slackware; fn_config; fn_update "$@" ;;
+  "mlupdate"|"mlu") REPO=multilib; fn_config; fn_update "$@" ;;
+  "sbupdate"|"sbu") REPO=slackbuilds fn_config; fn_update "$@" ;;
+  "search"|"s") REPO=slackware; fn_config; fn_search "$@" ;;
+  "mlsearch"|"mls") REPO=multilib; fn_config; fn_search "$@" ;;
+  "sbsearch"|"sbs") REPO=slackbuilds; fn_config; fn_search "$@" ;;
+  "download"|"d") REPO=slackware; fn_config; fn_download "$@" ;;
+  "mldownload"|"mld") REPO=multilib; fn_config; fn_download "$@" ;;
+  "sbdownload"|"sbd") REPO=slackbuilds; fn_config; fn_download "$@" ;;
+  "list"|"l") fn_list "$@" ;;
+  "buildscript"|"bs") fn_build 'script' "$@" ;;
+  "buildautotool"|"bat") fn_build 'autotools' "$@" ;;
+  "convert"|"cv") fn_convert "$@" ;;
+  "test") fn_test "$@" ;;
   "help"|"h") help ;;
 esac
 

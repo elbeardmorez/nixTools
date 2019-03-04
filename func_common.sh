@@ -17,7 +17,7 @@ ESCAPE_AWK='.\/|[('
 c_off='\033[0m'
 c_red='\033[0;31m'
 
-fnShell() {
+fn_shell() {
   if [ -n "$BASH_VERSION" ]; then
     echo "bash"
   elif [ -n "$ZSH_VERSION" ]; then
@@ -27,7 +27,7 @@ fnShell() {
   fi
 }
 
-fnEditLine() {
+fn_edit_line() {
   var="$1"
   if [ -n "$BASH_VERSION" ]; then
     read -e -i "$var" var
@@ -37,7 +37,7 @@ fnEditLine() {
   echo "$var"
 }
 
-fnDecision() {
+fn_decision() {
   declare question
   declare soptions
   declare -a options
@@ -62,7 +62,7 @@ fnDecision() {
   [ "x$r" = "xy" ] && return 0 || return 1
 }
 
-fnNextFile() {
+fn_next_file() {
   file="$1"
   delim="${2:-"_"}"
   suffix="${3:-""}"
@@ -77,11 +77,11 @@ fnNextFile() {
   echo "${file}${suffix}"
 }
 
-fnRandom() {
+fn_random() {
   len=${1:-10}; s=""; while [ ${#s} -lt $len ]; do s+="$(head -c10 /dev/random | tr -dc '[:alnum:]')"; done; echo "${s:0:$len}";
 }
 
-fnTemp() {
+fn_temp() {
   name="$1" && shift
   tmp="${1:-$(dirname $(mktemp -u) 2>/dev/null)}"
   [ -z "$tmp" ] && tmp="$TMP";
@@ -90,21 +90,21 @@ fnTemp() {
   [ -z "$tmp" ] && tmp="/tmp";
   mkdir -p "$tmp" 2>/dev/null
   [ $? -ne 0 ] && echo "[error] failed to set temp storage" 1>&2 && return 1
-  f="$tmp/$name.$(fnRandom 10)"
-  while [ -e "$f" ]; do f="$tmp/$name.$(fnRandom 10)"; done
+  f="$tmp/$name.$(fn_random 10)"
+  while [ -e "$f" ]; do f="$tmp/$name.$(fn_random 10)"; done
   echo "$f"
 }
 
-fnTempFile() {
-  tmp=$(fnTemp "$@")
+fn_temp_file() {
+  tmp=$(fn_temp "$@")
   res=$?
   [ $res -ne 0 ] && return $res
   touch "$tmp"
   echo "$tmp"
 }
 
-fnTempDir() {
-  tmp=$(fnTemp "$@")
+fn_temp_dir() {
+  tmp=$(fn_temp "$@")
   res=$?
   [ $res -ne 0 ] && return $res
   mkdir "$tmp"

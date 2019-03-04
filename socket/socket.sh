@@ -69,7 +69,7 @@ where OPTION can be:
 "
 }
 
-fnSend() {
+fn_send() {
   d="$1"
   raw=$([ -e "$d" ] && echo 0 || echo 1)
   if [ $raw -eq 0 ]; then
@@ -86,7 +86,7 @@ fnSend() {
   return $res
 }
 
-fnDump() {
+fn_dump() {
   declare socket
   declare file
   socket="$1"
@@ -100,21 +100,21 @@ fnDump() {
           rm "$file"
 }
 
-fnClean() {
+fn_clean() {
   file="$1"
   IFS=$'\n'; files=($(find . -maxdepth 1 -regex '.*/'"$file"'\(\_[0-9]+\)?$')); IFS="$IFSORG"
   if [ ${#files[@]} -gt 0 ]; then
     echo -n "[user] default cleaning, purge ${#files[@]} blob$([ ${#files[@]} -ne 1 ] && echo "s")? [y/n]: "
-    fnDecision >/dev/null && for f in "${files[@]}"; do rm "$f"; done
+    fn_decision >/dev/null && for f in "${files[@]}"; do rm "$f"; done
   fi
 }
 
-fnCleanUp() {
+fn_clean_up() {
   wait  # ensure any subprocesses have completed
   for socket in "${sockets[@]}"; do [ -e $socket ] && rm $socket >/dev/null 2>&1; done
 }
 
-fnProcess() {
+fn_process() {
   direction="$1" && shift
 
   case "$direction" in
@@ -137,26 +137,26 @@ fnProcess() {
       fi
       [ $persistent -eq 0 ] && args=("${args[@]}" "-w" $SERVER_TIMEOUT)
       file="data"
-      [ $clean -eq 1 ] && fnClean "$file"
+      [ $clean -eq 1 ] && fn_clean "$file"
       echo "[info]$([ $persistent -eq 1 ] && echo " persistent") socket opened"
       while [[ 1 == 1 ]]; do
-        SOCKET="$(fnTempFile "$SCRIPTNAME" "$([ $localsocket -eq 1 ] && echo ".")")"
+        SOCKET="$(fn_temp_file "$SCRIPTNAME" "$([ $localsocket -eq 1 ] && echo ".")")"
         [ $? -ne 0 ] && exit 1
         sockets[${#sockets[@]}]=$SOCKET
         nc "${args[@]}" > "$SOCKET"
         size=`du -h $SOCKET | cut -d'	' -f1`
         if [ "$size" != "0" ]; then
-          file="$(fnNextFile "$file" "_")"
+          file="$(fn_next_file "$file" "_")"
           touch $file
           echo "[info] dumping $size bytes to '$file'"
-          fnDump "$SOCKET" "$file" &
+          fn_dump "$SOCKET" "$file" &
           [ $persistent -eq 0 ] && break
         else
           echo "[info] socket closed"
           break
         fi
       done
-      fnCleanUp
+      fn_clean_up
       ;;
     "out")
       # client side
@@ -193,7 +193,7 @@ fnProcess() {
         success=0
         attempt=1
         blob_type="$([ $raw -eq 1 ] && echo "data" || echo "file")"
-        fnSend "$d"
+        fn_send "$d"
         res=$?
         if [ $res -eq 0 ]; then
           success=1
@@ -201,7 +201,7 @@ fnProcess() {
           for attempt in $(seq 2 1 $(($RETRIES+1))); do
             [ $DEBUG -gt 0 ] && echo "[debug] failed to push $blob_type '$d' [attempt: $(($attempt-1))]"
             sleep $retry_delay
-            fnSend "$d"
+            fn_send "$d"
             res=$?
             [ $res -eq 0 ] && success=1 && break
           done
@@ -222,6 +222,6 @@ option="out"
 [ $# -eq 0 ] && help && exit
 [[ "x$(echo "$1" | sed -n 's/[-]*\(in\|out\|h\|help\)/\1/p')" != "x" ]] && option="$(echo "$1" | sed 's/^-*//g')" && shift
 case $option in
-  "in"|"out") fnProcess $option "$@" ;;
+  "in"|"out") fn_process $option "$@" ;;
   "h"|"help") help ;;
 esac

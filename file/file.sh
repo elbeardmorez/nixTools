@@ -122,7 +122,7 @@ for target in "${targets[@]}"; do
       ;;
 
    "u"|"uniq")
-      tmp="$(fnTempFile $SCRIPTNAME)"
+      tmp="$(fn_temp_file $SCRIPTNAME)"
       uniq "$target" > "$tmp"
       mv "$tmp" "$target"
       ;;
@@ -158,10 +158,10 @@ for target in "${targets[@]}"; do
         end="$arg"
       fi
       echo -n "[user] trim $lines line$([ $lines -ne 1 ] && echo "s") from $end of target '$target'? [(y)es/(n)o/(c)ancel]: " 1>&2
-      res="$(fnDecision "y|n|c")"
+      res="$(fn_decision "y|n|c")"
       [ "x$res" == "xc" ] && exit
       if [ "x$res" == "xy" ]; then
-        tmp="$(fnTempFile $SCRIPTNAME)"
+        tmp="$(fn_temp_file $SCRIPTNAME)"
         rlines=$(($(wc -l "$target" | cut -d' ' -f1)-$lines))
         cutter="$([ "x$end" == "xtop" ] && echo "tail" || echo "head")"
         $cutter -n $rlines "$target" 2>/dev/null > "$tmp"

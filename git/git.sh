@@ -60,19 +60,19 @@ help() {
 "
 }
 
-fnCommit() {
+fn_commit() {
   [ $# -lt 1 ] && echo "[error] id arg missing" 1>&2 && return 1
   id="$1" && shift
   commit="$(git rev-list --max-count=1 "$id" 2>/dev/null)"
   if [ $? -ne 0 ]; then
-    commit="$(fnCommitByName "$id" "$@")"
+    commit="$(fn_commit_by_name "$id" "$@")"
     res=$?; [ $res -ne 0 ] && return $res
   fi
   echo "$commit"
   return 0
 }
 
-fnCommitByName() {
+fn_commit_by_name() {
   [ $# -lt 1 ] && echo "[error] search arg missing" 1>&2 && return 1
   declare -a binargs
   declare -a cmdargs
@@ -108,7 +108,7 @@ fnCommitByName() {
   return 0
 }
 
-fnLog() {
+fn_log() {
   command="$1" && shift
   c_br="\e[0;33m"
   c_off="\e[m"
@@ -125,7 +125,7 @@ fnLog() {
     shift
   done
   if [ -n "$search" ]; then
-    commits="$(fnCommit "$search" "${count:-nolimit}")"
+    commits="$(fn_commit "$search" "${count:-nolimit}")"
     res=$?; [ $res -ne 0 ] && exit $res
     IFS=$'\n'; commits=($(echo "$commits")); IFS="$IFSORG"
   else
@@ -146,7 +146,7 @@ fnLog() {
   done
 }
 
-fnRebase() {
+fn_rebase() {
   # process args
   [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
   declare -a cmdargs
@@ -157,7 +157,7 @@ fnRebase() {
     args[${#args[@]}]="$1"
     shift
   done
-  commit=$(fnCommit "${args[@]}")
+  commit=$(fn_commit "${args[@]}")
   res=$?; [ $res -ne 0 ] && return $res
   sha="$(echo $commit | sed -n 's/\([^ ]*\).*/\1/p')"
   # ensure parent exists, else assume root
@@ -167,13 +167,13 @@ fnRebase() {
   git rebase "${cmdargs[@]}"
 }
 
-fnProcess() {
+fn_process() {
   command="help" && [ $# -gt 0 ] && command="$1" && shift
   case "$command" in
     "help") help ;;
     "diff") git diff $@ ;;
     "log"|"logx"|"log1")
-      fnLog $command "$@"
+      fn_log $command "$@"
       ;;
     "sha")
       [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
@@ -188,14 +188,14 @@ fnProcess() {
         shift
       done
       [ -z $log ] && cmdargs[${#cmdargs[@]}]="colours"
-      commits=$(fnCommit "${cmdargs[@]}")
+      commits=$(fn_commit "${cmdargs[@]}")
       res=$?; [ $res -ne 0 ] && exit $res
       if [ -z $log ]; then
         echo -e "$commits"
       else
         IFS=$'\n'; arr_commits=($(echo -e "$commits")); IFS="$IFSORG"
         for c in "${arr_commits[@]}"; do
-          fnLog $log 1 "$(echo "$c" | cut -d' ' -f1)"
+          fn_log $log 1 "$(echo "$c" | cut -d' ' -f1)"
           [ "x$log" = "xlogx" ] && echo
         done
       fi
@@ -223,17 +223,17 @@ fnProcess() {
       id="$1" && shift
       n=1 && [ $# -gt 0 ] && n="$1" && shift
       [ "x`echo "$n" | sed -n '/^[0-9]\+$/p'`" = "x" ] && echo "[error] invalid number of patches: '$n'" && exit 1
-      commit=$(fnCommit "$id")
+      commit=$(fn_commit "$id")
       res=$?; [ $res -ne 0 ] && exit $res
       sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
       echo "[info] formatting patch for rebasing from commit '$commit'"
       git format-patch -k -$n $sha
       ;;
     "rb"|"rebase")
-      fnRebase "$@"
+      fn_rebase "$@"
       ;;
     "rbs"|"rebase-stash")
-      fnRebase "$@" -- --autostash
+      fn_rebase "$@" -- --autostash
       ;;
     "co"|"checkout")
       git checkout "$@"
@@ -266,7 +266,7 @@ fnProcess() {
       sha_current=`git log --oneline -n1 | cut -d' ' -f1`
       sha_target=`git log --oneline $target | grep $sha_current -B $num | head -n1 | cut -d' ' -f1`
       echo -n "[info] fast-forwarding $num commits, '$sha_current' -> '$sha_target' on branch '$target', ok? [y/n]: "
-      fnDecision >/dev/null && git checkout $sha_target
+      fn_decision >/dev/null && git checkout $sha_target
       ;;
     "rd"|"rescue-dangling")
       IFS=$'\n'; commits=($(git fsck --no-reflog | awk '/dangling commit/ {print $3}')); IFS="$IFSORG"
@@ -274,7 +274,7 @@ fnProcess() {
         echo "[info] no dangling commits found in repo"
       else
         echo -n "[info] rescue ${#commits[@]} dangling commit$([ ${#commits[@]} -ne 1 ] && echo "s") found in repo? [y/n]: "
-        fnDecision >/dev/null &&\
+        fn_decision >/dev/null &&\
           mkdir commits &&\
           for c in ${commits[@]}; do git log -n1 -p $c > commits/$c.diff; done
       fi
@@ -301,9 +301,9 @@ fnProcess() {
         echo -e "[info] file: $file | ln#: $line | auth: ${c_red}${auth}${c_off} | date: $(date -d "@$dt1" "+%d %b %Y %H:%M:%S") $dt2"
         echo -e "\n$data\n"
         echo -n "[user] (s)how, (r)ebase from, or (i)gnore commit '$id'? [s/r/i/x]: "
-        res="$(fnDecision "s|r|i|x")"
+        res="$(fn_decision "s|r|i|x")"
         [ "x$res" == "xs" ] && git show "$id"
-        [ "x$res" == "xr" ] && fnRebase "$id" -- --autostash && exit
+        [ "x$res" == "xr" ] && fn_rebase "$id" -- --autostash && exit
         [ "x$res" == "xi" ] && continue
         [ "x$res" == "xx" ] && exit
       done
@@ -314,7 +314,7 @@ fnProcess() {
   esac
 }
 
-fnSourced() {
+fn_sourced() {
   # support for being 'sourced' limited to bash and zsh
   [ $DEBUG -gt 0 ] && echo "[info] \$0: '$0', ZSH_VERSION: '$ZSH_VERSION', ZSH_EVAL_CONTEXT: '$ZSH_EVAL_CONTEXT', BASH_VERSION: '$BASH_VERSION', BASH_SOURCE[0]: '${BASH_SOURCE[0]}'" 1>&2
   [ -n "$BASH_VERSION" ] && ([[ "${0##*/}" == "${BASH_SOURCE##*/}" ]] &&  echo 0 || echo 1) && return
@@ -322,4 +322,4 @@ fnSourced() {
   echo 0
 }
 
-[ $(fnSourced) -eq 0 ] && fnProcess "$@"
+[ $(fn_sourced) -eq 0 ] && fn_process "$@"

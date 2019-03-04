@@ -191,7 +191,7 @@ EOF
   #updating..
   if [ $REMOVEINVALID -eq 1 ]; then
     #get invalid
-    TEMP=$(fnTempFile)
+    TEMP=$(fn_temp_file)
     echo tar "--diff" "${args2[@]}"
     tar "--diff" "${args2[@]}" 2>&1 | grep -i 'no such file' | awk -F: '{gsub(" ","",$2); print $2}' > $TEMP
     if [ $(wc -l $TEMP | sed 's|^[ ]*\([0-9]*\).*$|\1|g') -gt 0 ]; then
@@ -208,7 +208,7 @@ function extractiso()
 {
   result=1
   set +e
-  file=$(fnTempFile) && rm $file && mkdir -p $file || return 1
+  file=$(fn_temp_file) && rm $file && mkdir -p $file || return 1
   if [ -d $file ]; then
     mount -t iso9660 -o ro "$1" $file
     result=$( cp -R $file/* . )

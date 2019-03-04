@@ -80,11 +80,11 @@ SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
 "
 }
 
-fnCleanUp() {
+fn_clean_up() {
   [ -n "$tmp" ] && [ -e "$tmp" ] && rm -rf "$tmp" 2>/dev/null 1>&2
 }
 
-fnClean() {
+fn_clean() {
   declare target
   declare interactive
   declare files
@@ -98,7 +98,7 @@ fnClean() {
     res="y"
     if [ $interactive -eq 1 ]; then
       echo -n "[user] target '$target' cleanup, purge ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s")? [y/n]: "
-      res=$(fnDecision)
+      res=$(fn_decision)
     else
       echo "[info] target '$target' cleanup, purging ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s")"
     fi
@@ -106,8 +106,8 @@ fnClean() {
   fi
 }
 
-fnFilesCompare() {
-  [ $DEBUG -ge 5 ] && echo "[debug | fnFilesCompare]" 1>&2
+fn_files_compare() {
+  [ $DEBUG -ge 5 ] && echo "[debug | fn_files_compare]" 1>&2
   [ $# -lt 2 ] && echo "[error] not enough args" 1>&2 && return 1
   declare base
   declare md5base
@@ -127,7 +127,7 @@ fnFilesCompare() {
   echo -e "${res:2}"
 }
 
-fnProcess() {
+fn_process() {
 
   if [ -n "$variants" ]; then
     if [ ! -f "$variants" ]; then
@@ -155,7 +155,7 @@ fnProcess() {
     if [ ! -d "$target" ]; then
       # archive extraction
       globs=(); for s in "${search[@]}"; do globs=("${globs[@]}" "--wildcards" "*$s*"); done
-      tmp=$(fnTempDir "$SCRIPTNAME")
+      tmp=$(fn_temp_dir "$SCRIPTNAME")
       tar -C "$tmp" -x "${globs[@]}" -f "$target" 2>/dev/null
       res=$?
       if [ $res -ne 0 ]; then
@@ -179,7 +179,7 @@ fnProcess() {
   # dump matches
   if [ -n "$target_matches" ]; then
     [ ! -d "$target_matches" ] && mkdir -p "$target_matches"
-    fnClean "$target_matches" $interactive_cleaning
+    fn_clean "$target_matches" $interactive_cleaning
     for f in ${files[@]}; do cp -a --parents "$f" "$target_matches/"; done
     echo "[info] dumped ${#files[@]} matches to '$target_matches'" 1>&2
   fi
@@ -221,7 +221,7 @@ fnProcess() {
       done
       if [ ${#s[@]} -gt 0 ]; then
         # make comparison
-        compared="$(fnFilesCompare "$f" "${s[@]}")"
+        compared="$(fn_files_compare "$f" "${s[@]}")"
         res=$?
         [ $res -ne 0 ] && return $res
         # create merged data subset for sort
@@ -280,7 +280,7 @@ fnProcess() {
       echo "[error] no 'diff' binary found in your PATH" 1>&2
     else
       [[ -n "$target_diffs" && ! -d "$target_diffs" ]] && mkdir -p "$target_diffs"
-      fnClean "$target_diffs" $interactive_cleaning
+      fn_clean "$target_diffs" $interactive_cleaning
       git_bin="$(which git)"
       name=""
       email=""
@@ -411,7 +411,7 @@ for target in "${targets[@]}"; do
 done
 
 # run
-fnProcess
+fn_process
 
 # clean up
-fnCleanUp
+fn_clean_up

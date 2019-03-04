@@ -117,7 +117,7 @@ case "$option" in
     sleep 2
     $EDITOR "$f_content"
     fn_write_data "content" "$f_entry" "$(cat $f_content)"
-    if fnDecision "publish?" >/dev/null; then
+    if fn_decision "publish?" >/dev/null; then
       fn_publish "$dt_created" "$title"
       rm $f_entry
     fi
@@ -126,7 +126,7 @@ case "$option" in
   "publish")
     dt_created="$(fn_read_data "date created" "$f_entry")"
     title="$(fn_read_data "title" "$f_entry")"
-    if fnDecision "publish?" >/dev/null; then
+    if fn_decision "publish?" >/dev/null; then
       fn_publish "$dt_created" "$title"
       rm $f_entry
     fi
@@ -146,7 +146,7 @@ case "$option" in
     cp "${matches[0]}" "$f_entry.tmp"
 
     # edit title
-    res=$(fnDecision "edit title?" "ynx")
+    res=$(fn_decision "edit title?" "ynx")
     [ "x$res" = "xx" ] && exit 0
     [ "x$res" = "xn" ] &&\
       fn_write_data "title" "$f_entry.tmp" "$(fn_read_data "title" "$f_entry.tmp")"
@@ -155,7 +155,7 @@ case "$option" in
       fn_write_data "title" "$f_entry.tmp" "$title"
 
     # edit content
-    res="$(fnDecision "edit content?" "ynx")"
+    res="$(fn_decision "edit content?" "ynx")"
     [ "x$res" = "xx" ] && exit 0
     [ "x$res" = "xn" ] &&\
       fn_write_data "content" "$f_entry.tmp" "$(fn_read_data "content" "$f_entry.tmp")"
@@ -170,7 +170,7 @@ case "$option" in
     # publish
     dt_created="$(fn_read_data "date created" "$f_entry")"
     title="$(fn_read_data "title" "$f_entry")"
-    fnDecision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
+    fn_decision "publish?" >/dev/null && fn_publish "$dt_created" "$title"
     rm $f_entry
     ;;
 

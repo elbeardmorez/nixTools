@@ -69,7 +69,7 @@ elif [[ ! "x$(dirname $SEARCH)" == "x." || "x${SEARCH:0:1}" == "x." ]]; then
   if [ $interactive -eq 1 ]; then
     # new file. offer creation
     echo -n "[user] file '$SEARCH' does not exist, create it? [y/n]: " 1>&2
-    fnDecision >/dev/null || exit
+    fn_decision >/dev/null || exit
     # ensure path
     [ -d "$(dirname $SEARCH)" ] || mkdir -p "$(dirname $SEARCH)"
     touch "$SEARCH"
@@ -94,7 +94,7 @@ else
     else
       result=""
       echo -n "[user] search match, use file '$file'? [y/n/c]: " 1>&2
-      res="$(fnDecision "y|n|c")"
+      res="$(fn_decision "y|n|c")"
       [ "x$res" == "xc" ] && exit  # !break, no partial results
       [ "x$res" == "xn" ] && continue
       results[${#results[@]}]="$file"
