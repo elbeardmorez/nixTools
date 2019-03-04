@@ -111,6 +111,8 @@ case "$option" in
   "new")
     rm "$f_entry" 2>/dev/null
     rm "$f_content" 2>/dev/null
+    touch "$f_entry"
+    touch "$f_content"
     fn_write_data "date created" "$f_entry" "$(date +"%d%b%Y %H:%M:%S")"
     fn_write_data "title" "$f_entry" "$(fn_input_data "title")"
     echo "edit content:"
