@@ -51,10 +51,11 @@ fnProcess() {
       [ "x$type" = "xdir" ] && diff_options[${#diff_options[@]}]="-r"
 
       target="$(fnTempFile "$SCRIPTNAME")"
+      touch "$target"
 
-      [ $DEBUG -ge 1 ] && echo "[debug] diff  ${diff_options_default[@]} ${diff_options[@]} \"$file1\" \"$file2\" | grep -ve \"^Only in\" | grep -ve \"^[Bb]inary\"" | tee "$target"
+      [ $DEBUG -gt 0 ] && echo "[debug] diff  ${diff_options_default[@]} ${diff_options[@]} \"$file1\" \"$file2\" | grep -ve \"^Only in\" | grep -ve \"^[Bb]inary\"" | tee -a "$target"
       if [ $TEST -eq 0 ]; then
-        diff ${diff_options_default[@]} ${diff_options[@]} "$file1" "$file2" | grep -ve "^Only in" | grep -ve "^[Bb]inary" > "$target"
+        diff ${diff_options_default[@]} ${diff_options[@]} "$file1" "$file2" | grep -ve "^Only in" | grep -ve "^[Bb]inary" >> "$target"
         if [[ "x$type" == "xdir" && $changed_only -eq 1 ]]; then
           echo -e "\n#changes found for the following file(s)"
           cat "$target" | grep -P "^diff -" | sed 's/.*\/\(.*$\)/\1/'
