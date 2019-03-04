@@ -15,6 +15,8 @@ declare -a diff_options
 diff_options_default=("-uE" "--color=always")
 diff_viewer=${DIFF_VIEWER:-meld}
 f_excludes=""
+file1=""
+file2=""
 
 help() {
   echo -e "
