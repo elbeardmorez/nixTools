@@ -14,6 +14,7 @@ where OPTION can be:
   publish  : (re)build and push temp data to 'publshed' target
   mod [SEARCH]  : modify current unpublished item or a published item
                   via title search on SEARCH
+  list  : list published entries
 ```
 
 ## dependencies

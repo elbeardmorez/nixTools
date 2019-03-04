@@ -21,6 +21,7 @@ help() {
   publish  : (re)build and push temp data to 'publshed' target
   mod [SEARCH]  : modify current unpublished item or a published item
                   via title search on SEARCH
+  list  : list published entries
 "
 }
 
@@ -100,7 +101,7 @@ fn_publish() {
 option=new
 if [ $# -gt 0 ]; then
   arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-  [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\|publish\|mod\)$/p')" ] && option="$arg" && shift
+  [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\|publish\|mod\|list\)$/p')" ] && option="$arg" && shift
 fi
 
 case "$option" in
@@ -168,6 +169,18 @@ case "$option" in
     # publish
     fn_decision "publish?" >/dev/null &&\
       fn_publish "$f_entry" && rm "$f_entry"
+    ;;
+
+  "list")
+    IFS=$'\n'; files=($(grep -rl "'title':.*" "$published")); IFS="$IFSORG"
+    tb=""
+    l=1
+    for f in "${files[@]}"; do
+      tb+="\n$l\t$c_red$(sed -n 's/'\''title'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")$c_off\t$f"
+      l=$(($l+1))
+    done
+    echo "# published entries"
+    echo -e "${tb:2}" | column -t -s$'\t'
     ;;
 
   *)
