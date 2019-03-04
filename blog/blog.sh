@@ -127,17 +127,20 @@ case "$option" in
     ;;
 
   "mod")
-    # find entry
-    search="$1"
-    search=$(echo "$search" | tr " " ".")
-    IFS=$'\n'; matches=($(grep -rl "'title':.*$(fn_rx_escape "grep" "$search").*" "$published")); IFS="$IFSORG"
-    [ ${#matches[@]} -ne 1 ] && echo "[error] couldn't find unique blog entry using search term '$search'" && exit 1
-    echo "[info] matched entry '${match[0]}'"
-
-    # move original
-    mv "${matches[0]}" "$f_entry.tmp"
-    # edit temp version
-    cp "${matches[0]}" "$f_entry.tmp"
+    if [ $# -gt 0 ]; then
+      # target a published entry
+      search="$1"
+      search=$(echo "$search" | tr " " ".")
+      IFS=$'\n'; matches=($(grep -rl "'title':.*$(fn_rx_escape "grep" "$search").*" "$published")); IFS="$IFSORG"
+      [ ${#matches[@]} -ne 1 ] && echo "[error] couldn't find unique blog entry using search term '$search'" && exit 1
+      echo "[info] targetting matched entry '${match[0]}'"
+      # move original
+      mv "${matches[0]}" "$f_entry.tmp"
+      # edit temp version
+      cp "${matches[0]}" "$f_entry.tmp"
+    else
+      echo "[info] targetting unpublished entry'"
+    fi
 
     # edit title
     res=$(fn_decision "edit title?" "ynx")
