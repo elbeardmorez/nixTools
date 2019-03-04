@@ -8,7 +8,7 @@ set +e
 
 SCRIPTNAME=${0##*/}
 DEBUG=${DEBUG:-0}
-IFSORIG="$IFS"
+IFSORG="$IFS"
 
 help() {
   echo -e "SYNTAX: git_ <OPTION> [OPTION-ARGS] [-- [BIN-ARGS]]*
@@ -96,7 +96,7 @@ fnCommitByName() {
      shift
   done
   commits="$(git "${binargs[@]}" log "${cmdargs[@]}" | grep "$search")"
-  IFS=$'\n'; arr_commits=($(echo -e "$commits")); IFS="$IFSORIG";
+  IFS=$'\n'; arr_commits=($(echo -e "$commits")); IFS="$IFSORG";
   [ ${#arr_commits[@]} -eq 0 ] &&
     echo "[info] no commits found matching search '$search'" 1>&2 && return 1
   [[ ${#arr_commits[@]} -gt 1 && limit -eq 1 ]] &&
@@ -193,7 +193,7 @@ fnProcess() {
       if [ -z $log ]; then
         echo -e "$commits"
       else
-        IFS=$'\n'; arr_commits=($(echo -e "$commits")); IFS="$IFSORIG"
+        IFS=$'\n'; arr_commits=($(echo -e "$commits")); IFS="$IFSORG"
         for c in "${arr_commits[@]}"; do
           fnLog $log 1 "$(echo "$c" | cut -d' ' -f1)"
           [ "x$log" = "xlogx" ] && echo
