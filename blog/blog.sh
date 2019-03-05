@@ -32,7 +32,7 @@ fn_input_data() {
   declare prompt
   declare data
   type="$1" && shift
-  [ $# -eq 4 ] &&\
+  [ $# -eq 3 ] &&\
     var="$1" && shift &&\
     target="$1" && shift &&\
     [[ -n $target && -e "$target" ]] &&\
