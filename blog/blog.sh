@@ -25,6 +25,16 @@ help() {
 "
 }
 
+fn_sample() {
+  max="$1" && shift
+  data="$@"
+  truncated=0
+  len=${#data}
+  [ $len -gt $max ] && len=$max && truncated=1
+  sample="$(echo "${data:0:$len}" | awk 1 ORS='\\n')"
+  echo "$sample$([ $truncated -eq 1 ] && echo "..")"
+}
+
 fn_input_data() {
   declare type
   declare var
@@ -46,18 +56,15 @@ fn_input_data() {
     "multi_line")
       echo -n "$prompt: " 1>&2
       [ -n "$data" ] &&\
+        echo -n "$(fn_sample 50 "$data")" 1>&2 &&\
         echo -e "$data" > $f_content
       sleep 1
       $EDITOR "$f_content" 1>/dev/tty
+      echo -e "[2K[A" 1>&2 # reset line
       data="$(cat $f_content)"
-      if [ -n "$data" ]; then
-        # display sample
-        truncated=0
-        len=${#data}
-        [ $len -gt 50 ] && len=50 && truncated=1
-        sample="$(echo "${data:0:$len}" | awk 1 ORS='\\n')"
-        echo "$sample$([ $truncated -eq 1 ] && echo "..")" 1>&2
-      fi
+      echo -n "$prompt: " 1>&2
+      [ -n "$data" ] &&\
+        echo -n "$(fn_sample 50 "$data")" 1>&2
       echo "" 1>&2
       echo -e "$data"
       ;;
