@@ -26,11 +26,49 @@ help() {
 }
 
 fn_input_data() {
-  type="$1"
-  echo -n "$type [enter]: " 1>&2
-  read
-  echo "" 1>&2
-  echo "$REPLY"
+  declare type
+  declare var
+  declare target
+  declare prompt
+  declare data
+  type="$1" && shift
+  [ $# -eq 4 ] &&\
+    var="$1" && shift &&\
+    target="$1" && shift &&\
+    [[ -n $target && -e "$target" ]] &&\
+      data="$(fn_read_data "$var" "$target")"
+  prompt="$1" && shift
+  case "$type" in
+    "single_line")
+      echo -n "$prompt [enter]: " 1>&2
+      fn_edit_line "$data"
+      ;;
+    "multi_line")
+      echo -n "$prompt: " 1>&2
+      [ -n "$data" ] &&\
+        echo -e "$data" > $f_content
+      sleep 0.5
+      $EDITOR "$f_content" 1>/dev/tty
+      data="$(cat $f_content)"
+      if [ -n "$data" ]; then
+        # display sample
+        truncated=0
+        len=${#data}
+        [ $len -gt 50 ] && len=50 && truncated=1
+        sample="$(echo "${data:0:$(($len-1))}" | awk 1 ORS='\\n')"
+        echo "$sample$([ $truncated -eq 1 ] && echo "..")" 1>&2
+      fi
+      echo -e "$data"
+      ;;
+  esac
+}
+
+fn_input_line() {
+  fn_input_data "single_line" "$@"
+}
+
+fn_input_lines() {
+  fn_input_data "multi_line" "$@"
 }
 
 fn_write_data() {
@@ -115,11 +153,8 @@ case "$option" in
     touch "$f_entry"
     touch "$f_content"
     fn_write_data "date created" "$f_entry" "$(date +"%d%b%Y %H:%M:%S")"
-    fn_write_data "title" "$f_entry" "$(fn_input_data "title")"
-    echo "edit content:"
-    sleep 2
-    $EDITOR "$f_content"
-    fn_write_data "content" "$f_entry" "$(cat $f_content)"
+    fn_write_data "title" "$f_entry" "$(fn_input_line "set title")"
+    fn_write_data "content" "$f_entry" "$(fn_input_lines "edit content")"
     fn_decision "publish?" >/dev/null &&\
       fn_publish "$f_entry" && rm "$f_entry"
     ;;
@@ -151,7 +186,7 @@ case "$option" in
     [ "x$res" = "xn" ] &&\
       fn_write_data "title" "$f_entry.tmp" "$(fn_read_data "title" "$f_entry.tmp")"
     [ "x$res" = "xy" ] &&\
-      fn_write_data "title" "$f_entry.tmp" "$(fn_input_data "new title")"
+      fn_write_data "title" "$f_entry.tmp" "$(fn_input_line "title" "$f_entry.tmp" "mod title")"
 
     # edit content
     res="$(fn_decision "edit content?" "ynx")"
@@ -159,9 +194,7 @@ case "$option" in
     [ "x$res" = "xn" ] &&\
       fn_write_data "content" "$f_entry.tmp" "$(fn_read_data "content" "$f_entry.tmp")"
     [ "x$res" = "xy" ] &&\
-      echo "$(fn_read_data "content" "$f_entry.tmp")" > $f_content &&\
-      $EDITOR $f_content &&\
-      fn_write_data "content" "$f_entry.tmp" "$(cat $f_content)"
+      fn_write_data "content" "$f_entry.tmp" "$(fn_input_lines "content" "$f_entry.tmp" "mod content")"
 
     # overwrite original with updated
     mv "$f_entry.tmp" "$f_entry"
