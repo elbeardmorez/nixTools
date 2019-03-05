@@ -58,6 +58,7 @@ fn_input_data() {
         sample="$(echo "${data:0:$len}" | awk 1 ORS='\\n')"
         echo "$sample$([ $truncated -eq 1 ] && echo "..")" 1>&2
       fi
+      echo "" 1>&2
       echo -e "$data"
       ;;
   esac
