@@ -168,8 +168,7 @@ case "$option" in
     ;;
 
   "publish")
-    fn_decision "publish?" >/dev/null &&\
-      fn_publish "$f_entry" && rm "$f_entry"
+    fn_publish "$f_entry" && rm "$f_entry"
     ;;
 
   "mod")
