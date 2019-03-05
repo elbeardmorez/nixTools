@@ -55,7 +55,7 @@ fn_input_data() {
         truncated=0
         len=${#data}
         [ $len -gt 50 ] && len=50 && truncated=1
-        sample="$(echo "${data:0:$(($len-1))}" | awk 1 ORS='\\n')"
+        sample="$(echo "${data:0:$len}" | awk 1 ORS='\\n')"
         echo "$sample$([ $truncated -eq 1 ] && echo "..")" 1>&2
       fi
       echo -e "$data"
