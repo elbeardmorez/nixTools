@@ -47,7 +47,7 @@ fn_input_data() {
       echo -n "$prompt: " 1>&2
       [ -n "$data" ] &&\
         echo -e "$data" > $f_content
-      sleep 0.5
+      sleep 1
       $EDITOR "$f_content" 1>/dev/tty
       data="$(cat $f_content)"
       if [ -n "$data" ]; then
