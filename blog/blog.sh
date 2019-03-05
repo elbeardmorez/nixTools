@@ -173,9 +173,9 @@ case "$option" in
       [ ${#matches[@]} -ne 1 ] && echo "[error] couldn't find unique blog entry using search term '$search'" && exit 1
       echo "[info] targetting matched entry '${match[0]}'"
       # move original
-      mv "${matches[0]}" "$f_entry.tmp"
+      mv "${matches[0]}" "$f_entry"
       # edit temp version
-      cp "${matches[0]}" "$f_entry.tmp"
+      cp "$f_entry" "$f_entry.tmp"
     else
       echo "[info] targetting unpublished entry'"
     fi
