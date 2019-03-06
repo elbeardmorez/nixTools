@@ -195,6 +195,11 @@ case "$option" in
     [ "x$res" = "xy" ] &&\
       fn_write_data "content" "$f_entry.tmp" "$(fn_input_lines "content" "$data")"
 
+    # modified?
+    diff=$(fn_diff "$f_entry.tmp" "$f_entry")
+    [ $DEBUG -ge 1 ] && echo "[debug] entry$([ $diff -eq 0 ] && echo " not") modified"
+    [ $diff -eq 1 ] && fn_write_data "date modified" "$f_entry.tmp" "$(date +"%d%b%Y %H:%M:%S")"
+
     # overwrite original with updated
     mv "$f_entry.tmp" "$f_entry"
 
