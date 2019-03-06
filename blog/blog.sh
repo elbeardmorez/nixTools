@@ -31,7 +31,7 @@ fn_sample() {
   truncated=0
   len=${#data}
   [ $len -gt $max ] && len=$max && truncated=1
-  sample="$(echo "${data:0:$len}" | awk 1 ORS='\\n')"
+  sample="$(echo "${data:0:$len}" | awk 1 ORS='\\n' | awk '{gsub(/\\n$/,""); print}' IRS='' ORS='')"
   echo "$sample$([ $truncated -eq 1 ] && echo "..")"
 }
 
