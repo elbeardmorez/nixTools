@@ -172,7 +172,7 @@ case "$option" in
       search=$(echo "$search" | tr " " ".")
       IFS=$'\n'; matches=($(grep -rl "'title':.*$(fn_rx_escape "grep" "$search").*" "$published")); IFS="$IFSORG"
       [ ${#matches[@]} -ne 1 ] && echo "[error] couldn't find unique blog entry using search term '$search'" && exit 1
-      echo "[info] targeting matched entry '${match[0]}'"
+      echo "[info] targeting matched entry '${matches[0]}'"
       # move original
       mv "${matches[0]}" "$f_entry"
       # edit temp version
