@@ -11,7 +11,7 @@ fi
 # constants
 DEBUG=${DEBUG:-0}
 IFSORG="$IFS"
-ESCAPE_GREP='].['
+ESCAPE_GREP='].[*'
 ESCAPE_SED='].[|/-'
 ESCAPE_AWK='.\|[('
 c_off='\033[0m'
