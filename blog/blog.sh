@@ -190,16 +190,12 @@ case "$option" in
     # edit title
     res=$(fn_decision "edit title?" "ynx")
     [ "x$res" = "xx" ] && exit 0
-    [ "x$res" = "xn" ] &&\
-      fn_write_data "title" "$f_entry.tmp" "$(fn_read_data "title" "$f_entry.tmp")"
     [ "x$res" = "xy" ] &&\
       fn_write_data "title" "$f_entry.tmp" "$(fn_input_line "title" "$f_entry.tmp" "mod title")"
 
     # edit content
     res="$(fn_decision "edit content?" "ynx")"
     [ "x$res" = "xx" ] && exit 0
-    [ "x$res" = "xn" ] &&\
-      fn_write_data "content" "$f_entry.tmp" "$(fn_read_data "content" "$f_entry.tmp")"
     [ "x$res" = "xy" ] &&\
       fn_write_data "content" "$f_entry.tmp" "$(fn_input_lines "content" "$f_entry.tmp" "mod content")"
 
