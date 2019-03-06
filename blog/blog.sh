@@ -213,9 +213,11 @@ case "$option" in
     tb=""
     l=1
     for f in "${files[@]}"; do
-      dt="$(sed -n 's/'\''date created'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
+      dt_created="$(sed -n 's/'\''date created'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
+      dt_modified="$(sed -n 's/'\''date modified'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
+      [ -z "$dt_modified" ] && dt_modified="$dt_created"
       title="$(sed -n 's/'\''title'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
-      tb+="\n[$l]\t$c_red$title$c_off\t$dt\t$f"
+      tb+="\n[$l]\t$c_red$title$c_off\t$dt_created\t$dt_modified\t$f"
       l=$(($l+1))
     done
     echo "# published entries"
