@@ -138,18 +138,7 @@ fn_publish() {
   return $?
 }
 
-option=new
-if [ $# -gt 0 ]; then
-  arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-  [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\|publish\|mod\|list\)$/p')" ] && option="$arg" && shift
-fi
-
-case "$option" in
-  "h"|"help")
-    help && exit
-    ;;
-
-  "new")
+fn_new() {
     rm "$f_entry" 2>/dev/null
     rm "$f_content" 2>/dev/null
     touch "$f_entry"
@@ -159,13 +148,9 @@ case "$option" in
     fn_write_data "content" "$f_entry" "$(fn_input_lines "content")"
     fn_decision "publish?" >/dev/null &&\
       fn_publish "$f_entry" && rm "$f_entry"
-    ;;
+}
 
-  "publish")
-    fn_publish "$f_entry" && rm "$f_entry"
-    ;;
-
-  "mod")
+fn_mod() {
     if [ $# -gt 0 ]; then
       # target a published entry
       search="$1"
@@ -206,9 +191,9 @@ case "$option" in
     # publish
     fn_decision "publish?" >/dev/null &&\
       fn_publish "$f_entry" && rm "$f_entry"
-    ;;
+}
 
-  "list")
+fn_list() {
     header="id\t${c_red}${c_off}title\tdate created\t${c_bld}${c_off}date modified\tpath"
     IFS=$'\n'; files=($(grep -rl "'title':.*" "$published")); IFS="$IFSORG"
     tb=""
@@ -222,9 +207,19 @@ case "$option" in
     done
     echo "# published entries"
     echo -e "$header\n${tb:2}" | column -t -s$'\t'
-    ;;
+}
 
-  *)
-    echo "[error] unsupported option '$option'"
-    ;;
+option=new
+if [ $# -gt 0 ]; then
+  arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
+  [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\|publish\|mod\|list\)$/p')" ] && option="$arg" && shift
+fi
+
+case "$option" in
+  "h"|"help") help && exit ;;
+  "new") fn_new ;;
+  "publish") fn_publish "$f_entry" && rm "$f_entry" ;;
+  "mod") fn_mod "$@" ;;
+  "list") fn_list ;;
+  *) echo "[error] unsupported option '$option'" ;;
 esac
