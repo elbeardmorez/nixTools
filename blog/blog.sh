@@ -209,6 +209,7 @@ case "$option" in
     ;;
 
   "list")
+    header="id\t${c_red}${c_off}title\tdate created\t${c_bld}${c_off}date modified\tpath"
     IFS=$'\n'; files=($(grep -rl "'title':.*" "$published")); IFS="$IFSORG"
     tb=""
     l=1
@@ -220,7 +221,7 @@ case "$option" in
       l=$(($l+1))
     done
     echo "# published entries"
-    echo -e "${tb:2}" | column -t -s$'\t'
+    echo -e "$header\n${tb:2}" | column -t -s$'\t'
     ;;
 
   *)
