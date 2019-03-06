@@ -156,3 +156,9 @@ fn_files_compare() {
   done
   echo -e "${res:2}"
 }
+
+fn_diff() {
+  [ $# -ne 2 ] && echo "[error] expected 'base' and 'compare' args only" && exit 1
+  equal=$(fn_files_compare "$1" "$2" | cut -d$'\t' -f2)
+  echo $((equal ^= 1))  # bitwise flip to invert
+}
