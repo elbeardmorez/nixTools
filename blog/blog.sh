@@ -139,74 +139,74 @@ fn_publish() {
 }
 
 fn_new() {
-    rm "$f_entry" 2>/dev/null
-    rm "$f_content" 2>/dev/null
-    touch "$f_entry"
-    touch "$f_content"
-    fn_write_data "date created" "$f_entry" "$(date +"%d%b%Y %H:%M:%S")"
-    fn_write_data "title" "$f_entry" "$(fn_input_line "title")"
-    fn_write_data "content" "$f_entry" "$(fn_input_lines "content")"
-    fn_decision "publish?" >/dev/null &&\
-      fn_publish "$f_entry" && rm "$f_entry"
+  rm "$f_entry" 2>/dev/null
+  rm "$f_content" 2>/dev/null
+  touch "$f_entry"
+  touch "$f_content"
+  fn_write_data "date created" "$f_entry" "$(date +"%d%b%Y %H:%M:%S")"
+  fn_write_data "title" "$f_entry" "$(fn_input_line "title")"
+  fn_write_data "content" "$f_entry" "$(fn_input_lines "content")"
+  fn_decision "publish?" >/dev/null &&\
+    fn_publish "$f_entry" && rm "$f_entry"
 }
 
 fn_mod() {
-    if [ $# -gt 0 ]; then
-      # target a published entry
-      search="$1"
-      search=$(echo "$search" | tr " " ".")
-      IFS=$'\n'; matches=($(grep -rl "'title':.*$(fn_rx_escape "grep" "$search").*" "$published")); IFS="$IFSORG"
-      [ ${#matches[@]} -ne 1 ] && echo "[error] couldn't find unique blog entry using search term '$search'" && exit 1
-      echo "[info] targeting matched entry '${matches[0]}'"
-      # move original
-      mv "${matches[0]}" "$f_entry"
-      # edit temp version
-      cp "$f_entry" "$f_entry.tmp"
-    else
-      echo "[info] targeting unpublished entry'"
-    fi
+  if [ $# -gt 0 ]; then
+    # target a published entry
+    search="$1"
+    search=$(echo "$search" | tr " " ".")
+    IFS=$'\n'; matches=($(grep -rl "'title':.*$(fn_rx_escape "grep" "$search").*" "$published")); IFS="$IFSORG"
+    [ ${#matches[@]} -ne 1 ] && echo "[error] couldn't find unique blog entry using search term '$search'" && exit 1
+    echo "[info] targeting matched entry '${matches[0]}'"
+    # move original
+    mv "${matches[0]}" "$f_entry"
+    # edit temp version
+    cp "$f_entry" "$f_entry.tmp"
+  else
+    echo "[info] targeting unpublished entry'"
+  fi
 
-    # edit title
-    data="$(fn_read_data "title" "$f_entry.tmp")"
-    res=$(fn_decision "edit title$([ -n "$data" ] && echo " [$(fn_sample 50 "$data")]")?" "ynx")
-    [ "x$res" = "xx" ] && exit 0
-    [ "x$res" = "xy" ] &&\
-      fn_write_data "title" "$f_entry.tmp" "$(fn_input_line "title" "$data")"
+  # edit title
+  data="$(fn_read_data "title" "$f_entry.tmp")"
+  res=$(fn_decision "edit title$([ -n "$data" ] && echo " [$(fn_sample 50 "$data")]")?" "ynx")
+  [ "x$res" = "xx" ] && exit 0
+  [ "x$res" = "xy" ] &&\
+    fn_write_data "title" "$f_entry.tmp" "$(fn_input_line "title" "$data")"
 
-    # edit content
-    data="$(fn_read_data "content" "$f_entry.tmp")"
-    res="$(fn_decision "edit content$([ -n "$data" ] && echo " [$(fn_sample 50 "$data")]")?" "ynx")"
-    [ "x$res" = "xx" ] && exit 0
-    [ "x$res" = "xy" ] &&\
-      fn_write_data "content" "$f_entry.tmp" "$(fn_input_lines "content" "$data")"
+  # edit content
+  data="$(fn_read_data "content" "$f_entry.tmp")"
+  res="$(fn_decision "edit content$([ -n "$data" ] && echo " [$(fn_sample 50 "$data")]")?" "ynx")"
+  [ "x$res" = "xx" ] && exit 0
+  [ "x$res" = "xy" ] &&\
+    fn_write_data "content" "$f_entry.tmp" "$(fn_input_lines "content" "$data")"
 
-    # modified?
-    diff=$(fn_diff "$f_entry.tmp" "$f_entry")
-    [ $DEBUG -ge 1 ] && echo "[debug] entry$([ $diff -eq 0 ] && echo " not") modified"
-    [ $diff -eq 1 ] && fn_write_data "date modified" "$f_entry.tmp" "$(date +"%d%b%Y %H:%M:%S")"
+  # modified?
+  diff=$(fn_diff "$f_entry.tmp" "$f_entry")
+  [ $DEBUG -ge 1 ] && echo "[debug] entry$([ $diff -eq 0 ] && echo " not") modified"
+  [ $diff -eq 1 ] && fn_write_data "date modified" "$f_entry.tmp" "$(date +"%d%b%Y %H:%M:%S")"
 
-    # overwrite original with updated
-    mv "$f_entry.tmp" "$f_entry"
+  # overwrite original with updated
+  mv "$f_entry.tmp" "$f_entry"
 
-    # publish
-    fn_decision "publish?" >/dev/null &&\
-      fn_publish "$f_entry" && rm "$f_entry"
+  # publish
+  fn_decision "publish?" >/dev/null &&\
+    fn_publish "$f_entry" && rm "$f_entry"
 }
 
 fn_list() {
-    header="id\t${c_red}${c_off}title\tdate created\t${c_bld}${c_off}date modified\tpath"
-    IFS=$'\n'; files=($(grep -rl "'title':.*" "$published")); IFS="$IFSORG"
-    tb=""
-    l=1
-    for f in "${files[@]}"; do
-      dt_created="$(sed -n 's/'\''date created'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
-      dt_modified="$(sed -n 's/'\''date modified'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
-      title="$(sed -n 's/'\''title'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
-      tb+="\n[$l]\t$c_red$title$c_off\t$dt_created\t$([ -n "$dt_modified" ] && echo "$c_bld$dt_modified$c_off" || echo "$c_bld$c_off$dt_created")\t$f"
-      l=$(($l+1))
-    done
-    echo "# published entries"
-    echo -e "$header\n${tb:2}" | column -t -s$'\t'
+  header="id\t${c_red}${c_off}title\tdate created\t${c_bld}${c_off}date modified\tpath"
+  IFS=$'\n'; files=($(grep -rl "'title':.*" "$published")); IFS="$IFSORG"
+  tb=""
+  l=1
+  for f in "${files[@]}"; do
+    dt_created="$(sed -n 's/'\''date created'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
+    dt_modified="$(sed -n 's/'\''date modified'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
+    title="$(sed -n 's/'\''title'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
+    tb+="\n[$l]\t$c_red$title$c_off\t$dt_created\t$([ -n "$dt_modified" ] && echo "$c_bld$dt_modified$c_off" || echo "$c_bld$c_off$dt_created")\t$f"
+    l=$(($l+1))
+  done
+  echo "# published entries"
+  echo -e "$header\n${tb:2}" | column -t -s$'\t'
 }
 
 option=new
