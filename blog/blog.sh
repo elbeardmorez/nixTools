@@ -188,13 +188,15 @@ case "$option" in
     fi
 
     # edit title
-    res=$(fn_decision "edit title?" "ynx")
+    data="$(fn_read_data "title" "$f_entry.tmp")"
+    res=$(fn_decision "edit title$([ -n "$data" ] && echo " [$(fn_sample 50 "$data")]")?" "ynx")
     [ "x$res" = "xx" ] && exit 0
     [ "x$res" = "xy" ] &&\
       fn_write_data "title" "$f_entry.tmp" "$(fn_input_line "title" "$f_entry.tmp" "mod title")"
 
     # edit content
-    res="$(fn_decision "edit content?" "ynx")"
+    data="$(fn_read_data "content" "$f_entry.tmp")"
+    res="$(fn_decision "edit content$([ -n "$data" ] && echo " [$(fn_sample 50 "$data")]")?" "ynx")"
     [ "x$res" = "xx" ] && exit 0
     [ "x$res" = "xy" ] &&\
       fn_write_data "content" "$f_entry.tmp" "$(fn_input_lines "content" "$f_entry.tmp" "mod content")"
