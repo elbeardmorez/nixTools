@@ -161,8 +161,8 @@ case "$option" in
     touch "$f_entry"
     touch "$f_content"
     fn_write_data "date created" "$f_entry" "$(date +"%d%b%Y %H:%M:%S")"
-    fn_write_data "title" "$f_entry" "$(fn_input_line "set title")"
-    fn_write_data "content" "$f_entry" "$(fn_input_lines "edit content")"
+    fn_write_data "title" "$f_entry" "$(fn_input_line "title")"
+    fn_write_data "content" "$f_entry" "$(fn_input_lines "content")"
     fn_decision "publish?" >/dev/null &&\
       fn_publish "$f_entry" && rm "$f_entry"
     ;;
@@ -192,14 +192,14 @@ case "$option" in
     res=$(fn_decision "edit title$([ -n "$data" ] && echo " [$(fn_sample 50 "$data")]")?" "ynx")
     [ "x$res" = "xx" ] && exit 0
     [ "x$res" = "xy" ] &&\
-      fn_write_data "title" "$f_entry.tmp" "$(fn_input_line "title" "$f_entry.tmp" "mod title")"
+      fn_write_data "title" "$f_entry.tmp" "$(fn_input_line "title" "$f_entry.tmp" "title")"
 
     # edit content
     data="$(fn_read_data "content" "$f_entry.tmp")"
     res="$(fn_decision "edit content$([ -n "$data" ] && echo " [$(fn_sample 50 "$data")]")?" "ynx")"
     [ "x$res" = "xx" ] && exit 0
     [ "x$res" = "xy" ] &&\
-      fn_write_data "content" "$f_entry.tmp" "$(fn_input_lines "content" "$f_entry.tmp" "mod content")"
+      fn_write_data "content" "$f_entry.tmp" "$(fn_input_lines "content" "$f_entry.tmp" "content")"
 
     # overwrite original with updated
     mv "$f_entry.tmp" "$f_entry"
