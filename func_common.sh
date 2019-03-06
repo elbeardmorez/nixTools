@@ -13,7 +13,7 @@ DEBUG=${DEBUG:-0}
 IFSORG="$IFS"
 ESCAPE_GREP='].['
 ESCAPE_SED='].[|/-'
-ESCAPE_AWK='.\/|[('
+ESCAPE_AWK='.\|[('
 c_off='\033[0m'
 c_red='\033[0;31m'
 
