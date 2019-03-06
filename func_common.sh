@@ -16,6 +16,7 @@ ESCAPE_SED='].[|/-'
 ESCAPE_AWK='.\|[('
 c_off='\033[0m'
 c_red='\033[0;31m'
+c_bld='\033[0;1m'
 
 fn_shell() {
   if [ -n "$BASH_VERSION" ]; then
