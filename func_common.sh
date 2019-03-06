@@ -135,3 +135,24 @@ fn_resolve() {
     target="$(echo "$target" | sed 's/^~/'"$(fn_rx_escape "sed" "$HOME")"'/')"
   echo "$target"
 }
+
+fn_files_compare() {
+  [ $DEBUG -ge 5 ] && echo "[debug | fn_files_compare]" 1>&2
+  [ $# -lt 2 ] && echo "[error] not enough args" 1>&2 && return 1
+  declare base
+  declare md5base
+  declare md5compare
+  declare res
+  base="$1" && shift
+  [ ! -f "$base" ] && echo "[error] invalid file '$base'" 1>&2 && return 1
+  md5base="$(md5sum "$base" | cut -d' ' -f1)"
+  res=""
+  while [ -n "$1" ]; do
+    compare="$1"
+    [ ! -f "$base" ] && echo "[error] invalid file '$compare'" 1>&2 && return 1
+    md5compare="$(md5sum "$compare" | cut -d' ' -f1)"
+    res+="\n$compare\t$([ "x$md5base" == "x$md5compare" ] && echo 1 || echo 0)"
+    shift
+  done
+  echo -e "${res:2}"
+}
