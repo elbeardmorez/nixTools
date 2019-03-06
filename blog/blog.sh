@@ -37,17 +37,11 @@ fn_sample() {
 
 fn_input_data() {
   declare type
-  declare var
-  declare target
   declare prompt
   declare data
   type="$1" && shift
-  [ $# -eq 3 ] &&\
-    var="$1" && shift &&\
-    target="$1" && shift &&\
-    [[ -n $target && -e "$target" ]] &&\
-      data="$(fn_read_data "$var" "$target")"
   prompt="$1" && shift
+  [ $# -gt 0 ] && data="$@"
   case "$type" in
     "single_line")
       echo -n "$prompt [enter]: " 1>&2
@@ -192,14 +186,14 @@ case "$option" in
     res=$(fn_decision "edit title$([ -n "$data" ] && echo " [$(fn_sample 50 "$data")]")?" "ynx")
     [ "x$res" = "xx" ] && exit 0
     [ "x$res" = "xy" ] &&\
-      fn_write_data "title" "$f_entry.tmp" "$(fn_input_line "title" "$f_entry.tmp" "title")"
+      fn_write_data "title" "$f_entry.tmp" "$(fn_input_line "title" "$data")"
 
     # edit content
     data="$(fn_read_data "content" "$f_entry.tmp")"
     res="$(fn_decision "edit content$([ -n "$data" ] && echo " [$(fn_sample 50 "$data")]")?" "ynx")"
     [ "x$res" = "xx" ] && exit 0
     [ "x$res" = "xy" ] &&\
-      fn_write_data "content" "$f_entry.tmp" "$(fn_input_lines "content" "$f_entry.tmp" "content")"
+      fn_write_data "content" "$f_entry.tmp" "$(fn_input_lines "content" "$data")"
 
     # overwrite original with updated
     mv "$f_entry.tmp" "$f_entry"
