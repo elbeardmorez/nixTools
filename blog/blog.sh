@@ -54,7 +54,7 @@ fn_input_data() {
         echo -e "$data" > $f_content
       sleep 1
       $EDITOR "$f_content" 1>/dev/tty
-      echo -e "[2K[A" 1>&2 # reset line
+      echo -e "$ESC_RST" 1>&2
       data="$(cat $f_content)"
       echo -n "$prompt: " 1>&2
       [ -n "$data" ] &&\
