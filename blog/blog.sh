@@ -137,7 +137,7 @@ fn_publish() {
   [ -z "$(echo "$dt" | sed -n '/^[0-9]\+$/p')" ] && dt="$(date -d "$dt" "+%s")"
   title="$(echo "$title"| tr " " ".")"
   [ ! -d "$published" ] && mkdir -p "$published"
-  cp "$target" "$published/${dt}_${title}"
+  cp "$target" "$published/${dt}_${title}" && rm "$target"
   return $?
 }
 
@@ -149,8 +149,7 @@ fn_new() {
   fn_write_data "date created" "$f_entry" "$(date +"%d%b%Y %H:%M:%S")"
   fn_write_data "title" "$f_entry" "$(fn_input_line "title")"
   fn_write_data "content" "$f_entry" "$(fn_input_lines "content")"
-  fn_decision "publish?" >/dev/null &&\
-    fn_publish "$f_entry" && rm "$f_entry"
+  fn_decision "publish?" >/dev/null && fn_publish "$f_entry"
 }
 
 fn_mod() {
@@ -192,8 +191,7 @@ fn_mod() {
   mv "$f_entry.tmp" "$f_entry"
 
   # publish
-  fn_decision "publish?" >/dev/null &&\
-    fn_publish "$f_entry" && rm "$f_entry"
+  fn_decision "publish?" >/dev/null && fn_publish "$f_entry"
 }
 
 fn_list() {
@@ -236,7 +234,7 @@ fi
 case "$option" in
   "h"|"help") help && exit ;;
   "new") fn_new ;;
-  "publish") fn_publish "$f_entry" && rm "$f_entry" ;;
+  "publish") fn_publish "$f_entry" ;;
   "mod") fn_mod "$@" ;;
   "list") fn_list "${1:-"published"}" ;;
   *) echo "[error] unsupported option '$option'" ;;
