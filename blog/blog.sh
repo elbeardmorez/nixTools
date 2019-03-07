@@ -194,8 +194,23 @@ fn_mod() {
 }
 
 fn_list() {
+  declare root
+  declare path
+  declare files
+  root="$1" && shift
+  files=("$@")
+  if [ ${#files[@]} -eq 0 ]; then
+    if [ -d "$root" ]; then
+      path="$root"
+    else
+      case "$root" in
+        "published") path="$published" ;;
+        *) echo "[error] invalid entries root '$root'" && exit 1 ;;
+      esac
+    fi
+    IFS=$'\n'; files=($(grep -rl "'title':.*" "$path")); IFS="$IFSORG"
+  fi
   header="id\t${c_red}${c_off}title\tdate created\t${c_bld}${c_off}date modified\tpath"
-  IFS=$'\n'; files=($(grep -rl "'title':.*" "$published")); IFS="$IFSORG"
   tb=""
   l=1
   for f in "${files[@]}"; do
@@ -205,7 +220,7 @@ fn_list() {
     tb+="\n[$l]\t$c_red$title$c_off\t$dt_created\t$([ -n "$dt_modified" ] && echo "$c_bld$dt_modified$c_off" || echo "$c_bld$c_off$dt_created")\t$f"
     l=$(($l+1))
   done
-  echo "# published entries"
+  echo "# $root entries"
   echo -e "$header\n${tb:2}" | column -t -s$'\t'
 }
 
@@ -220,6 +235,6 @@ case "$option" in
   "new") fn_new ;;
   "publish") fn_publish "$f_entry" && rm "$f_entry" ;;
   "mod") fn_mod "$@" ;;
-  "list") fn_list ;;
+  "list") fn_list "${1:-"published"}" ;;
   *) echo "[error] unsupported option '$option'" ;;
 esac
