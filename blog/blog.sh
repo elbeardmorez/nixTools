@@ -49,13 +49,16 @@ fn_input_data() {
       ;;
     "multi_line")
       echo -n "$prompt: " 1>&2
+      declare f
+      f="$(fn_temp_file $SCRIPTNAME)"
       [ -n "$data" ] &&\
         echo -n "$(fn_sample 50 "$data")" 1>&2 &&\
-        echo -e "$data" > $f_content
+        echo -e "$data" > "$f"
       sleep 1
-      $EDITOR "$f_content" 1>/dev/tty
+      $EDITOR "$f" 1>/dev/tty
       echo -e "$ESC_RST" 1>&2
-      data="$(cat $f_content)"
+      data="$(cat "$f")"
+      rm "$f"
       echo -n "$prompt: " 1>&2
       [ -n "$data" ] &&\
         echo -n "$(fn_sample 50 "$data")" 1>&2
