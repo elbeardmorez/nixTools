@@ -35,14 +35,15 @@ fn_edit_line() {
   restore_stdin=0
   restore_stdout=0
   restore_stderr=0
-  var="$1"
+  var="$1" && shift
+  prompt="${1:-""}"
   [ ! -t 0 ] && restore_stdin=1 && exec 3<&0 0</dev/tty
   [ ! -t 1 ] && restore_stdout=1 && exec 4>&1 1>/dev/tty
   [ ! -t 2 ] && restore_stderr=1 && exec 5>&2 2>/dev/tty
   if [ -n "$BASH_VERSION" ]; then
-    read -e -i "$var" var
+    read -e -p "$prompt" -i "$var" var
   elif [ -n "$ZSH_VERSION" ]; then
-    var="$(zsh -i -c 'var="'"$var"'"; vared var; echo "$var"')"
+    var="$(zsh -c 'var="'"$var"'"; vared -p "'"$prompt"'" var; echo "$var"')"
   fi
   [ $restore_stdin -eq 1 ] && exec <&3 3<&-
   [ $restore_stdout -eq 1 ] && exec 1>&4 4>&-
