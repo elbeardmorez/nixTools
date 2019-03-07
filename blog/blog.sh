@@ -9,9 +9,11 @@ set +e
 SCRIPTNAME=${0##*/}
 IFSORG="$IFS"
 
-published=$HOME/docs/blogging
-f_entry=/tmp/blog_.entry
-f_content=/tmp/blog_.content
+path_blog_root="$HOME/documents/blog"
+published="$path_blog_root/published"
+unpublished="$path_blog_root/unpublished"
+[ -d "$published" ] || mkdir -p "$published" || exit 1
+[ -d "$unpublished" ] || mkdir -p "$published" || exit 1
 
 help() {
   echo -e "\nSYNTAX: $SCRIPTNAME [OPTION [OPTIONARGS]]
@@ -130,6 +132,54 @@ END {gsub(/^[ ]*'\''/,"",data); gsub(/'\''[ ]*$/,"",data); print data}' < "$targ
   echo "$data"
 }
 
+fn_target() {
+  declare target
+  [ $# -gt 0 ] && target="$1" && shift
+  if [ -f "$target" ]; then
+    [ -z "$(grep "'title':.*" "$target")" ] &&\
+      echo "[error] invalid target file '$target'" 1>&2 && return 1
+  else
+    declare path
+    declare search
+    declare files
+    if [ -d "$target" ]; then
+      path="$target"
+    else
+      case "$target" in
+        "published") path="$published" ;;
+        "unpublished") path="$unpublished" ;;
+        *)
+          if [ $# -eq 0 ]; then
+            path="$path_blog_root"
+            search="$target"
+          else
+            echo "[error] invalid target '$target'"
+            return 1
+          fi
+          ;;
+      esac
+    fi
+    [ $# -gt 0 ] && search="$1" && shift
+    IFS=$'\n'; files=($(grep -rl "'title':.*$([ -n "$search" ] && echo "$(fn_rx_escape "grep" "$search").*")" "$path")); IFS="$IFSORG"
+    if [ ${#files[@]} -eq 0 ]; then
+      echo "[info] no blog entr$([ -n "$search" ] && echo "y found using search term '$search'" || echo "ies found")" 1>&2 && return 1
+    elif [ ${#files[@]} -eq 1 ]; then
+      target="${files[0]}"
+    elif [ ${#files[@]} -gt 1 ]; then
+      fn_list "$target" "${files[@]}" 1>&2
+      declare res
+      while [ 1 ]; do
+        res=$(fn_input_line "[user] select target (1-${#files[@]}) or e(x)it")
+        [ "x$res" = "xx" ] && return 1
+        [[ -n "$(echo "$res" | sed -n '/[0-9]\+/p')" && $res -ge 1 && $res -le ${#files[@]} ]] && break
+        echo -e "$ESC_UP$ESC_RST" 1>&2
+      done
+      target="${files[$(($res-1))]}"
+    fi
+  fi
+  echo "$target"
+}
+
 fn_publish() {
   target="$1"
   dt="$(fn_read_data "date created" "$target")"
@@ -142,71 +192,64 @@ fn_publish() {
 }
 
 fn_new() {
-  rm "$f_entry" 2>/dev/null
-  rm "$f_content" 2>/dev/null
-  touch "$f_entry"
-  touch "$f_content"
-  fn_write_data "date created" "$f_entry" "$(date +"%d%b%Y %H:%M:%S")"
-  fn_write_data "title" "$f_entry" "$(fn_input_line "title")"
-  fn_write_data "content" "$f_entry" "$(fn_input_lines "content")"
-  fn_decision "publish?" >/dev/null && fn_publish "$f_entry"
+  f="$(fn_temp_file "$SCRIPTNAME" "$unpublished")" && touch "$f"
+  fn_write_data "date created" "$f" "$(date +"%d%b%Y %H:%M:%S")"
+  fn_write_data "title" "$f" "$(fn_input_line "title")"
+  fn_write_data "content" "$f" "$(fn_input_lines "content")"
+  fn_decision "publish?" >/dev/null && fn_publish "$f"
 }
 
 fn_mod() {
-  if [ $# -gt 0 ]; then
-    # target a published entry
-    search="$1"
-    search=$(echo "$search" | tr " " ".")
-    IFS=$'\n'; matches=($(grep -rl "'title':.*$(fn_rx_escape "grep" "$search").*" "$published")); IFS="$IFSORG"
-    [ ${#matches[@]} -ne 1 ] && echo "[error] couldn't find unique blog entry using search term '$search'" && exit 1
-    echo "[info] targeting matched entry '${matches[0]}'"
-    # move original
-    mv "${matches[0]}" "$f_entry"
-    # edit temp version
-    cp "$f_entry" "$f_entry.tmp"
-  else
-    echo "[info] targeting unpublished entry'"
-  fi
+  declare root
+  declare target
+  target="$1"
+  [[ $? -ne 0 || -z "$target" ]] && return 0
+  echo "[info] targeting blog entry '$target'"
+  f="$(fn_temp_file "$SCRIPTNAME" "$unpublished")" && touch "$f"
+  mv "$target" "$f"
+  # edit temp version
+  cp "$f" "$f.tmp"
 
   # edit title
-  data="$(fn_read_data "title" "$f_entry.tmp")"
+  data="$(fn_read_data "title" "$f.tmp")"
   res=$(fn_decision "edit title$([ -n "$data" ] && echo " [$(fn_sample 50 "$data")]")?" "ynx")
   [ "x$res" = "xx" ] && exit 0
   [ "x$res" = "xy" ] &&\
-    fn_write_data "title" "$f_entry.tmp" "$(fn_input_line "title" "$data")"
+    fn_write_data "title" "$f.tmp" "$(fn_input_line "title" "$data")"
 
   # edit content
-  data="$(fn_read_data "content" "$f_entry.tmp")"
+  data="$(fn_read_data "content" "$f.tmp")"
   res="$(fn_decision "edit content$([ -n "$data" ] && echo " [$(fn_sample 50 "$data")]")?" "ynx")"
   [ "x$res" = "xx" ] && exit 0
   [ "x$res" = "xy" ] &&\
-    fn_write_data "content" "$f_entry.tmp" "$(fn_input_lines "content" "$data")"
+    fn_write_data "content" "$f.tmp" "$(fn_input_lines "content" "$data")"
 
   # modified?
-  diff=$(fn_diff "$f_entry.tmp" "$f_entry")
+  diff=$(fn_diff "$f.tmp" "$f")
   [ $DEBUG -ge 1 ] && echo "[debug] entry$([ $diff -eq 0 ] && echo " not") modified"
-  [ $diff -eq 1 ] && fn_write_data "date modified" "$f_entry.tmp" "$(date +"%d%b%Y %H:%M:%S")"
+  [ $diff -eq 1 ] && fn_write_data "date modified" "$f.tmp" "$(date +"%d%b%Y %H:%M:%S")"
 
   # overwrite original with updated
-  mv "$f_entry.tmp" "$f_entry"
+  mv "$f.tmp" "$f"
 
   # publish
-  fn_decision "publish?" >/dev/null && fn_publish "$f_entry"
+  fn_decision "publish?" >/dev/null && fn_publish "$f"
 }
 
 fn_list() {
-  declare root
+  declare target
   declare path
   declare files
-  root="$1" && shift
+  target="$1" && shift
   files=("$@")
   if [ ${#files[@]} -eq 0 ]; then
-    if [ -d "$root" ]; then
-      path="$root"
+    if [ -d "$target" ]; then
+      path="$target"
     else
-      case "$root" in
+      case "$target" in
         "published") path="$published" ;;
-        *) echo "[error] invalid entries root '$root'" && exit 1 ;;
+        "unpublished") path="$unpublished" ;;
+        *) echo "[error] invalid target '$target'" && return 1 ;;
       esac
     fi
     IFS=$'\n'; files=($(grep -rl "'title':.*" "$path")); IFS="$IFSORG"
@@ -221,7 +264,7 @@ fn_list() {
     tb+="\n[$l]\t$c_red$title$c_off\t$dt_created\t$([ -n "$dt_modified" ] && echo "$c_bld$dt_modified$c_off" || echo "$c_bld$c_off$dt_created")\t$f"
     l=$(($l+1))
   done
-  echo "# $root entries"
+  echo "# $target entries"
   echo -e "$header\n${tb:2}" | column -t -s$'\t'
 }
 
@@ -234,8 +277,8 @@ fi
 case "$option" in
   "h"|"help") help && exit ;;
   "new") fn_new ;;
-  "publish") fn_publish "$f_entry" ;;
-  "mod") fn_mod "$@" ;;
+  "publish") fn_publish "$(fn_target "$@")" ;;
+  "mod") fn_mod "$(fn_target "$@")" ;;
   "list") fn_list "${1:-"published"}" ;;
   *) echo "[error] unsupported option '$option'" ;;
 esac
