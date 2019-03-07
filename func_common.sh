@@ -165,7 +165,7 @@ fn_files_compare() {
     compare="$1"
     [ ! -f "$base" ] && echo "[error] invalid file '$compare'" 1>&2 && return 1
     md5compare="$(md5sum "$compare" | cut -d' ' -f1)"
-    res+="\n$compare\t$([ "x$md5base" == "x$md5compare" ] && echo 1 || echo 0)"
+    res+="\n$compare\t$([ "x$md5base" = "x$md5compare" ] && echo 1 || echo 0)"
     shift
   done
   echo -e "${res:2}"
