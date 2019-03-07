@@ -46,8 +46,7 @@ fn_input_data() {
   [ $# -gt 0 ] && data="$@"
   case "$type" in
     "single_line")
-      echo -n "$prompt [enter]: " 1>&2
-      fn_edit_line "$data"
+      fn_edit_line "$data" "$prompt [enter]: "
       ;;
     "multi_line")
       echo -n "$prompt: " 1>&2
