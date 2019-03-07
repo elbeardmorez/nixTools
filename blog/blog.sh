@@ -139,18 +139,18 @@ fn_target() {
     [ -z "$(grep "'title':.*" "$target")" ] &&\
       echo "[error] invalid target file '$target'" 1>&2 && return 1
   else
-    declare path
+    declare path_
     declare search
     declare files
     if [ -d "$target" ]; then
-      path="$target"
+      path_="$target"
     else
       case "$target" in
-        "published") path="$published" ;;
-        "unpublished") path="$unpublished" ;;
+        "published") path_="$published" ;;
+        "unpublished") path_="$unpublished" ;;
         *)
           if [ $# -eq 0 ]; then
-            path="$path_blog_root"
+            path_="$path_blog_root"
             search="$target"
           else
             echo "[error] invalid target '$target'"
@@ -160,7 +160,7 @@ fn_target() {
       esac
     fi
     [ $# -gt 0 ] && search="$1" && shift
-    IFS=$'\n'; files=($(grep -rl "'title':.*$([ -n "$search" ] && echo "$(fn_rx_escape "grep" "$search").*")" "$path")); IFS="$IFSORG"
+    IFS=$'\n'; files=($(grep -rl "'title':.*$([ -n "$search" ] && echo "$(fn_rx_escape "grep" "$search").*")" "$path_")); IFS="$IFSORG"
     if [ ${#files[@]} -eq 0 ]; then
       echo "[info] no blog entr$([ -n "$search" ] && echo "y found using search term '$search'" || echo "ies found")" 1>&2 && return 1
     elif [ ${#files[@]} -eq 1 ]; then
@@ -238,21 +238,21 @@ fn_mod() {
 
 fn_list() {
   declare target
-  declare path
+  declare path_
   declare files
   target="$1" && shift
   files=("$@")
   if [ ${#files[@]} -eq 0 ]; then
     if [ -d "$target" ]; then
-      path="$target"
+      path_="$target"
     else
       case "$target" in
-        "published") path="$published" ;;
-        "unpublished") path="$unpublished" ;;
+        "published") path_="$published" ;;
+        "unpublished") path_="$unpublished" ;;
         *) echo "[error] invalid target '$target'" && return 1 ;;
       esac
     fi
-    IFS=$'\n'; files=($(grep -rl "'title':.*" "$path")); IFS="$IFSORG"
+    IFS=$'\n'; files=($(grep -rl "'title':.*" "$path_")); IFS="$IFSORG"
   fi
   header="id\t${c_red}${c_off}title\tdate created\t${c_bld}${c_off}date modified\tpath"
   tb=""
