@@ -61,7 +61,7 @@ fn_decision() {
     soptions="$(echo "$1" | sed 's/\([[:alpha:]]\)/|\1/g;s/^|//')"
   IFS='|'; options=($(echo "$soptions")); IFS="$IFS_ORG"
   [ ! -t 0 ] &&\
-    "[error] stdin is not attacted to a suitable input device" 1>&2 && return 1
+    "[error] stdin is not attached to a suitable input device" 1>&2 && return 1
   [ -n "$question" ] && echo -n "$question [$soptions]: " 1>&2
   while [ 1 -eq 1 ]; do
     read "${CMDARGS_READ_SINGLECHAR[@]}"
