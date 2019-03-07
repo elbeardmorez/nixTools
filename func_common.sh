@@ -62,7 +62,7 @@ fn_decision() {
   IFS='|'; options=($(echo "$soptions")); IFS="$IFS_ORG"
   [ ! -t 0 ] &&\
     "[error] stdin is not attached to a suitable input device" 1>&2 && return 1
-  [ -n "$question" ] && echo -n "$question [$soptions]: " 1>&2
+  [ -n "$question" ] && echo -E -n "${question} [$soptions]: " 1>&2
   while [ 1 -eq 1 ]; do
     read "${CMDARGS_READ_SINGLECHAR[@]}"
     r="$(echo "$REPLY" | tr '[A-Z]' '[a-z]')"

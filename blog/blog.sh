@@ -34,7 +34,7 @@ fn_sample() {
   len=${#data}
   [ $len -gt $max ] && len=$max && truncated=1
   sample="$(echo "${data:0:$len}" | awk 1 ORS='\\n' | awk '{gsub(/\\n$/,""); print}' IRS='' ORS='')"
-  echo "$sample$([ $truncated -eq 1 ] && echo "..")"
+  echo -E "$sample$([ $truncated -eq 1 ] && echo -n "..")"
 }
 
 fn_input_data() {
@@ -53,16 +53,16 @@ fn_input_data() {
       declare f
       f="$(fn_temp_file $SCRIPTNAME)"
       [ -n "$data" ] &&\
-        echo -n "$(fn_sample 50 "$data")" 1>&2 &&\
+        echo -E -n "$(fn_sample 50 "$data")" 1>&2 &&\
         echo -e "$data" > "$f"
       sleep 1
       $EDITOR "$f" 1>/dev/tty
       echo -e "$ESC_RST" 1>&2
       data="$(cat "$f")"
       rm "$f"
-      echo -n "$prompt: " 1>&2
+      echo -E -n "$prompt: " 1>&2
       [ -n "$data" ] &&\
-        echo -n "$(fn_sample 50 "$data")" 1>&2
+        echo -E -n "$(fn_sample 50 "$data")" 1>&2
       echo "" 1>&2
       echo -e "$data"
       ;;
@@ -218,7 +218,7 @@ fn_mod() {
 
   # edit content
   data="$(fn_read_data "content" "$f.tmp")"
-  res="$(fn_decision "edit content$([ -n "$data" ] && echo " [$(fn_sample 50 "$data")]")?" "ynx")"
+  res="$(fn_decision "edit content$([ -n "$data" ] && echo -E " [$(fn_sample 50 "$data")]")?" "ynx")"
   [ "x$res" = "xx" ] && exit 0
   [ "x$res" = "xy" ] &&\
     fn_write_data "content" "$f.tmp" "$(fn_input_lines "content" "$data")"
