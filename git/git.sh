@@ -95,7 +95,7 @@ fn_commit_by_name() {
      esac
      shift
   done
-  commits="$(git "${binargs[@]}" log "${cmdargs[@]}" | grep "$search")"
+  commits="$(git "${binargs[@]}" log "${cmdargs[@]}" | grep "$search" | sed 's/\\n/\\\\n/g')"
   IFS=$'\n'; arr_commits=($(echo -e "$commits")); IFS="$IFSORG";
   [ ${#arr_commits[@]} -eq 0 ] &&
     echo "[info] no commits found matching search '$search'" 1>&2 && return 1
