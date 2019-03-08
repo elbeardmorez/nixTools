@@ -94,16 +94,22 @@ fn_write_data() {
     last="$(fn_rx_escape "awk" "${lines[$((${#lines[@]}-1))]}")"
     update="'$var': $data"
     awk -v update="$update" -v first="$first" -v last="$last" '
-BEGIN{ data=""; matchx=0; rx_first="^"first"$"; rx_last="^"last"$" }
+BEGIN{ data=""; match1=0; match2=0; rx_first="^"first"$"; rx_last="^"last"$" }
 {
   if ($0 ~ rx_first) {
-    matchx=1; data=data"\n"update;
-  }
-  if ($0 ~ rx_last) {
-    matchx=0;
-  } else if (matchx == 0) {
+    match1=1; data=data"\n"update;
+  } else if (match1 == 1) {
+    if (match2 == 1 && /^'\''[a-zA-z0-9_]+'\'': /) {
+      match1=0;
+      data=data"\n"$0;
+    }
+  } else
     data=data"\n"$0;
-  }
+
+  if ($0 ~ rx_last)
+    match2=1;
+  else
+    match2=0;
 }
 END{ gsub(/^\n/,"",data); print data }' < "$target" > "$target.tmp"
     check="$(fn_read_data "$var" "$target.tmp")"
