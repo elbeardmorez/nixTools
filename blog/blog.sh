@@ -181,7 +181,7 @@ fn_target() {
 
 fn_publish() {
   target="$1"
-  dt="$(fn_read_data "date created" "$target")"
+  dt="$(fn_read_data "date_created" "$target")"
   title="$(fn_read_data "title" "$target")"
   [ -z "$(echo "$dt" | sed -n '/^[0-9]\+$/p')" ] && dt="$(date -d "$dt" "+%s")"
   title="$(echo "$title"| tr " " ".")"
@@ -192,7 +192,7 @@ fn_publish() {
 
 fn_new() {
   f="$(fn_temp_file "$SCRIPTNAME" "$unpublished")" && touch "$f"
-  fn_write_data "date created" "$f" "$(date +"%d%b%Y %H:%M:%S")"
+  fn_write_data "date_created" "$f" "$(date +"%d%b%Y %H:%M:%S")"
   fn_write_data "title" "$f" "$(fn_input_line "title")"
   fn_write_data "content" "$f" "$(fn_input_lines "content")"
   fn_decision "publish?" >/dev/null && fn_publish "$f"
@@ -226,7 +226,7 @@ fn_mod() {
   # modified?
   diff=$(fn_diff "$f.tmp" "$f")
   [ $DEBUG -ge 1 ] && echo "[debug] entry$([ $diff -eq 0 ] && echo " not") modified"
-  [ $diff -eq 1 ] && fn_write_data "date modified" "$f.tmp" "$(date +"%d%b%Y %H:%M:%S")"
+  [ $diff -eq 1 ] && fn_write_data "date_modified" "$f.tmp" "$(date +"%d%b%Y %H:%M:%S")"
 
   # overwrite original with updated
   mv "$f.tmp" "$f"
@@ -257,8 +257,8 @@ fn_list() {
   tb=""
   l=1
   for f in "${files[@]}"; do
-    dt_created="$(sed -n 's/'\''date created'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
-    dt_modified="$(sed -n 's/'\''date modified'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
+    dt_created="$(sed -n 's/'\''date_created'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
+    dt_modified="$(sed -n 's/'\''date_modified'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
     title="$(sed -n 's/'\''title'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
     tb+="\n[$l]\t$c_red$title$c_off\t$dt_created\t$([ -n "$dt_modified" ] && echo "$c_bld$dt_modified$c_off" || echo "$c_bld$c_off$dt_created")\t$f"
     l=$(($l+1))
