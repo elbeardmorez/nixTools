@@ -130,11 +130,11 @@ BEGIN{ data=""; matchx=0; rx="^'\''"search"'\'':" }
   }
 }
 END{ gsub(/^[ ]*/,"",data); gsub(/[ ]*$/,"",data); print data }' < "$target")
-  [ $strip -eq 1 ] && echo "$(fn_unquote "$data")" || echo "$data"
+  [ $strip -eq 1 ] && fn_unquote "$data" || echo -n "$data"
 }
 
 fn_unquote() {
-  echo "$1" | sed '1s/^'\''//;$s/'\''$//'
+  echo -n "$1" | sed '1s/^'\''//;$s/'\''$//'
 }
 
 fn_target() {
