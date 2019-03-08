@@ -92,7 +92,7 @@ fn_next_file() {
 }
 
 fn_random() {
-  len=${1:-10}; s=""; while [ ${#s} -lt $len ]; do s+="$(head -c10 /dev/random | tr -dc '[:alnum:]')"; done; echo "${s:0:$len}";
+  len=${1:-10}; s=""; while [ ${#s} -lt $len ]; do s+="$(head -c10 /dev/urandom | tr -dc '[:alnum:]')"; done; echo "${s:0:$len}";
 }
 
 fn_temp() {
