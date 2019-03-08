@@ -30,10 +30,11 @@ help() {
 fn_sample() {
   max="$1" && shift
   data="$@"
+  data="$(fn_unquote "$data" | awk 1 ORS='\\n' | awk '{gsub(/\\n$/,""); print}' IRS='' ORS='')"
   truncated=0
   len=${#data}
   [ $len -gt $max ] && len=$max && truncated=1
-  sample="$(echo "${data:0:$len}" | awk 1 ORS='\\n' | awk '{gsub(/\\n$/,""); print}' IRS='' ORS='')"
+  sample="${data:0:$len}"
   echo -E "$sample$([ $truncated -eq 1 ] && echo -n "..")"
 }
 
@@ -54,11 +55,11 @@ fn_input_data() {
       f="$(fn_temp_file $SCRIPTNAME)"
       [ -n "$data" ] &&\
         echo -E -n "$(fn_sample 50 "$data")" 1>&2 &&\
-        echo -e "$data" > "$f"
+        fn_unquote "$data" > "$f"
       sleep 1
       $EDITOR "$f" 1>/dev/tty
       echo -e "$ESC_RST" 1>&2
-      data="$(cat "$f")"
+      data="$(awk 'BEGIN{ printf "'\''" } { print } END{ print "'\''" }' $f)"
       rm "$f"
       echo -E -n "$prompt: " 1>&2
       [ -n "$data" ] &&\
@@ -87,11 +88,11 @@ fn_write_data() {
     echo "'$var': '${data[*]}'" >> "$target"
   else
     # overwrite entry
-    current="'$var': '$current'"
+    current="'$var': $current"
     IFS=$'\n'; lines=($(echo -e "$current")); IFS="$IFSORG"
     first="$(fn_rx_escape "awk" "${lines[0]}")"
     last="$(fn_rx_escape "awk" "${lines[$((${#lines[@]}-1))]}")"
-    update="'$var': '$data'"
+    update="'$var': $data"
     awk -v update="$update" -v first="$first" -v last="$last" '
 BEGIN {data=""; matchx=0; rx_first="^"first"$"; rx_last="^"last"$"};
 {
@@ -114,7 +115,8 @@ END { gsub(/^\n/,"",data); print data}' < "$target" > "$target.tmp"
 
 fn_read_data() {
   var="$1" && shift
-  target="$1"
+  target="$1" && shift
+  strip="${1:-0}"
   data=$(awk -v search="$var" '
 BEGIN {data=""; matchx=0; rx="^'\''"search"'\'':"};
 {
@@ -127,8 +129,12 @@ BEGIN {data=""; matchx=0; rx="^'\''"search"'\'':"};
       data=data"\n"$0;
   }
 }
-END {gsub(/^[ ]*'\''/,"",data); gsub(/'\''[ ]*$/,"",data); print data}' < "$target")
-  echo "$data"
+END {gsub(/^[ ]*/,"",data); gsub(/[ ]*$/,"",data); print data}' < "$target")
+  [ $strip -eq 1 ] && echo "$(fn_unquote "$data")" || echo "$data"
+}
+
+fn_unquote() {
+  echo "$1" | sed '1s/^'\''//;$s/'\''$//'
 }
 
 fn_target() {
@@ -181,8 +187,8 @@ fn_target() {
 
 fn_publish() {
   target="$1"
-  dt="$(fn_read_data "date_created" "$target")"
-  title="$(fn_read_data "title" "$target")"
+  dt="$(fn_read_data "date_created" "$target" 1)"
+  title="$(fn_read_data "title" "$target" 1)"
   [ -z "$(echo "$dt" | sed -n '/^[0-9]\+$/p')" ] && dt="$(date -d "$dt" "+%s")"
   title="$(echo "$title"| tr " " ".")"
   [ ! -d "$published" ] && mkdir -p "$published"
