@@ -267,10 +267,46 @@ fn_list() {
   echo -e "$header\n${tb:2}" | column -t -s$'\t'
 }
 
+fn_test() {
+  [ $# -lt 1 ] && echo "[error] not enough args!" && exit 1
+  declare target
+  target="$1" && shift
+  if [ $# -eq 0 ]; then
+    declare d
+    declare f
+    title="test"
+    content="content\ncontent2"
+    dt="$(date)"
+    d="$(fn_temp_dir $SCRIPTNAME)"
+    f="$(fn_temp_file $SCRIPTNAME "$d")"
+    echo -e "'title': '$title'\n'content': '$content'\n'date_modified': '$dt'" > $f
+    echo "## test file: $f" ##
+    cat "$f"
+    echo "####"
+    case "$target" in
+      "fn_read_data")
+        tests=("title title"
+               "content content")
+        for s in "${tests[@]}"; do
+          in="$(echo "$s" | cut -d' ' -f1)"
+          out="$(eval "echo -e $""$(echo "$s" | cut -d' ' -f2)")"
+          res=$($target "$in" "$f")
+          echo "[$target | $in] out: '$res' | $([ "x$res" = "x$out" ] && echo "pass" || echo "fail")"
+        done
+        ;;
+      *)
+        $target "$@"
+    esac
+    rm -rf "$d"
+  else
+    $target "$@"
+  fi
+}
+
 option=new
 if [ $# -gt 0 ]; then
   arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-  [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\|publish\|mod\|list\)$/p')" ] && option="$arg" && shift
+  [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\|publish\|mod\|list\|test\)$/p')" ] && option="$arg" && shift
 fi
 
 case "$option" in
@@ -279,5 +315,6 @@ case "$option" in
   "publish") fn_publish "$(fn_target "$@")" ;;
   "mod") fn_mod "$(fn_target "$@")" ;;
   "list") fn_list "${1:-"published"}" ;;
+  "test") fn_test "$@" ;;
   *) echo "[error] unsupported option '$option'" ;;
 esac
