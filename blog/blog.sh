@@ -94,7 +94,7 @@ fn_write_data() {
     last="$(fn_rx_escape "awk" "${lines[$((${#lines[@]}-1))]}")"
     update="'$var': $data"
     awk -v update="$update" -v first="$first" -v last="$last" '
-BEGIN {data=""; matchx=0; rx_first="^"first"$"; rx_last="^"last"$"};
+BEGIN{ data=""; matchx=0; rx_first="^"first"$"; rx_last="^"last"$" }
 {
   if ($0 ~ rx_first) {
     matchx=1; data=data"\n"update;
@@ -105,7 +105,7 @@ BEGIN {data=""; matchx=0; rx_first="^"first"$"; rx_last="^"last"$"};
     data=data"\n"$0;
   }
 }
-END { gsub(/^\n/,"",data); print data}' < "$target" > "$target.tmp"
+END{ gsub(/^\n/,"",data); print data }' < "$target" > "$target.tmp"
     check="$(fn_read_data "$var" "$target.tmp")"
     [ "x$check" != "x$data" ] && \
       echo "[error] couldn't validate data write for '$var'" && exit 1
@@ -118,7 +118,7 @@ fn_read_data() {
   target="$1" && shift
   strip="${1:-0}"
   data=$(awk -v search="$var" '
-BEGIN {data=""; matchx=0; rx="^'\''"search"'\'':"};
+BEGIN{ data=""; matchx=0; rx="^'\''"search"'\'':" }
 {
   if ($0 ~ rx) {
     matchx=1; data=substr($0, length(search)+4);
@@ -129,7 +129,7 @@ BEGIN {data=""; matchx=0; rx="^'\''"search"'\'':"};
       data=data"\n"$0;
   }
 }
-END {gsub(/^[ ]*/,"",data); gsub(/[ ]*$/,"",data); print data}' < "$target")
+END{ gsub(/^[ ]*/,"",data); gsub(/[ ]*$/,"",data); print data }' < "$target")
   [ $strip -eq 1 ] && echo "$(fn_unquote "$data")" || echo "$data"
 }
 
