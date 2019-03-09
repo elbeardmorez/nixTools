@@ -24,6 +24,7 @@ help() {
   mod [SEARCH]  : modify current unpublished item or a published item
                   via title search on SEARCH
   list  : list published entries
+  menu  : switch views interactively
 "
 }
 
@@ -282,6 +283,54 @@ fn_list() {
   echo -e "$header\n${tb:2}" | column -t -s$'\t'
 }
 
+fn_menu() {
+  [ $# -lt 1 ] && echo "[error] not enough args!" && exit 1
+  declare target
+  declare res
+  declare res2
+  declare res3
+  target="$1" && shift
+  id=""
+  while [ 1 ]; do
+    echo -e "$ESC_CLEAR"
+    fn_list "$target"
+    echo -e "\n"
+    while [ 1 ]; do
+      echo -e "$ESC_UP$ESC_RST" 1>&2
+      res="$(fn_input_line "| (t)arget:$target | e(x)it | [t/x]: ")"
+      case "$res" in
+        "x") return 1 ;;
+        "t")
+          while [ 1 ]; do
+            echo -e "$ESC_UP$ESC_RST" 1>&2
+            res2="$(fn_input_line "| (p)ublished | (u)npublished) | (c)ustom | e(x)it [p/u/c/x]: ")"
+            case "$res2" in
+              "x") break ;;
+              "p") target="published"; reset=1; break ;;
+              "u") target="unpublished"; reset=1; break ;;
+              "c")
+                echo -e "$ESC_UP$ESC_RST" 1>&2
+                target_="$(fn_input_line "| custom path: " "$target")"
+                path_=$(fn_target_resolve "$target_")
+                if [ -z "$path_" ]; then
+                  echo -e "$ESC_UP$ESC_RST" 1>&2
+                  echo -e "$c_red[error]$c_off invalid target, ignoring!"
+                  sleep 2
+                else
+                  target="$target_"
+                  reset=1;
+                  break;
+                fi
+                ;;
+            esac
+          done
+          [ $reset -eq 1 ] && break
+          ;;
+      esac
+    done
+  done
+}
+
 fn_test() {
   [ $# -lt 1 ] && echo "[error] not enough args!" && exit 1
   declare target
@@ -321,7 +370,7 @@ fn_test() {
 option=new
 if [ $# -gt 0 ]; then
   arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-  [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\|publish\|mod\|list\|test\)$/p')" ] && option="$arg" && shift
+  [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\|publish\|mod\|list\|menu\|test\)$/p')" ] && option="$arg" && shift
 fi
 
 case "$option" in
@@ -330,6 +379,7 @@ case "$option" in
   "publish") fn_publish "$(fn_target_select "$@")" ;;
   "mod") fn_mod "$(fn_target_select "$@")" ;;
   "list") fn_list "${1:-"published"}" ;;
+  "menu") fn_menu "${1:-"published"}" ;;
   "test") fn_test "$@" ;;
   *) echo "[error] unsupported option '$option'" ;;
 esac

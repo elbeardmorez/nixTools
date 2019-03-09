@@ -15,6 +15,7 @@ where OPTION can be:
   mod [SEARCH]  : modify current unpublished item or a published item
                   via title search on SEARCH
   list  : list published entries
+  menu  : switch views interactively
 ```
 
 ## dependencies
