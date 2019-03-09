@@ -20,9 +20,9 @@ ESC_VIS="[?25h"  # cursor visible
 ESC_INV="[?25l"  # cursor invisible
 ESC_UP="[A"
 ESC_DOWN="[B"
-c_off='\033[0m'
-c_red='\033[0;31m'
-c_bld='\033[0;1m'
+c_off='[0m'
+c_red='[0;31m'
+c_bld='[0;1m'
 
 fn_shell() {
   if [ -n "$BASH_VERSION" ]; then
