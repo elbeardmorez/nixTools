@@ -143,7 +143,28 @@ fn_unquote() {
   echo -n "$1" | sed '1s/^'\''//;$s/'\''$//'
 }
 
-fn_target() {
+fn_target_files() {
+  declare target
+  declare search
+  target="$1" && shift
+  search="${1:-""}"
+  grep -rl "'title':.*$([ -n "$search" ] && echo "$(fn_rx_escape "grep" "$search").*")" "$path_"
+}
+
+fn_target_resolve() {
+  declare target
+  declare path_
+  target="$1"
+  case "$target" in
+    "published") path_="$published" ;;
+    "unpublished") path_="$unpublished" ;;
+    *) [ -d "$target" ] && path_="$target" ;;
+  esac
+  echo "$path_"
+  [ -z "$path_" ] && return 1
+}
+
+fn_target_select() {
   declare target
   [ $# -gt 0 ] && target="$1" && shift
   if [ -f "$target" ]; then
@@ -153,25 +174,13 @@ fn_target() {
     declare path_
     declare search
     declare files
-    if [ -d "$target" ]; then
-      path_="$target"
-    else
-      case "$target" in
-        "published") path_="$published" ;;
-        "unpublished") path_="$unpublished" ;;
-        *)
-          if [ $# -eq 0 ]; then
-            path_="$path_blog_root"
-            search="$target"
-          else
-            echo "[error] invalid target '$target'"
-            return 1
-          fi
-          ;;
-      esac
-    fi
+    path_="$(fn_target_resolve "$target")"
+    [[ -z "$path_" && $# -eq 0 ]] &&\
+      path_="$path_blog_root" && search="$target"
+    [ -z "$path_" ] &&\
+      echo "[error] invalid target '$target'" && return 1
     [ $# -gt 0 ] && search="$1" && shift
-    IFS=$'\n'; files=($(grep -rl "'title':.*$([ -n "$search" ] && echo "$(fn_rx_escape "grep" "$search").*")" "$path_")); IFS="$IFSORG"
+    IFS=$'\n'; files=($(fn_target_files "$_path" "$search")); IFS="$IFSORG"
     if [ ${#files[@]} -eq 0 ]; then
       echo "[info] no blog entr$([ -n "$search" ] && echo "y found using search term '$search'" || echo "ies found")" 1>&2 && return 1
     elif [ ${#files[@]} -eq 1 ]; then
@@ -254,16 +263,10 @@ fn_list() {
   target="$1" && shift
   files=("$@")
   if [ ${#files[@]} -eq 0 ]; then
-    if [ -d "$target" ]; then
-      path_="$target"
-    else
-      case "$target" in
-        "published") path_="$published" ;;
-        "unpublished") path_="$unpublished" ;;
-        *) echo "[error] invalid target '$target'" && return 1 ;;
-      esac
-    fi
-    IFS=$'\n'; files=($(grep -rl "'title':.*" "$path_")); IFS="$IFSORG"
+    path_="$(fn_target_resolve "$target")"
+    [ -z "$path_" ] &&\
+      echo "[error] invalid target '$target'" && return 1
+    IFS=$'\n'; files=($(fn_target_files "$_path")); IFS="$IFSORG"
   fi
   header="id\t${c_red}${c_off}title\tdate created\t${c_bld}${c_off}date modified\tpath"
   tb=""
@@ -324,8 +327,8 @@ fi
 case "$option" in
   "h"|"help") help && exit ;;
   "new") fn_new ;;
-  "publish") fn_publish "$(fn_target "$@")" ;;
-  "mod") fn_mod "$(fn_target "$@")" ;;
+  "publish") fn_publish "$(fn_target_select "$@")" ;;
+  "mod") fn_mod "$(fn_target_select "$@")" ;;
   "list") fn_list "${1:-"published"}" ;;
   "test") fn_test "$@" ;;
   *) echo "[error] unsupported option '$option'" ;;
