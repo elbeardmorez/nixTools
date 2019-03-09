@@ -301,6 +301,7 @@ fn_menu() {
       case "$res" in
         "x") return 1 ;;
         "t")
+          reset=0
           while [ 1 ]; do
             echo -e "$ESC_UP$ESC_RST" 1>&2
             res2="$(fn_input_line "| (p)ublished | (u)npublished) | (c)ustom | e(x)it [p/u/c/x]: ")"
