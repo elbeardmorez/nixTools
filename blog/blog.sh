@@ -279,7 +279,7 @@ fn_list() {
     tb+="\n[$l]\t$c_red$title$c_off\t$dt_created\t$([ -n "$dt_modified" ] && echo "$c_bld$dt_modified$c_off" || echo "$c_bld$c_off$dt_created")\t$f"
     l=$(($l+1))
   done
-  echo "# $target entries"
+  echo -e "# $target entries\n"
   echo -e "$header\n${tb:2}" | column -t -s$'\t'
 }
 
