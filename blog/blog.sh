@@ -315,7 +315,9 @@ fn_menu() {
                 if [ -z "$path_" ]; then
                   echo -e "$ESC_UP$ESC_RST" 1>&2
                   echo -e "$c_red[error]$c_off invalid target, ignoring!"
+                  echo -e -n "$ESC_INV" 1>&2
                   sleep 2
+                  echo -e -n "$ESC_VIS" 1>&2
                 else
                   target="$target_"
                   reset=1;
