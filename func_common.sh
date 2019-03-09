@@ -14,6 +14,7 @@ IFSORG="$IFS"
 ESCAPE_GREP='].[*'
 ESCAPE_SED='].[|/-'
 ESCAPE_AWK='.\|[('
+ESC_CLEAR="[2J[1;1H"  # clear all lines
 ESC_RST="[2K[A"  # reset line
 ESC_UP="[A"
 ESC_DOWN="[B"
