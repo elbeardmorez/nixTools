@@ -64,6 +64,7 @@ fn_decision() {
   [ -z "$(echo "$soptions" | sed -n '/|/p')" ] &&\
     soptions="$(echo "$1" | sed 's/\([[:alpha:]]\)/|\1/g;s/^|//')"
   IFS='|'; options=($(echo "$soptions")); IFS="$IFS_ORG"
+  soptions="$(echo "$soptions" | sed 's/\([[:alpha:]]\)/'${c_bld}'\1'${c_off}'/g')"
   [ ! -t 0 ] &&\
     "[error] stdin is not attached to a suitable input device" 1>&2 && return 1
   [ -n "$question" ] && echo -E -n "${question} [$soptions]: " 1>&2
