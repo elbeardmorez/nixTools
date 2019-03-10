@@ -318,7 +318,7 @@ fn_menu() {
     echo -e "\n"
     while [ 1 ]; do
       echo -e "$CUR_UP$LN_RST" 1>&2
-      res="$(fn_decision "$(echo -e "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} | (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") | e(${CLR_HL}x${CLR_OFF})it |")" "tix")"
+      res="$(fn_decision "$(echo -e "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} | (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") | (${CLR_HL}e${CLR_OFF})dit | e(${CLR_HL}x${CLR_OFF})it |")" "tiex")"
       case "$res" in
         "x") return 1 ;;
         "t")
@@ -356,6 +356,13 @@ fn_menu() {
                [[ -n "$(echo "$res2" | sed -n '/[0-9]\+/p')" && $res2 -ge 1 && $res2 -le ${#files[@]} ]] && id=$res2 && reset=1 && break
             esac
           done
+          ;;
+        "e")
+          [ -z "$id" ] &&\
+            fn_menu_alert "$CLR_RED[error]$CLR_OFF invalid target, ignoring!" && continue
+          echo ""
+          fn_mod ${files[$(($id-1))]}
+          id=""
           ;;
       esac
       [ $reset -eq 1 ] && break
