@@ -22,6 +22,7 @@ ESC_UP="[A"
 ESC_DOWN="[B"
 c_off='[0m'
 c_red='[0;31m'
+c_grn='[0;32m'
 c_bld='[0;1m'
 
 fn_shell() {
