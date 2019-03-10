@@ -25,6 +25,7 @@ CLR_HL='\033[0;1m'  # colour highlight
 CLR_OFF='\033[0m'  # colour off
 CLR_RED='\033[0;31m'
 CLR_GRN='\033[0;32m'
+CLR_BWN='\033[0;33m'
 
 fn_shell() {
   if [ -n "$BASH_VERSION" ]; then

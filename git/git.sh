@@ -110,8 +110,6 @@ fn_commit_by_name() {
 
 fn_log() {
   command="$1" && shift
-  c_br="\e[0;33m"
-  CLR_OFF="\e[m"
   search=""
   declare count
   declare -a binargs
@@ -137,7 +135,7 @@ fn_log() {
   for commit in "${commits[@]}"; do
     commit="$(echo "$commit" | cut -d' ' -f1)"
     if [ "x$command" = "xlog" ]; then
-      git "${binargs[@]}" log --format=format:"%at | %ct | version: $c_br%H$CLR_OFF%n %s (%an)" "${cmdargs[@]}" $commit | awk '{for(l=1; l<=3; l++) {if ($l~/[0-9]+/) {$l=strftime("%Y%b%d %H:%M:%S",$l);}}; print $0}' | xargs -0 echo -e | sed '$d'
+      git "${binargs[@]}" log --format=format:"%at | %ct | version: $CLR_BWN%H$CLR_OFF%n %s (%an)" "${cmdargs[@]}" $commit | awk '{for(l=1; l<=3; l++) {if ($l~/[0-9]+/) {$l=strftime("%Y%b%d %H:%M:%S",$l);}}; print $0}' | xargs -0 echo -e | sed '$d'
     else
       format="$([ "x$command" = "xlog1" ] && echo "oneline" || echo "fuller")"
       git "${binargs[@]}" log --format="$format" "${cmdargs[@]}" $commit | cat
