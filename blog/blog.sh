@@ -287,6 +287,18 @@ fn_list() {
   echo -e "$header\n${tb:2}" | column -t -s$'\t'
 }
 
+fn_menu_alert() {
+  declare alert
+  declare duration
+  alert="$1" && shift
+  duration=${1:-2}
+  echo -e "$CUR_UP$LN_RST" 1>&2
+  echo -e "$alert"
+  echo -e -n "$CUR_INV" 1>&2
+  sleep $duration
+  echo -e -n "$CUR_VIS" 1>&2
+}
+
 fn_menu() {
   [ $# -lt 1 ] && echo "[error] not enough args!" && exit 1
   declare target
@@ -322,17 +334,12 @@ fn_menu() {
                 echo -e "$CUR_UP$LN_RST" 1>&2
                 target_="$(fn_input_line "| custom path" "$target")"
                 path_=$(fn_target_resolve "$target_")
-                if [ -z "$path_" ]; then
-                  echo -e "$CUR_UP$LN_RST" 1>&2
-                  echo -e "$CLR_RED[error]$CLR_OFF invalid target, ignoring!"
-                  echo -e -n "$CUR_INV" 1>&2
-                  sleep 2
-                  echo -e -n "$CUR_VIS" 1>&2
-                else
-                  target="$target_"
-                  reset=1;
-                  break;
-                fi
+                [ -z "$path_" ] &&\
+                  fn_menu_alert "$CLR_RED[error]$CLR_OFF invalid target, ignoring!" && continue
+                target="$target_"
+                id=""
+                reset=1;
+                break;
                 ;;
             esac
           done
