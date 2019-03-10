@@ -187,7 +187,7 @@ fn_target_select() {
     elif [ ${#files[@]} -eq 1 ]; then
       target="${files[0]}"
     elif [ ${#files[@]} -gt 1 ]; then
-      fn_list "$target" "${files[@]}" 1>&2
+      fn_list "$target" "" "${files[@]}" 1>&2
       declare res
       while [ 1 ]; do
         res=$(fn_input_line "[user] select target (1-${#files[@]}) or e(x)it")
@@ -259,9 +259,11 @@ fn_mod() {
 
 fn_list() {
   declare target
+  declare selected
   declare path_
   declare files
   target="$1" && shift
+  selected=$1 && shift
   files=("$@")
   if [ ${#files[@]} -eq 0 ]; then
     path_="$(fn_target_resolve "$target")"
@@ -273,10 +275,12 @@ fn_list() {
   tb=""
   l=1
   for f in "${files[@]}"; do
+    c_title="$c_red"
+    [[ -n "$selected" && $l -eq $selected ]] && c_title="$c_grn"
     dt_created="$(sed -n 's/'\''date_created'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
     dt_modified="$(sed -n 's/'\''date_modified'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
     title="$(sed -n 's/'\''title'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
-    tb+="\n[$l]\t$c_red$title$c_off\t$dt_created\t$([ -n "$dt_modified" ] && echo "$c_bld$dt_modified$c_off" || echo "$c_bld$c_off$dt_created")\t$f"
+    tb+="\n[$l]\t$c_title$title$c_off\t$dt_created\t$([ -n "$dt_modified" ] && echo "$c_bld$dt_modified$c_off" || echo "$c_bld$c_off$dt_created")\t$f"
     l=$(($l+1))
   done
   echo -e "# $target entries\n"
@@ -286,18 +290,23 @@ fn_list() {
 fn_menu() {
   [ $# -lt 1 ] && echo "[error] not enough args!" && exit 1
   declare target
+  declare path_
+  declare id
   declare res
   declare res2
-  declare res3
   target="$1" && shift
   id=""
   while [ 1 ]; do
     echo -e "$ESC_CLEAR"
-    fn_list "$target"
+    path_=$(fn_target_resolve "$target")
+    [ -z "$path_" ] &&\
+      echo "[error] invalid target '$target'" && return 1
+    IFS=$'\n'; files=($(fn_target_files "$_path")); IFS="$IFSORG"
+    fn_list "$target" "$id" "${files[@]}"
     echo -e "\n"
     while [ 1 ]; do
       echo -e "$ESC_UP$ESC_RST" 1>&2
-      res="$(fn_input_line "| (t)arget:$target | e(x)it | [t/x]: ")"
+      res="$(fn_input_line "| (t)arget:$target | (i)d:${id:-"-"} | e(x)it | [t/i/x]: ")"
       case "$res" in
         "x") return 1 ;;
         "t")
@@ -327,9 +336,21 @@ fn_menu() {
                 ;;
             esac
           done
-          [ $reset -eq 1 ] && break
+          ;;
+        "i")
+          reset=0
+          while [ 1 ]; do
+            echo -e "$ESC_UP$ESC_RST" 1>&2
+            res2="$(fn_input_line "| set target id: ")"
+            case "$res2" in
+              "x") break ;;
+              *)
+               [[ -n "$(echo "$res2" | sed -n '/[0-9]\+/p')" && $res2 -ge 1 && $res2 -le ${#files[@]} ]] && id=$res2 && reset=1 && break
+            esac
+          done
           ;;
       esac
+      [ $reset -eq 1 ] && break
     done
   done
 }
