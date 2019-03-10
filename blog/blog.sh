@@ -48,7 +48,7 @@ fn_input_data() {
   [ $# -gt 0 ] && data="$@"
   case "$type" in
     "single_line")
-      fn_edit_line "$data" "$prompt [enter]: "
+      fn_edit_line "$data" "$prompt [${c_bld}enter${c_off}]: "
       ;;
     "multi_line")
       echo -n "$prompt: " 1>&2
@@ -306,21 +306,21 @@ fn_menu() {
     echo -e "\n"
     while [ 1 ]; do
       echo -e "$ESC_UP$ESC_RST" 1>&2
-      res="$(fn_input_line "| (t)arget:$target | (i)d:${id:-"-"} | e(x)it | [t/i/x]: ")"
+      res="$(fn_decision "| (${c_bld}t${c_off})arget:${c_grn}$target${c_off} | (${c_bld}i${c_off})d:$([ -n "$id" ] && echo "${c_grn}$id${c_off}" || echo "-") | e(${c_bld}x${c_off})it |" "tix")"
       case "$res" in
         "x") return 1 ;;
         "t")
           reset=0
           while [ 1 ]; do
             echo -e "$ESC_UP$ESC_RST" 1>&2
-            res2="$(fn_input_line "| (p)ublished | (u)npublished) | (c)ustom | e(x)it [p/u/c/x]: ")"
+            res2="$(fn_decision "| (${c_bld}p${c_off})ublished | (${c_bld}u${c_off})npublished) | (${c_bld}c${c_off})ustom | e(${c_bld}x${c_off})it |" "pucx")"
             case "$res2" in
               "x") break ;;
               "p") target="published"; reset=1; break ;;
               "u") target="unpublished"; reset=1; break ;;
               "c")
                 echo -e "$ESC_UP$ESC_RST" 1>&2
-                target_="$(fn_input_line "| custom path: " "$target")"
+                target_="$(fn_input_line "| custom path" "$target")"
                 path_=$(fn_target_resolve "$target_")
                 if [ -z "$path_" ]; then
                   echo -e "$ESC_UP$ESC_RST" 1>&2
@@ -341,7 +341,7 @@ fn_menu() {
           reset=0
           while [ 1 ]; do
             echo -e "$ESC_UP$ESC_RST" 1>&2
-            res2="$(fn_input_line "| set target id: ")"
+            res2="$(fn_input_line "| set target id")"
             case "$res2" in
               "x") break ;;
               *)
