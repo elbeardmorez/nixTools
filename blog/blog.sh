@@ -349,7 +349,7 @@ fn_menu() {
           reset=0
           while [ 1 ]; do
             echo -e "$CUR_UP$LN_RST" 1>&2
-            res2="$(fn_input_line "| set target id")"
+            res2="$(fn_input_line "| set target id, or e($(echo -e "${CLR_HL}x${CLR_OFF}"))it")"
             case "$res2" in
               "x") break ;;
               *)
