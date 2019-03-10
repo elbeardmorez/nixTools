@@ -333,6 +333,7 @@ fn_menu() {
               "c")
                 echo -e "$CUR_UP$LN_RST" 1>&2
                 target_="$(fn_input_line "| custom path" "$target")"
+                [ "x$target_" -eq "x$target" ] && break
                 path_=$(fn_target_resolve "$target_")
                 [ -z "$path_" ] &&\
                   fn_menu_alert "$CLR_RED[error]$CLR_OFF invalid target, ignoring!" && continue
