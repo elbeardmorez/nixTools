@@ -48,7 +48,7 @@ fn_input_data() {
   [ $# -gt 0 ] && data="$@"
   case "$type" in
     "single_line")
-      fn_edit_line "$data" "$prompt [${c_bld}enter${c_off}]: "
+      fn_edit_line "$data" "$prompt [$(echo -e "${CLR_HL}enter${CLR_OFF}")]: "
       ;;
     "multi_line")
       echo -n "$prompt: " 1>&2
@@ -59,7 +59,7 @@ fn_input_data() {
         fn_unquote "$data" > "$f"
       sleep 1
       $EDITOR "$f" 1>/dev/tty
-      echo -e "$ESC_RST" 1>&2
+      echo -e "$LN_RST" 1>&2
       data="$(awk 'BEGIN{ printf "'\''" } { print } END{ print "'\''" }' $f)"
       rm "$f"
       echo -E -n "$prompt: " 1>&2
@@ -193,7 +193,7 @@ fn_target_select() {
         res=$(fn_input_line "[user] select target (1-${#files[@]}) or e(x)it")
         [ "x$res" = "xx" ] && return 1
         [[ -n "$(echo "$res" | sed -n '/[0-9]\+/p')" && $res -ge 1 && $res -le ${#files[@]} ]] && break
-        echo -e "$ESC_UP$ESC_RST" 1>&2
+        echo -e "$CUR_UP$LN_RST" 1>&2
       done
       target="${files[$(($res-1))]}"
     fi
@@ -271,16 +271,16 @@ fn_list() {
       echo "[error] invalid target '$target'" && return 1
     IFS=$'\n'; files=($(fn_target_files "$_path")); IFS="$IFSORG"
   fi
-  header="id\t${c_red}${c_off}title\tdate created\t${c_bld}${c_off}date modified\tpath"
+  header="id\t${CLR_RED}${CLR_OFF}title\tdate created\t${CLR_HL}${CLR_OFF}date modified\tpath"
   tb=""
   l=1
   for f in "${files[@]}"; do
-    c_title="$c_red"
-    [[ -n "$selected" && $l -eq $selected ]] && c_title="$c_grn"
+    c_title="$CLR_RED"
+    [[ -n "$selected" && $l -eq $selected ]] && c_title="$CLR_GRN"
     dt_created="$(sed -n 's/'\''date_created'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
     dt_modified="$(sed -n 's/'\''date_modified'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
     title="$(sed -n 's/'\''title'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
-    tb+="\n[$l]\t$c_title$title$c_off\t$dt_created\t$([ -n "$dt_modified" ] && echo "$c_bld$dt_modified$c_off" || echo "$c_bld$c_off$dt_created")\t$f"
+    tb+="\n[$l]\t$c_title$title$CLR_OFF\t$dt_created\t$([ -n "$dt_modified" ] && echo "$CLR_HL$dt_modified$CLR_OFF" || echo "$CLR_HL$CLR_OFF$dt_created")\t$f"
     l=$(($l+1))
   done
   echo -e "# $target entries\n"
@@ -297,7 +297,7 @@ fn_menu() {
   target="$1" && shift
   id=""
   while [ 1 ]; do
-    echo -e "$ESC_CLEAR"
+    echo -e "$TERM_CLR"
     path_=$(fn_target_resolve "$target")
     [ -z "$path_" ] &&\
       echo "[error] invalid target '$target'" && return 1
@@ -305,29 +305,29 @@ fn_menu() {
     fn_list "$target" "$id" "${files[@]}"
     echo -e "\n"
     while [ 1 ]; do
-      echo -e "$ESC_UP$ESC_RST" 1>&2
-      res="$(fn_decision "| (${c_bld}t${c_off})arget:${c_grn}$target${c_off} | (${c_bld}i${c_off})d:$([ -n "$id" ] && echo "${c_grn}$id${c_off}" || echo "-") | e(${c_bld}x${c_off})it |" "tix")"
+      echo -e "$CUR_UP$LN_RST" 1>&2
+      res="$(fn_decision "$(echo -e "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} | (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") | e(${CLR_HL}x${CLR_OFF})it |")" "tix")"
       case "$res" in
         "x") return 1 ;;
         "t")
           reset=0
           while [ 1 ]; do
-            echo -e "$ESC_UP$ESC_RST" 1>&2
-            res2="$(fn_decision "| (${c_bld}p${c_off})ublished | (${c_bld}u${c_off})npublished) | (${c_bld}c${c_off})ustom | e(${c_bld}x${c_off})it |" "pucx")"
+            echo -e "$CUR_UP$LN_RST" 1>&2
+            res2="$(fn_decision "$(echo -e "| (${CLR_HL}p${CLR_OFF})ublished | (${CLR_HL}u${CLR_OFF})npublished) | (${CLR_HL}c${CLR_OFF})ustom | e(${CLR_HL}x${CLR_OFF})it |")" "pucx")"
             case "$res2" in
               "x") break ;;
               "p") target="published"; reset=1; break ;;
               "u") target="unpublished"; reset=1; break ;;
               "c")
-                echo -e "$ESC_UP$ESC_RST" 1>&2
+                echo -e "$CUR_UP$LN_RST" 1>&2
                 target_="$(fn_input_line "| custom path" "$target")"
                 path_=$(fn_target_resolve "$target_")
                 if [ -z "$path_" ]; then
-                  echo -e "$ESC_UP$ESC_RST" 1>&2
-                  echo -e "$c_red[error]$c_off invalid target, ignoring!"
-                  echo -e -n "$ESC_INV" 1>&2
+                  echo -e "$CUR_UP$LN_RST" 1>&2
+                  echo -e "$CLR_RED[error]$CLR_OFF invalid target, ignoring!"
+                  echo -e -n "$CUR_INV" 1>&2
                   sleep 2
-                  echo -e -n "$ESC_VIS" 1>&2
+                  echo -e -n "$CUR_VIS" 1>&2
                 else
                   target="$target_"
                   reset=1;
@@ -340,7 +340,7 @@ fn_menu() {
         "i")
           reset=0
           while [ 1 ]; do
-            echo -e "$ESC_UP$ESC_RST" 1>&2
+            echo -e "$CUR_UP$LN_RST" 1>&2
             res2="$(fn_input_line "| set target id")"
             case "$res2" in
               "x") break ;;

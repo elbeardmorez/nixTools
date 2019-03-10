@@ -111,7 +111,7 @@ fn_commit_by_name() {
 fn_log() {
   command="$1" && shift
   c_br="\e[0;33m"
-  c_off="\e[m"
+  CLR_OFF="\e[m"
   search=""
   declare count
   declare -a binargs
@@ -137,7 +137,7 @@ fn_log() {
   for commit in "${commits[@]}"; do
     commit="$(echo "$commit" | cut -d' ' -f1)"
     if [ "x$command" = "xlog" ]; then
-      git "${binargs[@]}" log --format=format:"%at | %ct | version: $c_br%H$c_off%n %s (%an)" "${cmdargs[@]}" $commit | awk '{for(l=1; l<=3; l++) {if ($l~/[0-9]+/) {$l=strftime("%Y%b%d %H:%M:%S",$l);}}; print $0}' | xargs -0 echo -e | sed '$d'
+      git "${binargs[@]}" log --format=format:"%at | %ct | version: $c_br%H$CLR_OFF%n %s (%an)" "${cmdargs[@]}" $commit | awk '{for(l=1; l<=3; l++) {if ($l~/[0-9]+/) {$l=strftime("%Y%b%d %H:%M:%S",$l);}}; print $0}' | xargs -0 echo -e | sed '$d'
     else
       format="$([ "x$command" = "xlog1" ] && echo "oneline" || echo "fuller")"
       git "${binargs[@]}" log --format="$format" "${cmdargs[@]}" $commit | cat
@@ -298,7 +298,7 @@ fn_process() {
         line="${xa[$((${#xa}-0))]}"
         auth="$(echo "${xa[@]}" | sed 's/ '$dt1'.*$//')"
         data="${x#*|}"
-        echo -e "[info] file: $file | ln#: $line | auth: ${c_red}${auth}${c_off} | date: $(date -d "@$dt1" "+%d %b %Y %H:%M:%S") $dt2"
+        echo -e "[info] file: $file | ln#: $line | auth: ${CLR_RED}${auth}${CLR_OFF} | date: $(date -d "@$dt1" "+%d %b %Y %H:%M:%S") $dt2"
         echo -e "\n$data\n"
         echo -n "[user] (s)how, (r)ebase from, or (i)gnore commit '$id'? [s/r/i/x]: "
         res="$(fn_decision "s|r|i|x")"

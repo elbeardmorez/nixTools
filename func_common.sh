@@ -14,17 +14,17 @@ IFSORG="$IFS"
 ESCAPE_GREP='].[*'
 ESCAPE_SED='].[|/-'
 ESCAPE_AWK='.\|[('
-ESC_TRST="[2J[1;1H"  # reset terminal
-ESC_CLR="[H[J[H"  # clear lines
-ESC_RST="[2K[A"  # reset line
-ESC_VIS="[?25h"  # cursor visible
-ESC_INV="[?25l"  # cursor invisible
-ESC_UP="[A"
-ESC_DOWN="[B"
-c_off='[0m'
-c_red='[0;31m'
-c_grn='[0;32m'
-c_bld='[0;1m'
+TERM_RST='\033[2J\033[1;1H'  # reset terminal
+TERM_CLR='\033[H\033[J\033[H'  # clear lines
+LN_RST='\033[2K\033[A'  # reset line
+CUR_INV='\033[?25l'  # cursor invisible
+CUR_VIS='\033[?25h'  # cursor visible
+CUR_UP='\033[A'
+CUR_DWN='\033[B'
+CLR_HL='\033[0;1m'  # colour highlight
+CLR_OFF='\033[0m'  # colour off
+CLR_RED='\033[0;31m'
+CLR_GRN='\033[0;32m'
 
 fn_shell() {
   if [ -n "$BASH_VERSION" ]; then
@@ -65,10 +65,10 @@ fn_decision() {
   [ -z "$(echo "$soptions" | sed -n '/|/p')" ] &&\
     soptions="$(echo "$1" | sed 's/\([[:alpha:]]\)/|\1/g;s/^|//')"
   IFS='|'; options=($(echo "$soptions")); IFS="$IFS_ORG"
-  soptions="$(echo "$soptions" | sed 's/\([[:alpha:]]\)/'${c_bld}'\1'${c_off}'/g')"
+  soptions="$(echo "$soptions" | sed 's/\([[:alpha:]]\)/\'${CLR_HL}'\1\'${CLR_OFF}'/g')"
   [ ! -t 0 ] &&\
     "[error] stdin is not attached to a suitable input device" 1>&2 && return 1
-  [ -n "$question" ] && echo -E -n "${question} [$soptions]: " 1>&2
+  [ -n "$question" ] && echo -E -n "${question} [$(echo -e "$soptions")]: " 1>&2
   while [ 1 -eq 1 ]; do
     read "${CMDARGS_READ_SINGLECHAR[@]}"
     r="$(echo "$REPLY" | tr '[A-Z]' '[a-z]')"
