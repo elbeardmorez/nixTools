@@ -320,11 +320,13 @@ fn_menu() {
     [ -z "$path_" ] &&\
       echo "[error] invalid target '$target'" && return 1
     IFS=$'\n'; files=($(fn_target_files "$_path")); IFS="$IFSORG"
+    [[ -n "$id" && $id -gt ${#files[@]} ]] &&\
+      id=${#files[@]}
     fn_list "$target" "$id" "${files[@]}"
     echo -e "\n"
     while [ 1 ]; do
       echo -e "$CUR_UP$LN_RST" 1>&2
-      res="$(fn_decision "$(echo -e "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") | (${CLR_HL}e${CLR_OFF})dit | e(${CLR_HL}x${CLR_OFF})it |")" "tiex")"
+      res="$(fn_decision "$(echo -e "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it |")" "tiedx")"
       case "$res" in
         "x") return 1 ;;
         "t")
@@ -369,6 +371,23 @@ fn_menu() {
           echo ""
           fn_mod ${files[$(($id-1))]}
           id=""
+          ;;
+        "d")
+          [ -z "$id" ] &&\
+            fn_menu_alert "$CLR_RED[error]$CLR_OFF invalid target, ignoring!" && continue
+          reset=0
+          f="${files[$(($id-1))]}"
+          title="$(fn_read_data "title" "$f")"
+          echo -e "$CUR_UP$LN_RST" 1>&2
+          res2="$(fn_decision "| confirm deletion of $title [$f] entry?")"
+          [ "x$res2" == "xn" ] && break
+          if [ ! -e "$f" ]; then
+            fn_menu_alert "[error] target file '$f' doesn't exist!"
+          else
+            rm -f "$f"
+            fn_menu_alert "[info] target file '$f' deleted"
+          fi
+          reset=1
           ;;
       esac
       [ $reset -eq 1 ] && break
