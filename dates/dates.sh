@@ -1,16 +1,17 @@
 #!/bin/bash
 
-IFS_ORG="$IFS"
+# includes
+set -e
+x="$(dirname "$0")/$(basename "$0")"; [ ! -f "$x" ] && x="$(which $0)"; x="$(readlink -e "$x" || echo "$x")"
+. ${x%/*}/../func_common.sh
+set +e
+
 DEBUG=${DEBUG:-1}
 
 c_up=$'\u21e7' #$'\u2191'
 c_down=$'\u21e9' #$'\u2193'
 c_left=$'\u21e6' #$'\u2190'
 c_right=$'\u21e8' #$'\u2192'
-t_b=$'\033[1m'
-t_n=$'\033[0m'
-t_hlclr=$'\033[0;31m'
-t_nclr=$'\033[m'
 
 declare -A datepart_size_map
 datepart_size_map['S']=1
@@ -22,8 +23,8 @@ fn_dateformat() {
   dt="$1"
   fmt="$2"
   part="$3"
-  IFS="%"; parts=(`echo $fmt`); IFS="$IFS_ORG"
-  fmt="`echo $fmt | sed 's/\('%$part'\)/'$t_b$t_hlclr'\1'$t_nclr$t_n'/'`"
+  IFS="%"; parts=(`echo $fmt`); IFS="$IFSORG"
+  fmt="`echo $fmt | sed 's/\('%$part'\)/\'$CLR_HL'\'$CLR_RED'\1\'$CLR_OFF'/'`"
   dt="`date -d @$dt +"$fmt"`"
   echo "$dt"
 }
@@ -65,7 +66,7 @@ case "$option" in
     while [ 1 ]; do
       echo -en '\033[u\033[s\033[2K\012\033[2K\012\033[2K\012\033[2K\033[u\033[s\012' 1>&2
       dtf="`fn_dateformat $dt "$dt_format" ${editable[$hl]}`"
-      echo -ne "$dtf [modify ($t_b$c_up$t_n|$t_b$c_down$t_n) / select part ($t_b$c_left$t_n|$t_b$c_right$t_n) / (c)ancel / e(x)it] $t_b$last$t_n" 1>&2
+      echo -ne "$dtf [modify ($CLR_HL$c_up$CLR_OFF|$CLR_HL$c_down$CLR_OFF) / select part ($CLR_HL$c_left$CLR_OFF|$CLR_HL$c_right$CLR_OFF) / (c)ancel / e(x)it] $CLR_HL$last$CLR_OFF" 1>&2
       [ $cont -ne 1 ] && echo "" 1>&2 && break
 
       retry=1
