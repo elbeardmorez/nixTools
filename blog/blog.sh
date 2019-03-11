@@ -264,9 +264,9 @@ fn_list() {
   declare files
   target="$1" && shift
   selected=$1 && shift
+  path_="$(fn_target_resolve "$target")"
   files=("$@")
   if [ ${#files[@]} -eq 0 ]; then
-    path_="$(fn_target_resolve "$target")"
     [ -z "$path_" ] &&\
       echo "[error] invalid target '$target'" && return 1
     IFS=$'\n'; files=($(fn_target_files "$_path")); IFS="$IFSORG"
@@ -274,13 +274,17 @@ fn_list() {
   header="id\t${CLR_RED}${CLR_OFF}title\tdate created\t${CLR_HL}${CLR_OFF}date modified\tpath"
   tb=""
   l=1
+  path_escaped="$(fn_rx_escape "sed" "$path_")"
   for f in "${files[@]}"; do
     c_title="$CLR_RED"
     [[ -n "$selected" && $l -eq $selected ]] && c_title="$CLR_GRN"
     dt_created="$(sed -n 's/'\''date_created'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
     dt_modified="$(sed -n 's/'\''date_modified'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
     title="$(sed -n 's/'\''title'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
-    tb+="\n[$l]\t$c_title$title$CLR_OFF\t$dt_created\t$([ -n "$dt_modified" ] && echo "$CLR_HL$dt_modified$CLR_OFF" || echo "$CLR_HL$CLR_OFF$dt_created")\t$f"
+    f2="$f"
+    [ -n "$(echo "$f2" | sed -n '/^'$path_escaped'/p')" ] &&\
+      f2=".${f2:${#path_}}"
+    tb+="\n[$l]\t$c_title$title$CLR_OFF\t$dt_created\t$([ -n "$dt_modified" ] && echo "$CLR_HL$dt_modified$CLR_OFF" || echo "$CLR_HL$CLR_OFF$dt_created")\t$f2"
     l=$(($l+1))
   done
   echo -e "# $target entries\n"
