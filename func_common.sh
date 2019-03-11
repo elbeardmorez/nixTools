@@ -65,13 +65,19 @@ fn_decision() {
   declare question
   declare soptions
   declare optdelim
+  declare optshow
   declare -a options
   [ $# -gt 0 ] && question="$1" && shift
   optdelim="/|,"
+  optshow=1
   soptions="${1:-y/n}"
   if [ $# -gt 1 ]; then
     while [ -n "$1" ]; do
-      [ ${#1} -eq 1 ] && optdelim="$1" && shift && continue
+      if [ ${#1} -eq 1 ]; then
+        [ -n "$(echo "$1" | sed '/[0-1]/p')" ] &&\
+          optshow=$1 && shift && continue
+        optdelim="$1" && shift && continue
+      fi
       soptions="$1" && shift
     done
   fi
@@ -81,7 +87,7 @@ fn_decision() {
   soptions="$(echo "$soptions" | sed 's/\([[:alpha:]]\)/\'${CLR_HL}'\1\'${CLR_OFF}'/g')"
   [ ! -t 0 ] &&\
     "[error] stdin is not attached to a suitable input device" 1>&2 && return 1
-  echo -E -n "${question} [$(echo -e "$soptions")]: " 1>&2
+  echo -E -n "${question}$([ $optshow -eq 1 ] && echo -e "[$soptions]"): " 1>&2
   while [ 1 -eq 1 ]; do
     read "${CMDARGS_READ_SINGLECHAR[@]}"
     r="$(echo "$REPLY" | tr '[A-Z]' '[a-z]')"

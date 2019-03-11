@@ -96,7 +96,7 @@ l=0
 while [ $l -lt ${#cmds[@]} ]; do
   cmd="${cmds[$l]}"
   [ -z "$cmd" ] && l=$(($l+1)) && continue
-  res="$(fn_decision "[user] append command '$cmd'? [(y)es/(n)o/(e)dit/(a)ll/e(x)it]" "yneax")"
+  res="$(fn_decision "[user] append command '$cmd'? [(y)es/(n)o/(e)dit/(a)ll/e(x)it]" "yneax" 0)"
   case "$res" in
     "y") l=$(($l+1)) && echo "$cmd" >> "$target" && continue ;;
     "a") for l2 in $(seq $l 1 $((${#cmds[@]}-1))); do echo "${cmds[$l2]}" >> "$target"; done; exit 0 ;;
