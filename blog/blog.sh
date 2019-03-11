@@ -83,10 +83,12 @@ fn_write_data() {
   var="$1" && shift
   target="$1" && shift
   data="$@"
+  [ -z "$(echo "$data" | sed -n '/^'\''/{/'\''$/p;}')" ] &&\
+    data="'$data'"
   current="$(fn_read_data "$var" "$target")"
   if [ -z "$current" ]; then
     # add entry
-    echo "'$var': '${data[*]}'" >> "$target"
+    echo "'$var': ${data[*]}" >> "$target"
   else
     # overwrite entry
     current="'$var': $current"
