@@ -59,7 +59,7 @@ case "$option" in
     hl=0
     cont=1
     while [ 1 ]; do
-      echo -en '\033[u\033[s\033[2K\012\033[2K\012\033[2K\012\033[2K\033[u\033[s\012' 1>&2
+      echo -en "${TERM_CLR}"
       dtf="`fn_dateformat $dt "$dt_format" ${editable[$hl]}`"
       echo -ne "$dtf [modify ($CLR_HL$CHR_ARR_U$CLR_OFF|$CLR_HL$CHR_ARR_D$CLR_OFF) / select part ($CLR_HL$CHR_ARR_L$CLR_OFF|$CLR_HL$CHR_ARR_R$CLR_OFF) / (c)ancel / e(x)it] $CLR_HL$last$CLR_OFF" 1>&2
       [ $cont -ne 1 ] && echo "" 1>&2 && break
