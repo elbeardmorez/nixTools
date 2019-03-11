@@ -157,8 +157,7 @@ for target in "${targets[@]}"; do
           echo "[error] invalid 'end' arg '${args[1]}'" && exit 1
         end="$arg"
       fi
-      echo -n "[user] trim $lines line$([ $lines -ne 1 ] && echo "s") from $end of target '$target'? [(y)es/(n)o/(c)ancel]: " 1>&2
-      res="$(fn_decision "y|n|c")"
+      res="$(fn_decision "[user] trim $lines line$([ $lines -ne 1 ] && echo "s") from $end of target '$target'?" "ync")"
       [ "x$res" == "xc" ] && exit
       if [ "x$res" == "xy" ]; then
         tmp="$(fn_temp_file $SCRIPTNAME)"

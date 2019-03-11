@@ -298,8 +298,7 @@ fn_process() {
         data="${x#*|}"
         echo -e "[info] file: $file | ln#: $line | auth: ${CLR_RED}${auth}${CLR_OFF} | date: $(date -d "@$dt1" "+%d %b %Y %H:%M:%S") $dt2"
         echo -e "\n$data\n"
-        echo -n "[user] (s)how, (r)ebase from, or (i)gnore commit '$id'? [s/r/i/x]: "
-        res="$(fn_decision "s|r|i|x")"
+        res="$(fn_decision "[user] (s)how, (r)ebase from, or (i)gnore commit '$id'?" "srix")"
         [ "x$res" == "xs" ] && git show "$id"
         [ "x$res" == "xr" ] && fn_rebase "$id" -- --autostash && exit
         [ "x$res" == "xi" ] && continue

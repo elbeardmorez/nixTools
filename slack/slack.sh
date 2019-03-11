@@ -360,9 +360,7 @@ fn_download() {
 
     echo -e "[info] found package: $pkg$([ -n "$version" ] && echo ", version: $version")$([ -n "$type" ] && echo ", type: [$type]")\n" 1>&2
 
-    echo -n "[user] download package / source? [y/n/c]: "
-
-    res="$(fn_decision "y|n|c")"
+    res="$(fn_decision "[user] download package / source?" "ync")"
     [ "x$res" == "xc" ] && break
     [ "x$res" == "xn" ] && continue
 

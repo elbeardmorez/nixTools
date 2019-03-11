@@ -93,8 +93,7 @@ else
       results[${#results[@]}]="$file"
     else
       result=""
-      echo -n "[user] search match, use file '$file'? [y/n/c]: " 1>&2
-      res="$(fn_decision "y|n|c")"
+      res="$(fn_decision "[user] search match, use file '$file'?" "ync")"
       [ "x$res" == "xc" ] && exit  # !break, no partial results
       [ "x$res" == "xn" ] && continue
       results[${#results[@]}]="$file"
