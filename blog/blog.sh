@@ -318,7 +318,7 @@ fn_menu() {
     echo -e "\n"
     while [ 1 ]; do
       echo -e "$CUR_UP$LN_RST" 1>&2
-      res="$(fn_decision "$(echo -e "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} | (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") | (${CLR_HL}e${CLR_OFF})dit | e(${CLR_HL}x${CLR_OFF})it |")" "tiex")"
+      res="$(fn_decision "$(echo -e "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") | (${CLR_HL}e${CLR_OFF})dit | e(${CLR_HL}x${CLR_OFF})it |")" "tiex")"
       case "$res" in
         "x") return 1 ;;
         "t")
