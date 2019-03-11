@@ -315,15 +315,14 @@ fn_menu() {
   target="$1" && shift
   id=""
   while [ 1 ]; do
-    echo -e "$TERM_CLR"
     path_=$(fn_target_resolve "$target")
     [ -z "$path_" ] &&\
       echo "[error] invalid target '$target'" && return 1
     IFS=$'\n'; files=($(fn_target_files "$_path")); IFS="$IFSORG"
     [[ -n "$id" && $id -gt ${#files[@]} ]] &&\
       id=${#files[@]}
-    fn_list "$target" "$id" "${files[@]}"
-    echo -e "\n"
+    list="$(fn_list "$target" "$id" "${files[@]}")"
+    echo -e "${TERM_CLR}${list}\n\n"
     while [ 1 ]; do
       echo -e "$CUR_UP$LN_RST" 1>&2
       res="$(fn_decision "$(echo -e "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it |")" "tiedx")"
