@@ -8,11 +8,6 @@ set +e
 
 DEBUG=${DEBUG:-0}
 
-c_up=$'\u21e7' #$'\u2191'
-c_down=$'\u21e9' #$'\u2193'
-c_left=$'\u21e6' #$'\u2190'
-c_right=$'\u21e8' #$'\u2192'
-
 declare -A datepart_size_map
 datepart_size_map['S']=1
 datepart_size_map['M']=60
@@ -66,7 +61,7 @@ case "$option" in
     while [ 1 ]; do
       echo -en '\033[u\033[s\033[2K\012\033[2K\012\033[2K\012\033[2K\033[u\033[s\012' 1>&2
       dtf="`fn_dateformat $dt "$dt_format" ${editable[$hl]}`"
-      echo -ne "$dtf [modify ($CLR_HL$c_up$CLR_OFF|$CLR_HL$c_down$CLR_OFF) / select part ($CLR_HL$c_left$CLR_OFF|$CLR_HL$c_right$CLR_OFF) / (c)ancel / e(x)it] $CLR_HL$last$CLR_OFF" 1>&2
+      echo -ne "$dtf [modify ($CLR_HL$CHR_ARR_U$CLR_OFF|$CLR_HL$CHR_ARR_D$CLR_OFF) / select part ($CLR_HL$CHR_ARR_L$CLR_OFF|$CLR_HL$CHR_ARR_R$CLR_OFF) / (c)ancel / e(x)it] $CLR_HL$last$CLR_OFF" 1>&2
       [ $cont -ne 1 ] && echo "" 1>&2 && break
 
       retry=1
@@ -75,10 +70,10 @@ case "$option" in
         read -s -n 1 res
         case $res in
           $'\e') escape=1 ;;
-          A) [ $escape -eq 0 ] && continue; escape=0; retry=0; last="$c_up"; dt=`fn_dateadd $dt ${editable[$hl]} 1` ;;
-          B) [ $escape -eq 0 ] && continue; escape=0; retry=0; last="$c_down"; dt=`fn_dateadd $dt ${editable[$hl]} -1` ;;
-          D) [ $escape -eq 0 ] && continue; escape=0; retry=0; last="$c_left"; hl=`fn_cycle $hl ${#editable[@]} -1` ;;
-          C) if [ $escape -eq 0 ]; then retry=0; aborted=1; update=0; last="c"; else escape=0; retry=0; last="$c_right"; hl=`fn_cycle $hl ${#editable[@]} 1`; fi ;;
+          A) [ $escape -eq 0 ] && continue; escape=0; retry=0; last="$CHR_ARR_U"; dt=`fn_dateadd $dt ${editable[$hl]} 1` ;;
+          B) [ $escape -eq 0 ] && continue; escape=0; retry=0; last="$CHR_ARR_D"; dt=`fn_dateadd $dt ${editable[$hl]} -1` ;;
+          D) [ $escape -eq 0 ] && continue; escape=0; retry=0; last="$CHR_ARR_L"; hl=`fn_cycle $hl ${#editable[@]} -1` ;;
+          C) if [ $escape -eq 0 ]; then retry=0; aborted=1; update=0; last="c"; else escape=0; retry=0; last="$CHR_ARR_R"; hl=`fn_cycle $hl ${#editable[@]} 1`; fi ;;
           "x"|"X") retry=0; cont=0; last="x" ;;
           "c") retry=0; aborted=1; cont=0; last="c" ;;
         esac

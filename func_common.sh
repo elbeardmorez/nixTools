@@ -26,6 +26,10 @@ CLR_OFF='\033[0m'  # colour off
 CLR_RED='\033[0;31m'
 CLR_GRN='\033[0;32m'
 CLR_BWN='\033[0;33m'
+CHR_ARR_U=$'\u21e7' #$'\u2191'
+CHR_ARR_D=$'\u21e9' #$'\u2193'
+CHR_ARR_L=$'\u21e6' #$'\u2190'
+CHR_ARR_R=$'\u21e8' #$'\u2192'
 
 fn_shell() {
   if [ -n "$BASH_VERSION" ]; then
