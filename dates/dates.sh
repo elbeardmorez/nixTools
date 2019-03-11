@@ -6,7 +6,7 @@ x="$(dirname "$0")/$(basename "$0")"; [ ! -f "$x" ] && x="$(which $0)"; x="$(rea
 . ${x%/*}/../func_common.sh
 set +e
 
-DEBUG=${DEBUG:-1}
+DEBUG=${DEBUG:-0}
 
 c_up=$'\u21e7' #$'\u2191'
 c_down=$'\u21e9' #$'\u2193'
