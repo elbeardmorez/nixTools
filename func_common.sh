@@ -30,6 +30,15 @@ CHR_ARR_U=$'\u21e7' #$'\u2191'
 CHR_ARR_D=$'\u21e9' #$'\u2193'
 CHR_ARR_L=$'\u21e6' #$'\u2190'
 CHR_ARR_R=$'\u21e8' #$'\u2192'
+KEY_ARR_U='\033[A'
+KEY_ARR_D='\033[B'
+KEY_ARR_L='\033[D'
+KEY_ARR_R='\033[C'
+declare -A keychr_maps
+keychr_maps["$KEY_ARR_U"]="$CHR_ARR_U"
+keychr_maps["$KEY_ARR_D"]="$CHR_ARR_D"
+keychr_maps["$KEY_ARR_L"]="$CHR_ARR_L"
+keychr_maps["$KEY_ARR_R"]="$CHR_ARR_R"
 
 fn_shell() {
   if [ -n "$BASH_VERSION" ]; then
@@ -91,20 +100,38 @@ fn_decision() {
   IFS="$optdelim"; options=($(echo "$soptions")); IFS="$IFSORG"
   soptions=""
   for option in "${options[@]}"; do
-    soptions+="$optdelim${CLR_HL}$option${CLR_OFF}"
+    soptions+="$optdelim${CLR_HL}$([ -n "${keychr_maps["$option"]}" ] && echo "${keychr_maps["$option"]}" || echo "$option")${CLR_OFF}"
   done
   soptions="${soptions:${#optdelim}}"
   [ ! -t 0 ] &&\
     "[error] stdin is not attached to a suitable input device" 1>&2 && return 1
   echo -E -n "${question}$([ $optshow -eq 1 ] && echo -e " [$soptions]"): " 1>&2
+  buffer=""
   while [ 1 -eq 1 ]; do
     read "${CMDARGS_READ_SINGLECHAR[@]}"
-    r="$(echo "$REPLY" | tr '[A-Z]' '[a-z]')"
-    while [ -n "$REPLY" ]; do REPLY="" && read -t 0.1; done  # clear stdin
+    R="$REPLY"
+    [ "x$R" = "x"$'\E' ] && R='\033'
+    r="$(echo "$R" | tr '[A-Z]' '[a-z]')"
     match=0
     for option in "${options[@]}"; do
-      [ "x$option" = "x$r" ] && match=1 && echo "$r" 1>&2 && echo "$r" && break;
+      if [ ${#buffer} -gt 0 ]; then
+        buffer_prefix_length=$((${#option}-1))
+        if [ $buffer_prefix_length -gt 0 ]; then
+          buffer_prefix=""
+          [ ${#buffer} -ge $buffer_prefix_length ] && buffer_prefix="${buffer:$((${#buffer}-$buffer_prefix_length))}"
+          if [ "x$option" = "x$buffer_prefix$R" ]; then
+            match=1
+            key="$buffer_prefix$R"
+            chr="$([ -n "${keychr_maps["$key"]}" ] && echo "${keychr_maps["$key"]}" || echo "$key")"
+            echo -e "$chr" 1>&2
+            echo "$chr"
+            break
+          fi
+        fi
+      fi
+      [  "x$option" = "x$r" ] && match=1 && echo "$r" 1>&2 && echo "$r" && break;
     done
+    buffer+="$R"
     [ $match -eq 1 ] && break
   done
   [ "x$r" = "xy" ] && return 0 || return 1
