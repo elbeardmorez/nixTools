@@ -325,7 +325,7 @@ fn_menu() {
     echo -e "${TERM_CLR}${list}\n\n"
     while [ 1 ]; do
       echo -e "$CUR_UP$LN_RST" 1>&2
-      res="$(fn_decision "$(echo -e "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it |")" "tiedx")"
+      res="$(fn_decision "$(echo -e "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") | (${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}) select | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it |")" "t/i/$KEY_ARR_U/$KEY_ARR_D/e/d/x")"
       case "$res" in
         "x") return 1 ;;
         "t")
@@ -363,6 +363,16 @@ fn_menu() {
                [[ -n "$(echo "$res2" | sed -n '/[0-9]\+/p')" && $res2 -ge 1 && $res2 -le ${#files[@]} ]] && id=$res2 && reset=1 && break
             esac
           done
+          ;;
+        "$CHR_ARR_U")
+          [[ -n $id && $id -eq ${#files[@]} ]] && continue
+          id=$([ -n $id ] && echo $(($id+1)) || echo 1)
+          reset=1
+          ;;
+        "$CHR_ARR_D")
+          [[ -n "$id" && $id -eq 1 ]] && continue
+          id=$([ -n "$id" ] && echo $(($id-1)) || echo ${#files[@]})
+          reset=1
           ;;
         "e")
           [ -z "$id" ] &&\
