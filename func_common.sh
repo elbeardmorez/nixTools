@@ -81,10 +81,19 @@ fn_decision() {
       soptions="$1" && shift
     done
   fi
-  [ -z "$(echo "$soptions" | sed -n '/['$optdelim']/p')" ] &&\
-    soptions="$(echo "$soptions" | sed 's/\([[:alpha:]]\)/\/\1/g;s/^\///')"
+  if [ -n "$(echo "$soptions" | sed -n '/['$optdelim']/p')" ]; then
+    [ ${#optdelim} -ne 1 ] &&\
+      optdelim="$(echo "$soptions" | sed -n 's/.*\(['$optdelim']\).*/\1/p')"
+  else
+    soptions="$(echo "$soptions" | sed 's/\(.\)/\/\1/g;s/^\///')"
+    optdelim='/'
+  fi
   IFS="$optdelim"; options=($(echo "$soptions")); IFS="$IFSORG"
-  soptions="$(echo "$soptions" | sed 's/\([[:alpha:]]\)/\'${CLR_HL}'\1\'${CLR_OFF}'/g')"
+  soptions=""
+  for option in "${options[@]}"; do
+    soptions+="$optdelim${CLR_HL}$option${CLR_OFF}"
+  done
+  soptions="${soptions:${#optdelim}}"
   [ ! -t 0 ] &&\
     "[error] stdin is not attached to a suitable input device" 1>&2 && return 1
   echo -E -n "${question}$([ $optshow -eq 1 ] && echo -e " [$soptions]"): " 1>&2
