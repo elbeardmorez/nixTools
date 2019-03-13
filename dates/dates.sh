@@ -61,7 +61,7 @@ case "$option" in
     aborted=0
     while [ 1 ]; do
       dtf="`fn_dateformat $dt "$dt_format" ${editable[$hl]}`"
-      prompt="$(echo -e "$dtf [modify ($CLR_HL$CHR_ARR_U$CLR_OFF|$CLR_HL$CHR_ARR_D$CLR_OFF) / select part ($CLR_HL$CHR_ARR_L$CLR_OFF|$CLR_HL$CHR_ARR_R$CLR_OFF) / (${CLR_HL}c${CLR_OFF})ancel / e(${CLR_HL}x${CLR_OFF})it] [ $CLR_HL$last$CLR_OFF ]")"
+      prompt="$(echo -e "$dtf [modify ($CLR_HL$CHR_ARR_U$CLR_OFF|$CLR_HL$CHR_ARR_D$CLR_OFF) / select part ($CLR_HL$CHR_ARR_L$CLR_OFF|$CLR_HL$CHR_ARR_R$CLR_OFF) / (${CLR_HL}c${CLR_OFF})ancel / e(${CLR_HL}x${CLR_OFF})it] [ $CLR_HL$last$CLR_OFF ]${CUR_INV}")"
       echo -e "${TERM_CLR}" 1>&2
       if [ $cont -ne 1 ]; then
         echo -e "$prompt\n"
@@ -80,4 +80,4 @@ case "$option" in
     done
     ;;
 esac
-
+echo -en "${CUR_VIS}" 1>&2
