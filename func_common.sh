@@ -104,11 +104,13 @@ fn_decision() {
     optdelim='/'
   fi
   IFS="$optdelim"; options=($(echo "$soptions")); IFS="$IFSORG"
-  soptions=""
-  for option in "${options[@]}"; do
-    soptions+="$optdelim${CLR_HL}$([ -n "${keychr_maps["$option"]}" ] && echo "${keychr_maps["$option"]}" || echo "$option")${CLR_OFF}"
-  done
-  soptions="${soptions:${#optdelim}}"
+  if [ $optshow -eq 1 ]; then
+    soptions=""
+    for option in "${options[@]}"; do
+      soptions+="$optdelim${CLR_HL}$([ -n "${keychr_maps["$option"]}" ] && echo "${keychr_maps["$option"]}" || echo "$option")${CLR_OFF}"
+    done
+    soptions="${soptions:${#optdelim}}"
+  fi
   [ $optecho -eq 0 ] && cmd_args[${#cmd_args[@]}]="-s"
   echo -E -n "${question}$" 1>&2
   [ $optshow -eq 1 ] && echo -en " [$soptions]" 1>&2
