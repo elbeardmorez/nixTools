@@ -62,7 +62,7 @@ case "$option" in
     while [ 1 ]; do
       echo -en "${TERM_CLR}"
       dtf="`fn_dateformat $dt "$dt_format" ${editable[$hl]}`"
-      echo -ne "$dtf [modify ($CLR_HL$CHR_ARR_U$CLR_OFF|$CLR_HL$CHR_ARR_D$CLR_OFF) / select part ($CLR_HL$CHR_ARR_L$CLR_OFF|$CLR_HL$CHR_ARR_R$CLR_OFF) / (c)ancel / e(x)it] $CLR_HL$last$CLR_OFF" 1>&2
+      prompt="$(echo -e "$dtf [modify ($CLR_HL$CHR_ARR_U$CLR_OFF|$CLR_HL$CHR_ARR_D$CLR_OFF) / select part ($CLR_HL$CHR_ARR_L$CLR_OFF|$CLR_HL$CHR_ARR_R$CLR_OFF) / (${CLR_HL}c${CLR_OFF})ancel / e(${CLR_HL}x${CLR_OFF})it] [ $CLR_HL$last$CLR_OFF ]")"
       [ $cont -ne 1 ] && echo "" 1>&2 && break
 
       res="$(fn_decision "$prompt" "$KEY_ARR_U/$KEY_ARR_D/$KEY_ARR_L/$KEY_ARR_R/c/x" 0 0)"
