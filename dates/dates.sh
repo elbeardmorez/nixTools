@@ -58,26 +58,22 @@ case "$option" in
     last=" "
     hl=0
     cont=1
+    aborted=0
     while [ 1 ]; do
       echo -en "${TERM_CLR}"
       dtf="`fn_dateformat $dt "$dt_format" ${editable[$hl]}`"
       echo -ne "$dtf [modify ($CLR_HL$CHR_ARR_U$CLR_OFF|$CLR_HL$CHR_ARR_D$CLR_OFF) / select part ($CLR_HL$CHR_ARR_L$CLR_OFF|$CLR_HL$CHR_ARR_R$CLR_OFF) / (c)ancel / e(x)it] $CLR_HL$last$CLR_OFF" 1>&2
       [ $cont -ne 1 ] && echo "" 1>&2 && break
 
-      retry=1
-      escape=0
-      while [ $retry -eq 1 ]; do
-        read -s -n 1 res
-        case $res in
-          $'\e') escape=1 ;;
-          A) [ $escape -eq 0 ] && continue; escape=0; retry=0; last="$CHR_ARR_U"; dt=`fn_dateadd $dt ${editable[$hl]} 1` ;;
-          B) [ $escape -eq 0 ] && continue; escape=0; retry=0; last="$CHR_ARR_D"; dt=`fn_dateadd $dt ${editable[$hl]} -1` ;;
-          D) [ $escape -eq 0 ] && continue; escape=0; retry=0; last="$CHR_ARR_L"; hl=`fn_cycle $hl ${#editable[@]} -1` ;;
-          C) if [ $escape -eq 0 ]; then retry=0; aborted=1; update=0; last="c"; else escape=0; retry=0; last="$CHR_ARR_R"; hl=`fn_cycle $hl ${#editable[@]} 1`; fi ;;
-          "x"|"X") retry=0; cont=0; last="x" ;;
-          "c") retry=0; aborted=1; cont=0; last="c" ;;
-        esac
-      done
+      res="$(fn_decision "$prompt" "$KEY_ARR_U/$KEY_ARR_D/$KEY_ARR_L/$KEY_ARR_R/c/x" 0 0)"
+      case "$res" in
+        "$CHR_ARR_U") last="$CHR_ARR_U"; dt=`fn_dateadd $dt ${editable[$hl]} 1` ;;
+        "$CHR_ARR_D") last="$CHR_ARR_D"; dt=`fn_dateadd $dt ${editable[$hl]} -1` ;;
+        "$CHR_ARR_L") last="$CHR_ARR_L"; hl=`fn_cycle $hl ${#editable[@]} -1` ;;
+        "$CHR_ARR_R") last="$CHR_ARR_R"; hl=`fn_cycle $hl ${#editable[@]} 1` ;;
+        "c") last="c"; cont=0; aborted=1 ;;
+        "x") last="x"; cont=0 ;;
+      esac
     done
     [ $last = "x" ] && echo "$dt"
     ;;
