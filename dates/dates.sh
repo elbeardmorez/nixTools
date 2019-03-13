@@ -7,12 +7,17 @@ x="$(dirname "$0")/$(basename "$0")"; [ ! -f "$x" ] && x="$(which $0)"; x="$(rea
 set +e
 
 DEBUG=${DEBUG:-0}
+trap fn_clean_up EXIT
 
 declare -A datepart_size_map
 datepart_size_map['S']=1
 datepart_size_map['M']=60
 datepart_size_map['H']=$[60*60]
 datepart_size_map['d']=$[24*60*60]
+
+fn_clean_up() {
+  echo -en "${CUR_VIS}\n" 1>&2
+}
 
 fn_dateformat() {
   dt="$1"
@@ -65,7 +70,7 @@ case "$option" in
       echo -e "${TERM_CLR}" 1>&2
       if [ $cont -ne 1 ]; then
         echo -e "$prompt\n"
-        [ $aborted -eq 0 ] && echo "$dt"
+        [ $aborted -eq 0 ] && echo -n "$dt"
         break
       fi
       res="$(fn_decision "$prompt" "$KEY_ARR_U/$KEY_ARR_D/$KEY_ARR_L/$KEY_ARR_R/c/x" 0 0)"
@@ -80,4 +85,4 @@ case "$option" in
     done
     ;;
 esac
-echo -en "${CUR_VIS}" 1>&2
+fn_clean_up
