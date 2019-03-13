@@ -59,7 +59,7 @@ fn_input_data() {
         fn_unquote "$data" > "$f"
       sleep 1
       $EDITOR "$f" 1>/dev/tty
-      echo -e "$LN_RST" 1>&2
+      echo -en "$LN_RST" 1>&2
       data="$(awk 'BEGIN{ printf "'\''" } { print } END{ print "'\''" }' $f)"
       rm "$f"
       echo -E -n "$prompt: " 1>&2
@@ -195,7 +195,7 @@ fn_target_select() {
         res=$(fn_input_line "[user] select target (1-${#files[@]}) or e(x)it")
         [ "x$res" = "xx" ] && return 1
         [[ -n "$(echo "$res" | sed -n '/[0-9]\+/p')" && $res -ge 1 && $res -le ${#files[@]} ]] && break
-        echo -e "$CUR_UP$LN_RST" 1>&2
+        echo -en "$CUR_UP$LN_RST" 1>&2
       done
       target="${files[$(($res-1))]}"
     fi
@@ -298,7 +298,7 @@ fn_menu_alert() {
   declare duration
   alert="$1" && shift
   duration=${1:-2}
-  echo -e "$CUR_UP$LN_RST" 1>&2
+  echo -en "$CUR_UP$LN_RST" 1>&2
   echo -e "$alert"
   echo -e -n "$CUR_INV" 1>&2
   sleep $duration
@@ -324,21 +324,21 @@ fn_menu() {
     list="$(fn_list "$target" "$id" "${files[@]}")"
     echo -e "${TERM_CLR}${list}\n\n"
     while [ 1 ]; do
-      echo -e "$CUR_UP$LN_RST" 1>&2
+      echo -en "$CUR_UP$LN_RST" 1>&2
       res="$(fn_decision "$(echo -e "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") | (${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}) select | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it |")" "t/i/$KEY_ARR_U/$KEY_ARR_D/e/d/x")"
       case "$res" in
         "x") return 1 ;;
         "t")
           reset=0
           while [ 1 ]; do
-            echo -e "$CUR_UP$LN_RST" 1>&2
+            echo -en "$CUR_UP$LN_RST" 1>&2
             res2="$(fn_decision "$(echo -e "| (${CLR_HL}p${CLR_OFF})ublished | (${CLR_HL}u${CLR_OFF})npublished) | (${CLR_HL}c${CLR_OFF})ustom | e(${CLR_HL}x${CLR_OFF})it |")" "pucx")"
             case "$res2" in
               "x") break ;;
               "p") target="published"; reset=1; break ;;
               "u") target="unpublished"; reset=1; break ;;
               "c")
-                echo -e "$CUR_UP$LN_RST" 1>&2
+                echo -en "$CUR_UP$LN_RST" 1>&2
                 target_="$(fn_input_line "| custom path" "$target")"
                 [ "x$target_" -eq "x$target" ] && break
                 path_=$(fn_target_resolve "$target_")
@@ -355,7 +355,7 @@ fn_menu() {
         "i")
           reset=0
           while [ 1 ]; do
-            echo -e "$CUR_UP$LN_RST" 1>&2
+            echo -en "$CUR_UP$LN_RST" 1>&2
             res2="$(fn_input_line "| set target id, or e($(echo -e "${CLR_HL}x${CLR_OFF}"))it")"
             case "$res2" in
               "x") break ;;
@@ -387,7 +387,7 @@ fn_menu() {
           reset=0
           f="${files[$(($id-1))]}"
           title="$(fn_read_data "title" "$f")"
-          echo -e "$CUR_UP$LN_RST" 1>&2
+          echo -en "$CUR_UP$LN_RST" 1>&2
           res2="$(fn_decision "| confirm deletion of $title [$f] entry?")"
           [ "x$res2" == "xn" ] && break
           if [ ! -e "$f" ]; then
