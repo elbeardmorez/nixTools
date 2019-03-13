@@ -75,21 +75,27 @@ fn_decision() {
   declare soptions
   declare optdelim
   declare optshow
+  declare optecho
+  declare -a cmd_args
+  cmd_args=("${CMDARGS_READ_SINGLECHAR[@]}")
   declare -a options
   [ $# -gt 0 ] && question="$1" && shift
   optdelim="/|,"
-  optshow=1
   soptions="${1:-y/n}"
   if [ $# -gt 1 ]; then
     while [ -n "$1" ]; do
       if [ ${#1} -eq 1 ]; then
-        [ -n "$(echo "$1" | sed '/[0-1]/p')" ] &&\
-          optshow=$1 && shift && continue
+        if [ -n "$(echo "$1" | sed '/[0-1]/p')" ]; then
+          [ -z $optshow ] && optshow=$1 && shift && continue
+          optecho=$1 && shift && continue
+        fi
         optdelim="$1" && shift && continue
       fi
       soptions="$1" && shift
     done
   fi
+  optshow=${optshow:-1}
+  optecho=${optecho:-1}
   if [ -n "$(echo "$soptions" | sed -n '/['$optdelim']/p')" ]; then
     [ ${#optdelim} -ne 1 ] &&\
       optdelim="$(echo "$soptions" | sed -n 's/.*\(['$optdelim']\).*/\1/p')"
@@ -103,12 +109,15 @@ fn_decision() {
     soptions+="$optdelim${CLR_HL}$([ -n "${keychr_maps["$option"]}" ] && echo "${keychr_maps["$option"]}" || echo "$option")${CLR_OFF}"
   done
   soptions="${soptions:${#optdelim}}"
+  [ $optecho -eq 0 ] && cmd_args[${#cmd_args[@]}]="-s"
+  echo -E -n "${question}$" 1>&2
+  [ $optshow -eq 1 ] && echo -en " [$soptions]" 1>&2
+  [ $optecho -eq 1 ] && echo -n ": " 1>&2
   [ ! -t 0 ] &&\
     "[error] stdin is not attached to a suitable input device" 1>&2 && return 1
-  echo -E -n "${question}$([ $optshow -eq 1 ] && echo -e " [$soptions]"): " 1>&2
   buffer=""
   while [ 1 -eq 1 ]; do
-    read "${CMDARGS_READ_SINGLECHAR[@]}"
+    read "${cmd_args[@]}"
     R="$REPLY"
     [ "x$R" = "x"$'\E' ] && R='\033'
     r="$(echo "$R" | tr '[A-Z]' '[a-z]')"
@@ -123,13 +132,18 @@ fn_decision() {
             match=1
             key="$buffer_prefix$R"
             chr="$([ -n "${keychr_maps["$key"]}" ] && echo "${keychr_maps["$key"]}" || echo "$key")"
-            echo -e "$chr" 1>&2
+            [ $optecho -eq 1 ] && echo -e "$chr" 1>&2
             echo "$chr"
             break
           fi
         fi
       fi
-      [  "x$option" = "x$r" ] && match=1 && echo "$r" 1>&2 && echo "$r" && break;
+      if [  "x$option" = "x$r" ]; then
+        match=1
+        [ $optecho -eq 1 ] && echo "$r" 1>&2
+        echo "$r"
+        break
+      fi
     done
     buffer+="$R"
     [ $match -eq 1 ] && break
