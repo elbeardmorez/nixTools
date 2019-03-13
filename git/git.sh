@@ -92,8 +92,8 @@ fn_commit_by_name() {
           echo "[info] unknown arg '$1', ignoring" 1>&2
         fi
         ;;
-     esac
-     shift
+    esac
+    shift
   done
   commits="$(git "${binargs[@]}" log "${cmdargs[@]}" | grep "$search" | sed 's/\\n/\\\\n/g')"
   IFS=$'\n'; arr_commits=($(echo -e "$commits")); IFS="$IFSORG";
