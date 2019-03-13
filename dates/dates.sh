@@ -79,7 +79,7 @@ case "$option" in
         esac
       done
     done
-    [ $last == "x" ] && echo "$dt"
+    [ $last = "x" ] && echo "$dt"
     ;;
 esac
 
