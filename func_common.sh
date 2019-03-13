@@ -79,7 +79,10 @@ fn_decision() {
   declare -a cmd_args
   cmd_args=("${CMDARGS_READ_SINGLECHAR[@]}")
   declare -a options
-  [ $# -gt 0 ] && question="$1" && shift
+  if [ $# -gt 0 ]; then
+    question="$1" && shift
+    echo -En "$question" 1>&2
+  fi
   optdelim="/|,"
   soptions="${1:-y/n}"
   if [ $# -gt 1 ]; then
@@ -112,7 +115,6 @@ fn_decision() {
     soptions="${soptions:${#optdelim}}"
   fi
   [ $optecho -eq 0 ] && cmd_args[${#cmd_args[@]}]="-s"
-  echo -E -n "${question}$" 1>&2
   [ $optshow -eq 1 ] && echo -en " [$soptions]" 1>&2
   [ $optecho -eq 1 ] && echo -n ": " 1>&2
   [ ! -t 0 ] &&\
