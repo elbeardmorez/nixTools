@@ -333,6 +333,7 @@ fn_menu() {
     while [ 1 ]; do
       echo -en "$CUR_UP$LN_RST" 1>&2
       res="$(fn_decision "$(echo -e "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") | (${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}) select | (${CLR_HL}p${CLR_OFF})ublish | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it |")" "t/i/$KEY_ARR_U/$KEY_ARR_D/e/p/d/x" 1 0)"
+      echo "" 1>&2
       case "$res" in
         "x") return 1 ;;
         "t")
@@ -384,14 +385,12 @@ fn_menu() {
         "e")
           [ -z "$id" ] &&\
             fn_menu_alert "$CLR_RED[error]$CLR_OFF invalid target, ignoring!" && continue
-          echo ""
           fn_mod ${files[$(($id-1))]}
           id=""
           ;;
         "p")
           [ -z "$id" ] &&\
             fn_menu_alert "$CLR_RED[error]$CLR_OFF invalid target, ignoring!" && continue
-          echo ""
           fn_publish ${files[$(($id-1))]}
           id=""
           ;;
