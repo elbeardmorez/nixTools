@@ -204,6 +204,7 @@ fn_target_select() {
 }
 
 fn_publish() {
+  declare target
   target="$1"
   dt="$(fn_read_data "date_created" "$target" 1)"
   title="$(fn_read_data "title" "$target" 1)"
