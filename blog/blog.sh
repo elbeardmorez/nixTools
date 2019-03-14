@@ -448,19 +448,25 @@ fn_test() {
   fi
 }
 
-option=new
-if [ $# -gt 0 ]; then
+# options parse
+declare -a args
+while [ -n "$1" ]; do
   arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-  [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\|publish\|mod\|list\|menu\|test\)$/p')" ] && option="$arg" && shift
-fi
+  [[ -z $option && -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\|publish\|mod\|list\|menu\|test\)$/p')" ]] && option="$arg" && shift && continue
+  case "$arg" in
+    *) args[${#args[@]}]="$1"
+  esac
+  shift
+done
+option=${option:-new}
 
 case "$option" in
   "h"|"help") help && exit ;;
   "new") fn_new ;;
-  "publish") fn_publish "$(fn_target_select "$@")" ;;
-  "mod") fn_mod "$(fn_target_select "$@")" ;;
-  "list") fn_list "${1:-"published"}" ;;
-  "menu") fn_menu "${1:-"published"}" ;;
-  "test") fn_test "$@" ;;
+  "publish") fn_publish "$(fn_target_select "${args[@]}")" ;;
+  "mod") fn_mod "$(fn_target_select "${args[@]}")" ;;
+  "list") fn_list "${args[0]:-"published"}" ;;
+  "menu") fn_menu "${args[0]:-"published"}" ;;
+  "test") fn_test "${args[@]}" ;;
   *) echo "[error] unsupported option '$option'" ;;
 esac
