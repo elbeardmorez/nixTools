@@ -8,6 +8,7 @@ set +e
 
 SCRIPTNAME=${0##*/}
 IFSORG="$IFS"
+trap fn_cleanup EXIT
 
 RC_DEFAULT="$HOME/.nixTools/$SCRIPTNAME"
 declare rc
@@ -32,6 +33,10 @@ help() {
   list  : list published entries
   menu  : switch views interactively
 "
+}
+
+fn_cleanup() {
+  echo -en "${CUR_VIS}\n" 1>&2
 }
 
 fn_sample() {
@@ -332,7 +337,7 @@ fn_menu() {
     echo -e "${TERM_CLR}${list}\n\n"
     while [ 1 ]; do
       echo -en "$CUR_UP$LN_RST" 1>&2
-      res="$(fn_decision "$(echo -e "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") | (${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}) select | (${CLR_HL}p${CLR_OFF})ublish | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it |")" "t/i/$KEY_ARR_U/$KEY_ARR_D/e/p/d/x" 1 0)"
+      res="$(fn_decision "$(echo -e "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") (${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}) select | (${CLR_HL}p${CLR_OFF})ublish | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it${CUR_INV}")" "t/i/$KEY_ARR_U/$KEY_ARR_D/e/p/d/x" 1 0)"
       echo "" 1>&2
       case "$res" in
         "x") return 1 ;;
@@ -340,15 +345,15 @@ fn_menu() {
           reset=0
           while [ 1 ]; do
             echo -en "$CUR_UP$LN_RST" 1>&2
-            res2="$(fn_decision "$(echo -e "| (${CLR_HL}p${CLR_OFF})ublished | (${CLR_HL}u${CLR_OFF})npublished) | (${CLR_HL}c${CLR_OFF})ustom | e(${CLR_HL}x${CLR_OFF})it |")" "pucx")"
+            res2="$(fn_decision "$(echo -e "| (${CLR_HL}p${CLR_OFF})ublished | (${CLR_HL}u${CLR_OFF})npublished | (${CLR_HL}c${CLR_OFF})ustom | e(${CLR_HL}x${CLR_OFF})it${CUR_INV}")" "pucx")"
             case "$res2" in
               "x") break ;;
               "p") target="published"; reset=1; break ;;
               "u") target="unpublished"; reset=1; break ;;
               "c")
                 echo -en "$CUR_UP$LN_RST" 1>&2
-                target_="$(fn_input_line "| custom path" "$target")"
-                [ "x$target_" -eq "x$target" ] && break
+                target_="$(fn_input_line "$(echo -en "| custom path${CUR_VIS}")" "$target")"
+                [ "x$target_" = "x$target" ] && break
                 path_=$(fn_target_resolve "$target_")
                 [ -z "$path_" ] &&\
                   fn_menu_alert "$CLR_RED[error]$CLR_OFF invalid target, ignoring!" && continue
@@ -364,7 +369,7 @@ fn_menu() {
           reset=0
           while [ 1 ]; do
             echo -en "$CUR_UP$LN_RST" 1>&2
-            res2="$(fn_input_line "| set target id, or e($(echo -e "${CLR_HL}x${CLR_OFF}"))it")"
+            res2="$(fn_input_line "$(echo -en "| set target id, or e(${CLR_HL}x${CLR_OFF})it${CUR_VIS}")")"
             case "$res2" in
               "x") break ;;
               *)
@@ -415,6 +420,7 @@ fn_menu() {
       [ $reset -eq 1 ] && break
     done
   done
+  fn_cleanup
 }
 
 fn_test() {
