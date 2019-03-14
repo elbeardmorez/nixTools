@@ -5,11 +5,15 @@ simple script for creating blog entry data in a basic key/value flat backend (fi
 
 ## usage
 ```
-SYNTAX: blog_ [OPTION [OPTIONARGS]]
+SYNTAX: blog_ [OPTIONS] [MODE [MODE_ARGS]]
 
-where OPTION can be:
+where OPTIONS can be:
 
-  h, help  : this help information
+  -h, --help  : this help information
+  -rc FILE, --resource-configuration FILE
+    : use settings file FILE (default: ~/nixTools/blog_
+
+and with MODE as:
   new  : creates a new blog entry
   publish  : (re)build and push temp data to 'publshed' target
   mod [SEARCH]  : modify current unpublished item or a published item

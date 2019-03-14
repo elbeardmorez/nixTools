@@ -9,6 +9,9 @@ set +e
 SCRIPTNAME=${0##*/}
 IFSORG="$IFS"
 
+RC_DEFAULT="$HOME/.nixTools/$SCRIPTNAME"
+declare rc
+rc_options="path_blog_root|published|unpublished"
 path_blog_root="$HOME/documents/blog"
 published="$path_blog_root/published"
 unpublished="$path_blog_root/unpublished"
@@ -16,9 +19,12 @@ unpublished="$path_blog_root/unpublished"
 [ -d "$unpublished" ] || mkdir -p "$published" || exit 1
 
 help() {
-  echo -e "\nSYNTAX: $SCRIPTNAME [OPTION [OPTIONARGS]]
-\nwhere OPTION can be:\n
-  h, help  : this help information
+  echo -e "\nSYNTAX: $SCRIPTNAME [OPTIONS] [MODE [MODE_ARGS]]
+\nwhere OPTIONS can be:\n
+  -h, --help  : this help information
+  -rc FILE, --resource-configuration FILE
+    : use settings file FILE (default: ~/nixTools/$SCRIPTNAME
+\nand with MODE as:
   new  : creates a new blog entry
   publish  : (re)build and push temp data to 'publshed' target
   mod [SEARCH]  : modify current unpublished item or a published item
@@ -454,11 +460,28 @@ while [ -n "$1" ]; do
   arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
   [[ -z $option && -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\|publish\|mod\|list\|menu\|test\)$/p')" ]] && option="$arg" && shift && continue
   case "$arg" in
+    "rc"|"resource-configuration") shift && rc="$1" ;;
     *) args[${#args[@]}]="$1"
   esac
   shift
 done
 option=${option:-new}
+
+# options validation
+[[ -n "$rc" && ! -f "$RC" ]] && echo "[error] invalid rc file '$rc'" && exit 1
+rc="${rc:-$RC_DEFAULT}"
+
+if [ -f "$rc" ]; then
+  # override defaults
+  f="$(fn_temp_file "$SCRIPTNAME")"
+  sed -n '/\('"($(echo "$rc_options" | sed 's/|/\\|/g')"'\)/p' "$rc" > "$f"
+  if [ $DEBUG -ge 1 ]; then
+    echo "# rc options: $f"
+    cat "$f"
+  fi
+  source "$f"
+  rm "$f"
+fi
 
 case "$option" in
   "h"|"help") help && exit ;;
