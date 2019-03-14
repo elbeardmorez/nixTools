@@ -372,13 +372,13 @@ fn_menu() {
           done
           ;;
         "$CHR_ARR_U")
-          [[ -n $id && $id -eq ${#files[@]} ]] && continue
-          id=$([ -n $id ] && echo $(($id+1)) || echo 1)
+          [[ -n "$id" && $id -eq 1 ]] && continue
+          id=$([ -n "$id" ] && echo $(($id-1)) || echo ${#files[@]})
           reset=1
           ;;
         "$CHR_ARR_D")
-          [[ -n "$id" && $id -eq 1 ]] && continue
-          id=$([ -n "$id" ] && echo $(($id-1)) || echo ${#files[@]})
+          [[ -n $id && $id -eq ${#files[@]} ]] && continue
+          id=$([ -n $id ] && echo $(($id+1)) || echo 1)
           reset=1
           ;;
         "e")
