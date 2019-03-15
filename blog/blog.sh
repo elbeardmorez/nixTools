@@ -337,6 +337,7 @@ fn_menu() {
     echo -e "${TERM_CLR}${list}\n\n"
     no_op=0
     while [ 1 ]; do
+      reset=0
       if [ $no_op -eq 0 ]; then
         # reset
         echo -en "$CUR_UP$LN_RST" 1>&2
