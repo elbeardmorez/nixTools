@@ -347,6 +347,8 @@ fn_menu() {
         res="$(fn_decision "" "t/i/$KEY_ARR_U/$KEY_ARR_D/e/p/d/x" 0 $optecho)"
       else
         echo -en "${CUR_USV}"
+        sleep 0.1
+        echo -en "${LN_RTL}"
         res="$(fn_decision "" "t/i/$KEY_ARR_U/$KEY_ARR_D/e/p/d/x" 0 $optecho)"
       fi
       [ $optecho -eq 0 ] && echo "" 1>&2  # compensate
