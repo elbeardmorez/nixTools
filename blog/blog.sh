@@ -335,10 +335,15 @@ fn_menu() {
       id=${#files[@]}
     list="$(fn_list "$target" "$id" "${files[@]}")"
     echo -e "${TERM_CLR}${list}\n\n"
+    no_op=0
     while [ 1 ]; do
-      echo -en "$CUR_UP$LN_RST" 1>&2
-      res="$(fn_decision "$(echo -e "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") (${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}) select | (${CLR_HL}p${CLR_OFF})ublish | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it${CUR_INV}")" "t/i/$KEY_ARR_U/$KEY_ARR_D/e/p/d/x" 1 0)"
-      echo "" 1>&2
+      if [ $no_op -eq 0 ]; then
+        # reset
+        echo -en "$CUR_UP$LN_RST" 1>&2
+        res="$(fn_decision "$(echo -e "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") (${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}) select | (${CLR_HL}p${CLR_OFF})ublish | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it${CUR_INV}")" "t/i/$KEY_ARR_U/$KEY_ARR_D/e/p/d/x" 1 0)"
+      else
+        res="$(fn_decision "" "t/i/$KEY_ARR_U/$KEY_ARR_D/e/p/d/x" 1 0)"
+      fi
       case "$res" in
         "x") return 1 ;;
         "t")
@@ -378,12 +383,12 @@ fn_menu() {
           done
           ;;
         "$CHR_ARR_U")
-          [[ -n "$id" && $id -eq 1 ]] && continue
+          [[ -n "$id" && $id -eq 1 ]] && no_op=1 && continue
           id=$([ -n "$id" ] && echo $(($id-1)) || echo ${#files[@]})
           reset=1
           ;;
         "$CHR_ARR_D")
-          [[ -n $id && $id -eq ${#files[@]} ]] && continue
+          [[ -n $id && $id -eq ${#files[@]} ]] && no_op=1 && continue
           id=$([ -n $id ] && echo $(($id+1)) || echo 1)
           reset=1
           ;;
