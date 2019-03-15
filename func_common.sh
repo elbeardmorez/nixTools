@@ -122,8 +122,13 @@ fn_decision() {
   [ ! -t 0 ] &&\
     "[error] stdin is not attached to a suitable input device" 1>&2 && return 1
   buffer=""
+#  clear stdin
+#  read -s -t 0.1 &&\
+#    while [ -n "$REPLY" ]; do REPLY="" && read -s -t 0.1; done
   while [ 1 ]; do
+    [ $optecho -eq 1 ] && stty echo
     read "${cmd_args[@]}"
+    stty -echo  # read cannot seem to close the buffer quickly enough?
     R="$REPLY"
     [ "x$R" = "x"$'\E' ] && R='\033'
     r="$(echo "$R" | tr '[A-Z]' '[a-z]')"
