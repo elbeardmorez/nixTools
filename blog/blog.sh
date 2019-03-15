@@ -332,8 +332,10 @@ fn_menu() {
     [ -z "$path_" ] &&\
       echo "[error] invalid target '$target'" && return 1
     IFS=$'\n'; files=($(fn_target_files "$_path")); IFS="$IFSORG"
-    [[ -n "$id" && $id -gt ${#files[@]} ]] &&\
-      id=${#files[@]}
+    if [ -n "$id" ]; then
+      [ $id -gt ${#files[@]} ] && id=${#files[@]}
+      [ $id -eq 0 ] && id=""
+    fi
     list="$(fn_list "$target" "$id" "${files[@]}")"
     echo -e "${TERM_CLR}${list}\n\n"
     no_op=0
@@ -391,12 +393,12 @@ fn_menu() {
           done
           ;;
         "$CHR_ARR_U")
-          [[ -n "$id" && $id -eq 1 ]] && no_op=1 && continue
+          [[ ${#files[@]} -eq 0 || ( -n "$id" && $id -eq 1 ) ]] && no_op=1 && continue
           id=$([ -n "$id" ] && echo $(($id-1)) || echo ${#files[@]})
           reset=1
           ;;
         "$CHR_ARR_D")
-          [[ -n $id && $id -eq ${#files[@]} ]] && no_op=1 && continue
+          [[ ${#files[@]} -eq 0 || ( -n $id && $id -eq ${#files[@]} ) ]] && no_op=1 && continue
           id=$([ -n $id ] && echo $(($id+1)) || echo 1)
           reset=1
           ;;
