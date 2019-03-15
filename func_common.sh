@@ -88,7 +88,7 @@ fn_decision() {
   if [ $# -gt 1 ]; then
     while [ -n "$1" ]; do
       if [ ${#1} -eq 1 ]; then
-        if [ -n "$(echo "$1" | sed '/[0-1]/p')" ]; then
+        if [[ $1 -eq 0 || $1 -eq 1 ]]; then
           [ -z $optshow ] && optshow=$1 && shift && continue
           optecho=$1 && shift && continue
         fi
@@ -110,17 +110,19 @@ fn_decision() {
   if [ $optshow -eq 1 ]; then
     soptions=""
     for option in "${options[@]}"; do
-      soptions+="$optdelim${CLR_HL}$([ -n "${keychr_maps["$option"]}" ] && echo "${keychr_maps["$option"]}" || echo "$option")${CLR_OFF}"
+      map="${keychr_maps["$option"]}"
+      soptions+="$optdelim${CLR_HL}${map:-"$option"}${CLR_OFF}"
     done
     soptions="${soptions:${#optdelim}}"
+    echo -en " [$soptions]" 1>&2
   fi
-  [ $optecho -eq 0 ] && cmd_args[${#cmd_args[@]}]="-s"
-  [ $optshow -eq 1 ] && echo -en " [$soptions]" 1>&2
-  [ $optecho -eq 1 ] && echo -n ": " 1>&2
+  [ $optecho -eq 1 ] &&\
+     echo -n ": " 1>&2 ||\
+     cmd_args[${#cmd_args[@]}]="-s"
   [ ! -t 0 ] &&\
     "[error] stdin is not attached to a suitable input device" 1>&2 && return 1
   buffer=""
-  while [ 1 -eq 1 ]; do
+  while [ 1 ]; do
     read "${cmd_args[@]}"
     R="$REPLY"
     [ "x$R" = "x"$'\E' ] && R='\033'
@@ -135,7 +137,8 @@ fn_decision() {
           if [ "x$option" = "x$buffer_prefix$R" ]; then
             match=1
             key="$buffer_prefix$R"
-            chr="$([ -n "${keychr_maps["$key"]}" ] && echo "${keychr_maps["$key"]}" || echo "$key")"
+            map="${keychr_maps["$option"]}"
+            chr="${map:-"$key"}"
             [ $optecho -eq 1 ] && echo -e "$chr" 1>&2
             echo "$chr"
             break
