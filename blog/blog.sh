@@ -368,6 +368,7 @@ fn_menu() {
               "c")
                 echo -en "$CUR_UP$LN_RST" 1>&2
                 target_="$(fn_input_line "$(echo -en "| custom path${CUR_VIS}")" "$target")"
+                echo -en "$CUR_INV" 1>&2
                 [ "x$target_" = "x$target" ] && break
                 path_=$(fn_target_resolve "$target_")
                 [ -z "$path_" ] &&\
@@ -385,6 +386,7 @@ fn_menu() {
           while [ 1 ]; do
             echo -en "$CUR_UP$LN_RST" 1>&2
             res2="$(fn_input_line "$(echo -en "| set target id, or e(${CLR_HL}x${CLR_OFF})it${CUR_VIS}")")"
+            echo -en "$CUR_INV" 1>&2
             case "$res2" in
               "x") break ;;
               *)
