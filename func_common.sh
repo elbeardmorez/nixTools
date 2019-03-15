@@ -44,6 +44,14 @@ keychr_maps["$KEY_ARR_D"]="$CHR_ARR_D"
 keychr_maps["$KEY_ARR_L"]="$CHR_ARR_L"
 keychr_maps["$KEY_ARR_R"]="$CHR_ARR_R"
 
+fn_stty() {
+  declare opt
+  opt="$1"
+  res=$(stty -a | awk -v opt="$opt" 'BEGIN{ match_=0; rx="^"opt"$" }{ for (l=0; l<=NF; l++) { if ($l ~ rx) match_=1; }} END{ print match_ }')
+  echo $res
+  return $res
+}
+
 fn_shell() {
   if [ -n "$BASH_VERSION" ]; then
     echo "bash"
@@ -83,6 +91,9 @@ fn_decision() {
   declare -a cmd_args
   cmd_args=("${CMDARGS_READ_SINGLECHAR[@]}")
   declare -a options
+  declare tty_echo
+  tty_echo=$(fn_stty "echo")
+  stty -echo
   if [ $# -gt 0 ]; then
     question="$1" && shift
     echo -En "$question" 1>&2
@@ -132,7 +143,7 @@ fn_decision() {
   while [ 1 ]; do
     [ $optecho -eq 1 ] && stty echo
     read "${cmd_args[@]}"
-    stty -echo  # read cannot seem to close the buffer quickly enough?
+    stty -echo
     R="$REPLY"
     [ "x$R" = "x"$'\E' ] && R='\033'
     r="$(echo "$R" | tr '[A-Z]' '[a-z]')"
@@ -164,6 +175,7 @@ fn_decision() {
     buffer+="$R"
     [ $match -eq 1 ] && break
   done
+  [ $tty_echo -eq 1 ] && stty echo
   [ "x$r" = "xy" ] && return 0 || return 1
 }
 
