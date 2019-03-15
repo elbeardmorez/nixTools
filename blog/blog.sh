@@ -36,6 +36,7 @@ help() {
 }
 
 fn_cleanup() {
+  stty echo
   echo -en "${CUR_VIS}\n" 1>&2
 }
 
@@ -319,6 +320,7 @@ fn_menu_alert() {
 
 fn_menu() {
   [ $# -lt 1 ] && echo "[error] not enough args!" && exit 1
+  stty -echo
   declare target
   declare path_
   declare id
@@ -360,14 +362,18 @@ fn_menu() {
           reset=0
           while [ 1 ]; do
             echo -en "$CUR_UP$LN_RST" 1>&2
+            stty echo
             res2="$(fn_decision "$(echo -e "| (${CLR_HL}p${CLR_OFF})ublished | (${CLR_HL}u${CLR_OFF})npublished | (${CLR_HL}c${CLR_OFF})ustom | e(${CLR_HL}x${CLR_OFF})it${CUR_INV}")" "pucx")"
+            stty -echo
             case "$res2" in
               "x") break ;;
               "p") target="published"; reset=1; break ;;
               "u") target="unpublished"; reset=1; break ;;
               "c")
                 echo -en "$CUR_UP$LN_RST" 1>&2
+                stty echo
                 target_="$(fn_input_line "$(echo -en "| custom path${CUR_VIS}")" "$target")"
+                stty -echo
                 echo -en "$CUR_INV" 1>&2
                 [ "x$target_" = "x$target" ] && break
                 path_=$(fn_target_resolve "$target_")
@@ -385,7 +391,9 @@ fn_menu() {
           reset=0
           while [ 1 ]; do
             echo -en "$CUR_UP$LN_RST" 1>&2
+            stty echo
             res2="$(fn_input_line "$(echo -en "| set target id, or e(${CLR_HL}x${CLR_OFF})it${CUR_VIS}")")"
+            stty -echo
             echo -en "$CUR_INV" 1>&2
             case "$res2" in
               "x") break ;;
