@@ -417,12 +417,14 @@ fn_menu() {
             fn_menu_alert "$CLR_RED[error]$CLR_OFF invalid target, ignoring!" && continue
           fn_mod ${files[$(($id-1))]}
           id=""
+          reset=1
           ;;
         "p")
           [ -z "$id" ] &&\
             fn_menu_alert "$CLR_RED[error]$CLR_OFF invalid target, ignoring!" && continue
           fn_publish ${files[$(($id-1))]}
           id=""
+          reset=1
           ;;
         "d")
           [ -z "$id" ] &&\
