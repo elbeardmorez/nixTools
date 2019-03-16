@@ -147,33 +147,38 @@ fn_decision() {
     R="$REPLY"
     [ "x$R" = "x"$'\E' ] && R='\033'
     r="$(echo "$R" | tr '[A-Z]' '[a-z]')"
-    match=0
-    for option in "${options[@]}"; do
-      if [ ${#buffer} -gt 0 ]; then
-        buffer_prefix_length=$((${#option}-1))
+    map=""
+    if [ ${#buffer} -gt 0 ]; then
+      for key in "${!keychr_maps[@]}"; do
+        buffer_prefix_length=$((${#key}-1))
         if [ $buffer_prefix_length -gt 0 ]; then
           buffer_prefix=""
-          [ ${#buffer} -ge $buffer_prefix_length ] && buffer_prefix="${buffer:$((${#buffer}-$buffer_prefix_length))}"
-          if [ "x$option" = "x$buffer_prefix$R" ]; then
-            match=1
-            key="$buffer_prefix$R"
-            map="${keychr_maps["$option"]}"
-            chr="${map:-"$key"}"
-            [ $optecho -eq 1 ] && echo -e "$chr" 1>&2
-            echo "$chr"
-            break
-          fi
+          [ ${#buffer} -ge $buffer_prefix_length ] &&\
+            buffer_prefix="${buffer:$((${#buffer}-$buffer_prefix_length))}"
+          [ "x$key" = "x$buffer_prefix$R" ] &&\
+            map="$key" && break
         fi
-      fi
-      if [  "x$option" = "x$r" ]; then
+      done
+    fi
+    match=0
+    chr=""
+    for option in "${options[@]}"; do
+      if [[ -n "$map" && "x$option" == "x$map" ]]; then
+        chr="${keychr_maps[$key]}"
         match=1
-        [ $optecho -eq 1 ] && echo "$r" 1>&2
-        echo "$r"
+        break
+      elif [[ -z "$map" && "x$option" == "x$r" ]]; then
+        chr="$r"
+        match=1
         break
       fi
     done
+    if [ $match -eq 1 ]; then
+      [ $optecho -eq 1 ] && echo "$chr" 1>&2
+      echo "$chr"
+      break
+    fi
     buffer+="$R"
-    [ $match -eq 1 ] && break
   done
   [ $tty_echo -eq 1 ] && stty echo
   [ "x$r" = "xy" ] && return 0 || return 1
