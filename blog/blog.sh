@@ -19,6 +19,15 @@ unpublished="$path_blog_root/unpublished"
 [ -d "$published" ] || mkdir -p "$published" || exit 1
 [ -d "$unpublished" ] || mkdir -p "$published" || exit 1
 
+declare -a column_headers
+column_headers=("id" "title" "date created" "date modified" "path")
+declare -A column_idxs
+column_idxs["id"]=0
+column_idxs["title"]=1
+column_idxs["date created"]=2
+column_idxs["date modified"]=3
+column_idxs["path"]=4
+
 help() {
   echo -e "\nSYNTAX: $SCRIPTNAME [OPTIONS] [MODE [MODE_ARGS]]
 \nwhere OPTIONS can be:\n
@@ -43,7 +52,7 @@ fn_cleanup() {
 fn_sample() {
   max="$1" && shift
   data="$@"
-  data="$(fn_unquote "$data" | awk 1 ORS='\\n' | awk '{gsub(/\\n$/,""); print}' IRS='' ORS='')"
+  data="$(fn_unquote "$data" | awk 1 ORS='\\n' | awk '{gsub(/\\n$/,""); print}' RS='' ORS='')"
   truncated=0
   len=${#data}
   [ $len -gt $max ] && len=$max && truncated=1
@@ -274,11 +283,17 @@ fn_mod() {
 
 fn_list() {
   declare target
-  declare selected
+  declare selected_id
+  declare sort
+  declare sort_idx
+  declare sort_order
   declare path_
   declare files
   target="$1" && shift
-  selected=$1 && shift
+  selected_id=$1 && shift
+  sort="0|0" && [ $# -gt 0 ] && sort="$1" && shift
+  sort_idx=${sort%|*}
+  sort_order=${sort#*|}
   path_="$(fn_target_resolve "$target")"
   files=("$@")
   if [ ${#files[@]} -eq 0 ]; then
@@ -286,24 +301,78 @@ fn_list() {
       echo "[error] invalid target '$target'" && return 1
     IFS=$'\n'; files=($(fn_target_files "$_path")); IFS="$IFSORG"
   fi
-  header="id\t${CLR_RED}${CLR_OFF}title\tdate created\t${CLR_HL}${CLR_OFF}date modified\tpath"
+  header=""
+  idx=0
+  for h in "${column_headers[@]}"; do
+    h_mod="$h"
+    if [ $idx -eq $sort_idx ]; then
+      h_mod="${CLR_HL}$h_mod $([ $sort_order -eq 0 ] && echo "$CHR_ARR_U" || echo "$CHR_ARR_D")${CLR_OFF}"
+    elif [ $idx -eq ${column_idxs["title"]} ]; then
+      h_mod="${CLR_RED}${CLR_OFF}$h_mod"
+    elif [ $idx -eq ${column_idxs["date modified"]} ]; then
+      h_mod="${CLR_HL}${CLR_OFF}$h_mod"
+    fi
+    header+="\t$h_mod"
+    idx=$(($idx+1))
+  done
+  header="${header:2}"
+  path_escaped="$(fn_rx_escape "sed" "$path_")"
+
+  # raw
   tb=""
   l=1
-  path_escaped="$(fn_rx_escape "sed" "$path_")"
   for f in "${files[@]}"; do
-    c_title="$CLR_RED"
-    [[ -n "$selected" && $l -eq $selected ]] && c_title="$CLR_GRN"
-    dt_created="$(sed -n 's/'\''date_created'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
-    dt_modified="$(sed -n 's/'\''date_modified'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
     title="$(sed -n 's/'\''title'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")"
-    f2="$f"
-    [ -n "$(echo "$f2" | sed -n '/^'$path_escaped'/p')" ] &&\
-      f2=".${f2:${#path_}}"
-    tb+="\n[$l]\t$c_title$title$CLR_OFF\t$dt_created\t$([ -n "$dt_modified" ] && echo "$CLR_HL$dt_modified$CLR_OFF" || echo "$CLR_HL$CLR_OFF$dt_created")\t$f2"
+    dt_created=$(date -d "$(sed -n 's/'\''date_created'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")" "+%s")
+    dt_modified=$(sed -n 's/'\''date_modified'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f") && dt_modified=$([ -n "$dt_modified" ] && date -d "$dt_modified" "+%s" || echo $dt_created)
+    f2="$f" && [ -n "$(echo "$f2" | sed -n '/^'$path_escaped'/p')" ] && f2=".${f2:${#path_}}"
+    tb+="\n$l\t$title\t$dt_created\t$dt_modified\t$f2"
     l=$(($l+1))
   done
+  declare -a cmd_args_sort
+  cmd_args_sort=("-t"$'\t' "-k$(($sort_idx+1))")
+  [ $sort_order -eq 1 ] && cmd_args_sort[${cmd_args_sort[@]}]="-r"
+  sorted="$(echo -e "${tb:2}" | sort "${cmd_args_sort[@]}")"
+
+  # formatted
+  tb="$(echo -e "$sorted" | awk -v selected_id=${selected_id-"-1"} -v sort_idx=$(($sort_idx+1)) -v column_idx_id=$((${column_idxs["id"]}+1)) -v column_idx_title=$((${column_idxs["title"]}+1)) -v column_idx_date_modified=$((${column_idxs["date modified"]}+1)) '
+{
+  r=""
+  dt=""
+  mod=0
+  sel=0
+  for (idx=1; idx<=NF; idx++) {
+    v=$idx
+    if ( v ~ /^[0-9]{10}$/ ) {
+      v=strftime("%Y%b%d %H:%M:%S",v)
+      if (dt == "")
+        dt=v
+      else if (dt != v)
+        mod=1
+    }
+    if (idx == column_idx_id) {
+      if (v == selected_id)
+        sel=1
+      v="["v"]"
+    } else if (idx == column_idx_title) {
+      if (sel == 1)
+        v="${CLR_GRN}"v"${CLR_OFF}"
+      else
+        v="${CLR_RED}"v"${CLR_OFF}"
+    } else if (idx == column_idx_date_modified) {
+      if (mod == 1)
+        v="${CLR_HL}"v"${CLR_OFF}"
+      else
+        v="${CLR_HL}${CLR_OFF}"v
+    } else if (idx == sort_idx)
+      v="${CLR_HL}${CLR_OFF}"v
+    r=r"\t"v
+  }
+  gsub(/^\t/,"",r)
+  print r
+}' FS=$'\t')"
   echo -e "# $target entries\n"
-  echo -e "$header\n${tb:2}" | column -t -s$'\t'
+  echo -e "$header\n$(eval "echo -e \"$tb\"")" | column -t -s$'\t'
 }
 
 fn_menu_alert() {
@@ -318,27 +387,60 @@ fn_menu_alert() {
   echo -e -n "$CUR_VIS" 1>&2
 }
 
+fn_menu_idx_from_id() {
+  declare ids
+  declare id
+  ids="$1" && shift
+  id="$1" && shift
+  idx=$(echo "$ids" | awk -v rx="^$id\$" 'BEGIN{ idx=1 } { if ($0 ~ rx) print idx; idx=idx+1 }' RS="|")
+  echo $idx
+}
+
+fn_menu_id_from_idx() {
+  declare ids
+  declare idx
+  ids="$1" && shift
+  idx="$1" && shift
+  id=$(echo "$ids" | awk -v idx="$idx" 'BEGIN{ l=1 } { if (idx == l) print $0; l=l+1 }' RS="|")
+  echo $id
+}
+
 fn_menu() {
   [ $# -lt 1 ] && echo "[error] not enough args!" && exit 1
   stty -echo
   declare target
   declare path_
   declare id
+  declare ids
+  declare idx
+  declare sort_columns
+  declare sort_idx
+  declare sort_order
   declare res
   declare res2
   target="$1" && shift
   optecho=1
-  id=""
+  id=""  # index assigned by order of collection
+  ids=""  # current sorted order of said indexes
+  idx=""  # current selection position
+  sort_order=0
+  sort_idx=1
+  sort_columns=4
   while [ 1 ]; do
     path_=$(fn_target_resolve "$target")
     [ -z "$path_" ] &&\
       echo "[error] invalid target '$target'" && return 1
     IFS=$'\n'; files=($(fn_target_files "$_path")); IFS="$IFSORG"
-    if [ -n "$id" ]; then
-      [ $id -gt ${#files[@]} ] && id=${#files[@]}
-      [ $id -eq 0 ] && id=""
+    if [ -n "$idx" ]; then
+      [ $idx -gt ${#files[@]} ] && idx=${#files[@]}
+      [ $idx -eq 0 ] && idx="" && id=""
+      [ -n "$idx" ] && id=$(fn_menu_id_from_idx "$ids" "$idx")
+    else
+      id=""
     fi
-    list="$(fn_list "$target" "$id" "${files[@]}")"
+    list="$(fn_list "$target" "$id" "$sort_idx|$sort_order" "${files[@]}")"
+    ids=$(echo -e "$list" | awk '{ if ( $1 ~ /\[[0-9]+\]/) { gsub(/[\[\]]/,"",$1); print $1 }}' ORS="|")
+    [ -n "$id" ] && idx=$(fn_menu_idx_from_id "$ids" "$id")
     echo -e "${TERM_CLR}${list}\n\n"
     no_op=0
     while [ 1 ]; do
@@ -346,14 +448,14 @@ fn_menu() {
       if [ $no_op -eq 0 ]; then
         # reset
         echo -en "$CUR_UP$LN_RST" 1>&2
-        echo -en "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") (${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}) select | (${CLR_HL}p${CLR_OFF})ublish | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it [${CLR_HL}t${CLR_OFF}/${CLR_HL}i${CLR_OFF}/${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}/${CLR_HL}e${CLR_OFF}/${CLR_HL}p${CLR_OFF}/${CLR_HL}d${CLR_OFF}/${CLR_HL}x${CLR_OFF}]${CUR_SV}${CUR_INV}"
+        echo -en "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") (${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}) select | (${CLR_HL}s${CLR_OFF})ort | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}p${CLR_OFF})ublish | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it [${CLR_HL}t${CLR_OFF}/${CLR_HL}i${CLR_OFF}/${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}/${CLR_HL}s${CLR_OFF}/${CLR_HL}p${CLR_OFF}/${CLR_HL}e${CLR_OFF}/${CLR_HL}d${CLR_OFF}/${CLR_HL}x${CLR_OFF}]${CUR_SV}${CUR_INV}"
 
-        res="$(fn_decision "" "t/i/$KEY_ARR_U/$KEY_ARR_D/e/p/d/x" 0 $optecho)"
+        res="$(fn_decision "" "t/i/$KEY_ARR_U/$KEY_ARR_D/s/e/p/d/x" 0 $optecho)"
       else
         echo -en "${CUR_USV}"
         sleep 0.1
         echo -en "${LN_RTL}"
-        res="$(fn_decision "" "t/i/$KEY_ARR_U/$KEY_ARR_D/e/p/d/x" 0 $optecho)"
+        res="$(fn_decision "" "t/i/$KEY_ARR_U/$KEY_ARR_D/s/e/p/d/x" 0 $optecho)"
       fi
       [ $optecho -eq 0 ] && echo "" 1>&2  # compensate
       case "$res" in
@@ -398,32 +500,42 @@ fn_menu() {
             case "$res2" in
               "x") break ;;
               *)
-               [[ -n "$(echo "$res2" | sed -n '/[0-9]\+/p')" && $res2 -ge 1 && $res2 -le ${#files[@]} ]] && id=$res2 && reset=1 && break
+               [[ -n "$(echo "$res2" | sed -n '/[0-9]\+/p')" && $res2 -ge 1 && $res2 -le ${#files[@]} ]] && idx=$(fn_menu_idx_from_id "$ids" $res2) && reset=1 && break
             esac
           done
           ;;
         "$CHR_ARR_U")
-          [[ ${#files[@]} -eq 0 || ( -n "$id" && $id -eq 1 ) ]] && no_op=1 && continue
-          id=$([ -n "$id" ] && echo $(($id-1)) || echo ${#files[@]})
+          [[ ${#files[@]} -eq 0 || ( -n "$idx" && $idx -eq 1 ) ]] && no_op=1 && continue
+          idx=$([ -n "$idx" ] && echo $(($idx-1)) || echo ${#files[@]})
           reset=1
           ;;
         "$CHR_ARR_D")
-          [[ ${#files[@]} -eq 0 || ( -n $id && $id -eq ${#files[@]} ) ]] && no_op=1 && continue
-          id=$([ -n $id ] && echo $(($id+1)) || echo 1)
+          [[ ${#files[@]} -eq 0 || ( -n $idx && $idx -eq ${#files[@]} ) ]] && no_op=1 && continue
+          idx=$([ -n $idx ] && echo $(($idx+1)) || echo 1)
+          reset=1
+          ;;
+        "s")
+          if [ $sort_order -eq 0 ]; then
+            sort_order=1
+          else
+            sort_order=0
+            sort_idx=$(echo "($sort_idx + 1) % ${#column_headers[@]}" | bc)
+            [ $sort_idx -eq 0 ] && sort_idx=1
+          fi
           reset=1
           ;;
         "e")
           [ -z "$id" ] &&\
             fn_menu_alert "$CLR_RED[error]$CLR_OFF invalid target, ignoring!" && continue
           fn_mod ${files[$(($id-1))]}
-          id=""
+          idx=""
           reset=1
           ;;
         "p")
           [ -z "$id" ] &&\
             fn_menu_alert "$CLR_RED[error]$CLR_OFF invalid target, ignoring!" && continue
           fn_publish ${files[$(($id-1))]}
-          id=""
+          idx=""
           reset=1
           ;;
         "d")
