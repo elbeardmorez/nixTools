@@ -17,13 +17,40 @@ cwd="$PWD"
 editor="${EDITOR:-vim}"
 
 help() {
-  echo -e "\nSYNTAX: $SCRIPTNAME TYPE CATEGORY[ CATEGORY2 [CATEGORY3 ..]] NAME
-\nwhere TYPE is:
-  hackerrank  : requires challenge description pdf and testcases zip archive files
+  echo -e "\nSYNTAX: $SCRIPTNAME [OPTION [OPTIONARGS]]
+\nwhere OPTION can be:\n
+  h, help  : this help information
+  new TYPE CATEGORY[ CATEGORY2 [CATEGORY3 ..]] NAME
+    :  create new challenge structure
+    with:
+      TYPE :  a supported challenge type
+        hackerrank  : requires challenge description pdf and testcases
+                      zip archive files
+      CATEGORYx  : target directory name parts
+      NAME  : solution name
 "
 }
 
-type="$1" && shift
+# options parse
+declare -a args
+while [ -n "$1" ]; do
+  arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
+  [[ -z $option && -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\)$/p')" ]] && option="$arg" && shift && continue
+  case "$arg" in
+    *) args[${#args[@]}]="$1"
+  esac
+  shift
+done
+option=${option:-new}
+
+case "$option" in
+  "h"|"help")
+    help
+    exit 0
+    ;;
+
+  "new")
+    type="${args[0]}"
 case "$type" in
   "hackerrank")
     # ensure structure
@@ -32,10 +59,11 @@ case "$type" in
       cd "$type"
     fi
     # cleanups args
-    args=()
-    for s in "$@"; do
-      args[${#args[@]}]="$(echo "$s" | tr "\- " "." | tr "A-Z" "a-z")"
+        args2=()
+        for s in "${args[@]}"; do
+          args2[${#args2[@]}]="$(echo "$s" | tr "\- " "." | tr "A-Z" "a-z")";
     done
+        args=("${args2[@]}")
     name="${args[$[$# - 1]]}"
     target="$(echo "${args[@]}" | sed 's/ /.-./g')"
     [ $DEBUG -gt 0 ] && echo "name: $name, target: $target" 1>&2
@@ -82,7 +110,7 @@ case "$type" in
         [ $DEBUG -gt 0 ] && echo "[debug] ext idx: '$idx'" 1>&2
         ext=${exts[$idx]}
         unset exts[$idx]
-        exts=($(echo ${exts[@]}))
+            exts=(`echo ${exts[@]}`)
         lexts=$[$lexts - 1]
         edit=$name.$ext
         [ ! -f $edit ] && touch $edit
@@ -92,7 +120,10 @@ case "$type" in
     fi
     exec bash
     ;;
+
   *)
-    help && echo "unsupported type '$type'" && exit 1
+        help && echo "[error] unsupported type '$type'" && exit 1
+        ;;
+    esac
     ;;
 esac

@@ -5,10 +5,19 @@ coding challenge aid featuring structuring of challenge files and provision of a
 
 ## usage
 ```
-SYNTAX: challenge_ TYPE CATEGORY[ CATEGORY2 [CATEGORY3 ..]] NAME
+SYNTAX: challenge_ [OPTION [OPTIONARGS]]
 
-where TYPE is:
-  hackerrank  : requires challenge description pdf and testcases zip archive files
+where OPTION can be:
+
+  h, help  : this help information
+  new TYPE CATEGORY[ CATEGORY2 [CATEGORY3 ..]] NAME
+    :  create new challenge structure
+    with:
+      TYPE :  a supported challenge type
+        hackerrank  : requires challenge description pdf and testcases
+                      zip archive files
+      CATEGORYx  : target directory name parts
+      NAME  : solution name
 ```
 e.g.
 ```
