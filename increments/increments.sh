@@ -16,6 +16,7 @@ declare target_diffs
 TARGET_MATCHES_DEFAULT="matches"
 declare target_matches
 remove_dupes=0
+remove_zeros=0
 interactive_cleaning=1
 declare -a targets
 target=${INCREMENTS_TARGET:-}
@@ -51,6 +52,7 @@ SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
                                        the ultimate set when desired
   -nd, --no-duplicates  : use only first instance of any duplicate
                           files matched
+  -nz, --no-zeros  : ignore 0 length files
   -d, --diffs  : output incremental diffs of search matches
   -dd, --dump-diffs PATH  : write diffs to PATH (default: increments)
   -dm, --dump-matches PATH  : copy search matches to PATH
@@ -130,6 +132,9 @@ fn_process() {
   # search
   declare files
   declare matches
+  declare -a cmdargs_find
+  cmdargs_find=("-mindepth" 1 "-type" "f")
+  [ $remove_zeros -eq 1 ] && cmdargs_find=("${cmdargs_find[@]}" "-size" "+0b")
   for target in "${targets[@]}"; do
     if [ ! -d "$target" ]; then
       # archive extraction
@@ -145,7 +150,7 @@ fn_process() {
     fi
     # directory search
     rx=""; for s in "${search[@]}"; do rx+="\|$s"; done; rx="^.*/?\(${rx:2}\)$"
-    files="$(find "$target" -mindepth 1 -type f -iregex "$rx")"
+    files="$(find "$target" "${cmdargs_find[@]}" -iregex "$rx")"
     matches+="\n$files"
     count=$(echo -e "$files" | wc -l)
     [ $DEBUG -ge 1 ] && echo "[debug] searched target '$target' for '${search[@]}, matched $count file$([ $count -ne 1 ] && echo "s")'" 1>&2
@@ -355,6 +360,7 @@ while [ -n "$1" ]; do
     "v"|"variants") shift; variants="$1" ;;
     "pp"|"path-precedence") shift; precedence="$1" ;;
     "nd"|"no-duplicates") remove_dupes=1 ;;
+    "nz"|"no-zeros") remove_zeros=1 ;;
     "d"|"diffs") diffs=1 ;;
     "dd") target_diffs="$TARGET_DIFFS_DEFAULT" ;;
     "dump-diffs") shift; target_diffs="$1" ;;

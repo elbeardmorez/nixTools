@@ -20,6 +20,7 @@ where OPTIONS can be:
                                        the ultimate set when desired
   -nd, --no-duplicates  : use only first instance of any duplicate
                           files matched
+  -nz, --no-zeros  : ignore 0 length files
   -d, --diffs  : output incremental diffs of search matches
   -dd, --dump-diffs PATH  : write diffs to PATH (default: increments)
   -dm, --dump-matches PATH  : copy search matches to PATH
