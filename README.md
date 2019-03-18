@@ -7,7 +7,7 @@ creates a 'hardlink-based' backup set comprising an arbitrary number of sets for
 simple script for creating or modifying blog entry data stored as a basic key/value flat backend (file) format - cms / front-end agnostic. target blog stores can be listed directly, else via a menu system for displaying, selecting, and performing operations
 
 ### [challenge.sh](challenge)
-structures challenge files and opens a set of empty solution files in an editor
+coding challenge aid featuring structuring of challenge files and provision of a set of empty solution files ready for editing
 
 ### [dates.sh](dates)
 date related functionality

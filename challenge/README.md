@@ -1,7 +1,7 @@
 # challenge.sh
 
 ## description
-structures challenge files and opens a set of empty solution files in an editor
+coding challenge aid featuring structuring of challenge files and provision of a set of empty solution files ready for editing
 
 ## usage
 ```
