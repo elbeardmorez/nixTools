@@ -16,8 +16,8 @@ type_exts['c++']="cpp"
 cwd="$PWD"
 editor="${EDITOR:-vim}"
 
-fn_help() {
-  echo -e "USAGE: $SCRIPTNAME TYPE CATEGORY[ CATEGORY2 [CATEGORY3 ..]] NAME
+help() {
+  echo -e "\nSYNTAX: $SCRIPTNAME TYPE CATEGORY[ CATEGORY2 [CATEGORY3 ..]] NAME
 \nwhere TYPE is:
   hackerrank  : requires challenge description pdf and testcases zip archive files
 "
@@ -27,29 +27,31 @@ type="$1" && shift
 case "$type" in
   "hackerrank")
     # ensure structure
-    if [ ! "x`basename $PWD`" == "x$type" ]; then
+    if [ ! "x$(basename $PWD)" == "x$type" ]; then
       [ ! -d ./"$type" ] && mkdir "$type"
       cd "$type"
     fi
     # cleanups args
     args=()
-    for s in "$@"; do args[${#args[@]}]="`echo "$s" | tr "\- " "." | tr "A-Z" "a-z"`"; done
+    for s in "$@"; do
+      args[${#args[@]}]="$(echo "$s" | tr "\- " "." | tr "A-Z" "a-z")"
+    done
     name="${args[$[$# - 1]]}"
-    target="`echo "${args[@]}" | sed 's/ /.-./g'`"
+    target="$(echo "${args[@]}" | sed 's/ /.-./g')"
     [ $DEBUG -gt 0 ] && echo "name: $name, target: $target" 1>&2
     [ ! -d $target ] && mkdir -p $target
     cd $target || exit 1
-    IFS=$'\n'; files=(`find ./ -maxdepth 1 -iregex ".*$name.*\(pdf\|zip\)"`); IFS=$IFSORG
+    IFS=$'\n'; files=($(find ./ -maxdepth 1 -iregex ".*$name.*\(pdf\|zip\)")); IFS=$IFSORG
     if [ ${#files[@]} -eq 0 ]; then
       # move files
       search="$name"
-      IFS=$'\n'; files=(`find "$cwd" -maxdepth 1 -iregex ".*$search.*\(pdf\|zip\)"`); IFS=$IFSORG
+      IFS=$'\n'; files=($(find "$cwd" -maxdepth 1 -iregex ".*$search.*\(pdf\|zip\)")); IFS=$IFSORG
       while [ ${#files[@]} -ne 2 ]; do
         len=${#search}
         search="${search%.*}"
         [ $DEBUG -gt 0 ] && echo "[debug] search: '$search'" 1>&2
         [ ${#search} -eq $len ] && break
-        IFS=$'\n'; files=(`find ../ -maxdepth 1 -iregex ".*$search.*\(pdf\|zip\)"`); IFS=$IFSORG
+        IFS=$'\n'; files=($(find ../ -maxdepth 1 -iregex ".*$search.*\(pdf\|zip\)")); IFS=$IFSORG
         [ $DEBUG -gt 0 ] && echo "[debug] files#: '${#files[@]}'" 1>&2
         [ ${#files[@]} -eq 2 ] && echo "located challenge description / testcase files" && break
       done
@@ -76,11 +78,11 @@ case "$type" in
     if [ $lexts -gt 0 ]; then
       files=()
       while [ $lexts -gt 0 ]; do
-        idx=`echo "$RANDOM % ($lexts)" | bc`
+        idx=$(echo "$RANDOM % ($lexts)" | bc)
         [ $DEBUG -gt 0 ] && echo "[debug] ext idx: '$idx'" 1>&2
         ext=${exts[$idx]}
         unset exts[$idx]
-        exts=(`echo ${exts[@]}`)
+        exts=($(echo ${exts[@]}))
         lexts=$[$lexts - 1]
         edit=$name.$ext
         [ ! -f $edit ] && touch $edit
@@ -91,6 +93,6 @@ case "$type" in
     exec bash
     ;;
   *)
-    fn_help && echo "unsupported type '$type'" && exit 1
+    help && echo "unsupported type '$type'" && exit 1
     ;;
 esac

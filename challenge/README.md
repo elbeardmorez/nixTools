@@ -5,7 +5,7 @@ structures challenge files and opens a set of empty solution files in an editor
 
 ## usage
 ```
-USAGE: challenge_ TYPE CATEGORY[ CATEGORY2 [CATEGORY3 ..]] NAME
+SYNTAX: challenge_ TYPE CATEGORY[ CATEGORY2 [CATEGORY3 ..]] NAME
 
 where TYPE is:
   hackerrank  : requires challenge description pdf and testcases zip archive files
