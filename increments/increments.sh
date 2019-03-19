@@ -17,6 +17,7 @@ TARGET_MATCHES_DEFAULT="matches"
 declare target_matches
 remove_dupes=0
 remove_zeros=0
+declare blacklist
 interactive_cleaning=1
 declare -a targets
 target=${INCREMENTS_TARGET:-}
@@ -53,6 +54,10 @@ SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
   -nd, --no-duplicates  : use only first instance of any duplicate
                           files matched
   -nz, --no-zeros  : ignore 0 length files
+  -bl LIST, --blacklist LIST  : pipe ('|') delimited list of strings
+                                to rx match against search results
+                                with any matched files removed from
+                                the ultimate set
   -d, --diffs  : output incremental diffs of search matches
   -dd, --dump-diffs PATH  : write diffs to PATH (default: increments)
   -dm, --dump-matches PATH  : copy search matches to PATH
@@ -159,6 +164,23 @@ fn_process() {
   IFS=$'\n'; files=($(echo -e "$matches")); IFS="$IFSORG"
   [ ${#files[@]} -eq 0 ] && echo "[info] no files found" && return 1
   echo "[info] matched ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s")" 1>&2
+
+  # blacklist
+  if [ -n "$blacklist" ]; then
+    blacklist="$(fn_rx_escape "sed" "$(echo "$blacklist" | sed 's/|/\\|/g')")"
+    declare -a files2
+    i=0
+    for f in "${files[@]}"; do
+      [ -z "$(echo "$f" | sed -n '/\('"$blacklist"'\)/p')" ] &&\
+         files2[$i]="$f" && i=$(($i+1))
+    done
+
+    filtered=$((${#files[@]}-${#files2[@]}))
+    if [ $filtered -gt 0 ]; then
+      echo "[info] blacklist filtered $filtered file$([ $filtered -ne 1 ] && echo "s")"
+      files=("${files2[@]}")
+    fi
+  fi
 
   # dump matches
   if [ -n "$target_matches" ]; then
@@ -361,6 +383,7 @@ while [ -n "$1" ]; do
     "pp"|"path-precedence") shift; precedence="$1" ;;
     "nd"|"no-duplicates") remove_dupes=1 ;;
     "nz"|"no-zeros") remove_zeros=1 ;;
+    "bl"|"blacklist") shift && blacklist="$1" ;;
     "d"|"diffs") diffs=1 ;;
     "dd") target_diffs="$TARGET_DIFFS_DEFAULT" ;;
     "dump-diffs") shift; target_diffs="$1" ;;

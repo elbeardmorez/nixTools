@@ -21,6 +21,10 @@ where OPTIONS can be:
   -nd, --no-duplicates  : use only first instance of any duplicate
                           files matched
   -nz, --no-zeros  : ignore 0 length files
+  -bl LIST, --blacklist LIST  : pipe ('|') delimited list of strings
+                                to rx match against search results
+                                with any matched files removed from
+                                the ultimate set
   -d, --diffs  : output incremental diffs of search matches
   -dd, --dump-diffs PATH  : write diffs to PATH (default: increments)
   -dm, --dump-matches PATH  : copy search matches to PATH
