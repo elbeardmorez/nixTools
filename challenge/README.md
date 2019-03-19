@@ -18,6 +18,10 @@ where OPTION can be:
                       zip archive files
       CATEGORYx  : target directory name parts
       NAME  : solution name
+  dump [LANGUAGES] TARGET  : search TARGET for files suffixed with
+                             items in the delimited LANGUAGES list
+                             (default: 'py|js|cs') and dump matches
+                             to TARGET.LANGUAGE files
 ```
 e.g.
 ```

@@ -15,6 +15,7 @@ type_exts['c++']="cpp"
 
 cwd="$PWD"
 editor="${EDITOR:-vim}"
+dump_types_default="py|js|cs"
 
 help() {
   echo -e "\nSYNTAX: $SCRIPTNAME [OPTION [OPTIONARGS]]
@@ -28,6 +29,10 @@ help() {
                       zip archive files
       CATEGORYx  : target directory name parts
       NAME  : solution name
+  dump [LANGUAGES] TARGET  : search TARGET for files suffixed with
+                             items in the delimited LANGUAGES list
+                             (default: 'py|js|cs') and dump matches
+                             to TARGET.LANGUAGE files
 "
 }
 
@@ -35,7 +40,7 @@ help() {
 declare -a args
 while [ -n "$1" ]; do
   arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-  [[ -z $option && -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\)$/p')" ]] && option="$arg" && shift && continue
+  [[ -z $option && -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\|dump\)$/p')" ]] && option="$arg" && shift && continue
   case "$arg" in
     *) args[${#args[@]}]="$1"
   esac
@@ -125,5 +130,26 @@ case "$option" in
         help && echo "[error] unsupported type '$type'" && exit 1
         ;;
     esac
+    ;;
+
+  "dump")
+    types="$dump_types_default"
+    [ ${#args[@]} -gt 1 ] && types="${args[0]}"
+    target="${args[$((${#args[@]}-1))]}"
+    [ ! -d "$target" ] && echo "[error] invalid target directory '$target'" && exit 1
+    IFS="|/,"; types=($(echo "$types")); IFS="$IFSORG"
+    for type in "${types[@]}"; do
+      out="$target.$type"
+      if [ -e $out ]; then
+        [ $DEBUG -ge 1 ] && echo "[info] replacing existing file '$out'"
+        rm "$out"
+      fi
+      echo "# $target | '$type' dump" >> "$out"
+      IFS=$'\n'; files=($(find "$target" -type f -iname "*$type")); IFS="$IFSORG"
+      for f in "${files[@]}"; do
+        echo -e "\n\n/* # "$f" # */\n" >> "$out"
+        cat "$f" >> "$out"
+      done
+    done
     ;;
 esac
