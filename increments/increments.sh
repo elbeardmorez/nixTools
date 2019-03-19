@@ -285,8 +285,10 @@ fn_process() {
     if [ -z "$diff_bin" ]; then
       echo "[error] no 'diff' binary found in your PATH" 1>&2
     else
-      [[ -n "$target_diffs" && ! -d "$target_diffs" ]] && mkdir -p "$target_diffs"
-      fn_clean "$target_diffs" $interactive_cleaning
+      if [ -n "$target_diffs" ]; then
+        [ ! -d "$target_diffs" ] && mkdir -p "$target_diffs"
+        fn_clean "$target_diffs" $interactive_cleaning
+      fi
       git_bin="$(which git)"
       name=""
       email=""
