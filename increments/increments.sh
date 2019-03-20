@@ -36,6 +36,12 @@ diff_numeric_prefixes=0
 GIT_DIFF_SUBJECT=${GIT_DIFF_SUBJECT:-"[diff]"}
 DIFF_TARGET_BASE_PATH=${DIFF_TARGET_BASE_PATH:-""}
 DIFF_TARGET_FILE=${DIFF_TARGET_FILE:-""}
+# backing table fields
+column_idx_date=1
+column_idx_size=2
+column_idx_file=3
+column_idx_group=4
+column_idx_dupe=5
 
 help() {
   echo -e "
@@ -202,26 +208,27 @@ fn_process() {
     s="$s\n$ts\t$sz\t$f"
   done
   s="${s:2}"
-  sorted="$(echo -e "$s" | sort -t$'\t' -k1)"
+  sorted="$(echo -e "$s" | sort -t$'\t' -k$column_idx_date)"
   [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted table\n$sorted"
 
   # duplicates
   if [ $remove_dupes -eq 1 ]; then
-    IFS=$'\n'; sorted_size=($(echo -e "$sorted" | sort -t$'\t' -k2)); IFS="$IFSORG" # sort by size
+
+    IFS=$'\n'; sorted_size=($(echo -e "$sorted" | sort -t $'\t' -n -r -k$column_idx_size)); IFS="$IFSORG" # sort by size
     l1=0
     compared_dupe=""
     while [ $l1 -lt ${#sorted_size[@]} ]; do
-      sz="$(echo "${sorted_size[$l1]}" | cut -d$'\t' -f2)"
-      f="$(echo "${sorted_size[$l1]}" | cut -d$'\t' -f3)"
+      sz="$(echo "${sorted_size[$l1]}" | cut -d$'\t' -f$column_idx_size)"
+      f="$(echo "${sorted_size[$l1]}" | cut -d$'\t' -f$column_idx_file)"
       compared_dupe+="\n${sorted_size[$l1]}\t0"  # unique or first
       l1=$(($l1+1))
       l2=0
       s=()
       while [[ $(($l1+$l2)) -lt ${#sorted_size[@]} && \
-               $sz -eq $(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f2) ]]; do
+               $sz -eq $(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f$column_idx_size) ]]; do
         # collect any files with same size as first/base, yet to be deemed 'dupe'
-        f2="$(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f3)"
-        dupe="$(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f4)"
+        f2="$(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f$column_idx_file)"
+        dupe="$(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f$column_idx_dupe)"
         [ -z "$dupe" ] && s[${#s[@]}]="$f2"
         l2=$(($l2+1))
       done
@@ -239,11 +246,11 @@ fn_process() {
           s+="\n$([ ${c#*$'\t'} -eq 1 ] && echo "${s2%$'\t'*%}\t1" || echo "${sorted_size[$(($l1+$l3))]}")"
         done
         # update set / replace subset with any dupes first
-        IFS=$'\n'; compared=($(echo -e "$s" | sort -t$'\t' -k4 -r)); IFS="$IFSORG"
+        IFS=$'\n'; compared=($(echo -e "$s" | sort -t$'\t' -k$column_idx_dupe -r)); IFS="$IFSORG"
         dupes_count=0
         for l3 in $(seq 0 1 $((l2-1))); do
           sorted_size[$(($l1+$l3))]="${compared[$l3]}"
-          if [ -n "$(echo "${compared[$l3]}" | cut -d$'\t' -f4)" ]; then
+          if [ -n "$(echo "${compared[$l3]}" | cut -d$'\t' -f$column_idx_dupe)" ]; then
             compared_dupe+="\n${compared[$l3]}"  # dupe
             dupes_count=$(($dupes_count+1))
           fi
@@ -254,7 +261,7 @@ fn_process() {
     done
     compared_dupe="${compared_dupe:2}"
     [ $DEBUG -ge 2 ] && echo -e "[debug] duplicate tested table\n$compared_dupe" 1>&2
-    sorted="$(echo -e "$compared_dupe" | sort -t$'\t' -k1 | sed '/\t1$/d;s/\t0$//')"
+    sorted="$(echo -e "$compared_dupe" | sort -t$'\t' -k$column_idx_date | sed '/\t1$/d;s/\t0$//')"
     [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted duplicate free table\n$sorted" 1>&2
   fi
 
@@ -301,9 +308,9 @@ fn_process() {
       for r in "${sorted[@]}"; do
         [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
         IFS=$'\t'; fields=($r); IFS="$IFSORG"
-        ts=${fields[0]}
-        sz=${fields[1]}
-        f="${fields[2]}"
+        ts=${fields[$(($column_idx_date-1))]}
+        sz=${fields[$(($column_idx_size-1))]}
+        f=${fields[$(($column_idx_file-1))]}
         diff_bin_args=("-u" "$last" "$f")
         diff_pathfile="$target_diffs/$ts.diff"
         [ $diff_numeric_prefixes -eq 1 ] &&\
