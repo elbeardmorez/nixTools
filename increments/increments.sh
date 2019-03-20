@@ -128,7 +128,7 @@ fn_process() {
           v=$(echo "$s" | sed 's'"$transform")
           [ -n "${v}" ] && search2+="$v\n"
         done
-      done < $variants
+      done
       # unique only
       IFS=$'\n'; search=($(echo -e "$search2" | sort -u)); IFS="$IFSORG"
     fi
