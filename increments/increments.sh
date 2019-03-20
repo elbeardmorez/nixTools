@@ -23,6 +23,7 @@ declare -a targets
 target=${INCREMENTS_TARGET:-}
 search=(${INCREMENTS_SEARCH:-})
 variants=${INCREMENTS_VARIANTS:-}
+declare -a transforms
 precedence=${INCREMENTS_PRECEDENCE:-}
 declare tmp
 diff_format_git=0
@@ -211,6 +212,68 @@ fn_process() {
   sorted="$(echo -e "$s" | sort -t$'\t' -k$column_idx_date)"
   [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted table\n$sorted"
 
+  # basename / variant based grouping
+  IFS=$'\n'; sorted=($(echo -e "$sorted")); IFS="$IFSORG"
+  declare -a names
+  l=0
+  for r in "${sorted[@]}"; do
+    names[$l]="$(basename "$(echo "${sorted[$l]}" | cut -d$'\t' -f$column_idx_file)")"
+    l=$((l+1))
+  done
+  declare -a groups
+  match_types=("" "base" "variant" "reverse variant")
+  l=0
+  l2=0
+  group=0
+  for l in $(seq $l 1 $((${#names[@]}-1))); do
+    n="${names[$l]}"
+    g=${groups[$l]}
+    [ -z "$g" ] && group=$(($group+1)) && groups[$l]=$group && g=$group
+    matches=$l
+    for l2 in $(seq $((l+1)) 1 $((${#names[@]}-1))); do
+      n2="${names[$l2]}"
+      g2=${groups[$l2]}
+      if [ -n "$g2" ]; then
+        matches=$(($matches+1))
+      else
+        # test for variant basename match
+        match=0
+        if [ "$n2" == "$n" ]; then
+          match=1
+        elif [ ${#transforms[@]} -gt 0 ]; then
+          for transform in "${transforms[@]}"; do
+            t=$(echo "$n2" | sed 's'"$transform")
+            [ -z "$t" ] && continue
+            v=$(echo "$n" | sed -n '/'"$(fn_rx_escape "sed" "$t")"'/p')
+            if [ -n "$v" ]; then
+              match=2
+            else
+              # reverse variant
+              t=$(echo "$n" | sed 's'"$transform")
+              [ -z "$t" ] && continue
+              v=$(echo "$n2" | sed -n '/'"$(fn_rx_escape "sed" "$t")"'/p')
+              [ -n "$v" ] && match=3
+            fi
+          done
+        fi
+        if [ $match -gt 0 ]; then
+          [ $DEBUG -ge 2 ] && echo -e "[debug] ${match_types[$match]} match, allocating to group $g\n [$g] $n\n [-] $n2"
+          groups[$l2]=$g
+          matches=$(($matches+1))
+        fi
+      fi
+    done
+    [ $matches -eq ${#names[@]} ] && break
+  done
+  grouped=""
+  l=0
+  for r in "${sorted[@]}"; do
+    grouped+="\n$r\t${groups[$l]}"
+    l=$(($l+1))
+  done
+  sorted="${grouped:2}"
+  [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted table with group allocation\n$sorted"
+
   # duplicates
   if [ $remove_dupes -eq 1 ]; then
 
@@ -287,6 +350,10 @@ fn_process() {
   IFS=$'\n'; sorted=($(echo -e "$sorted")); IFS="$IFSORG"
 
   # diffs
+  declare -a last
+  for l in $(seq 0 1 $((${#groups[@]}))); do
+    last[$l]="/dev/null"
+  done
   if [[ $diffs -eq 1 || -n "$target_diffs" ]]; then
     diff_bin="$(which diff)"
     if [ -z "$diff_bin" ]; then
@@ -303,7 +370,6 @@ fn_process() {
         name="$($git_bin config --get user.name)"
         email="$($git_bin config --get user.email)"
       fi
-      last="/dev/null"
       l=1
       for r in "${sorted[@]}"; do
         [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
@@ -311,6 +377,9 @@ fn_process() {
         ts=${fields[$(($column_idx_date-1))]}
         sz=${fields[$(($column_idx_size-1))]}
         f=${fields[$(($column_idx_file-1))]}
+        g=${fields[$(($column_idx_group-1))]}
+        last="${last[$g]}"
+        last[$g]="$f"
         diff_bin_args=("-u" "$last" "$f")
         diff_pathfile="$target_diffs/$ts.diff"
         [ $diff_numeric_prefixes -eq 1 ] &&\
