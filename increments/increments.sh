@@ -111,7 +111,7 @@ fn_clean() {
   if [ ${#files[@]} -gt 0 ]; then
     res="y"
     if [ $interactive -eq 1 ]; then
-      echo -n "[user] target '$target' cleanup, purge ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s")? [y/n]: "
+      echo -n "[user] target '$target' cleanup, purge ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s")?"
       res=$(fn_decision)
     else
       echo "[info] target '$target' cleanup, purging ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s")"
