@@ -116,7 +116,7 @@ fn_clean() {
     else
       echo "[info] target '$target' cleanup, purging ${#files[@]} file$([ ${#files[@]} -ne 1 ] && echo "s")"
     fi
-    [ "x$res" == "xy" ] && rm -r "$target/"*
+    [ "x$res" = "xy" ] && rm -r "$target/"*
   fi
 }
 
@@ -239,7 +239,7 @@ fn_process() {
       else
         # test for variant basename match
         match=0
-        if [ "$n2" == "$n" ]; then
+        if [ "$n2" = "$n" ]; then
           match=1
         elif [ ${#transforms[@]} -gt 0 ]; then
           for transform in "${transforms[@]}"; do
@@ -389,7 +389,7 @@ fn_process() {
       l=1
       for r in "${sorted[@]}"; do
         [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
-        IFS=$'\t'; fields=($r); IFS="$IFSORG"
+        IFS=$'\t'; fields=($(echo -e "$r")); IFS="$IFSORG"
         ts=${fields[$(($column_idx_date-1))]}
         sz=${fields[$(($column_idx_size-1))]}
         f=${fields[$(($column_idx_file-1))]}
@@ -449,7 +449,7 @@ fn_process() {
   # rows
   for r in "${sorted[@]}"; do
     [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
-    IFS=$'\t'; fields=($r); IFS="$IFSORG"
+    IFS=$'\t'; fields=($(echo -e "$r")); IFS="$IFSORG"
     for l in ${field_order[@]}; do
       f="${fields[$l]}"
       if [ $l -eq $field_path ]; then
