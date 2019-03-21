@@ -225,16 +225,17 @@ fn_process() {
   l=0
   l2=0
   group=0
+  declare -a matches
   for l in $(seq $l 1 $((${#names[@]}-1))); do
     n="${names[$l]}"
     g=${groups[$l]}
-    [ -z "$g" ] && group=$(($group+1)) && groups[$l]=$group && g=$group
-    matches=$l
+    matches=()
+    matches_=$l
     for l2 in $(seq $((l+1)) 1 $((${#names[@]}-1))); do
       n2="${names[$l2]}"
       g2=${groups[$l2]}
-      if [ -n "$g2" ]; then
-        matches=$(($matches+1))
+      if [[ -n "$g" && -n "$g2" ]]; then
+        matches_=$(($matches_+1))
       else
         # test for variant basename match
         match=0
@@ -257,13 +258,28 @@ fn_process() {
           done
         fi
         if [ $match -gt 0 ]; then
-          [ $DEBUG -ge 2 ] && echo -e "[debug] ${match_types[$match]} match, allocating to group $g\n [$g] $n\n [-] $n2"
-          groups[$l2]=$g
-          matches=$(($matches+1))
+          if [ -z "$g" ]; then
+            matches[${#matches[@]}]="$l|0"
+            [ -n "$g2" ] && g=$g2
+          fi
+          [ -z "$g2" ] && matches[${#matches[@]}]="$l2|$match"
         fi
       fi
     done
-    [ $matches -eq ${#names[@]} ] && break
+    # allocate gid
+    new=0
+    [ -z "$g" ] && group=$(($group+1)) && new=1
+    for match in ${matches[@]}; do
+      idx="${match%|*}"
+      type="${match#*|}"
+      [ $DEBUG -ge 2 ] &&\
+        echo -e "[debug] $([ $type -gt 0 ] && echo "${match_types[$type]} match, ")allocating to $([ $new -eq 1 ] && echo "new" || echo "existing") group id ${g:-$group}\n [$([ -n "${groups[$l]}" ] && echo ${groups[$l]} || printf "-")] $n$([ $idx -ne $l ] && echo -e "\n [$([ -n "${groups[$idx]}" ] && echo "${groups[$idx]}" || printf "-")] ${names[$idx]}")"
+      [ -z ${groups[$l]} ] && groups[$l]=${g:-$group}
+      [ -z ${groups[$idx]} ] && groups[$idx]=${g:-$group}
+    done
+    groups[$l]=${g:-$group}
+    matches_=$(($matches_+${#matches[@]}-1))
+    [ $matches_ -eq ${#names[@]} ] && break
   done
   grouped=""
   l=0
