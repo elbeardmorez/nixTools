@@ -445,7 +445,7 @@ fn_process() {
   field_widths=(25 $(($maxlen_size+1)) $(($maxlen_path+1)))
   field_order=(2 1 0)
   # header
-  printf "%s%$((${field_widths[$field_path]}-4))s%$((${field_widths[$field_size]}-4))s%s%$((${field_widths[$field_date]}-4))s%s\n" "path" " " " " "size" " " "date"
+  printf "%s%$((${field_widths[$field_path]}-4))s%$((${field_widths[$field_size]}-4))s%s %s%$((${field_widths[$field_date]}-4))s\n" "path" " " " " "size" "date" " "
   # rows
   for r in "${sorted[@]}"; do
     [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
