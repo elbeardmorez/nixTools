@@ -441,21 +441,20 @@ fn_process() {
   # list
   echo "[info] file list:"
   date_format="%Y%b%d %H:%M:%S %z"
-  field_date=0; field_size=1; field_path=2
   field_widths=(25 $(($maxlen_size+1)) $(($maxlen_path+1)))
   field_order=(2 1 0)
   # header
-  printf "%s%$((${field_widths[$field_path]}-4))s%$((${field_widths[$field_size]}-4))s%s %s%$((${field_widths[$field_date]}-4))s\n" "path" " " " " "size" "date" " "
+  printf "%s%$((${field_widths[$(($column_idx_file-1))]}-4))s%$((${field_widths[$(($column_idx_size-1))]}-4))s%s %s%$((${field_widths[$(($column_idx_date-1))]}-4))s\n" "path" " " " " "size" "date" " "
   # rows
   for r in "${sorted[@]}"; do
     [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
     IFS=$'\t'; fields=($(echo -e "$r")); IFS="$IFSORG"
     for l in ${field_order[@]}; do
       f="${fields[$l]}"
-      if [ $l -eq $field_path ]; then
+      if [ $l -eq $(($column_idx_file-1)) ]; then
         # align left
         printf "%s%$((${field_widths[$l]}-${#f}))s" "$f" " "
-      elif [ $l -eq $field_date ]; then
+      elif [ $l -eq $(($column_idx_date-1)) ]; then
         d=$(date --date "@$f" "+$date_format")
         printf "%${field_widths[$l]}s" "$d"
       else
