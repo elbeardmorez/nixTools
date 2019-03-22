@@ -10,6 +10,8 @@ SCRIPTNAME=${0##*/}
 IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
 
+diff_bin="$(which diff)"
+git_bin="$(which git)"
 diffs=0
 TARGET_DIFFS_DEFAULT="increments"
 declare target_diffs
@@ -31,7 +33,7 @@ diff_format_paths=0
 GIT_DIFF_HEADER=\
 "From fedcba10987654321012345678910abcdef Mon Sep 17 00:00:00 2001\n"\
 "From: @NAME <@EMAIL>\nDate: @DATE\nSubject: @SUBJECT\n\n---\n"
-GIT_DIFF_FOOTER="--\n2.20.1"
+GIT_DIFF_FOOTER="--\n@VERSION"
 GIT_DIFF_DT_FORMAT="%a, %d %b %Y %T %z"  # e.g. Mon, 1 Jan 1970 00:00:00 +0000
 diff_numeric_prefixes=0
 GIT_DIFF_SUBJECT=${GIT_DIFF_SUBJECT:-"[diff]"}
@@ -371,7 +373,6 @@ fn_process() {
     last[$l]="/dev/null"
   done
   if [[ $diffs -eq 1 || -n "$target_diffs" ]]; then
-    diff_bin="$(which diff)"
     if [ -z "$diff_bin" ]; then
       echo "[error] no 'diff' binary found in your PATH" 1>&2
     else
@@ -379,7 +380,6 @@ fn_process() {
         [ ! -d "$target_diffs" ] && mkdir -p "$target_diffs"
         fn_clean "$target_diffs" $interactive_cleaning
       fi
-      git_bin="$(which git)"
       name=""
       email=""
       if [ -n "$git_bin" ]; then
@@ -432,6 +432,8 @@ fn_process() {
           # add header / footer
           diff_header="$GIT_DIFF_HEADER"
           diff_footer="$GIT_DIFF_FOOTER"
+          [ -n "$git_bin" ] &&\
+            diff_footer="$(echo "$GIT_DIFF_FOOTER" | sed 's/@VERSION/'"$($git_bin --version | sed -n 's/.* \([0-9.]*\).*/\1/p#')"'/')"
           diff_header="$(echo "$diff_header" | sed 's/@DATE/'"$(date -d "@$ts" "+$GIT_DIFF_DT_FORMAT")"'/')"
           [ -n "$name" ] && \
             diff_header="$(echo "$diff_header" | sed 's/@NAME/'"$name"'/')"
