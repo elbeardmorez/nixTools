@@ -400,7 +400,7 @@ fn_process() {
         diff_pathfile="$target_diffs/$ts.diff"
         [ $diff_numeric_prefixes -eq 1 ] &&\
           diff_pathfile="$(printf "%s/%04d_%s" "$target_diffs" $l "$ts.diff")"
-        [ $DEBUG -ge 2 ] && echo "[debug] diff '$last <-> $f'"
+        [ $DEBUG -ge 2 ] && echo -e "[debug] diff:\n $CHR_ARR_D | $last\n $CHR_ARR_U | $f"
         if [[ $diffs -eq 1 && -n "$target_diffs" ]]; then
           $diff_bin "${diff_bin_args[@]}" | tee "$diff_pathfile"
         elif [ $diffs -eq 1 ]; then
