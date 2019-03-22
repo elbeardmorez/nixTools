@@ -210,7 +210,7 @@ fn_process() {
   done
   s="${s:2}"
   sorted="$(echo -e "$s" | sort -t$'\t' -k$column_idx_date)"
-  [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted table\n$sorted"
+  [ $DEBUG -ge 2 ] && echo "[debug] timestamp sorted table" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo 1>&2
 
   # basename / variant based grouping
   IFS=$'\n'; sorted=($(echo -e "$sorted")); IFS="$IFSORG"
@@ -288,7 +288,7 @@ fn_process() {
     l=$(($l+1))
   done
   sorted="${grouped:2}"
-  [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted table with group allocation\n$sorted"
+  [ $DEBUG -ge 2 ] && echo "[debug] timestamp sorted table with group allocation" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo "" 1>&2
 
   # duplicates
   if [ $remove_dupes -eq 1 ]; then
@@ -339,9 +339,9 @@ fn_process() {
       fi
     done
     compared_dupe="${compared_dupe:2}"
-    [ $DEBUG -ge 2 ] && echo -e "[debug] duplicate tested table\n$compared_dupe" 1>&2
+    [ $DEBUG -ge 2 ] && echo "[debug] duplicate tested table" 1>&2 && echo -e "$compared_dupe" | column -t -s $'\t' 1>&2 && echo "" 1>&2
     sorted="$(echo -e "$compared_dupe" | sort -t$'\t' -k$column_idx_date | sed '/\t1$/d;s/\t0$//')"
-    [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted duplicate free table\n$sorted" 1>&2
+    [ $DEBUG -ge 2 ] && echo "[debug] timestamp sorted duplicate free table" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo "" 1>&2
   fi
 
   matches=$(echo -e "$sorted" | wc -l)
@@ -357,9 +357,9 @@ fn_process() {
       l=$(($l+1))
     done
     s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*\)$/_'$l'_\t\1/')"
-    [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted precedence sets keyed table\n$s"
+    [ $DEBUG -ge 2 ] && echo "[debug] timestamp sorted precedence sets keyed table" 1>&2 && echo -e "$s" | column -t -s $'\t' 1>&2 && echo "" 1>&2
     sorted="$(echo "$s" | sort | sed 's/^_[0-9]\+_\t//')"
-    [ $DEBUG -ge 2 ] && echo -e "[debug] timestamp sorted precedence table\n$sorted"
+    [ $DEBUG -ge 2 ] && echo "[debug] timestamp sorted precedence table" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo "" 1>&2
   fi
 
   # switch to array items
