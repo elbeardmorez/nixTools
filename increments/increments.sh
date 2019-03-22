@@ -401,13 +401,33 @@ fn_process() {
         [ $diff_numeric_prefixes -eq 1 ] &&\
           diff_pathfile="$(printf "%s/%04d_%s" "$target_diffs" $l "$ts.diff")"
         [ $DEBUG -ge 2 ] && echo -e "[debug] diff:\n $CHR_ARR_D | $last\n $CHR_ARR_U | $f"
-        if [[ $diffs -eq 1 && -n "$target_diffs" ]]; then
-          $diff_bin "${diff_bin_args[@]}" | tee "$diff_pathfile"
-        elif [ $diffs -eq 1 ]; then
-          $diff_bin "${diff_bin_args[@]}"
+        # binary file check
+        diff_check="$($diff_bin "${diff_bin_args[@]}" | head -n1)"
+        if [ -n "$(echo "$diff_check" | sed -n '/^Binary files.*differ$/p')" ]; then
+          [ -z "$git_bin" ] &&\
+            echo "[info] binary diff for file '$f' not supported, skipping" && continue
+          d_tmp="$(fn_temp_dir $SCRIPTNAME)"
+          cp -a --parent "$f" "$d_tmp" || exit 1
+          cd "$d_tmp" >/dev/null 2>&1 || exit 1
+          $git_bin init > /dev/null 2>&1 || exit 1
+          $git_bin add . > /dev/null 2>&1 || exit 1
+          $git_bin commit -m "binary patch" >/dev/null 2>&1 || exit 1
+          $git_bin format-patch -1 HEAD > /dev/null 2>&1 || exit 1
+          cd - >/dev/null 2>&1 || exit 1
+          [ $diffs -eq 1 ] && sed '/^---$/,/^--\ \?$/p' $d_tmp/00* | sed -n '1,/^diff/{/^diff/b;d};$d'
+          [ -n "$target_diffs" ] &&\
+            sed -n '/^---$/,/^--\ \?$/p' $d_tmp/00* | sed '1,/^diff/{/^diff/b;d};$d' > "$diff_pathfile"
+          rm -rd "$d_tmp"
         else
-          $diff_bin "${diff_bin_args[@]}" > "$diff_pathfile"
+          if [[ $diffs -eq 1 && -n "$target_diffs" ]]; then
+            $diff_bin "${diff_bin_args[@]}" | tee "$diff_pathfile"
+          elif [ $diffs -eq 1 ]; then
+            $diff_in "${diff_bin_args[@]}"
+          else
+            $diff_bin "${diff_bin_args[@]}" > "$diff_pathfile"
+          fi
         fi
+
         if [[ $diff_format_git -eq 1 && -e $diff_pathfile && -e "$diff_pathfile" ]]; then
           # add header / footer
           diff_header="$GIT_DIFF_HEADER"
@@ -434,7 +454,7 @@ fn_process() {
         l=$(($l+1))
       done
       [ -n "$target_diffs" ] && \
-        echo "[info] dumped ${#sorted[@]} diffs to '$target_diffs'" 1>&2
+        echo "[info] dumped $(($l-1)) diffs to '$target_diffs'" 1>&2
     fi
   fi
 
