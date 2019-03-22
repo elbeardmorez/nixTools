@@ -463,7 +463,6 @@ fn_process() {
     done
     printf '\n'
   done
-
 }
 
 # option parsing
