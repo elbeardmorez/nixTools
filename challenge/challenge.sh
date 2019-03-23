@@ -59,7 +59,7 @@ case "$option" in
     case "$type" in
       "hackerrank")
         # ensure structure
-        if [ ! "x$(basename $PWD)" = "x$type" ]; then
+        if [ "x$(basename $PWD)" != "x$type" ]; then
           [ ! -d ./"$type" ] && mkdir "$type"
           cd "$type"
         fi
@@ -72,8 +72,8 @@ case "$option" in
         name="${args[$[$# - 1]]}"
         target="$(echo "${args[@]}" | sed 's/ /.-./g')"
         [ $DEBUG -gt 0 ] && echo "name: $name, target: $target" 1>&2
-        [ ! -d $target ] && mkdir -p $target
-        cd $target || exit 1
+        [ ! -d "$target" ] && mkdir -p "$target"
+        cd "$target" || exit 1
         IFS=$'\n'; files=($(find ./ -maxdepth 1 -iregex ".*$name.*\(pdf\|zip\)")); IFS=$IFSORG
         if [ ${#files[@]} -eq 0 ]; then
           # move files
@@ -113,15 +113,15 @@ case "$option" in
           while [ $lexts -gt 0 ]; do
             idx=$(echo "$RANDOM % ($lexts)" | bc)
             [ $DEBUG -gt 0 ] && echo "[debug] ext idx: '$idx'" 1>&2
-            ext=${exts[$idx]}
+            ext="${exts[$idx]}"
             unset 'exts['$idx']'
-            exts=(`echo ${exts[@]}`)
-            lexts=$[$lexts - 1]
-            edit=$name.$ext
-            [ ! -f $edit ] && touch $edit
+            exts=($(echo "${exts[@]}"))
+            lexts=$(($lexts-1))
+            edit="$name.$ext"
+            [ ! -f "$edit" ] && touch "$edit"
             files[${#files[@]}]="$edit"
           done
-          $editor -p ${files[@]}
+          "$editor" -p "${files[@]}"
         fi
         exec bash
         ;;
