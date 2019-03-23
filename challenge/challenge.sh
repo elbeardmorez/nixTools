@@ -64,10 +64,12 @@ case "$mode" in
     ;;
 
   "new")
+    subshell=1
     declare -a mode_args
     for arg in "${args[@]}"; do
       s="$(echo "$arg" | awk '{ if (/^[ ]*-+/) { gsub(/^[ ]*-+/,""); print(tolower($0)) } }')"
       case "$s" in
+        "nss"|"no-subshell") subshell=0 ;;
         *) mode_args[${#mode_args[@]}]="$arg" ;;
       esac
     done
@@ -141,7 +143,8 @@ case "$mode" in
           done
           "$editor" -p "${files[@]}"
         fi
-        exec $(fn_shell)
+        [ $subshell -eq 1 ] &&\
+          exec $(fn_shell)
         ;;
 
       *)
