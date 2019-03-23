@@ -61,3 +61,5 @@ solution files can be specified by modification of the category map
 
 ## dependencies
 - unzip
+- awk
+- sed
