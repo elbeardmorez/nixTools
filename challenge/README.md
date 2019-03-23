@@ -5,15 +5,18 @@ coding challenge aid featuring structuring of challenge files and provision of a
 
 ## usage
 ```
-SYNTAX: challenge_ [OPTION [OPTIONARGS]]
+SYNTAX: challenge_ [MODE [MODE_ARGS]]
 
-where OPTION can be:
+where MODE can be:
 
   h, help  : this help information
-  new TYPE CATEGORY[ CATEGORY2 [CATEGORY3 ..]] NAME
+  new [OPTIONS] TYPE CATEGORY[ CATEGORY2 [CATEGORY3 ..]] NAME
     :  create new challenge structure
     with:
-      TYPE :  a supported challenge type
+      OPTIONS  :
+        -nss, --no-subshell  : don't drop into a subshell at the target
+                               location
+      TYPE  : a supported challenge type
         hackerrank  : requires challenge description pdf and testcases
                       zip archive files
       CATEGORYx  : target directory name parts

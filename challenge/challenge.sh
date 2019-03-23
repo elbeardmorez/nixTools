@@ -24,13 +24,16 @@ editor="${EDITOR:-vim}"
 dump_types_default="py|js|cs"
 
 help() {
-  echo -e "\nSYNTAX: $SCRIPTNAME [OPTION [OPTIONARGS]]
-\nwhere OPTION can be:\n
+  echo -e "\nSYNTAX: $SCRIPTNAME [MODE [MODE_ARGS]]
+\nwhere MODE can be:\n
   h, help  : this help information
-  new TYPE CATEGORY[ CATEGORY2 [CATEGORY3 ..]] NAME
+  new [OPTIONS] TYPE CATEGORY[ CATEGORY2 [CATEGORY3 ..]] NAME
     :  create new challenge structure
     with:
-      TYPE :  a supported challenge type
+      OPTIONS  :
+        -nss, --no-subshell  : don't drop into a subshell at the target
+                               location
+      TYPE  : a supported challenge type
         hackerrank  : requires challenge description pdf and testcases
                       zip archive files
       CATEGORYx  : target directory name parts
@@ -42,25 +45,34 @@ help() {
 "
 }
 
-# options parse
+# args parse
 declare -a args
 while [ -n "$1" ]; do
   arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-  [[ -z $option && -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\|dump\)$/p')" ]] && option="$arg" && shift && continue
+  [[ -z $mode && -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\|dump\)$/p')" ]] && mode="$arg" && shift && continue
   case "$arg" in
     *) args[${#args[@]}]="$1"
   esac
   shift
 done
-option=${option:-new}
+mode=${mode:-new}
 
-case "$option" in
+case "$mode" in
   "h"|"help")
     help
     exit 0
     ;;
 
   "new")
+    declare -a mode_args
+    for arg in "${args[@]}"; do
+      s="$(echo "$arg" | awk '{ if (/^[ ]*-+/) { gsub(/^[ ]*-+/,""); print(tolower($0)) } }')"
+      case "$s" in
+        *) mode_args[${#mode_args[@]}]="$arg" ;;
+      esac
+    done
+    args=("${mode_args[@]}")
+
     type="${args[0]}" && args=("${args[@]:1}")
     case "$type" in
       "hackerrank")
