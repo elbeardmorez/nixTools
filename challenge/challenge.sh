@@ -144,8 +144,12 @@ case "$mode" in
             [ ! -f "$target" ] && touch "$target"
             files[${#files[@]}]="$target"
           done
+          declare -a cmd_args_editor
+          case $editor in
+            "vim") cmd_args_editor[${#cmd_args_editor[@]}]="-p" ;;  # open files in tabs
+          esac
           [ $edit -eq 1 ] &&\
-            "$editor" -p "${files[@]}"
+            "$editor" "${cmd_args_editor[@]}" "${files[@]}"
         fi
         [ $subshell -eq 1 ] &&\
           exec $(fn_shell)
