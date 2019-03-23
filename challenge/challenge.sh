@@ -5,13 +5,13 @@ IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
 
 declare -A type_exts
-type_exts['data.structures']="cpp cs py js"
-type_exts['algorithms']="cs js py"
-type_exts['mathematics']="cs js py"
-type_exts['python']="py"
-type_exts['bash']="sh"
-type_exts['c']="c"
-type_exts['c++']="cpp"
+type_exts["data.structures"]="cpp cs py js"
+type_exts["algorithms"]="cs js py"
+type_exts["mathematics"]="cs js py"
+type_exts["python"]="py"
+type_exts["bash"]="sh"
+type_exts["c"]="c"
+type_exts["c++"]="cpp"
 
 cwd="$PWD"
 editor="${EDITOR:-vim}"
@@ -59,7 +59,7 @@ case "$option" in
     case "$type" in
       "hackerrank")
         # ensure structure
-        if [ ! "x$(basename $PWD)" == "x$type" ]; then
+        if [ ! "x$(basename $PWD)" = "x$type" ]; then
           [ ! -d ./"$type" ] && mkdir "$type"
           cd "$type"
         fi
@@ -104,7 +104,7 @@ case "$option" in
         # open some appropriate files for editing
         exts=()
         for p in ${args[@]}; do
-          exts=(${type_exts[$p]})
+          exts=($(echo "${type_exts["$p"]}"))
           [ ${#exts[@]} -gt 0 ] && break
         done
         lexts=${#exts[@]}
@@ -114,7 +114,7 @@ case "$option" in
             idx=$(echo "$RANDOM % ($lexts)" | bc)
             [ $DEBUG -gt 0 ] && echo "[debug] ext idx: '$idx'" 1>&2
             ext=${exts[$idx]}
-            unset exts[$idx]
+            unset 'exts['$idx']'
             exts=(`echo ${exts[@]}`)
             lexts=$[$lexts - 1]
             edit=$name.$ext
