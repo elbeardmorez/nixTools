@@ -31,6 +31,7 @@ help() {
     :  create new challenge structure
     with:
       OPTIONS  :
+        -ne, --no-edit  : don't invoke the editor by default
         -nss, --no-subshell  : don't drop into a subshell at the target
                                location
       TYPE  : a supported challenge type
@@ -49,7 +50,7 @@ help() {
 declare -a args
 while [ -n "$1" ]; do
   arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-  [[ -z $mode && -n "$(echo "$arg" | sed -n '/^\(h\|help\|new\|dump\)$/p')" ]] && mode="$arg" && shift && continue
+  [[ -z $mode && -n "$(printf "$arg" | sed -n '/^\(h\|help\|new\|dump\)$/p')" ]] && mode="$arg" && shift && continue
   case "$arg" in
     *) args[${#args[@]}]="$1"
   esac
@@ -64,11 +65,13 @@ case "$mode" in
     ;;
 
   "new")
+    edit=1
     subshell=1
     declare -a mode_args
     for arg in "${args[@]}"; do
-      s="$(echo "$arg" | awk '{ if (/^[ ]*-+/) { gsub(/^[ ]*-+/,""); print(tolower($0)) } }')"
+      s="$(printf " $arg" | awk '{ if (/^[ ]*-+/) { gsub(/^[ ]*-+/,""); print(tolower($0)) } }')"
       case "$s" in
+        "ne"|"no-edit") edit=0 ;;
         "nss"|"no-subshell") subshell=0 ;;
         *) mode_args[${#mode_args[@]}]="$arg" ;;
       esac
@@ -86,7 +89,7 @@ case "$mode" in
         # cleanups args
         args2=()
         for s in "${args[@]}"; do
-          args2[${#args2[@]}]="$(echo "$s" | tr "\- " "." | tr "A-Z" "a-z")";
+          args2[${#args2[@]}]="$(printf "$s" | tr "\- " "." | tr "A-Z" "a-z")";
         done
         args=("${args2[@]}")
         name="${args[$[$# - 1]]}"
@@ -128,7 +131,7 @@ case "$mode" in
           [ ${#exts[@]} -gt 0 ] && break
         done
         lexts=${#exts[@]}
-        if [ $lexts -gt 0 ]; then
+        if [[ $edit && $lexts -gt 0 ]]; then
           files=()
           while [ $lexts -gt 0 ]; do
             idx=$(echo "$RANDOM % ($lexts)" | bc)
@@ -137,11 +140,12 @@ case "$mode" in
             unset 'exts['$idx']'
             exts=($(echo "${exts[@]}"))
             lexts=$(($lexts-1))
-            edit="$name.$ext"
-            [ ! -f "$edit" ] && touch "$edit"
-            files[${#files[@]}]="$edit"
+            target="$name.$ext"
+            [ ! -f "$target" ] && touch "$target"
+            files[${#files[@]}]="$target"
           done
-          "$editor" -p "${files[@]}"
+          [ $edit -eq 1 ] &&\
+            "$editor" -p "${files[@]}"
         fi
         [ $subshell -eq 1 ] &&\
           exec $(fn_shell)

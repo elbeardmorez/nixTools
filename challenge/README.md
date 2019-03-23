@@ -14,6 +14,7 @@ where MODE can be:
     :  create new challenge structure
     with:
       OPTIONS  :
+        -ne, --no-edit  : don't invoke the editor by default
         -nss, --no-subshell  : don't drop into a subshell at the target
                                location
       TYPE  : a supported challenge type
