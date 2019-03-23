@@ -17,6 +17,7 @@ where MODE can be:
         -ne, --no-edit  : don't invoke the editor by default
         -nss, --no-subshell  : don't drop into a subshell at the target
                                location
+        -dec, --dump-edit-command  : echo editor command before exit
       TYPE  : a supported challenge type
         hackerrank  : requires challenge description pdf and testcases
                       zip archive files

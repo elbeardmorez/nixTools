@@ -34,6 +34,7 @@ help() {
         -ne, --no-edit  : don't invoke the editor by default
         -nss, --no-subshell  : don't drop into a subshell at the target
                                location
+        -dec, --dump-edit-command  : echo editor command before exit
       TYPE  : a supported challenge type
         hackerrank  : requires challenge description pdf and testcases
                       zip archive files
@@ -67,14 +68,19 @@ case "$mode" in
   "new")
     edit=1
     subshell=1
+    dump_edit_command=0
     declare -a mode_args
-    for arg in "${args[@]}"; do
+    l=0
+    while [ $l -lt ${#args[@]} ]; do
+      arg="${args[$l]}"
       s="$(printf " $arg" | awk '{ if (/^[ ]*-+/) { gsub(/^[ ]*-+/,""); print(tolower($0)) } }')"
       case "$s" in
         "ne"|"no-edit") edit=0 ;;
         "nss"|"no-subshell") subshell=0 ;;
+        "dec"|"dump-edit-command") dump_edit_command=1 ;;
         *) mode_args[${#mode_args[@]}]="$arg" ;;
       esac
+      l=$(($l+1))
     done
     args=("${mode_args[@]}")
 
@@ -131,8 +137,8 @@ case "$mode" in
           [ ${#exts[@]} -gt 0 ] && break
         done
         lexts=${#exts[@]}
-        if [[ $edit && $lexts -gt 0 ]]; then
-          files=()
+        files=()
+        if [[ $lexts -gt 0 && ( $edit || $dump_edit_command ) ]]; then
           while [ $lexts -gt 0 ]; do
             idx=$(echo "$RANDOM % ($lexts)" | bc)
             [ $DEBUG -gt 0 ] && echo "[debug] ext idx: '$idx'" 1>&2
@@ -153,6 +159,10 @@ case "$mode" in
         fi
         [ $subshell -eq 1 ] &&\
           exec $(fn_shell)
+        if [ $dump_edit_command -eq 1 ]; then
+          files_=""; for f in "${files[@]}"; do files_+=" \"$f\""; done; files_="${files_:1}"
+          echo "edit command:" 1>&2 && echo "$editor" "${cmd_args_editor[@]}" $files_
+        fi
         ;;
 
       *)
