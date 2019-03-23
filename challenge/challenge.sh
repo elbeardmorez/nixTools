@@ -55,7 +55,7 @@ case "$option" in
     ;;
 
   "new")
-    type="${args[0]}"
+    type="${args[0]}" && args=("${args[@]:1}")
     case "$type" in
       "hackerrank")
         # ensure structure
