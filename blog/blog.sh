@@ -291,7 +291,8 @@ fn_list() {
   declare files
   target="$1" && shift
   selected_id=$1 && shift
-  sort="0|0" && [ $# -gt 0 ] && sort="$1" && shift
+  [ $# -gt 0 ] && sort="$1" && shift
+  [ -z "$sort" ] && sort="0|0"
   sort_idx=${sort%|*}
   sort_order=${sort#*|}
   path_="$(fn_target_resolve "$target")"
