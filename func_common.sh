@@ -11,6 +11,7 @@ fi
 # constants
 DEBUG=${DEBUG:-0}
 IFSORG="$IFS"
+ESCAPE_PATH=')]}{[(/$# '
 ESCAPE_GREP='].[*'
 ESCAPE_SED='].[/-'
 ESCAPE_AWK='.\|[('
@@ -239,6 +240,7 @@ fn_rx_escape() {
   exp="$1" && shift
   declare escape
   case "$type" in
+    "path") escape="$ESCAPE_PATH" ;;
     "grep") escape="$ESCAPE_GREP" ;;
     "sed") escape="$ESCAPE_SED" ;;
     "awk") escape="$ESCAPE_AWK" ;;
