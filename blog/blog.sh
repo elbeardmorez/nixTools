@@ -230,7 +230,7 @@ fn_publish() {
   dt="$(fn_read_data "date_created" "$target" 1)"
   title="$(fn_read_data "title" "$target" 1)"
   [ -z "$(echo "$dt" | sed -n '/^[0-9]\+$/p')" ] && dt="$(date -d "$dt" "+%s")"
-  title="$(echo "$title"| tr " " ".")"
+  title="$(fn_path_safe "$(echo "$title" | tr " " ".")")"
   [ ! -d "$published" ] && mkdir -p "$published"
   cp "$target" "$published/${dt}_${title}" && rm "$target"
   return $?
