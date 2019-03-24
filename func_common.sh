@@ -11,7 +11,7 @@ fi
 # constants
 DEBUG=${DEBUG:-0}
 IFSORG="$IFS"
-ESCAPE_PATH=')]}{[(/$# '
+ESCAPE_PATH=')]}{[($# '
 ESCAPE_GREP='].[*'
 ESCAPE_SED='].[/-'
 ESCAPE_AWK='.\|[('
@@ -258,6 +258,19 @@ fn_resolve() {
   [ -n "$(echo "$target" | sed -n '/^~/p')" ] &&\
     target="$(echo "$target" | sed 's/^~/'"$(fn_rx_escape "sed" "$HOME")"'/')"
   echo "$target"
+}
+
+fn_path_safe() {
+  path="$1" && shift
+  path="$(fn_rx_escape "path" "$path")"
+  transforms="/=_"
+  IFS="|" kvs=($(echo "$transforms")); IFS="$IFSORG"
+  for kv in "${kvs[@]}"; do
+    k="${kv%=*}"
+    v="${kv#*=}"
+    path="$(echo "$path" | sed 's/['"$k"']/'"$v"'/g')"
+  done
+  echo "$path"
 }
 
 fn_files_compare() {
