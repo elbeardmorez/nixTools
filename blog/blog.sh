@@ -218,13 +218,13 @@ fn_target_select() {
     elif [ ${#files[@]} -gt 1 ]; then
       fn_list "$target" "" "${files[@]}" 1>&2
       declare res
-      while [ 1 ]; do
+      while true; do
         res=$(fn_input_line "[user] select target (1-${#files[@]}) or e(x)it")
         [ "x$res" = "xx" ] && return 1
         [[ -n "$(echo "$res" | sed -n '/[0-9]\+/p')" && $res -ge 1 && $res -le ${#files[@]} ]] && break
         echo -en "$CUR_UP$LN_RST" 1>&2
       done
-      target="${files[$(($res-1))]}"
+      target="${files[$((res-1))]}"
     fi
   fi
   echo "$target"
@@ -320,7 +320,7 @@ fn_list() {
       h_mod="${CLR_HL}${CLR_OFF}$h_mod"
     fi
     header+="\t$h_mod"
-    idx=$(($idx+1))
+    idx=$((idx+1))
   done
   header="${header:2}"
   path_escaped="$(fn_rx_escape "sed" "$path_")"
@@ -334,15 +334,15 @@ fn_list() {
     dt_modified=$(sed -n 's/'\''date_modified'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f") && dt_modified=$([ -n "$dt_modified" ] && date -d "$dt_modified" "+%s" || echo $dt_created)
     f2="$f" && [ -n "$(echo "$f2" | sed -n '/^'$path_escaped'/p')" ] && f2=".${f2:${#path_}}"
     tb+="\n$l\t$title\t$dt_created\t$dt_modified\t$f2"
-    l=$(($l+1))
+    l=$((l+1))
   done
   declare -a cmd_args_sort
-  cmd_args_sort=("-t"$'\t' "-k$(($sort_idx+1))")
+  cmd_args_sort=("-t"$'\t' "-k$((sort_idx+1))")
   [ $sort_order -eq 1 ] && cmd_args_sort[${cmd_args_sort[@]}]="-r"
   sorted="$(echo -e "${tb:2}" | sort "${cmd_args_sort[@]}")"
 
   # formatted
-  tb="$(echo -e "$sorted" | awk -v selected_id=${selected_id-"-1"} -v sort_idx=$(($sort_idx+1)) -v column_idx_id=$((${column_idxs["id"]}+1)) -v column_idx_title=$((${column_idxs["title"]}+1)) -v column_idx_date_modified=$((${column_idxs["date modified"]}+1)) '
+  tb="$(echo -e "$sorted" | awk -v selected_id=${selected_id-"-1"} -v sort_idx=$((sort_idx+1)) -v column_idx_id=$((column_idxs["id"]+1)) -v column_idx_title=$((column_idxs["title"]+1)) -v column_idx_date_modified=$((column_idxs["date modified"]+1)) '
 {
   r=""
   dt=""
@@ -433,7 +433,7 @@ fn_menu() {
   sort_order=0
   sort_idx=1
   sort_columns=4
-  while [ 1 ]; do
+  while true; do
     path_=$(fn_target_resolve "$target")
     [ -z "$path_" ] &&\
       echo "[error] invalid target '$target'" && return 1
@@ -450,7 +450,7 @@ fn_menu() {
     [ -n "$id" ] && idx=$(fn_menu_idx_from_id "$ids" "$id")
     echo -e "${TERM_CLR}${list}\n\n"
     no_op=0
-    while [ 1 ]; do
+    while true; do
       reset=0
       if [ $no_op -eq 0 ]; then
         # reset
@@ -469,7 +469,7 @@ fn_menu() {
         "x") return 1 ;;
         "t")
           reset=0
-          while [ 1 ]; do
+          while true; do
             echo -en "$CUR_UP$LN_RST" 1>&2
             stty echo
             res2="$(fn_decision "$(echo -e "| (${CLR_HL}p${CLR_OFF})ublished | (${CLR_HL}u${CLR_OFF})npublished | (${CLR_HL}c${CLR_OFF})ustom | e(${CLR_HL}x${CLR_OFF})it${CUR_INV}")" "pucx")"
@@ -487,7 +487,7 @@ fn_menu() {
                 [ "x$target_" = "x$target" ] && break
                 path_=$(fn_target_resolve "$target_")
                 [ -z "$path_" ] &&\
-                  fn_menu_alert "$CLR_RED[error]$CLR_OFF invalid target, ignoring!" && continue
+                  fn_menu_alert "${CLR_RED}[error]${CLR_OFF} invalid target, ignoring!" && continue
                 target="$target_"
                 id=""
                 reset=1;
@@ -498,7 +498,7 @@ fn_menu() {
           ;;
         "i")
           reset=0
-          while [ 1 ]; do
+          while true; do
             echo -en "$CUR_UP$LN_RST" 1>&2
             stty echo
             res2="$(fn_input_line "$(echo -en "| set target id, or e(${CLR_HL}x${CLR_OFF})it${CUR_VIS}")")"
@@ -513,12 +513,12 @@ fn_menu() {
           ;;
         "$CHR_ARR_U")
           [[ ${#files[@]} -eq 0 || ( -n "$idx" && $idx -eq 1 ) ]] && no_op=1 && continue
-          idx=$([ -n "$idx" ] && echo $(($idx-1)) || echo ${#files[@]})
+          idx=$([ -n "$idx" ] && echo $((idx-1)) || echo ${#files[@]})
           reset=1
           ;;
         "$CHR_ARR_D")
           [[ ${#files[@]} -eq 0 || ( -n "$idx" && $idx -eq ${#files[@]} ) ]] && no_op=1 && continue
-          idx=$([ -n "$idx" ] && echo $(($idx+1)) || echo 1)
+          idx=$([ -n "$idx" ] && echo $((idx+1)) || echo 1)
           reset=1
           ;;
         "s")
@@ -533,23 +533,23 @@ fn_menu() {
           ;;
         "e")
           [ -z "$id" ] &&\
-            fn_menu_alert "$CLR_RED[error]$CLR_OFF invalid target, ignoring!" && continue
-          fn_mod ${files[$(($id-1))]}
+            fn_menu_alert "${CLR_RED}[error]${CLR_OFF} invalid target, ignoring!" && continue
+          fn_mod ${files[$((id-1))]}
           idx=""
           reset=1
           ;;
         "p")
           [ -z "$id" ] &&\
-            fn_menu_alert "$CLR_RED[error]$CLR_OFF invalid target, ignoring!" && continue
-          fn_publish ${files[$(($id-1))]}
+            fn_menu_alert "${CLR_RED}[error]${CLR_OFF} invalid target, ignoring!" && continue
+          fn_publish ${files[$((id-1))]}
           idx=""
           reset=1
           ;;
         "d")
           [ -z "$id" ] &&\
-            fn_menu_alert "$CLR_RED[error]$CLR_OFF invalid target, ignoring!" && continue
+            fn_menu_alert "${CLR_RED}[error]${CLR_OFF} invalid target, ignoring!" && continue
           reset=0
-          f="${files[$(($id-1))]}"
+          f="${files[$((id-1))]}"
           title="$(fn_read_data "title" "$f")"
           echo -en "$CUR_UP$LN_RST" 1>&2
           res2="$(fn_decision "| confirm deletion of $title [$f] entry?")"
@@ -630,7 +630,7 @@ if [ -f "$rc" ]; then
     echo "# rc options: $f"
     cat "$f"
   fi
-  source "$f"
+  . "$f"
   rm "$f"
 fi
 
