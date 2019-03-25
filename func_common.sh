@@ -40,10 +40,10 @@ KEY_ARR_D='\033[B'
 KEY_ARR_L='\033[D'
 KEY_ARR_R='\033[C'
 declare -A keychr_maps
-keychr_maps["$KEY_ARR_U"]="$CHR_ARR_U"
-keychr_maps["$KEY_ARR_D"]="$CHR_ARR_D"
-keychr_maps["$KEY_ARR_L"]="$CHR_ARR_L"
-keychr_maps["$KEY_ARR_R"]="$CHR_ARR_R"
+keychr_maps["$KEY_ARR_U"]="$KEY_ARR_U|$CHR_ARR_U"
+keychr_maps["$KEY_ARR_D"]="$KEY_ARR_D|$CHR_ARR_D"
+keychr_maps["$KEY_ARR_L"]="$KEY_ARR_L|$CHR_ARR_L"
+keychr_maps["$KEY_ARR_R"]="$KEY_ARR_R|$CHR_ARR_R"
 
 fn_stty() {
   declare opt
@@ -122,12 +122,14 @@ fn_decision() {
     soptions="$(echo "$soptions" | sed 's/\(.\)/\/\1/g;s/^\///')"
     optdelim='/'
   fi
-  IFS="$optdelim"; options=($(echo "$soptions")); IFS="$IFSORG"
+  IFS="$optdelim"; options=($(echo -En "$soptions")); IFS="$IFSORG"
   if [ $optshow -eq 1 ]; then
     soptions=""
     for option in "${options[@]}"; do
-      map="${keychr_maps["$option"]}"
-      soptions+="$optdelim${CLR_HL}${map:-"$option"}${CLR_OFF}"
+      key=""
+      keychr="${keychr_maps["$option"]}"
+      [ -n "$keychr" ] && key="${keychr%|*}"
+      soptions+="$optdelim${CLR_HL}${key:-"$option"}${CLR_OFF}"
     done
     soptions="${soptions:${#optdelim}}"
     echo -en " [$soptions]" 1>&2
@@ -150,13 +152,14 @@ fn_decision() {
     r="$(echo "$R" | tr '[A-Z]' '[a-z]')"
     map=""
     if [ ${#buffer} -gt 0 ]; then
-      for key in "${!keychr_maps[@]}"; do
+      for keychr in "${keychr_maps[@]}"; do
+        key="${keychr%|*}"
         buffer_prefix_length=$((${#key}-1))
         if [ $buffer_prefix_length -gt 0 ]; then
           buffer_prefix=""
           [ ${#buffer} -ge $buffer_prefix_length ] &&\
             buffer_prefix="${buffer:$((${#buffer}-$buffer_prefix_length))}"
-          [ "x$key" = "x$buffer_prefix$R" ] &&\
+          [[ "x$key" == "x$buffer_prefix$R" || "x$key" == "x\033$buffer_prefix$R" ]] &&\
             map="$key" && break
         fi
       done
@@ -165,7 +168,9 @@ fn_decision() {
     chr=""
     for option in "${options[@]}"; do
       if [[ -n "$map" && "x$option" == "x$map" ]]; then
-        chr="${keychr_maps[$key]}"
+        chr=""
+        keychr="${keychr_maps["$map"]}"
+        [ -n "$keychr" ] && chr="${keychr#*|}"
         match=1
         break
       elif [[ -z "$map" && "x$option" == "x$r" ]]; then
