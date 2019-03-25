@@ -553,7 +553,7 @@ fn_menu() {
           title="$(fn_read_data "title" "$f")"
           echo -en "$CUR_UP$LN_RST" 1>&2
           res2="$(fn_decision "| confirm deletion of $title [$f] entry?")"
-          [ "x$res2" == "xn" ] && break
+          [ "x$res2" = "xn" ] && break
           if [ ! -e "$f" ]; then
             fn_menu_alert "[error] target file '$f' doesn't exist!"
           else
