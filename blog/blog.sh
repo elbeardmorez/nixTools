@@ -329,7 +329,7 @@ fn_list() {
   tb=""
   l=1
   for f in "${files[@]}"; do
-    title="$(fn_safe "$(sed -n 's/^'\''title'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")")"
+    title="$(fn_sample 25 "$(fn_safe "$(sed -n 's/^'\''title'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")")")"
     dt_created=$(date -d "$(sed -n 's/'\''date_created'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f")" "+%s")
     dt_modified=$(sed -n 's/'\''date_modified'\'':[ ]*'\''\(.*\)'\''$/\1/p' "$f") && dt_modified=$([ -n "$dt_modified" ] && date -d "$dt_modified" "+%s" || echo $dt_created)
     f2="$f" && [ -n "$(echo "$f2" | sed -n '/^'$path_escaped'/p')" ] && f2=".${f2:${#path_}}"
