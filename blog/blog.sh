@@ -363,23 +363,23 @@ fn_list() {
       v="["v"]"
     } else if (idx == column_idx_title) {
       if (sel == 1)
-        v="${CLR_GRN}"v"${CLR_OFF}"
+        v="'${CLR_GRN}'"v"'${CLR_OFF}'"
       else
-        v="${CLR_RED}"v"${CLR_OFF}"
+        v="'${CLR_RED}'"v"'${CLR_OFF}'"
     } else if (idx == column_idx_date_modified) {
       if (mod == 1)
-        v="${CLR_HL}"v"${CLR_OFF}"
+        v="'${CLR_HL}'"v"'${CLR_OFF}'"
       else
-        v="${CLR_HL}${CLR_OFF}"v
+        v="'${CLR_HL}${CLR_OFF}'"v
     } else if (idx == sort_idx)
-      v="${CLR_HL}${CLR_OFF}"v
+      v="'${CLR_HL}${CLR_OFF}'"v
     r=r"\t"v
   }
   gsub(/^\t/,"",r)
   print r
 }' FS=$'\t')"
   echo -e "# $target entries\n"
-  echo -e "$header\n$(eval "echo -e \"$tb\"")" | column -t -s$'\t'
+  echo -e "$header\n$(echo -e "$tb")" | column -t -s$'\t'
 }
 
 fn_menu_alert() {
