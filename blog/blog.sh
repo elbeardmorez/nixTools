@@ -260,7 +260,7 @@ fn_mod() {
   res=$(fn_decision "edit title$([ -n "$data" ] && echo " [$(fn_sample 50 "$data")]")?" "ynx")
   [ "x$res" = "xx" ] && exit 0
   [ "x$res" = "xy" ] &&\
-    fn_write_data "title" "$f.tmp" "$(fn_input_line "title" "$data")"
+    fn_write_data "title" "$f.tmp" "$(fn_unquote "$(fn_input_line "title" "$data")")"
 
   # edit content
   data="$(fn_read_data "content" "$f.tmp")"
