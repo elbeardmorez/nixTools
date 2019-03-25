@@ -517,8 +517,8 @@ fn_menu() {
           reset=1
           ;;
         "$CHR_ARR_D")
-          [[ ${#files[@]} -eq 0 || ( -n $idx && $idx -eq ${#files[@]} ) ]] && no_op=1 && continue
-          idx=$([ -n $idx ] && echo $(($idx+1)) || echo 1)
+          [[ ${#files[@]} -eq 0 || ( -n "$idx" && $idx -eq ${#files[@]} ) ]] && no_op=1 && continue
+          idx=$([ -n "$idx" ] && echo $(($idx+1)) || echo 1)
           reset=1
           ;;
         "s")
