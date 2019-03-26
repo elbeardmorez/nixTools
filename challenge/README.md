@@ -18,6 +18,9 @@ where MODE can be:
         -nss, --no-subshell  : don't drop into a subshell at the target
                                location
         -dec, --dump-edit-command  : echo editor command before exit
+        -eec[=VAR], --export-edit-command[=VAR]
+           : enables exporting of the derived editor command to the
+             subshell var 'VAR' (default: challenge_)
       TYPE  : a supported challenge type
         hackerrank  : requires challenge description pdf and testcases
                       zip archive files

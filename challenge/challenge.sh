@@ -22,6 +22,10 @@ type_exts["c++"]="cpp"
 cwd="$PWD"
 editor="${EDITOR:-vim}"
 dump_types_default="py|js|cs"
+declare -a cmd_args_editor
+case $editor in
+  "vim") cmd_args_editor[${#cmd_args_editor[@]}]="-p" ;;  # open files in tabs
+esac
 
 help() {
   echo -e "\nSYNTAX: $SCRIPTNAME [MODE [MODE_ARGS]]
@@ -35,6 +39,9 @@ help() {
         -nss, --no-subshell  : don't drop into a subshell at the target
                                location
         -dec, --dump-edit-command  : echo editor command before exit
+        -eec[=VAR], --export-edit-command[=VAR]
+           : enables exporting of the derived editor command to the
+             subshell var 'VAR' (default: $SCRIPTNAME)
       TYPE  : a supported challenge type
         hackerrank  : requires challenge description pdf and testcases
                       zip archive files
@@ -69,6 +76,8 @@ case "$mode" in
     edit=1
     subshell=1
     dump_edit_command=0
+    export_edit_command=0
+    env_var="$SCRIPTNAME"
     declare -a mode_args
     l=0
     while [ $l -lt ${#args[@]} ]; do
@@ -80,6 +89,7 @@ case "$mode" in
         "ne"|"no-edit") edit=0 ;;
         "nss"|"no-subshell") subshell=0 ;;
         "dec"|"dump-edit-command") dump_edit_command=1 ;;
+        "eec"|"export-edit-command") export_edit_command=1 && [ -n "$v" ] && env_var="$v" ;;
         *) mode_args[${#mode_args[@]}]="$kv" ;;
       esac
       l=$(($l+1))
@@ -139,8 +149,9 @@ case "$mode" in
           [ ${#exts[@]} -gt 0 ] && break
         done
         lexts=${#exts[@]}
-        files=()
-        if [[ $lexts -gt 0 && ( $edit || $dump_edit_command ) ]]; then
+        s_cmd_edit="$editor ${cmd_args_editor[*]}"
+        if [[ $lexts -gt 0 &&\
+              ( $edit || $dump_edit_command || $export_edit_command ) ]]; then
           while [ $lexts -gt 0 ]; do
             idx=$(echo "$RANDOM % ($lexts)" | bc)
             [ $DEBUG -gt 0 ] && echo "[debug] ext idx: '$idx'" 1>&2
@@ -150,21 +161,17 @@ case "$mode" in
             lexts=$(($lexts-1))
             target="$name.$ext"
             [ ! -f "$target" ] && touch "$target"
-            files[${#files[@]}]="$target"
+            s_cmd_edit+=" \"$target\"";
           done
-          declare -a cmd_args_editor
-          case $editor in
-            "vim") cmd_args_editor[${#cmd_args_editor[@]}]="-p" ;;  # open files in tabs
-          esac
           [ $edit -eq 1 ] &&\
-            "$editor" "${cmd_args_editor[@]}" "${files[@]}"
+            eval "$s_cmd_edit"
         fi
+        [ $export_edit_command -eq 1 ] &&\
+          eval "export $env_var='$s_cmd_edit'"
         [ $subshell -eq 1 ] &&\
           exec $(fn_shell)
-        if [ $dump_edit_command -eq 1 ]; then
-          files_=""; for f in "${files[@]}"; do files_+=" \"$f\""; done; files_="${files_:1}"
-          echo "edit command:" 1>&2 && echo "$editor" "${cmd_args_editor[@]}" $files_
-        fi
+        [ $dump_edit_command -eq 1 ] &&\
+          echo "edit command:" 1>&2 && echo "$s_cmd_edit"
         ;;
 
       *)
