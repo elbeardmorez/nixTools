@@ -445,7 +445,7 @@ fn_process() {
         fi
         if [[ $diff_format_paths -eq 1 && -e $diff_pathfile && -e "$diff_pathfile" ]]; then
           # modify target paths
-          target_base_path="$DIFF_TARGET_BASE_PATH"
+          target_base_path="$(fn_rx_escape "sed" "$DIFF_TARGET_BASE_PATH")"
           [ -n "$target_base_path" ] && \
             target_base_path="$(echo "$target_base_path" | sed 's/\/*$//g')\/"
           target_file="$DIFF_TARGET_FILE"
