@@ -167,7 +167,7 @@ fn_process() {
     files="$(find "$target" "${cmdargs_find[@]}" -iregex "$rx")"
     matches+="\n$files"
     count=$(echo -e "$files" | wc -l)
-    [ $DEBUG -ge 1 ] && echo "[debug] searched target '$target' for '${search[@]}, matched $count file$([ $count -ne 1 ] && echo "s")'" 1>&2
+    [ $DEBUG -ge 1 ] && echo "[debug] searched target '$target' for '${search[*]}, matched $count file$([ $count -ne 1 ] && echo "s")'" 1>&2
   done
   matches="${matches:2}"
   IFS=$'\n'; files=($(echo -e "$matches")); IFS="$IFSORG"
@@ -181,7 +181,7 @@ fn_process() {
     i=0
     for f in "${files[@]}"; do
       [ -z "$(echo "$f" | sed -n '/\('"$blacklist"'\)/p')" ] &&\
-         files2[$i]="$f" && i=$(($i+1))
+         files2[$i]="$f" && i=$((i+1))
     done
 
     filtered=$((${#files[@]}-${#files2[@]}))
@@ -195,14 +195,14 @@ fn_process() {
   if [ -n "$target_matches" ]; then
     [ ! -d "$target_matches" ] && mkdir -p "$target_matches"
     fn_clean "$target_matches" $interactive_cleaning
-    for f in ${files[@]}; do cp -a --parents "$f" "$target_matches/"; done
-    echo "[info] dumped ${#files[@]} matches to '$target_matches'" 1>&2
+    for f in "${files[@]}"; do cp -a --parents "$f" "$target_matches/"; done
+    echo "[info] dumped ${#files[*]} matches to '$target_matches'" 1>&2
   fi
 
   maxlen_path=4
   maxlen_size=4
   s=""
-  for f in ${files[@]}; do
+  for f in "${files[@]}"; do
     [ ${#f} -gt $maxlen_path ] && maxlen_path=${#f}
     i=`stat -L "$f"`
     ts=`echo -e "$i" | grep "Modify" | cut -d' ' -f2- | xargs -I '{}' date -d '{}' '+%s'`
@@ -237,7 +237,7 @@ fn_process() {
       n2="${names[$l2]}"
       g2=${groups[$l2]}
       if [[ -n "$g" && -n "$g2" ]]; then
-        matches_=$(($matches_+1))
+        matches_=$((matches_+1))
       else
         # test for variant basename match
         match=0
@@ -270,8 +270,8 @@ fn_process() {
     done
     # allocate gid
     new=0
-    [ -z "$g" ] && group=$(($group+1)) && new=1
-    for match in ${matches[@]}; do
+    [ -z "$g" ] && group=$((group+1)) && new=1
+    for match in "${matches[@]}"; do
       idx="${match%|*}"
       type="${match#*|}"
       [ $DEBUG -ge 2 ] &&\
@@ -280,14 +280,14 @@ fn_process() {
       [ -z ${groups[$idx]} ] && groups[$idx]=${g:-$group}
     done
     groups[$l]=${g:-$group}
-    matches_=$(($matches_+${#matches[@]}-1))
+    matches_=$((matches_+${#matches[@]}-1))
     [ $matches_ -eq ${#names[@]} ] && break
   done
   grouped=""
   l=0
   for r in "${sorted[@]}"; do
     grouped+="\n$r\t${groups[$l]}"
-    l=$(($l+1))
+    l=$((l+1))
   done
   sorted="${grouped:2}"
   [ $DEBUG -ge 2 ] && echo "[debug] timestamp sorted table with group allocation" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo "" 1>&2
@@ -302,16 +302,16 @@ fn_process() {
       sz="$(echo "${sorted_size[$l1]}" | cut -d$'\t' -f$column_idx_size)"
       f="$(echo "${sorted_size[$l1]}" | cut -d$'\t' -f$column_idx_file)"
       compared_dupe+="\n${sorted_size[$l1]}\t0"  # unique or first
-      l1=$(($l1+1))
+      l1=$((l1+1))
       l2=0
       s=()
-      while [[ $(($l1+$l2)) -lt ${#sorted_size[@]} && \
-               $sz -eq $(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f$column_idx_size) ]]; do
+      while [[ $((l1+l2)) -lt ${#sorted_size[@]} && \
+               $sz -eq $(echo "${sorted_size[$((l1+l2))]}" | cut -d$'\t' -f$column_idx_size) ]]; do
         # collect any files with same size as first/base, yet to be deemed 'dupe'
-        f2="$(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f$column_idx_file)"
-        dupe="$(echo "${sorted_size[$(($l1+$l2))]}" | cut -d$'\t' -f$column_idx_dupe)"
+        f2="$(echo "${sorted_size[$((l1+l2))]}" | cut -d$'\t' -f$column_idx_file)"
+        dupe="$(echo "${sorted_size[$((l1+l2))]}" | cut -d$'\t' -f$column_idx_dupe)"
         [ -z "$dupe" ] && s[${#s[@]}]="$f2"
-        l2=$(($l2+1))
+        l2=$((l2+1))
       done
       if [ ${#s[@]} -gt 0 ]; then
         # make comparison
@@ -322,22 +322,22 @@ fn_process() {
         IFS=$'\n'; compared=($(echo -e "$compared")); IFS="$IFSORG"
         s=""
         for l3 in $(seq 0 1 $((l2-1))); do
-          s2="${sorted_size[$(($l1+$l3))]}"
+          s2="${sorted_size[$((l1+l3))]}"
           c="${compared[$l3]}"
-          s+="\n$([ ${c#*$'\t'} -eq 1 ] && echo "${s2%$'\t'*%}\t1" || echo "${sorted_size[$(($l1+$l3))]}")"
+          s+="\n$([ ${c#*$'\t'} -eq 1 ] && echo "${s2%$'\t'*%}\t1" || echo "${sorted_size[$((l1+l3))]}")"
         done
         # update set / replace subset with any dupes first
         IFS=$'\n'; compared=($(echo -e "$s" | sort -t$'\t' -k$column_idx_dupe -r)); IFS="$IFSORG"
         dupes_count=0
         for l3 in $(seq 0 1 $((l2-1))); do
-          sorted_size[$(($l1+$l3))]="${compared[$l3]}"
+          sorted_size[$((l1+l3))]="${compared[$l3]}"
           if [ -n "$(echo "${compared[$l3]}" | cut -d$'\t' -f$column_idx_dupe)" ]; then
             compared_dupe+="\n${compared[$l3]}"  # dupe
-            dupes_count=$(($dupes_count+1))
+            dupes_count=$((dupes_count+1))
           fi
         done
         # move index beyond dupes for next base
-        l1=$(($l1+$dupes_count))
+        l1=$((l1+dupes_count))
       fi
     done
     compared_dupe="${compared_dupe:2}"
@@ -356,7 +356,7 @@ fn_process() {
     l=0
     for pss in "${precedence_sets_searches[@]}"; do
       s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*'"$(fn_rx_escape "sed" "$pss")"'[^\t]*\)$/_'$l'_\t\1/')"
-      l=$(($l+1))
+      l=$((l+1))
     done
     s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*\)$/_'$l'_\t\1/')"
     [ $DEBUG -ge 2 ] && echo "[debug] timestamp sorted precedence sets keyed table" 1>&2 && echo -e "$s" | column -t -s $'\t' 1>&2 && echo "" 1>&2
@@ -390,10 +390,10 @@ fn_process() {
       for r in "${sorted[@]}"; do
         [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
         IFS=$'\t'; fields=($(echo -e "$r")); IFS="$IFSORG"
-        ts=${fields[$(($column_idx_date-1))]}
-        sz=${fields[$(($column_idx_size-1))]}
-        f=${fields[$(($column_idx_file-1))]}
-        g=${fields[$(($column_idx_group-1))]}
+        ts=${fields[$((column_idx_date-1))]}
+        sz=${fields[$((column_idx_size-1))]}
+        f=${fields[$((column_idx_file-1))]}
+        g=${fields[$((column_idx_group-1))]}
         last="${last[$g]}"
         last[$g]="$f"
         diff_bin_args=("-u" "$last" "$f")
@@ -453,30 +453,30 @@ fn_process() {
           sed -i '/^+\{3\}[ \t]*./{/\/dev\/null/b;s/\([+-]\{3\}[ \t]*\).*\/\([^\t]*\)\(.*\)$/\1b\/'"${target_base_path}${target_file:-\2}"'\3/}' "$diff_pathfile"
         fi
         last="$f"
-        l=$(($l+1))
+        l=$((l+1))
       done
       [ -n "$target_diffs" ] && \
-        echo "[info] dumped $(($l-1)) diffs to '$target_diffs'" 1>&2
+        echo "[info] dumped $((l-1)) diffs to '$target_diffs'" 1>&2
     fi
   fi
 
   # list
   echo "[info] file list:"
   date_format="%Y%b%d %H:%M:%S %z"
-  field_widths=(25 $(($maxlen_size+1)) $(($maxlen_path+1)))
+  field_widths=(25 $((maxlen_size+1)) $((maxlen_path+1)))
   field_order=(2 1 0)
   # header
-  printf "%s%$((${field_widths[$(($column_idx_file-1))]}-4))s%$((${field_widths[$(($column_idx_size-1))]}-4))s%s %s%$((${field_widths[$(($column_idx_date-1))]}-4))s\n" "path" " " " " "size" "date" " "
+  printf "%s%$((${field_widths[$((column_idx_file-1))]}-4))s%$((field_widths[$((column_idx_size-1))]-4))s%s %s%$((${field_widths[$((column_idx_date-1))]}-4))s\n" "path" " " " " "size" "date" " "
   # rows
   for r in "${sorted[@]}"; do
     [ $DEBUG -ge 3 ] && echo "[debug] revision: '$r' | fields: ${#fields[@]}"
     IFS=$'\t'; fields=($(echo -e "$r")); IFS="$IFSORG"
-    for l in ${field_order[@]}; do
+    for l in "${field_order[@]}"; do
       f="${fields[$l]}"
-      if [ $l -eq $(($column_idx_file-1)) ]; then
+      if [ $l -eq $((column_idx_file-1)) ]; then
         # align left
-        printf "%s%$((${field_widths[$l]}-${#f}))s" "$f" " "
-      elif [ $l -eq $(($column_idx_date-1)) ]; then
+        printf "%s%$((field_widths[$l]-${#f}))s" "$f" " "
+      elif [ $l -eq $((column_idx_date-1)) ]; then
         d=$(date --date "@$f" "+$date_format")
         printf "%${field_widths[$l]}s" "$d"
       else
@@ -511,7 +511,7 @@ while [ -n "$1" ]; do
   esac
   shift
 done
-[ $DEBUG -ge 1 ] && echo "[debug] search: [${search[@]}], target: `basename $target`, diffs: $diffs: diffs target: $target_diffs, matches target: $target_matches" 1>&2
+[ $DEBUG -ge 1 ] && echo "[debug] search: [${search[*]}], target: `basename $target`, diffs: $diffs: diffs target: $target_diffs, matches target: $target_matches" 1>&2
 
 # option validation
 ## search
