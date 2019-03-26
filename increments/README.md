@@ -48,7 +48,7 @@ environment variables:
   INCREMENTS_PRECEDENCE  : as detailed above
   DIFF_TARGET_BASE_PATH  : base path of file to be use in any
                            incremental diffs generated e.g.
-                           'a/GIT_DIFF_BASE_PATH/FILE'
+                           'a/DIFF_TARGET_BASE_PATH/FILE'
   DIFF_TARGET_FILE  : file name override for any incremental diffs
                       generated. e.g. 'b/DIFF_TARGET_FILE'
   GIT_DIFF_SUBJECT  : subject line for any incremental diffs generated
