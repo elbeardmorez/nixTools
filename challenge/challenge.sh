@@ -72,13 +72,15 @@ case "$mode" in
     declare -a mode_args
     l=0
     while [ $l -lt ${#args[@]} ]; do
-      arg="${args[$l]}"
-      s="$(printf " $arg" | awk '{ if (/^[ ]*-+/) { gsub(/^[ ]*-+/,""); print(tolower($0)) } }')"
+      kv="${args[$l]}"
+      k=${kv%%=*}
+      v="" && [ "x$k" != "x$kv" ] && v="${kv#*=}"
+      s="$(printf " $k" | awk '{ if (/^[ ]*-+/) { gsub(/^[ ]*-+/,""); print(tolower($0)) } }')"
       case "$s" in
         "ne"|"no-edit") edit=0 ;;
         "nss"|"no-subshell") subshell=0 ;;
         "dec"|"dump-edit-command") dump_edit_command=1 ;;
-        *) mode_args[${#mode_args[@]}]="$arg" ;;
+        *) mode_args[${#mode_args[@]}]="$kv" ;;
       esac
       l=$(($l+1))
     done
