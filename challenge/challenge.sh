@@ -188,6 +188,7 @@ case "$mode" in
           done
         fi
         [ ! -e "input" ] && unzip *zip 2>/dev/null 1>&2
+
         # open some appropriate files for editing
         exts=($(fn_exts "$target"))
         # ensure files
