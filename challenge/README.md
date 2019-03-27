@@ -26,6 +26,11 @@ where MODE can be:
                       zip archive files
       CATEGORYx  : target directory name parts
       NAME  : solution name
+  edit [OPTIONS] SEARCH  : search for and re-edit an existing challenge
+    with:
+      OPTIONS  : supports the following option as described above:
+        -nss | --no-subshell, -dec | --dump-edit-command,
+        -eec[=VAR] | --export-edit-command[=VAR]
   dump [LANGUAGES] TARGET  : search TARGET for files suffixed with
                              items in the delimited LANGUAGES list
                              (default: 'py|js|cs') and dump matches

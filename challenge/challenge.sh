@@ -47,6 +47,11 @@ help() {
                       zip archive files
       CATEGORYx  : target directory name parts
       NAME  : solution name
+  edit [OPTIONS] SEARCH  : search for and re-edit an existing challenge
+    with:
+      OPTIONS  : supports the following option as described above:
+        -nss | --no-subshell, -dec | --dump-edit-command,
+        -eec[=VAR] | --export-edit-command[=VAR]
   dump [LANGUAGES] TARGET  : search TARGET for files suffixed with
                              items in the delimited LANGUAGES list
                              (default: 'py|js|cs') and dump matches
@@ -104,7 +109,7 @@ fn_edit_command() {
 declare -a args
 while [ -n "$1" ]; do
   arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-  [[ -z $mode && -n "$(printf "$arg" | sed -n '/^\(h\|help\|new\|dump\)$/p')" ]] && mode="$arg" && shift && continue
+  [[ -z $mode && -n "$(printf "$arg" | sed -n '/^\(h\|help\|new\|edit\|dump\)$/p')" ]] && mode="$arg" && shift && continue
   case "$arg" in
     *) args[${#args[@]}]="$1"
   esac
@@ -215,6 +220,57 @@ case "$mode" in
         help && echo "[error] unsupported type '$type'" && exit 1
         ;;
     esac
+    ;;
+
+  "edit")
+    subshell=1
+    dump_edit_command=0
+    env_var="$SCRIPTNAME"
+    declare target
+    declare -a targets
+    declare search
+
+    # process args
+    l=0
+    while [ $l -lt ${#args[@]} ]; do
+      kv="${args[$l]}"
+      k=${kv%%=*}
+      v="" && [ "x$k" != "x$kv" ] && v="${kv#*=}"
+      s="$(printf " $k" | awk '{ if (/^[ ]*-+/) { gsub(/^[ ]*-+/,""); print(tolower($0)) } }')"
+      case "$s" in
+        "nss"|"no-subshell") subshell=0 ;;
+        "dec"|"dump-edit-command") dump_edit_command=1 ;;
+        "eec"|"export-edit-command") [ -n "$v" ] && env_var="$v" ;;
+        *)
+          [ -n "$search" ] && echo "[error] unsupported arg '${args[$l]}'" && exit 1
+          search="${args[$l]}"
+          ;;
+      esac
+      l=$((l+1))
+    done
+
+    # set target
+    IFS=$'\n'; targets=($(find . -type d -iname "*$search" | sed 's/^.*\///')); IFS="$IFSORG"
+    matches=${#targets[@]}
+    case $matches in
+      0) echo "[info] no matches found" && exit 0 ;;
+      1) target="${targets[0]}"   ;;
+      *) echo "[info] multiple matches found, please try a more specific search" && exit 0 ;;
+    esac
+    cd "$target" || exit 1
+
+    # set edit command
+    s_cmd_edit="$(fn_edit_command "$target")"
+
+    # execute
+    if [ $subshell -eq 0 ]; then
+      eval "$s_cmd_edit"
+    else
+      eval "export $env_var='$s_cmd_edit'"
+      exec $(fn_shell)
+    fi
+    [ $dump_edit_command -eq 1 ] &&\
+      echo "edit command:" 1>&2 && echo "$s_cmd_edit"
     ;;
 
   "dump")
