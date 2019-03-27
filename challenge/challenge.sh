@@ -54,6 +54,52 @@ help() {
 "
 }
 
+fn_exts() {
+  declare target
+  declare map
+  target="$1" && shift
+  IFSTMP="$IFS"
+  IFS="|" parts=($(echo "$target" | sed 's/\.-\./|/g')); IFS="$IFSTMP"
+  exts=""
+  for p in "${parts[@]}"; do
+    map="${type_exts["$p"]}"
+    [ -n "$map" ] && exts="$map" && break
+  done
+  echo $exts
+}
+
+fn_files() {
+  declare target
+  declare name
+  declare file
+  target="$1" && shift
+  quote=0 && [ $# -gt 0 ] && quote=$1 && shift
+  name="$(echo "$target" | sed 's/^.*\.-\.//')"
+  IFSTMP="$IFS"
+  IFS="$IFSORG"; exts=($(fn_exts "$target")); IFS="$IFSTMP"
+  lexts=${#exts[@]}
+  while [ $lexts -gt 0 ]; do
+    idx=$(echo "$RANDOM % ($lexts)" | bc)
+    [ $DEBUG -gt 0 ] && echo "[debug] ext idx: '$idx'" 1>&2
+    ext="${exts[$idx]}"
+    unset 'exts['$idx']'
+    IFSTMP="$IFS"
+    IFS="$IFSORG"; exts=($(echo "${exts[@]}")); IFS="$IFSTMP"
+    lexts=$(($lexts-1))
+    file="$name.$ext"
+    [ $quote -eq 1 ] && file="\"$file\""
+    echo "$file"
+  done
+}
+
+fn_edit_command() {
+  declare target
+  target="$1" && shift
+  IFS=$'\n'; files=($(fn_files "$target" 1)); IFS="$IFSORG"
+  for qf in "${files[@]}"; do s_files+=" $qf"; done
+  echo "$editor ${cmd_args_editor[*]} ${s_files:1}"
+}
+
 # args parse
 declare -a args
 while [ -n "$1" ]; do
@@ -143,29 +189,19 @@ case "$mode" in
         fi
         [ ! -e "input" ] && unzip *zip 2>/dev/null 1>&2
         # open some appropriate files for editing
-        exts=()
-        for p in ${args[@]}; do
-          exts=($(echo "${type_exts["$p"]}"))
-          [ ${#exts[@]} -gt 0 ] && break
+        exts=($(fn_exts "$target"))
+        # ensure files
+        for ext in "${exts[@]}"; do
+          [ ! -f "$name.$ext" ] && touch "$name.ext"
         done
-        lexts=${#exts[@]}
+        # editing
         s_cmd_edit="$editor ${cmd_args_editor[*]}"
-        if [[ $lexts -gt 0 &&\
-              ( $edit || $dump_edit_command || $export_edit_command ) ]]; then
-          while [ $lexts -gt 0 ]; do
-            idx=$(echo "$RANDOM % ($lexts)" | bc)
-            [ $DEBUG -gt 0 ] && echo "[debug] ext idx: '$idx'" 1>&2
-            ext="${exts[$idx]}"
-            unset 'exts['$idx']'
-            exts=($(echo "${exts[@]}"))
-            lexts=$(($lexts-1))
-            target="$name.$ext"
-            [ ! -f "$target" ] && touch "$target"
-            s_cmd_edit+=" \"$target\"";
-          done
-          [ $edit -eq 1 ] &&\
-            eval "$s_cmd_edit"
-        fi
+        [[ ${#exts[@]} -gt 0 &&\
+           ( $edit || $dump_edit_command || $export_edit_command ) ]] &&\
+          s_cmd_edit="$(fn_edit_command "$target")"
+
+        [ $edit -eq 1 ] &&\
+          eval "$s_cmd_edit"
         [ $export_edit_command -eq 1 ] &&\
           eval "export $env_var='$s_cmd_edit'"
         [ $subshell -eq 1 ] &&\
