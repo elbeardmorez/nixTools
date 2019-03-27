@@ -182,7 +182,7 @@ case "$mode" in
             case "$ext" in
               "pdf") f2="$name.$ext" ;;
               "zip") f2="$name.testcases.$ext" ;;
-              *) echo "unexpected file '$f'" && exit 1
+              *) echo "[error] unexpected file '$f'" && exit 1
             esac
             [ ! -e "$f2" ] && mv "$f" "$f2"
           done
