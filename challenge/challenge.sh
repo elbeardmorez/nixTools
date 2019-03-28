@@ -176,7 +176,7 @@ case "$mode" in
             search="${search%.*}"
             [ $DEBUG -gt 0 ] && echo "[debug] search: '$search'" 1>&2
             [ ${#search} -eq $len ] && break
-            IFS=$'\n'; files=($(find ../ -maxdepth 1 -iregex ".*$search.*\(pdf\|zip\)")); IFS=$IFSORG
+            IFS=$'\n'; files=($(find $cwd -maxdepth 1 -iregex ".*$search.*\(pdf\|zip\)")); IFS=$IFSORG
             [ $DEBUG -gt 0 ] && echo "[debug] files#: '${#files[@]}'" 1>&2
             [ ${#files[@]} -eq 2 ] && echo "located challenge description / testcase files" && break
           done
