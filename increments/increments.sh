@@ -369,7 +369,8 @@ fn_process() {
 
   # diffs
   declare -a last
-  for l in $(seq 0 1 $((${#groups[@]}))); do
+  last[0]="-"
+  for l in $(seq 1 1 ${#groups[@]}); do
     last[$l]="/dev/null"
   done
   if [[ $diffs -eq 1 || -n "$target_diffs" ]]; then
