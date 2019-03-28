@@ -250,7 +250,7 @@ case "$mode" in
     done
 
     # set target
-    IFS=$'\n'; targets=($(find . -type d -iname "*$search" | sed 's/^.*\///')); IFS="$IFSORG"
+    IFS=$'\n'; targets=($(find . -type d -iname "*$search*" | sed 's/^.*\///')); IFS="$IFSORG"
     matches=${#targets[@]}
     case $matches in
       0) echo "[info] no matches found" && exit 0 ;;
