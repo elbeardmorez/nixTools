@@ -250,7 +250,7 @@ case "$mode" in
     done
 
     # set target
-    IFS=$'\n'; targets=($(find . -type d -iname "*$search*" | sed 's/^.*\///')); IFS="$IFSORG"
+    IFS=$'\n'; targets=($(find . -type d -iname "*$search*")); IFS="$IFSORG"
     matches=${#targets[@]}
     case $matches in
       0) echo "[info] no matches found" && exit 0 ;;
@@ -258,6 +258,7 @@ case "$mode" in
       *) echo "[info] multiple matches found, please try a more specific search" && exit 0 ;;
     esac
     cd "$target" || exit 1
+    target="$(basename "$target")"
 
     # set edit command
     s_cmd_edit="$(fn_edit_command "$target")"
