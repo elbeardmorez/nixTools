@@ -198,7 +198,7 @@ case "$mode" in
         exts=($(fn_exts "$target"))
         # ensure files
         for ext in "${exts[@]}"; do
-          [ ! -f "$name.$ext" ] && touch "$name.ext"
+          [ ! -f "$name.$ext" ] && touch "$name.$ext"
         done
         # editing
         s_cmd_edit="$editor ${cmd_args_editor[*]}"
