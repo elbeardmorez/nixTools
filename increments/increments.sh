@@ -396,8 +396,8 @@ fn_process() {
         f=${fields[$((column_idx_file-1))]}
         g=${fields[$((column_idx_group-1))]}
         last="${last[$g]}"
-        last[$g]="$f"
         diff_bin_args=("-u" "$last" "$f")
+        last[$g]="$f"
         diff_pathfile="$target_diffs/$ts.diff"
         [ $diff_numeric_prefixes -eq 1 ] &&\
           diff_pathfile="$(printf "%s/%04d_%s" "$target_diffs" $l "$ts.diff")"
