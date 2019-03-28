@@ -254,7 +254,7 @@ case "$mode" in
     matches=${#targets[@]}
     case $matches in
       0) echo "[info] no matches found" && exit 0 ;;
-      1) target="${targets[0]}"   ;;
+      1) target="${targets[0]}" ;;
       *) echo "[info] multiple matches found, please try a more specific search" && exit 0 ;;
     esac
     cd "$target" || exit 1
