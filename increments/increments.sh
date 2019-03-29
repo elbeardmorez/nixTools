@@ -307,7 +307,8 @@ fn_process() {
     l=$((l+1))
   done
   sorted="${grouped:2}"
-  [ $DEBUG -ge 2 ] && echo "[debug] timestamp sorted table with group allocation" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo "" 1>&2
+  sorted="$(echo -e "${grouped:2}" | sort -t$'\t' -k$column_idx_group -k$column_idx_date)"
+  [ $DEBUG -ge 2 ] && echo "[debug] group > timestamp sorted table" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo "" 1>&2
 
   # duplicates
   if [ $remove_dupes -eq 1 ]; then
