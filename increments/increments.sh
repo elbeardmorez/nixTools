@@ -46,6 +46,7 @@ column_idx_file=3
 column_idx_group=4
 column_idx_last=$column_idx_group
 declare column_idx_dupe
+declare column_idx_precedence
 
 help() {
   echo -e "
@@ -354,17 +355,19 @@ fn_process() {
 
   # precedence
   if [ -n "$precedence" ]; then
+    column_idx_precedence=$((column_idx_last+1))
+    column_idx_last=$column_idx_precedence
+
     IFS=$'|'; precedence_sets_searches=($(echo "$precedence")); IFS="$IFSORG"
     s="$sorted"
     l=0
     for pss in "${precedence_sets_searches[@]}"; do
-      s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(\([^\t]\+\t\)\{'$((column_idx_file-1))'\}[^\t]*'"$(fn_rx_escape "sed" "$pss")"'[^\t]*\(\t[^\t]\+\)\{'$((column_idx_last-column_idx_file))'\}\)$/_'$l'_\t\1/')"
+      s="$(echo -e "$s" | sed '/^\([^\t]\+\t\)\{'$((column_idx_precedence-1))'\}[0-9]\+/{b;};s/^\(\([^\t]\+\t\)\{'$((column_idx_file-1))'\}[^\t]*'"$(fn_rx_escape "sed" "$pss")"'[^\t]*\(\(\t[^\t]\+\)\+$\|$\)\)/\1\t'$l'/')"
       l=$((l+1))
     done
-    s="$(echo -e "$s" | sed '/^_[0-9]\+_/{b;};s/^\(.*\)$/_'$l'_\t\1/')"
-    [ $DEBUG -ge 2 ] && echo "[debug] timestamp sorted precedence sets keyed table" 1>&2 && echo -e "$s" | column -t -s $'\t' 1>&2 && echo "" 1>&2
-    sorted="$(echo "$s" | sort | sed 's/^_[0-9]\+_\t//')"
-    [ $DEBUG -ge 2 ] && echo "[debug] timestamp sorted precedence table" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo "" 1>&2
+s="$(echo -e "$s" | sed '/^\([^\t]\+\t\)\{'$((column_idx_precedence-1))'\}[0-9]\+/{b;};s/^\(.*\)$/\1\t'$l'/')"
+    sorted="$(echo "$s" | sort -t$'\t' -k$column_idx_precedence)"
+    [ $DEBUG -ge 2 ] && echo "[debug] precedence > timestamp sorted table" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo "" 1>&2
   fi
 
   # switch to array items
