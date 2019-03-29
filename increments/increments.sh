@@ -124,6 +124,21 @@ fn_clean() {
   fi
 }
 
+fn_precedence() {
+  declare s_table
+  declare pss
+  s_table="$1" && shift
+  pss="$1" && shift
+
+  IFS=$'|'; precedence_sets_searches=($(echo "$precedence")); IFS="$IFSORG"
+  l=0
+  for pss in "${precedence_sets_searches[@]}"; do
+    s_table="$(echo -e "$s_table" | sed '/^\([^\t]\+\t\)\{'$((column_idx_precedence-1))'\}[0-9]\+/{b;};s/^\(\([^\t]\+\t\)\{'$((column_idx_file-1))'\}[^\t]*'"$(fn_rx_escape "sed" "$pss")"'[^\t]*\(\(\t[^\t]\+\)\+$\|$\)\)/\1\t'$l'/')"
+    l=$((l+1))
+  done
+  echo "$s_table"
+}
+
 fn_process() {
 
   if [ -n "$variants" ]; then
@@ -357,17 +372,29 @@ fn_process() {
   if [ -n "$precedence" ]; then
     column_idx_precedence=$((column_idx_last+1))
     column_idx_last=$column_idx_precedence
-
-    IFS=$'|'; precedence_sets_searches=($(echo "$precedence")); IFS="$IFSORG"
-    s="$sorted"
-    l=0
-    for pss in "${precedence_sets_searches[@]}"; do
-      s="$(echo -e "$s" | sed '/^\([^\t]\+\t\)\{'$((column_idx_precedence-1))'\}[0-9]\+/{b;};s/^\(\([^\t]\+\t\)\{'$((column_idx_file-1))'\}[^\t]*'"$(fn_rx_escape "sed" "$pss")"'[^\t]*\(\(\t[^\t]\+\)\+$\|$\)\)/\1\t'$l'/')"
+    s="$(echo -e "$sorted" | sort -t$'\t' -k$column_idx_group)"
+    IFS=$'\n'; rs=($(echo -e "$s")); IFS="$IFSORG"
+    s_=""
+    ss=""
+    g_last=""
+    l=1
+    for r in "${rs[@]}"; do
+      IFS=$'\t'; fields=($(echo -e "$r")); IFS="$IFSORG"
+      g=${fields[$((column_idx_group-1))]}
+      [ -z "$g_last" ] && g_last="$g"
+      if [[ $l -eq ${#rs[@]} || "$g" != "$g_last" ]]; then
+        # process group
+        [ $l -eq ${#rs[@]} ] && ss+="\n$r"
+        s_+="\n$(fn_precedence "${ss:2}" "$precedence")"
+        [ $l -ne ${#rs[@]} ] && ss="\n$r"
+      else
+        ss+="\n$r"
+      fi
       l=$((l+1))
     done
-s="$(echo -e "$s" | sed '/^\([^\t]\+\t\)\{'$((column_idx_precedence-1))'\}[0-9]\+/{b;};s/^\(.*\)$/\1\t'$l'/')"
-    sorted="$(echo "$s" | sort -t$'\t' -k$column_idx_precedence)"
-    [ $DEBUG -ge 2 ] && echo "[debug] precedence > timestamp sorted table" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo "" 1>&2
+    s="$(echo -e "${s_:2}" | sed '/^\([^\t]\+\t\)\{'$((column_idx_precedence-1))'\}[0-9]\+/{b;};s/^\(.*\)$/\1\t'$l'/')"
+    sorted="$(echo "$s" | sort -t$'\t' -k$column_idx_group -k$column_idx_precedence -k$column_idx_date)"
+    [ $DEBUG -ge 2 ] && echo "[debug] group > precedence > timestamp sorted table" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo "" 1>&2
   fi
 
   # switch to array items
