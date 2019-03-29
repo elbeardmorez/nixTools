@@ -345,8 +345,7 @@ fn_process() {
     done
     compared_dupe="${compared_dupe:2}"
     [ $DEBUG -ge 2 ] && echo "[debug] duplicate tested table" 1>&2 && echo -e "$compared_dupe" | column -t -s $'\t' 1>&2 && echo "" 1>&2
-    sorted="$(echo -e "$compared_dupe" | sort -t$'\t' -k$column_idx_date | sed '/\t1$/d;s/\t0$//')"
-    column_idx_last=$((column_idx_last-1))
+    sorted="$(echo -e "$compared_dupe" | sort -t$'\t' -k$column_idx_date | sed '/\t1$/d;')"
     [ $DEBUG -ge 2 ] && echo "[debug] timestamp sorted duplicate free table" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo "" 1>&2
   fi
 
