@@ -44,7 +44,8 @@ column_idx_date=1
 column_idx_size=2
 column_idx_file=3
 column_idx_group=4
-column_idx_dupe=5
+column_idx_last=$column_idx_group
+declare column_idx_dupe
 
 help() {
   echo -e "
@@ -294,6 +295,8 @@ fn_process() {
 
   # duplicates
   if [ $remove_dupes -eq 1 ]; then
+    column_idx_dupe=$((column_idx_last+1))
+    column_idx_last=$column_idx_dupe
 
     IFS=$'\n'; sorted_size=($(echo -e "$sorted" | sort -t $'\t' -n -r -k$column_idx_size)); IFS="$IFSORG" # sort by size
     l1=0
@@ -343,6 +346,7 @@ fn_process() {
     compared_dupe="${compared_dupe:2}"
     [ $DEBUG -ge 2 ] && echo "[debug] duplicate tested table" 1>&2 && echo -e "$compared_dupe" | column -t -s $'\t' 1>&2 && echo "" 1>&2
     sorted="$(echo -e "$compared_dupe" | sort -t$'\t' -k$column_idx_date | sed '/\t1$/d;s/\t0$//')"
+    column_idx_last=$((column_idx_last-1))
     [ $DEBUG -ge 2 ] && echo "[debug] timestamp sorted duplicate free table" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo "" 1>&2
   fi
 
