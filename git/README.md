@@ -54,6 +54,12 @@ where <OPTION> can be:
                      HEAD of 'linked'
   rd|rescue-dangling  : dump any orphaned commits still accessable to
                         a 'commits' directory
+  doc|dates-order-check [OPTIONS] TARGET
+    : highlight non-chronological TARGET commit(s)
+
+    where OPTIONS can be:
+      -t|--type TYPE  : check on date type TYPE, supporting 'authored'
+                        (default) or 'committed'
 
 *note: optional binary args are supported for commands: log, rebase
 ```

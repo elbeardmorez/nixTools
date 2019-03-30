@@ -56,6 +56,11 @@ help() {
                      HEAD of 'linked'
   rd|rescue-dangling  : dump any orphaned commits still accessable to
                         a 'commits' directory
+  doc|dates-order-check [OPTIONS] TARGET
+    : highlight non-chronological TARGET commit(s)
+\n    where OPTIONS can be:
+      -t|--type TYPE  : check on date type TYPE, supporting 'authored'
+                        (default) or 'committed'
 \n*note: optional binary args are supported for commands: log, rebase
 "
 }
@@ -163,6 +168,70 @@ fn_rebase() {
   [ $? -ne 0 ] && cmdargs[${#cmdargs[@]}]="--root" || cmdargs[${#cmdargs[@]}]="$sha~1"
   echo "[info] rebasing interactively from commit '$commit'"
   git rebase "${cmdargs[@]}"
+}
+
+fn_dates_order_check() {
+  declare type
+  declare target
+  declare prev_commit
+  declare prev_commit_date
+  declare option
+
+  # process options
+  while [ -n "$1" ]; do
+    option="$1"
+    case "$option" in
+      "-t"|"--type") shift; type="$1" && shift ;;
+      *)
+        [ -n "$target" ] && \
+          _help && echo "[error] unrecognised option '$opt" && exit 1
+        target="$opt" && shift
+        ;;
+    esac
+  done
+
+  # default options
+  target="${target:-HEAD}"
+  type="${type:-authored}"
+
+  # verify options
+  [[ "x$type" != "xauthored" && "x$type" != "xcommitted" ]] && \
+    _help && echo "[error] invalid type '%type' set" && exit 1
+  declare -a commits
+  IFS=$'\n'; commits=($(git rev-list --reverse "$target")); IFS="$IFSORG"
+  [ ${#commits[@]} -lt 1 ] && \
+    _help && echo "[error] invalid target '$target'" && exit 1
+
+  prev_commit="$(git rev-list --max-count=1 "${commits[0]}~1")"
+  if [ -n "$prev_commit" ]; then
+    prev_commit_date="$(git log -n1 --format=format:"%$([ "x$type" == "xauthored" ] && echo "a" || echo "c")t" "$prev_commit")"
+  fi
+  git log --reverse --format=format:"%at | %ct | version: $(printf $CLR_BWN)%H$(printf $CLR_OFF)%n %s (%an)" "${cmdargs[@]}" "$target" | awk -v pcd="$prev_commit_date" -v type="$type" '
+BEGIN { last = pcd; }
+{
+  if ( $0 ~ /[0-9]{10} \| [0-9]{10} | version:/ ) {
+    test = ""
+    if (type == "authored") {
+      test = $1;
+      $1=strftime("%Y%b%d %H:%M:%S",$1);
+      if (last != "" && test <= last)
+        $1="'"$(printf ${CLR_RED})"'"$1"'"$(printf ${CLR_OFF})"'";
+      else
+        $1="'"$(printf ${CLR_RED}${CLR_OFF})"'"$1;
+      $3=strftime("%Y%b%d %H:%M:%S",$3);
+    } else if (type == "committed") {
+      test = $3;
+      $3=strftime("%Y%b%d %H:%M:%S",$3);
+      if (last != "" && test <= last)
+        $3="'"$(printf ${CLR_RED})"'"$3"'"$(printf ${CLR_OFF})"'";
+      else
+        $3="'"$(printf ${CLR_RED}${CLR_OFF})"'"$3;
+      $1=strftime("%Y%b%d %H:%M:%S",$1);
+    }
+    last = test;
+  }
+  print $0;
+}'
 }
 
 fn_process() {
@@ -304,6 +373,9 @@ fn_process() {
         [ "x$res" == "xi" ] && continue
         [ "x$res" == "xx" ] && exit
       done
+      ;;
+    "doc"|"dates-order-check")
+      fn_dates_order_check "$@"
       ;;
     *)
       git $command "$@"
