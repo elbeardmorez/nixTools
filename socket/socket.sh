@@ -70,6 +70,9 @@ where OPTION can be:
 }
 
 fn_send() {
+  declare d
+  declare root
+  declare raw
   d="$1"
   raw=$([ -e "$d" ] && echo 0 || echo 1)
   if [ $raw -eq 0 ]; then
