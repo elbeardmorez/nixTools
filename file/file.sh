@@ -8,6 +8,7 @@ set +e
 
 SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
+DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
 
 EDITOR="${EDITOR:-vim}"
@@ -91,7 +92,7 @@ else
 fi
 
 if [ ${#targets[@]} -gt 0 ]; then
-  echo "[info] ${#targets[@]} target$([ ${#targets[@]} -ne 1 ] && echo "s") set for option '$option'"
+  [ $DEBUG -ge 1 ] && echo "[debug] ${#targets[@]} target$([ ${#targets[@]} -ne 1 ] && echo "s") set for option '$option'"
 else
   echo "[info] no targets set for '$target'" && exit 0
 fi
