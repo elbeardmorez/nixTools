@@ -61,17 +61,17 @@ fi
 declare files
 declare -a results
 
-if [ -f $SEARCH ]; then
+if [ -f "$SEARCH" ]; then
   # prioritise local files
   results[${#results[@]}]="$SEARCH"
-elif [[ ! "x$(dirname $SEARCH)" == "x." || "x${SEARCH:0:1}" == "x." ]]; then
+elif [[ ! "x$(dirname "$SEARCH")" == "x." || "x${SEARCH:0:1}" == "x." ]]; then
   # create file
   if [ $interactive -eq 1 ]; then
     # new file. offer creation
     echo -n "[user] file '$SEARCH' does not exist, create it? [y/n]: " 1>&2
     fn_decision >/dev/null || exit
     # ensure path
-    [ -d "$(dirname $SEARCH)" ] || mkdir -p "$(dirname $SEARCH)"
+    [ -d "$(dirname "$SEARCH")" ] || mkdir -p "$(dirname "$SEARCH")"
     touch "$SEARCH"
     results[${#results[@]}]="$SEARCH"
   fi
