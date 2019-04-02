@@ -228,7 +228,7 @@ fn_process() {
     s="$s\n$ts\t$sz\t$f"
   done
   s="${s:2}"
-  sorted="$(echo -e "$s" | sort -t$'\t' -k$column_idx_date)"
+  sorted="$(echo -e "$s" | sort -n -t$'\t' -k$column_idx_date)"
   [ $DEBUG -ge 2 ] && echo "[debug] timestamp sorted table" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo 1>&2
 
   # basename / variant based grouping
@@ -307,7 +307,7 @@ fn_process() {
     l=$((l+1))
   done
   sorted="${grouped:2}"
-  sorted="$(echo -e "${grouped:2}" | sort -t$'\t' -k$column_idx_group -k$column_idx_date)"
+  sorted="$(echo -e "${grouped:2}" | sort -n -t$'\t' -k$column_idx_group -k$column_idx_date)"
   [ $DEBUG -ge 2 ] && echo "[debug] group > timestamp sorted table" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo "" 1>&2
 
   # duplicates
@@ -315,7 +315,7 @@ fn_process() {
     column_idx_dupe=$((column_idx_last+1))
     column_idx_last=$column_idx_dupe
 
-    IFS=$'\n'; sorted_size=($(echo -e "$sorted" | sort -t $'\t' -n -r -k$column_idx_size)); IFS="$IFSORG" # sort by size
+    IFS=$'\n'; sorted_size=($(echo -e "$sorted" | sort -n -t $'\t' -n -r -k$column_idx_size)); IFS="$IFSORG" # sort by size
     l1=0
     compared_dupe=""
     while [ $l1 -lt ${#sorted_size[@]} ]; do
@@ -347,7 +347,7 @@ fn_process() {
           s+="\n$([ ${c#*$'\t'} -eq 1 ] && echo "${s2%$'\t'*%}\t1" || echo "${sorted_size[$((l1+l3))]}")"
         done
         # update set / replace subset with any dupes first
-        IFS=$'\n'; compared=($(echo -e "$s" | sort -t$'\t' -k$column_idx_dupe -r)); IFS="$IFSORG"
+        IFS=$'\n'; compared=($(echo -e "$s" | sort -n -t$'\t' -k$column_idx_dupe -r)); IFS="$IFSORG"
         dupes_count=0
         for l3 in $(seq 0 1 $((l2-1))); do
           sorted_size[$((l1+l3))]="${compared[$l3]}"
@@ -362,7 +362,7 @@ fn_process() {
     done
     compared_dupe="${compared_dupe:2}"
     [ $DEBUG -ge 2 ] && echo "[debug] duplicate tested table" 1>&2 && echo -e "$compared_dupe" | column -t -s $'\t' 1>&2 && echo "" 1>&2
-    sorted="$(echo -e "$compared_dupe" | sort -t$'\t' -k$column_idx_date | sed '/\t1$/d;')"
+    sorted="$(echo -e "$compared_dupe" | sort -n -t$'\t' -k$column_idx_date | sed '/\t1$/d;')"
     [ $DEBUG -ge 2 ] && echo "[debug] timestamp sorted duplicate free table" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo "" 1>&2
   fi
 
@@ -373,7 +373,7 @@ fn_process() {
   if [ -n "$precedence" ]; then
     column_idx_precedence=$((column_idx_last+1))
     column_idx_last=$column_idx_precedence
-    s="$(echo -e "$sorted" | sort -t$'\t' -k$column_idx_group)"
+    s="$(echo -e "$sorted" | sort -n -t$'\t' -k$column_idx_group)"
     IFS=$'\n'; rs=($(echo -e "$s")); IFS="$IFSORG"
     s_=""
     ss=""
@@ -394,7 +394,7 @@ fn_process() {
       l=$((l+1))
     done
     s="$(echo -e "${s_:2}" | sed '/^\([^\t]\+\t\)\{'$((column_idx_precedence-1))'\}[0-9]\+/{b;};s/^\(.*\)$/\1\t'$l'/')"
-    sorted="$(echo "$s" | sort -t$'\t' -k$column_idx_group -k$column_idx_precedence -k$column_idx_date)"
+    sorted="$(echo "$s" | sort -n -t$'\t' -k$column_idx_group -k$column_idx_precedence -k$column_idx_date)"
     [ $DEBUG -ge 2 ] && echo "[debug] group > precedence > timestamp sorted table" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo "" 1>&2
   fi
 
