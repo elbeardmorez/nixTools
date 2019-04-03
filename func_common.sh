@@ -92,6 +92,7 @@ fn_decision() {
   declare -a cmd_args
   cmd_args=("${CMDARGS_READ_SINGLECHAR[@]}")
   declare -a options
+  declare key
   declare tty_echo
   tty_echo=$(fn_stty "echo")
   stty -echo
