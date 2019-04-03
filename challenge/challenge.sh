@@ -251,6 +251,7 @@ case "$mode" in
     done
 
     # set target
+    search="$(printf "$search" | tr "\- " "." | tr "A-Z" "a-z")"
     IFS=$'\n'; targets=($(find . -type d -iname "*$search*")); IFS="$IFSORG"
     matches=${#targets[@]}
     case $matches in
