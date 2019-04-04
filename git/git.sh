@@ -238,7 +238,7 @@ fn_process() {
   command="help" && [ $# -gt 0 ] && command="$1" && shift
   case "$command" in
     "help") help ;;
-    "diff") git diff $@ ;;
+    "diff") git diff "$@" ;;
     "log"|"logx"|"log1")
       fn_log $command "$@"
       ;;
@@ -343,7 +343,7 @@ fn_process() {
         echo -n "[info] rescue ${#commits[@]} dangling commit$([ ${#commits[@]} -ne 1 ] && echo "s") found in repo? [y/n]: "
         fn_decision >/dev/null &&\
           mkdir commits &&\
-          for c in ${commits[@]}; do git log -n1 -p $c > commits/$c.diff; done
+          for c in "${commits[@]}"; do git log -n1 -p $c > commits/$c.diff; done
       fi
       ;;
     "b"|"blame")
