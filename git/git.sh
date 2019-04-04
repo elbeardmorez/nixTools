@@ -151,7 +151,7 @@ fn_log() {
 
 fn_rebase() {
   # process args
-  [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
+  [ $# -lt 1 ] && help && echo "[error] not enough args" && return 1
   declare -a cmdargs
   cmdargs[${#cmdargs[@]}]="-i"
   declare -a args
@@ -369,7 +369,7 @@ fn_process() {
         echo -e "\n$data\n"
         res="$(fn_decision "[user] (s)how, (r)ebase from, or (i)gnore commit '$id'?" "srix")"
         [ "x$res" == "xs" ] && git show "$id"
-        [ "x$res" == "xr" ] && fn_rebase "$id" -- --autostash && exit
+        [ "x$res" == "xr" ] && fn_rebase "$id" -- --autostash; exit
         [ "x$res" == "xi" ] && continue
         [ "x$res" == "xx" ] && exit
       done
