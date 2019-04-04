@@ -152,6 +152,8 @@ fn_log() {
 fn_rebase() {
   # process args
   [ $# -lt 1 ] && help && echo "[error] not enough args" && return 1
+  declare root
+  root=0
   declare -a cmdargs
   cmdargs[${#cmdargs[@]}]="-i"
   declare xargs
@@ -159,18 +161,34 @@ fn_rebase() {
   declare -a args
   while [ -n "$1" ]; do
     [ "x$1" = "x--" ] && xargs=1 && shift
-    [ $xargs -eq 1 ] && \
-      cmdargs[${#cmdargs[@]}]="$1" || \
-      args[${#args[@]}]="$1"
+    if [ $xargs -eq 1 ]; then
+      # cmdargs only
+      case "$1" in
+        "--root") root=1
+      esac
+    fi
+    case "$1" in
+      *)
+        [ $xargs -eq 1 ] && \
+          cmdargs[${#cmdargs[@]}]="$1" || \
+          args[${#args[@]}]="$1"
+    esac
     shift
   done
-  commit=$(fn_commit "${args[@]}")
-  res=$?; [ $res -ne 0 ] && return $res
-  sha="$(echo $commit | sed -n 's/\([^ ]*\).*/\1/p')"
-  # ensure parent exists, else assume root
-  git rev-parse --verify "$sha^1"
-  [ $? -ne 0 ] && cmdargs[${#cmdargs[@]}]="--root" || cmdargs[${#cmdargs[@]}]="$sha~1"
-  echo "[info] rebasing interactively from commit '$commit'"
+  if [ $root -eq 0 ]; then
+    commit=$(fn_commit "${args[@]}")
+    res=$?; [ $res -ne 0 ] && return $res
+    sha="$(echo $commit | sed -n 's/\([^ ]*\).*/\1/p')"
+    # ensure parent exists, else assume root
+    git rev-parse --verify "$sha^1"
+    if [ $? -eq 0 ]; then
+      cmdargs[${#cmdargs[@]}]="$sha~1"
+    else
+      root=1
+      cmdargs[${#cmdargs[@]}]="--root"
+    fi
+  fi
+  echo "[info] rebasing interactively from $([ $root -eq 1 ] && echo "root" || echo "commit '$commit~1'")"
   git rebase "${cmdargs[@]}"
 }
 
