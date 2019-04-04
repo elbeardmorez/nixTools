@@ -154,10 +154,14 @@ fn_rebase() {
   [ $# -lt 1 ] && help && echo "[error] not enough args" && return 1
   declare -a cmdargs
   cmdargs[${#cmdargs[@]}]="-i"
+  declare xargs
+  xargs=0
   declare -a args
   while [ -n "$1" ]; do
-    [ "x$1" = "x--" ] && shift && cmdargs=("${cmdargs[@]}" "$@") && break
-    args[${#args[@]}]="$1"
+    [ "x$1" = "x--" ] && xargs=1 && shift
+    [ $xargs -eq 1 ] && \
+      cmdargs[${#cmdargs[@]}]="$1" || \
+      args[${#args[@]}]="$1"
     shift
   done
   commit=$(fn_commit "${args[@]}")
