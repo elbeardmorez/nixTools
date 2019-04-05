@@ -1,4 +1,4 @@
-# dates
+# dates.sh
 
 ## description
 date related functionality

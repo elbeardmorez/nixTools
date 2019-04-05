@@ -1,4 +1,4 @@
-# blog
+# blog.sh
 
 ## description
 simple script for creating or modifying blog entry data stored as a basic key/value flat backend (file) format - cms / front-end agnostic. target blog stores can be listed directly, else via a menu system for displaying, selecting, and performing operations
