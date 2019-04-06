@@ -61,6 +61,7 @@ help() {
 \n    where OPTIONS can be:
       -t|--type TYPE  : check on date type TYPE, supporting 'authored'
                         (default) or 'committed'
+      -i|--issues  : only output non-chronological commits
 \n*note: optional binary args are supported for commands: log, rebase
 "
 }
@@ -193,17 +194,20 @@ fn_rebase() {
 }
 
 fn_dates_order_check() {
-  declare type
   declare target
   declare prev_commit
   declare prev_commit_date
   declare option
+
+  declare type
+  declare diff_only; diff_only=0
 
   # process options
   while [ -n "$1" ]; do
     option="$1"
     case "$option" in
       "-t"|"--type") shift; type="$1" && shift ;;
+      "-i"|"--issues") shift; diff_only=1 ;;
       *)
         [ -n "$target" ] && \
           _help && echo "[error] unrecognised option '$opt" && exit 1
@@ -228,7 +232,7 @@ fn_dates_order_check() {
   if [ -n "$prev_commit" ]; then
     prev_commit_date="$(git log -n1 --format=format:"%$([ "x$type" == "xauthored" ] && echo "a" || echo "c")t" "$prev_commit")"
   fi
-  git log --reverse --format=format:"%at | %ct | version: $(printf $CLR_BWN)%H$(printf $CLR_OFF)%n %s (%an)" "${cmdargs[@]}" "$target" | awk -v pcd="$prev_commit_date" -v type="$type" '
+  git log --reverse --format=format:"%at | %ct | version: $(printf $CLR_BWN)%H$(printf $CLR_OFF)%n %s (%an)" "${cmdargs[@]}" "$target" | awk -v pcd="$prev_commit_date" -v type="$type" -v diff_only=$diff_only '
 BEGIN { last = pcd; }
 {
   if ( $0 ~ /[0-9]{10} \| [0-9]{10} | version:/ ) {
@@ -236,23 +240,29 @@ BEGIN { last = pcd; }
     if (type == "authored") {
       test = $1;
       $1=strftime("%Y%b%d %H:%M:%S",$1);
-      if (last != "" && test <= last)
+      if (last != "" && test <= last) {
+        diff = 2;
         $1="'"$(printf ${CLR_RED})"'"$1"'"$(printf ${CLR_OFF})"'";
-      else
+      } else
         $1="'"$(printf ${CLR_RED}${CLR_OFF})"'"$1;
       $3=strftime("%Y%b%d %H:%M:%S",$3);
     } else if (type == "committed") {
       test = $3;
       $3=strftime("%Y%b%d %H:%M:%S",$3);
-      if (last != "" && test <= last)
+      if (last != "" && test <= last) {
+        diff = 2;
         $3="'"$(printf ${CLR_RED})"'"$3"'"$(printf ${CLR_OFF})"'";
-      else
+      } else
         $3="'"$(printf ${CLR_RED}${CLR_OFF})"'"$3;
       $1=strftime("%Y%b%d %H:%M:%S",$1);
     }
     last = test;
   }
-  print $0;
+  if (diff_only == 1) {
+    if (diff == 0)
+      next;
+    diff--;
+  }
 }'
 }
 

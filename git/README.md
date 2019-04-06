@@ -60,6 +60,7 @@ where <OPTION> can be:
     where OPTIONS can be:
       -t|--type TYPE  : check on date type TYPE, supporting 'authored'
                         (default) or 'committed'
+      -i|--issues  : only output non-chronological commits
 
 *note: optional binary args are supported for commands: log, rebase
 ```
