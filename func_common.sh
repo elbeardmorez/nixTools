@@ -258,7 +258,7 @@ fn_rx_escape() {
   echo "$exp"
 }
 
-fn_resolve() {
+fn_path_resolve() {
   target="$1"
   # home
   [ -n "$(echo "$target" | sed -n '/^~/p')" ] &&\

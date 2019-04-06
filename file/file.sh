@@ -236,8 +236,8 @@ for target in "${targets[@]}"; do
       [ "x$(dirname "$target2")" == "./" ] &&\
         target2="$(echo "$PWD/$target2" | sed 's/\/.\//\//g')"
       [ "x$target" == "x$target2" ] && target2+="$target_suffix"
-      target="$(fn_resolve "$target")"
-      target2="$(fn_resolve "$target2")"
+      target="$(fn_path_resolve "$target")"
+      target2="$(fn_path_resolve "$target2")"
 
       # duplicate
       [ $DEBUG -gt 0 ] && echo "[debug] type: '$([ -d "$target" ] && echo "dir" || echo "file")', command: '$CMD_CP ${CMD_CP_ARGS[*]}', targets: '$target' -> '$target2'"
@@ -267,8 +267,8 @@ for target in "${targets[@]}"; do
         target="$(echo "$PWD/$target" | sed 's/\/.\//\//g')"
       [ "x$(dirname "$target2")" == "./" ] &&\
         target2="$(echo "$PWD/$target2" | sed 's/\/.\//\//g')"
-      target="$(fn_resolve "$target")"
-      target2="$(fn_resolve "$target2")"
+      target="$(fn_path_resolve "$target")"
+      target2="$(fn_path_resolve "$target2")"
 
       # move
       [ $DEBUG -gt 0 ] && echo "[debug] type: '$([ -d "$target" ] && echo "dir" || echo "file")', command: '$CMD_MV ${CMD_MV_ARGS[*]}', targets: '$target' -> '$target2'"
