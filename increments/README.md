@@ -84,7 +84,33 @@ $ ls -1 increments
 1531580793.diff
 ```
 
-**example session**
+**multiple targets**
+```
+$ DIFF_TARGET_FILE=image.sh \
+    increments_ \
+      -t "/backup/elbeardo.tar|~/development/bash/~sort" \
+      -v ~/.nixTools/variants -nd -dd -dm -ac -dnp -dfp -dfg  "_image"
+[info] ignoring GNU tar 'not found in archive' 'errors'
+[info] matched 84 files
+[info] target 'matches' cleanup, purging 84 files
+[info] dumped 84 matches to 'matches'
+[info] dumped 11 diffs to 'increments'
+[info] file list:
+path                                                                     size date
+/tmp/increments_.SbymxOd4l2/backup/monthly.10/development/bash/_image~    100 2013Nov09 08:59:01 +0000
+/tmp/increments_.SbymxOd4l2/backup/monthly.10/development/bash/_image     255 2013Dec21 12:46:45 +0000
+/tmp/increments_.SbymxOd4l2/backup/monthly.9/development/bash/_image~     713 2014Mar02 17:35:52 +0000
+/tmp/increments_.SbymxOd4l2/backup/monthly.9/development/bash/_image      707 2014Mar19 10:36:57 +0000
+/tmp/increments_.SbymxOd4l2/backup/weekly.9/development/bash/_image~      816 2014Sep05 08:55:28 +0100
+/tmp/increments_.SbymxOd4l2/backup/weekly.9/development/bash/_image       937 2014Sep05 10:05:26 +0100
+/tmp/increments_.SbymxOd4l2/backup/weekly.6/development/bash/_image~    10036 2014Oct27 15:37:41 +0000
+/tmp/increments_.SbymxOd4l2/backup/weekly.6/development/bash/_image     10248 2014Oct27 15:54:16 +0000
+/tmp/increments_.SbymxOd4l2/backup/weekly.5/development/bash/_image     12225 2014Nov02 17:40:11 +0000
+/root/development/bash/~sort/_image~                                    13255 2014Dec25 16:08:16 +0000
+/root/development/bash/~sort/_image                                     13310 2015Jan09 15:21:25 +0000
+```
+
+**session**
 ```
 $ cat ./variants
 /\(.*\)/\1~/
