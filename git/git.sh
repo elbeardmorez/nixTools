@@ -230,7 +230,7 @@ fn_dates_order_check() {
 
   prev_commit="$(git rev-list --max-count=1 "${commits[0]}~1")"
   if [ -n "$prev_commit" ]; then
-    prev_commit_date="$(git log -n1 --format=format:"%$([ "x$type" == "xauthored" ] && echo "a" || echo "c")t" "$prev_commit")"
+    prev_commit_date="$(git log -n1 --format=format:"%$([ "x$type" = "xauthored" ] && echo "a" || echo "c")t" "$prev_commit")"
   fi
   git log --reverse --format=format:"%at | %ct | version: $(printf $CLR_BWN)%H$(printf $CLR_OFF)%n %s (%an)" "${cmdargs[@]}" "$target" | awk -v pcd="$prev_commit_date" -v type="$type" -v diff_only=$diff_only '
 BEGIN { last = pcd; }
