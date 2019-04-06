@@ -553,7 +553,10 @@ done
 [ ${#search[@]} -eq 0 ] && help && echo "[error] no search items specified" && exit 1
 ## target
 IFS=$'|'; targets=($(echo "$target")); IFS="$IFSORG"
-for target in "${targets[@]}"; do
+l=0
+while [ $l -lt ${#targets[@]} ]; do
+  targets[$l]="$(fn_path_resolve "${targets[$l]}")"
+  target=${targets[$l]}
   if [ ! -e "$target" ]; then
     echo "[error] invalid search target set '$target'. exiting!" && exit 1
   else
@@ -565,6 +568,7 @@ for target in "${targets[@]}"; do
         echo "[error] target file type '$type' unsupported, expected '$type_expected' archive" && exit
     fi
   fi
+  l=$((l+1))
 done
 
 # run
