@@ -10,15 +10,10 @@ SCRIPTNAME=${0##*/}
 IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
 
-declare -A type_exts
-type_exts["data.structures"]="cpp cs py js"
-type_exts["algorithms"]="cs js py"
-type_exts["mathematics"]="cs js py"
-type_exts["python"]="py"
-type_exts["linux.shell"]="sh"
-type_exts["bash"]="sh"
-type_exts["c"]="c"
-type_exts["c++"]="cpp"
+RC_DEFAULT="$HOME/.nixTools/$SCRIPTNAME"
+
+declare -A exts_map
+exts_map["default"]="cpp|cs|py|js"
 
 cwd="$PWD"
 editor="${EDITOR:-vim}"
@@ -68,9 +63,10 @@ fn_exts() {
   IFS="|" parts=($(echo "$target" | sed 's/\.-\./|/g')); IFS="$IFSTMP"
   exts=""
   for p in "${parts[@]}"; do
-    map="${type_exts["$p"]}"
+    map="${exts_map["$p"]}"
     [ -n "$map" ] && exts="$map" && break
   done
+  [ -z "$map" ] && exts="${exts_map["default"]}"
   echo $exts
 }
 
@@ -82,7 +78,7 @@ fn_files() {
   quote=0 && [ $# -gt 0 ] && quote=$1 && shift
   name="$(echo "$target" | sed 's/^.*\.-\.//')"
   IFSTMP="$IFS"
-  IFS="$IFSORG"; exts=($(fn_exts "$target")); IFS="$IFSTMP"
+  IFS="|"; exts=($(fn_exts "$target")); IFS="$IFSTMP"
   lexts=${#exts[@]}
   while [ $lexts -gt 0 ]; do
     idx=$(echo "$RANDOM % ($lexts)" | bc)
@@ -117,6 +113,19 @@ while [ -n "$1" ]; do
   shift
 done
 mode=${mode:-new}
+
+# rc parse
+if [ -e "$RC_DEFAULT" ]; then
+  IFS=$'\n'; lines=($(sed -n '/^[ ]*[^#]/p' "$RC_DEFAULT")); IFS="$IFSORG"
+  for kv in "${lines[@]}"; do
+    IFS='|'; types=($(echo "${kv%=*}")); IFS="$IFSORG"
+    maps="${kv#*=}"
+    for type in "${types[@]}"; do
+      exts_map["$type"]="$maps"
+      [ $DEBUG -ge 1 ] && echo "[debug] added extention maps '$maps' for type '$type'"
+    done
+  done
+fi
 
 case "$mode" in
   "h"|"help")
@@ -196,7 +205,7 @@ case "$mode" in
         [ ! -e "input" ] && unzip *zip 2>/dev/null 1>&2
 
         # open some appropriate files for editing
-        exts=($(fn_exts "$target"))
+        IFS='|'; exts=($(fn_exts "$target")); IFS=IFSORG
         # ensure files
         for ext in "${exts[@]}"; do
           [ ! -f "$name.$ext" ] && touch "$name.$ext"

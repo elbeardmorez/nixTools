@@ -36,6 +36,13 @@ where MODE can be:
                              (default: 'py|js|cs') and dump matches
                              to TARGET.LANGUAGE files
 ```
+
+**note:** the solution files created are governed by the **`exts_map`** category to extension map which matches on any part of the *CATEGORYx* terms passed to the script on execution. the `default` entry is '**cpp|cs|py|js**', but this can easily be overridden and/or complemented in the `~/.nixTools/challenge_` rc file via single line entries in the following format:
+```
+data.structures=cpp|cs|py|js
+linux.shell|bash=sh
+default=py|js
+```
 ## examples
 
 assuming the downloaded problem files reside in the current directory e.g.:
@@ -89,8 +96,6 @@ then use of the `--no-edit` and `--export-edit-command` switches e.g.:
 
 ```
 will result in you being dropped into a subshell at the solution target with all solution files open in your designated editor
-
-**note:** the solution files created are governed by the **`type_exts`** category map which matches on any part of the ***CATEGORYx*** terms specified in the call, e.g. ***data.structures*** -> ***cpp cs py js***. modify at will..
 
 ## dependencies
 - unzip
