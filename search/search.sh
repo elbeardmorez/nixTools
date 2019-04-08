@@ -58,8 +58,10 @@ if [ $search_targets -eq 1 ]; then
   [ ! -f "$SEARCH_TARGETS" ] && echo "[error] invalid search targets file '$SEARCH_TARGETS'" && exit 1
 fi
 
-declare files
+declare -a files
+declare -a files2
 declare -a results
+declare -A map
 
 if [ -f "$SEARCH" ]; then
   # prioritise local files
@@ -88,14 +90,17 @@ else
   done
 
   for file in "${files[@]}"; do
+    [ -n "${map["$file"]}" ] && continue  # no dupes
     if [[ ${#files[@]} == 1 || $interactive -eq 0 ]]; then
       results[${#results[@]}]="$file"
+      map["$file"]=1
     else
       result=""
       res="$(fn_decision "[user] search match, use file '$file'?" "ync")"
       [ "x$res" == "xc" ] && exit  # !break, no partial results
       [ "x$res" == "xn" ] && continue
       results[${#results[@]}]="$file"
+      map["$file"]=1
     fi
   done
 fi
