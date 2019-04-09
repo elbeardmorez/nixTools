@@ -455,14 +455,14 @@ fn_menu() {
       if [ $no_op -eq 0 ]; then
         # reset
         echo -en "$CUR_UP$LN_RST" 1>&2
-        echo -en "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") (${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}) select | (${CLR_HL}s${CLR_OFF})ort | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}p${CLR_OFF})ublish | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it [${CLR_HL}t${CLR_OFF}/${CLR_HL}i${CLR_OFF}/${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}/${CLR_HL}s${CLR_OFF}/${CLR_HL}e${CLR_OFF}/${CLR_HL}p${CLR_OFF}/${CLR_HL}d${CLR_OFF}/${CLR_HL}x${CLR_OFF}]${CUR_SV}${CUR_INV}"
+        echo -en "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") (${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}) select | (${CLR_HL}s${CLR_OFF})ort | (${CLR_HL}n${CLR_OFF})ew | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}p${CLR_OFF})ublish | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it [${CLR_HL}t${CLR_OFF}/${CLR_HL}i${CLR_OFF}/${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}/${CLR_HL}s${CLR_OFF}/${CLR_HL}n${CLR_OFF}/${CLR_HL}e${CLR_OFF}/${CLR_HL}p${CLR_OFF}/${CLR_HL}d${CLR_OFF}/${CLR_HL}x${CLR_OFF}]${CUR_SV}${CUR_INV}"
 
-        res="$(fn_decision "" "t/i/$KEY_ARR_U/$KEY_ARR_D/s/e/p/d/x" 0 $optecho)"
+        res="$(fn_decision "" "t/i/$KEY_ARR_U/$KEY_ARR_D/s/n/e/p/d/x" 0 $optecho)"
       else
         echo -en "${CUR_USV}"
         sleep 0.1
         echo -en "${LN_RTL}"
-        res="$(fn_decision "" "t/i/$KEY_ARR_U/$KEY_ARR_D/s/e/p/d/x" 0 $optecho)"
+        res="$(fn_decision "" "t/i/$KEY_ARR_U/$KEY_ARR_D/s/n/e/p/d/x" 0 $optecho)"
       fi
       [ $optecho -eq 0 ] && echo "" 1>&2  # compensate
       case "$res" in
@@ -529,6 +529,11 @@ fn_menu() {
             sort_idx=$(echo "($sort_idx + 1) % ${#column_headers[@]}" | bc)
             [ $sort_idx -eq 0 ] && sort_idx=1
           fi
+          reset=1
+          ;;
+        "n")
+          fn_new
+          idx=""
           reset=1
           ;;
         "e")
