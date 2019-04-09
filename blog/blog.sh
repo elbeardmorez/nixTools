@@ -455,7 +455,7 @@ fn_menu() {
       if [ $no_op -eq 0 ]; then
         # reset
         echo -en "$CUR_UP$LN_RST" 1>&2
-        echo -en "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") (${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}) select | (${CLR_HL}s${CLR_OFF})ort | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}p${CLR_OFF})ublish | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it [${CLR_HL}t${CLR_OFF}/${CLR_HL}i${CLR_OFF}/${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}/${CLR_HL}s${CLR_OFF}/${CLR_HL}p${CLR_OFF}/${CLR_HL}e${CLR_OFF}/${CLR_HL}d${CLR_OFF}/${CLR_HL}x${CLR_OFF}]${CUR_SV}${CUR_INV}"
+        echo -en "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") (${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}) select | (${CLR_HL}s${CLR_OFF})ort | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}p${CLR_OFF})ublish | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it [${CLR_HL}t${CLR_OFF}/${CLR_HL}i${CLR_OFF}/${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}/${CLR_HL}s${CLR_OFF}/${CLR_HL}e${CLR_OFF}/${CLR_HL}p${CLR_OFF}/${CLR_HL}d${CLR_OFF}/${CLR_HL}x${CLR_OFF}]${CUR_SV}${CUR_INV}"
 
         res="$(fn_decision "" "t/i/$KEY_ARR_U/$KEY_ARR_D/s/e/p/d/x" 0 $optecho)"
       else
