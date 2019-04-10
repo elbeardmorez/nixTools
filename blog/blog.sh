@@ -44,9 +44,13 @@ help() {
 "
 }
 
-fn_cleanup() {
+fn_restore_cursor() {
   stty echo
   echo -en "${CUR_VIS}\n" 1>&2
+}
+
+fn_cleanup() {
+  fn_restore_cursor
 }
 
 fn_safe() {
@@ -73,6 +77,7 @@ fn_input_data() {
   type="$1" && shift
   prompt="$1" && shift
   [ $# -gt 0 ] && data="$@"
+  fn_restore_cursor
   case "$type" in
     "single_line")
       fn_edit_line "$data" "$prompt [$(echo -e "${CLR_HL}enter${CLR_OFF}")]: "
