@@ -44,12 +44,14 @@ help() {
 "
 }
 
+cmd_restore_cursor='exec 0<&6 1>&7 2>&8; stty echo; echo -en "\'${CUR_VIS}'"; stty -echo'
+
 fn_restore_cursor() {
-  stty echo
-  echo -en "${CUR_VIS}\n" 1>&2
+  eval "$cmd_restore_cursor"
 }
 
 fn_cleanup() {
+  fn_observer_cleanup
   fn_restore_cursor
 }
 
@@ -419,6 +421,10 @@ fn_menu_id_from_idx() {
 
 fn_menu() {
   [ $# -lt 1 ] && echo "[error] not enough args!" && exit 1
+
+  # setup observer to restore prompt when suspending
+  fn_observer "$cmd_restore_cursor"
+
   stty -echo
   declare target
   declare path_
