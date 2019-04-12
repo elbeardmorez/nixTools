@@ -180,13 +180,14 @@ case "$mode" in
         if [ ${#files[@]} -eq 0 ]; then
           # move files
           search="$name"
-          IFS=$'\n'; files=($(find "$cwd" -maxdepth 1 -iregex ".*$search.*\(pdf\|zip\)")); IFS=$IFSORG
-          while [ ${#files[@]} -ne 2 ]; do
-            len=${#search}
-            search="${search%.*}"
-            [ $DEBUG -gt 0 ] && echo "[debug] search: '$search'" 1>&2
-            [ ${#search} -eq $len ] && break
-            IFS=$'\n'; files=($(find $cwd -maxdepth 1 -iregex ".*$search.*\(pdf\|zip\)")); IFS=$IFSORG
+          IFS='.'; searches=($(echo "$search")); IFS="$IFSORG"
+          last="${searches[0]}"
+          for l in $(seq 1 1 $((${#searches[@]}-1))); do
+            searches[${#searches[@]}]="$last.${searches[$l]}" && last="$last.${searches[$l]}"
+          done
+          for l in $(seq $((${#searches[@]}-1)) -1 0); do
+            [ $DEBUG -gt 0 ] && echo "[debug] search: '${searches[$l]}'" 1>&2
+            IFS=$'\n'; files=($(find $cwd -maxdepth 1 -iregex ".*${searches[$l]}.*\(pdf\|zip\)")); IFS=$IFSORG
             [ $DEBUG -gt 0 ] && echo "[debug] files#: '${#files[@]}'" 1>&2
             [ ${#files[@]} -eq 2 ] && echo "located challenge description / testcase files" && break
           done
