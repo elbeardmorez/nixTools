@@ -78,7 +78,11 @@ elif [[ ! "x$(dirname "$search")" == "x." || "x${search:0:1}" == "x." ]]; then
   fi
 else
   # use search paths
-  [ -f "$search_targets" ] && IFS=$'\n'; paths=($(cat "$search_targets")); IFS="$IFSORG" || paths=("${paths[@]}")
+  if [ -f "$search_targets" ]; then
+    IFS=$'\n'; paths=($(cat "$search_targets")); IFS="$IFSORG"
+  else
+    paths=("${paths[@]}")
+  fi
   for p in "${paths[@]}"; do
     p="$(eval "echo $p")"  # resolve target
     if [ -e "$p" ]; then
