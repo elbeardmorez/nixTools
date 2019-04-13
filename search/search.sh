@@ -113,7 +113,7 @@ else
   for file in "${files[@]}"; do
     [ -n "${map["$file"]}" ] && continue  # no dupes
     map["$file"]=1
-    if [[ ${#files[@]} == 1 || $interactive -eq 0 ]]; then
+    if [[ ${#files[@]} -eq 1 || $interactive -eq 0 ]]; then
       results[${#results[@]}]="$file"
     else
       result=""
