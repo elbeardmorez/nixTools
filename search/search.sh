@@ -9,10 +9,10 @@ set +e
 SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
 
-PATHS=(~/documents)
-FILE_RESULTS=""
-SEARCH_TARGETS="$HOME/.nixTools/$SCRIPTNAME"
-SEARCH=""
+paths=(~/documents)
+file_results=""
+search_targets="$HOME/.nixTools/$SCRIPTNAME"
+search=""
 search_targets=0
 interactive=0
 verbose=0
@@ -31,7 +31,7 @@ help() {
   -v, --verbose                : output additional info
 \nand 'SEARCH' is  : a (partial) file name to search for in the list of
                      predefined search paths*
-\n*predefined paths are currently: $(for p in "${PATHS[@]}"; do echo -e "\n$p"; done)
+\n*predefined paths are currently: $(for p in "${paths[@]}"; do echo -e "\n$p"; done)
 "
 }
 
@@ -42,20 +42,20 @@ while [ -n "$1" ]; do
   case "$arg" in
     "h"|"help") help && exit ;;
     "i"|"interactive") interactive=1 ;;
-    "t"|"target") search_targets=1 && shift && SEARCH_TARGETS="$1" ;;
-    "r"|"results") shift && FILE_RESULTS="$1" ;;
+    "t"|"target") search_targets=1 && shift && search_targets="$1" ;;
+    "r"|"results") shift && file_results="$1" ;;
     "v"|"verbose") verbose=1 ;;
-    *) [ -n "$SEARCH" ] && help && echo "[error] unknown arg '$arg'"; SEARCH="$1" ;;
+    *) [ -n "$search" ] && help && echo "[error] unknown arg '$arg'"; search="$1" ;;
   esac
   shift
 done
 
 # option verification
-if [ -n "$FILE_RESULTS" ]; then
-  [ -d "$(dirname "$FILE_RESULTS")" ] || mkdir -p "$(dirname "$FILE_RESULTS")"
+if [ -n "$file_results" ]; then
+  [ -d "$(dirname "$file_results")" ] || mkdir -p "$(dirname "$file_results")"
 fi
 if [ $search_targets -eq 1 ]; then
-  [ ! -f "$SEARCH_TARGETS" ] && echo "[error] invalid search targets file '$SEARCH_TARGETS'" && exit 1
+  [ ! -f "$search_targets" ] && echo "[error] invalid search targets file '$search_targets'" && exit 1
 fi
 
 declare -a files
@@ -63,26 +63,26 @@ declare -a files2
 declare -a results
 declare -A map
 
-if [ -f "$SEARCH" ]; then
+if [ -f "$search" ]; then
   # prioritise local files
-  results[${#results[@]}]="$SEARCH"
-elif [[ ! "x$(dirname "$SEARCH")" == "x." || "x${SEARCH:0:1}" == "x." ]]; then
+  results[${#results[@]}]="$search"
+elif [[ ! "x$(dirname "$search")" == "x." || "x${search:0:1}" == "x." ]]; then
   # create file
   if [ $interactive -eq 1 ]; then
     # new file. offer creation
-    fn_decision "[user] file '$SEARCH' does not exist, create it?" >/dev/null || exit
+    fn_decision "[user] file '$search' does not exist, create it?" >/dev/null || exit
     # ensure path
-    [ -d "$(dirname "$SEARCH")" ] || mkdir -p "$(dirname "$SEARCH")"
-    touch "$SEARCH"
-    results[${#results[@]}]="$SEARCH"
+    [ -d "$(dirname "$search")" ] || mkdir -p "$(dirname "$search")"
+    touch "$search"
+    results[${#results[@]}]="$search"
   fi
 else
   # use search paths
-  [ -f "$SEARCH_TARGETS" ] && IFS=$'\n'; paths=($(cat "$SEARCH_TARGETS")); IFS="$IFSORG" || paths=("${PATHS[@]}")
+  [ -f "$search_targets" ] && IFS=$'\n'; paths=($(cat "$search_targets")); IFS="$IFSORG" || paths=("${paths[@]}")
   for p in "${paths[@]}"; do
     p="$(eval "echo $p")"  # resolve target
     if [ -e "$p" ]; then
-      IFS=$'\n'; files2=($(find $p -name "$SEARCH" \( -type f -o -type l \))); IFS="$IFSORG"
+      IFS=$'\n'; files2=($(find $p -name "$search" \( -type f -o -type l \))); IFS="$IFSORG"
       for file in "${files2[@]}"; do files[${#files[@]}]="$file"; done
     elif [ $verbose -eq 1 ]; then
       echo "[info] path '$p' invalid or it no longer exists, ignoring" 1>&2
@@ -109,9 +109,9 @@ if [ ${#results[@]} -gt 0 ]; then
   s=""
   for f in "${results[@]}"; do s+="\n$f"; done
   results="${s:2}"
-  [ -n "$FILE_RESULTS" ] && echo -e "$results" >> "$FILE_RESULTS"
+  [ -n "$file_results" ] && echo -e "$results" >> "$file_results"
   echo -e "$results"
 else
   [ ${#files[@]} -eq 0 ] &&\
-    echo "[info] no matches for search '$SEARCH'" 1>&2
+    echo "[info] no matches for search '$search'" 1>&2
 fi
