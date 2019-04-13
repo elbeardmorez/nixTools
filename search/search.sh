@@ -9,8 +9,6 @@ set +e
 SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
 
-file_results=""
-search=""
 rc="$HOME/.nixTools/$SCRIPTNAME"
 
 declare -a search_targets
@@ -22,6 +20,8 @@ custom_targets=0
 interactive=-1
 verbose=0
 
+file_results=""
+search=""
 
 help() {
   echo -e "SYNTAX '$SCRIPTNAME [OPTIONS] SEARCH
