@@ -104,15 +104,17 @@ else
     p="$(eval "echo $p")"  # resolve target
     if [ -e "$p" ]; then
       IFS=$'\n'; files2=($(find $p -name "$search" \( -type f -o -type l \))); IFS="$IFSORG"
-      for file in "${files2[@]}"; do files[${#files[@]}]="$file"; done
+      for file in "${files2[@]}"; do
+        [ -n "${map["$file"]}" ] && continue  # no dupes
+        map["$file"]=1
+        files[${#files[@]}]="$file";
+      done
     elif [ $verbose -eq 1 ]; then
       echo "[info] path '$p' invalid or it no longer exists, ignoring" 1>&2
     fi
   done
 
   for file in "${files[@]}"; do
-    [ -n "${map["$file"]}" ] && continue  # no dupes
-    map["$file"]=1
     if [[ ${#files[@]} -eq 1 || $interactive -eq 0 ]]; then
       results[${#results[@]}]="$file"
     else
