@@ -88,7 +88,7 @@ if [ -d "$target" ]; then
     *) IFS=$'\n'; targets=($(find "$target" -type f)); IFS="$IFSORG" ;;
   esac
 else
-  IFS=$'\n'; targets=($(search_ -i "$target")); IFS="$IFSORG"
+  IFS=$'\n'; targets=($(search_ --targets --interactive 1 "$target")); IFS="$IFSORG"
 fi
 
 if [ ${#targets[@]} -gt 0 ]; then
