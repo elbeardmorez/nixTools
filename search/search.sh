@@ -19,7 +19,7 @@ search_targets_default=('~/documents')
 search_targets=(${search_targets_default[@]})
 
 custom_targets=0
-interactive=0
+interactive=-1
 verbose=0
 
 
@@ -27,8 +27,10 @@ help() {
   echo -e "SYNTAX '$SCRIPTNAME [OPTIONS] SEARCH
 \nwhere 'OPTIONS' can be\n
   -h, --help  : this help information
-  -i, --interactive  : enable verification prompt for each match
-                       (default: off / auto-accept)
+  -i [COUNT], --interactive [COUNT]  : enable verification prompt for
+                                       each match when more than COUNT
+                                       (default: 0) unique match(es)
+                                       are found
   -t [TARGETS], --targets [TARGETS]  : override* search target path(s).
                                        TARGETS can either be a path, or
                                        a file containing paths, one
@@ -55,7 +57,10 @@ while [ -n "$1" ]; do
   arg="$(echo "$1" | sed 's/[ ]*-*//g')"
   case "$arg" in
     "h"|"help") option=help ;;
-    "i"|"interactive") interactive=1 ;;
+    "i"|"interactive")
+      interactive=0
+      [[ $# -gt 2 && -z "$(echo "$2" | sed -n '/[ ]*-\+/p')" ]] && \
+        { shift && interactive=$1; } ;;
     "t"|"targets")
       custom_targets=1
       [[ $# -gt 2 && -z "$(echo "$2" | sed -n '/[ ]*-\+/p')" ]] && \
@@ -90,7 +95,7 @@ if [ -f "$search" ]; then
   results[${#results[@]}]="$search"
 elif [[ ! "x$(dirname "$search")" == "x." || "x${search:0:1}" == "x." ]]; then
   # create file
-  if [ $interactive -eq 1 ]; then
+  if [ $interactive -ge 0 ]; then
     # new file. offer creation
     fn_decision "[user] file '$search' does not exist, create it?" >/dev/null || exit
     # ensure path
@@ -115,7 +120,7 @@ else
   done
 
   for file in "${files[@]}"; do
-    if [[ ${#files[@]} -eq 1 || $interactive -eq 0 ]]; then
+    if [[ $interactive -eq -1 || ${#files[@]} -le $interactive ]]; then
       results[${#results[@]}]="$file"
     else
       result=""

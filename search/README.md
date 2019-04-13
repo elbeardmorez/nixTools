@@ -10,8 +10,10 @@ SYNTAX 'search_ [OPTIONS] SEARCH
 where 'OPTIONS' can be
 
   -h, --help  : this help information
-  -i, --interactive  : enable verification prompt for each match
-                       (default: off / auto-accept)
+  -i [COUNT], --interactive [COUNT]  : enable verification prompt for
+                                       each match when more than COUNT
+                                       (default: 0) unique match(es)
+                                       are found
   -t [TARGETS], --targets [TARGETS]  : override* search target path(s).
                                        TARGETS can either be a path, or
                                        a file containing paths, one
