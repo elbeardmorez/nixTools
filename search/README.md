@@ -12,16 +12,22 @@ where 'OPTIONS' can be
   -h, --help  : this help information
   -i, --interactive  : enable verification prompt for each match
                        (default: off / auto-accept)
-  -t TARGET, --target TARGETS  : override path to file containing
-                                 search targets, one per line
-                                 (default: ~/.search)
+  -t [TARGETS], --targets [TARGETS]  : override* search target path(s).
+                                       TARGETS can either be a path, or
+                                       a file containing paths, one
+                                       path per line
+                                       (default: ~/.nixTools/search_)
   -r TARGET, --results TARGET  : file to dump search results to, one
                                  per line
   -v, --verbose                : output additional info
 
 and 'SEARCH' is  : a (partial) file name to search for in the list of
-                     predefined search paths*
+                   search target paths*
 
-*predefined paths are currently: 
-~/documents
+*default: ~/documents
+
+# state
+rc: /root/.nixTools/search_ [found]
+search target(s):
+  ~/documents
 ```

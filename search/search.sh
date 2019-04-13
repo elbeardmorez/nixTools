@@ -9,13 +9,19 @@ set +e
 SCRIPTNAME="${0##*/}"
 IFSORG="$IFS"
 
-paths=(~/documents)
 file_results=""
-search_targets="$HOME/.nixTools/$SCRIPTNAME"
 search=""
-search_targets=0
+rc="$HOME/.nixTools/$SCRIPTNAME"
+
+declare -a search_targets
+declare -a search_targets_default
+search_targets_default=('~/documents')
+search_targets=(${search_targets_default[@]})
+
+custom_targets=0
 interactive=0
 verbose=0
+
 
 help() {
   echo -e "SYNTAX '$SCRIPTNAME [OPTIONS] SEARCH
@@ -23,26 +29,37 @@ help() {
   -h, --help  : this help information
   -i, --interactive  : enable verification prompt for each match
                        (default: off / auto-accept)
-  -t TARGET, --target TARGETS  : override path to file containing
-                                 search targets, one per line
-                                 (default: ~/.search)
+  -t [TARGETS], --targets [TARGETS]  : override* search target path(s).
+                                       TARGETS can either be a path, or
+                                       a file containing paths, one
+                                       path per line
+                                       (default: $rc)
   -r TARGET, --results TARGET  : file to dump search results to, one
                                  per line
   -v, --verbose                : output additional info
 \nand 'SEARCH' is  : a (partial) file name to search for in the list of
-                     predefined search paths*
-\n*predefined paths are currently: $(for p in "${paths[@]}"; do echo -e "\n$p"; done)
+                   search target paths*
+\n*default: ${search_targets_default[*]}
+\n# state
+rc: $rc [$([ ! -e "$rc" ] && echo "not ")found]
+search target(s):
+$(for p in "${search_targets[@]}"; do echo -e "  $p"; done)
 "
 }
+
+option=search
 
 # parse options
 [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
 while [ -n "$1" ]; do
   arg="$(echo "$1" | sed 's/[ ]*-*//g')"
   case "$arg" in
-    "h"|"help") help && exit ;;
+    "h"|"help") option=help ;;
     "i"|"interactive") interactive=1 ;;
-    "t"|"target") search_targets=1 && shift && search_targets="$1" ;;
+    "t"|"targets")
+      custom_targets=1
+      [[ $# -gt 2 && -z "$(echo "$2" | sed -n '/[ ]*-\+/p')" ]] && \
+        { shift && search_targets=("$1"); } || search_targets=("$rc") ;;
     "r"|"results") shift && file_results="$1" ;;
     "v"|"verbose") verbose=1 ;;
     *) [ -n "$search" ] && help && echo "[error] unknown arg '$arg'"; search="$1" ;;
@@ -54,9 +71,14 @@ done
 if [ -n "$file_results" ]; then
   [ -d "$(dirname "$file_results")" ] || mkdir -p "$(dirname "$file_results")"
 fi
-if [ $search_targets -eq 1 ]; then
-  [ ! -f "$search_targets" ] && echo "[error] invalid search targets file '$search_targets'" && exit 1
+if [ $custom_targets -eq 1 ]; then
+  [ ! -e "${search_targets[0]}" ] && echo "[error] invalid custom search targets set '${search_targets[@]}'" && exit 1
+  # expand file
+  [ -f "${search_targets[0]}" ] && { IFS=$'\n'; search_targets=($(cat "${search_targets[0]}")); IFS="$IFSORG"; }
 fi
+
+# run help after option parsing / verification
+[ "x$option" == "xhelp" ] && help && exit
 
 declare -a files
 declare -a files2
@@ -77,13 +99,8 @@ elif [[ ! "x$(dirname "$search")" == "x." || "x${search:0:1}" == "x." ]]; then
     results[${#results[@]}]="$search"
   fi
 else
-  # use search paths
-  if [ -f "$search_targets" ]; then
-    IFS=$'\n'; paths=($(cat "$search_targets")); IFS="$IFSORG"
-  else
-    paths=("${paths[@]}")
-  fi
-  for p in "${paths[@]}"; do
+  # use search targets
+  for p in "${search_targets[@]}"; do
     p="$(eval "echo $p")"  # resolve target
     if [ -e "$p" ]; then
       IFS=$'\n'; files2=($(find $p -name "$search" \( -type f -o -type l \))); IFS="$IFSORG"
