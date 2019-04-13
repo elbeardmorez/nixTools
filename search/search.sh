@@ -112,16 +112,15 @@ else
 
   for file in "${files[@]}"; do
     [ -n "${map["$file"]}" ] && continue  # no dupes
+    map["$file"]=1
     if [[ ${#files[@]} == 1 || $interactive -eq 0 ]]; then
       results[${#results[@]}]="$file"
-      map["$file"]=1
     else
       result=""
       res="$(fn_decision "[user] search match, use file '$file'?" "ync")"
       [ "x$res" == "xc" ] && exit  # !break, no partial results
       [ "x$res" == "xn" ] && continue
       results[${#results[@]}]="$file"
-      map["$file"]=1
     fi
   done
 fi
