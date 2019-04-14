@@ -90,7 +90,7 @@ declare -a files2
 declare -a results
 declare -A map
 
-if [ -f "$search" ]; then
+if [[ -f "$search" && $custom_targets -eq 0 ]]; then
   # prioritise local files
   results[${#results[@]}]="$search"
 elif [[ ! "x$(dirname "$search")" == "x." || "x${search:0:1}" == "x." ]]; then
