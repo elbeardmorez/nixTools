@@ -46,13 +46,13 @@ help() {
 rc: $rc [$([ ! -e "$rc" ] && echo "not ")found]
 search target(s):
 $(for p in "${search_targets[@]}"; do echo -e "  $p"; done)
-"
+" 1>&2
 }
 
 option=search
 
 # parse options
-[ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
+[ $# -lt 1 ] && help && echo "[error] not enough args" 1>&2 && exit 1
 while [ -n "$1" ]; do
   arg="$(echo "$1" | sed 's/[ ]*-*//g')"
   case "$arg" in
@@ -67,7 +67,7 @@ while [ -n "$1" ]; do
         { shift && search_targets=("$1"); } || search_targets=("$rc") ;;
     "r"|"results") shift && file_results="$1" ;;
     "v"|"verbose") verbose=1 ;;
-    *) [ -n "$search" ] && help && echo "[error] unknown arg '$arg'"; search="$1" ;;
+    *) [ -n "$search" ] && help && echo "[error] unknown arg '$arg'" 1>&2; search="$1" ;;
   esac
   shift
 done
@@ -77,7 +77,7 @@ if [ -n "$file_results" ]; then
   [ -d "$(dirname "$file_results")" ] || mkdir -p "$(dirname "$file_results")"
 fi
 if [ $custom_targets -eq 1 ]; then
-  [ ! -e "${search_targets[0]}" ] && echo "[error] invalid custom search targets set '${search_targets[@]}'" && exit 1
+  [ ! -e "${search_targets[0]}" ] && echo "[error] invalid custom search targets set '${search_targets[@]}'" 1>&2 && exit 1
   # expand file
   [ -f "${search_targets[0]}" ] && { IFS=$'\n'; search_targets=($(cat "${search_targets[0]}")); IFS="$IFSORG"; }
 fi
