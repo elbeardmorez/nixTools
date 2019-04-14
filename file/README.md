@@ -45,6 +45,9 @@ where OPTION can be:
   -m DEST, --move DEST  : move TARGET to DEST - a path, or an alias
                           which can be found in the rc file
                           ('~/.nixTools/$SCRIPTNAME')
+  -xs, --search-args  : pass extra search arguments to 'search_'.
+                        proceeding args (optionally up to a '--')
+                        are considered search args
 
 and TARGET is:  either a directory of files, or a (partial) file name
                 to be located via 'search.sh'

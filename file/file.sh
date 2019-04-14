@@ -59,6 +59,9 @@ help() {
   -m DEST, --move DEST  : move TARGET to DEST - a path, or an alias
                           which can be found in the rc file
                           ('~/.nixTools/$SCRIPTNAME')
+  -xs, --search-args  : pass extra search arguments to 'search_'.
+                        proceeding args (optionally up to a '--')
+                        are considered search args
 \nand TARGET is:  either a directory of files, or a (partial) file name
                   to be located via 'search.sh'
 "
@@ -70,10 +73,23 @@ option=edit
 arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
 [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|s\|strip\|u\|uniq\|e\|edit\|d\|dump\|cat\|f\|find\|grep\|search\|t\|trim\|r\|rename\|dp\|dupe\|m\|move\)$/p')" ] && option="$arg" && shift
 
+declare -a search_args
+search_args=("--targets" "--interactive" 1)
 declare -a args
 declare target
 while [ -n "$1" ]; do
-  [ $# -gt 1 ] && args[${#args[@]}]=$1 || target="$1"
+  [ $# -eq 1 ] && target="$1" && shift && break
+  if [[ "x$1" == "x-xs" || "x$1" == "x--search-args" ]]; then
+    shift
+    while [ $# -gt 1 ]; do
+      [ "x$1" == "x--" ] && break
+      search_args[${#search_args[@]}]="$1"
+      shift
+    done
+    [ $# -eq 1 ] && continue
+  else
+    args[${#args[@]}]="$1"
+  fi
   shift
 done
 
@@ -88,7 +104,7 @@ if [ -d "$target" ]; then
     *) IFS=$'\n'; targets=($(find "$target" -type f)); IFS="$IFSORG" ;;
   esac
 else
-  IFS=$'\n'; targets=($(search_ --targets --interactive 1 "$target")); IFS="$IFSORG"
+  IFS=$'\n'; targets=($(search_ "${search_args[@]}" "$target")); IFS="$IFSORG"
 fi
 
 if [ ${#targets[@]} -gt 0 ]; then
