@@ -106,7 +106,7 @@ elif [[ ! "x$(dirname "$search")" == "x." || "x${search:0:1}" == "x." ]]; then
 else
   # use search targets
   for p in "${search_targets[@]}"; do
-    p="$(eval "echo $p")"  # resolve target
+    p="$(fn_path_resolve "$p")"  # resolve target
     if [ -e "$p" ]; then
       IFS=$'\n'; files2=($(find $p -name "$search" \( -type f -o -type l \))); IFS="$IFSORG"
       for file in "${files2[@]}"; do
