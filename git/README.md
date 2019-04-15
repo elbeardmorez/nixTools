@@ -62,5 +62,8 @@ where <OPTION> can be:
                         (default) or 'committed'
       -i|--issues  : only output non-chronological commits
 
+  smr|submodule-remove <NAME> [PATH]  : remove a submodule named NAME
+                                        at PATH (default: NAME)
+
 *note: optional binary args are supported for commands: log, rebase
 ```

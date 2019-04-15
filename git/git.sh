@@ -62,6 +62,8 @@ help() {
       -t|--type TYPE  : check on date type TYPE, supporting 'authored'
                         (default) or 'committed'
       -i|--issues  : only output non-chronological commits
+\n  smr|submodule-remove <NAME> [PATH]  : remove a submodule named NAME
+                                        at PATH (default: NAME)
 \n*note: optional binary args are supported for commands: log, rebase
 "
 }
@@ -266,6 +268,37 @@ BEGIN { last = pcd; }
 }'
 }
 
+fn_submodule_remove() {
+  submodule="$1" && shift
+  submodule_path="$submodule"
+  [ $# -gt 0 ] && submodule_path="$1" && shift
+  echo "[info] removing git submodule internals"
+  git config -f .git/config --remove-section submodule."$submodule"
+  git config -f .gitmodules --remove-section submodule."$submodule"
+
+  echo "[info] committing changes.."
+  sleep 0.5
+  git add .gitmodules
+  git commit -m "[mod] removed submodule '$submodule'"
+
+  echo "[info] purging internal cache.."
+  git rm --cached "$submodule_path"
+
+  if [ -d $submodule_path ]; then
+    echo "[info] removing submodule path: '$submodule_path'"
+    rm -rf .git/modules/"$submodule"
+    rm -rf "$submodule_path"
+    # remove any empty parent paths
+    path="$submodule_path"
+    while [ ${#path} -gt 1 ] ; do
+      path=${path%/*}
+      rmdir "$path" 2>/dev/null || break
+    done
+  else
+    echo "[info] submodule path: '$submodule_path' missing / already removed"
+  fi
+}
+
 fn_process() {
   command="help" && [ $# -gt 0 ] && command="$1" && shift
   case "$command" in
@@ -408,6 +441,10 @@ fn_process() {
       ;;
     "doc"|"dates-order-check")
       fn_dates_order_check "$@"
+      ;;
+    "smr"|"submodule-remove")
+      [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
+      fn_submodule_remove "$@"
       ;;
     *)
       git $command "$@"
