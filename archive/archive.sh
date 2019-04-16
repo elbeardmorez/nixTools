@@ -16,8 +16,7 @@ SIZE=
 TARGET=""
 NAME=""
 
-function help()
-{
+function help() {
   echo "usage: $SCRIPTNAME [mode] [type] [options] [archive(s)]"
   echo -e "\nmode:"
   echo -e "\n add:  creation / addition [tar only]"
@@ -29,11 +28,11 @@ function help()
   echo -e "\n extract:  extract [multiple] archive files"
   echo -e "\n  options:"
   echo -e "\t   [-t 'target directory']  : extract to target directory"
-  echo -e "\t  'archive(s)  : archive files / directory containing archive files'\n"
+  echo -e "\t   'archive(s)  : archive files / directory containing archive files'\n"
 }
-function tarmv()
-{
-  #parse args
+
+function tarmv() {
+  # parse args
   args=("$@")
   args2=""
   l=0
@@ -42,16 +41,16 @@ function tarmv()
     echo "opt $l: $OPT"
     case $OPT in
       "-C"|"--target")
-        #test and set target if specified
+        # test and set target if specified
         if [ $[l+1] -lt ${#args[@]} ]; then
           OPT="${args[$[l+1]]}"
           if [ ! "${OPT:0:1}" == "-" ]; then
-            #consume arg
+            # consume arg
             l=$[$l+1]
-            #assume directory
+            # assume directory
             if [ -d "$OPT" ]; then
               TARGET="$OPT"
-              args2=( "${args2[@]}" "--directory" $TARGET )
+              args2=("${args2[@]}" "--directory" $TARGET)
             else
               echo -n "create TARGET directory '$OPT'?"
               result
@@ -60,7 +59,7 @@ function tarmv()
                 echo $result
                 TARGET="$OPT"
                 mkdir -p "$TARGET"
-                args2=( "${args2[@]}" "--directory" $TARGET )
+                args2=("${args2[@]}" "--directory" $TARGET)
               else
                 echo ""
               fi
@@ -75,13 +74,13 @@ function tarmv()
         l=$[$l+1]
         MULTIVOLUME=1
         SIZE=${args[l]}
-        #echo size $SIZE
+        # echo size $SIZE
         ;;
       "--split")
         l=$[$l+1]
         OPT="${args[l]}"
         MULTIVOLUME=1
-        #size in MB
+        # size in MB
         SIZE=$(echo $OPT*1024 | bc)
         SIZE=${SIZE%%.*}
         ;;
@@ -90,7 +89,7 @@ function tarmv()
         ;;
       "-x"|"--extract")
         EXTRACT=1
-        args2=( "${args2[@]}" "$OPT" )
+        args2=("${args2[@]}" "$OPT")
         ;;
       "--name")
         l=$[$l+1]
@@ -99,7 +98,7 @@ function tarmv()
           OPT="$OPT.tar"
         fi
         NAME=$OPT
-        args2=( "${args2[@]}" "--file" $OPT )
+        args2=("${args2[@]}" "--file" $OPT)
         ;;
       "--type")
         echo type
@@ -108,15 +107,15 @@ function tarmv()
         OPT="${args[l]}"
         case $OPT in
           "add")
-            args2=( "${args2[@]}" "--create" )
+            args2=("${args2[@]}" "--create")
             ;;
           "update")
             REMOVEINVALID=1
-            args2=( "${args2[@]}" "--update" )
+            args2=("${args2[@]}" "--update")
             ;;
           "extract")
             EXTRACT=1
-            args2=( "${args2[@]}" "--extract" )
+            args2=("${args2[@]}" "--extract")
             ;;
           *)
             echo "error: unsupported option arg '$OPT' for option '--type'"
@@ -128,22 +127,22 @@ function tarmv()
       "-f"|"--file")
         ;;
       *)
-        args2=( "${args2[@]}" "$OPT" )
+        args2=("${args2[@]}" "$OPT")
         ;;
     esac
     l=$[$l+1]
   done
-  #trim initial empty arg
-  args2=( ${args2[@]:1:${#args2[@]}} )
+  # trim initial empty arg
+  args2=(${args2[@]:1:${#args2[@]}})
 
-  #ensure non-optional parameters were set
+  # ensure non-optional parameters were set
   if [ "x$NAME" == "x" ]; then 
     help
-    echo error: non-optional parameter 'NAME' missing
+    echo "error: non-optional parameter 'NAME' missing"
     exit 1
   fi
 
-  #create tar multi-volume script
+  # create tar multi-volume script
   MVTARSCRIPT=/tmp/tar.multi.volume
   cat > $MVTARSCRIPT << EOF
 #!/bin/sh
@@ -172,30 +171,30 @@ EOF
   chmod +x "$MVTARSCRIPT"
 
   if [ $DEFAULTS -eq 1 ]; then
-    args2=( "--verbose" "--seek" "${args2[@]}" )
+    args2=("--verbose" "--seek" "${args2[@]}")
     if [ "x$TARGET" == "x" ]; then
       TARGET=/
     fi
-    args2=( "${args2[@]}" "--directory" $TARGET )
+    args2=("${args2[@]}" "--directory" $TARGET)
   fi
   if [ $MULTIVOLUME -eq 1 ]; then
     if [[ $DEFAULTS -eq 1 && $EXTRACT -eq 0 ]]; then
       if [ "x$SIZE" == "x" ]; then
         SIZE=10240
       fi
-      args2=( "--tape-length" "$SIZE" "${args2[@]}" )
+      args2=("--tape-length" "$SIZE" "${args2[@]}")
     fi
-    args2=( "--multi-volume" "--info-script" "$MVTARSCRIPT" "${args2[@]}" )
+    args2=("--multi-volume" "--info-script" "$MVTARSCRIPT" "${args2[@]}")
   fi
 
-  #updating..
+  # updating..
   if [ $REMOVEINVALID -eq 1 ]; then
-    #get invalid
+    # get invalid
     TEMP=$(fn_temp_file)
     echo tar "--diff" "${args2[@]}"
     tar "--diff" "${args2[@]}" 2>&1 | grep -i 'no such file' | awk -F: '{gsub(" ","",$2); print $2}' > $TEMP
     if [ $(wc -l $TEMP | sed 's|^[ ]*\([0-9]*\).*$|\1|g') -gt 0 ]; then
-      #delete invalid (non-existent on host) files from archive
+      # delete invalid (non-existent on host) files from archive
       tar "--delete" "--files-from" "$TEMP" "${args2[@]}"
     fi
     rm $TEMP
@@ -204,33 +203,33 @@ EOF
   #tar
   tar "${args2[@]}"
 }
-function extractiso()
-{
+
+function extractiso() {
   result=1
   set +e
   file=$(fn_temp_file) && rm $file && mkdir -p $file || return 1
   if [ -d $file ]; then
     mount -t iso9660 -o ro "$1" $file
-    result=$( cp -R $file/* . )
+    result=$(cp -R $file/* .)
     umount $file && rmdir $file
   fi
   set -e
-  echo $result  
+  echo $result
 }
-function extractdeb()
-{
+
+function extractdeb() {
   CWD=$PWD/
   if [ ! "x$(ar t $1 | sed -n '/^debian-binary$/p')" == "x" ]; then
-    #shift to prevent semi-bomb
-    file=$(echo "${1##*/}" | sed 's|.deb$||') 
+    # shift to prevent semi-bomb
+    file=$(echo "${1##*/}" | sed 's|.deb$||')
     mkdir "$file" 2>/dev/null
     cd "$file"
   fi
   ar xv "$CWD$1"
-  if [ -f data.tar.* ]; then extract_ data.tar.*; fi  
+  if [ -f data.tar.* ]; then extract_ data.tar.*; fi
 }
-function extracttype ()
-{
+
+function extracttype() {
   case "$1" in
    *.tar.xz)        tar xvJf "$1" ;;
    *.tar.bz2|*.tbz) tar xjf "$1" ;;
@@ -246,16 +245,16 @@ function extracttype ()
    *.Z)             uncompress "$1" ;;
    *.7z)            7za x "$1" ;;
    *.rpm)           rpm2cpio "$1" | cpio -idmv ;;
-   *.ace)	          unace x "$1" ;;
-   *.lzma)	        lzma -d -v "$1" ;;
-   *.iso)	          extractiso "$1" ;;
+   *.ace)           unace x "$1" ;;
+   *.lzma)          lzma -d -v "$1" ;;
+   *.iso)           extractiso "$1" ;;
    *.deb)           extractdeb "$1" ;;
    *.jar)           jar xvf "$1" ;;
    *) echo "unsupported archive type '$1'" ;;
   esac
 }
-function extract()
-{
+
+function extract() {
   dirorig="$(pwd)"
   dirtarget=""
   if [ "$1" == "-t" ]; then
@@ -270,7 +269,7 @@ function extract()
           mkdir -p "$1"
         fi
       fi
-      if [ -d "$1" ]; then   
+      if [ -d "$1" ]; then
         dirtarget="$1"
         shift
         echo "target directory: '$dirtarget'"
@@ -288,11 +287,11 @@ function extract()
         dirtarget=$(echo "$file" | sed 's|\(.*\)/.*|\1|')
       fi
       if [ -d "$dirtarget" ]; then
-        if ! [ "$dirtarget" == $(pwd) ]; then 	  
+        if ! [ "$dirtarget" == $(pwd) ]; then
           cd "$dirtarget"
           if ! [ -f "$file" ] ; then
-            #obviously it was a file in the old pwd
-            file=$dirorig/$file	
+            # obviously it was a file in the old pwd
+            file=$dirorig/$file
           fi
         fi
       fi
@@ -313,6 +312,7 @@ fi
 case "$1" in
   "add"|"update") tarmv --type "$@" ;;
   "extract") shift; extract "$@" ;;
-   *) help; echo "unsupported mode '$1'" ;;
+  *) help; echo "unsupported mode '$1'" ;;
 esac
+
 echo done
