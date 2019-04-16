@@ -208,6 +208,7 @@ fn_extract_iso() {
 }
 
 fn_extract_deb() {
+  declare files
   CWD=$PWD/
   if [ -n "$(ar t "$1" | sed -n '/^debian-binary$/p')" ]; then
     # shift to prevent semi-bomb
@@ -216,7 +217,8 @@ fn_extract_deb() {
     cd "$file"
   fi
   ar xv "$CWD$1"
-  if [ -f data.tar.* ]; then extract_ data.tar.*; fi
+  files=(data.tar.*)
+  [ ${#files[@]} -gt 0 ] && extract_ "${files[@]}"
 }
 
 fn_extract_type() {
