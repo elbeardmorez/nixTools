@@ -194,12 +194,12 @@ EOF
 
 fn_extract_iso() {
   res=1
-  file=$(fn_temp_file) && rm $file && mkdir -p "$file" || return 1
+  mount_point="$(fn_temp_dir)"
   if [ -d "$file" ]; then
-    mount -t iso9660 -o ro "$1" "$file"
-    cp -R "$file"/* "./" 2>/dev/null
+    mount -t iso9660 -o ro "$1" "$mount_point"
+    cp -R "$mount_point"/* "./" 2>/dev/null
     res=$?
-    umount "$file" && rmdir "$file"
+    umount "$file" && rmdir "$mount_point"
   fi
   return $res
 }
