@@ -54,16 +54,10 @@ fn_tarmv() {
               TARGET="$OPT"
               args2=("${args2[@]}" "--directory" "$TARGET")
             else
-              echo -n "create TARGET directory '$OPT'?"
-              read -n 1 result
-              if [[ "$result" == "y" || "$result" == "Y" ]]; then
-                echo $result
-                TARGET="$OPT"
-                mkdir -p "$TARGET"
-                args2=("${args2[@]}" "--directory" "$TARGET")
-              else
-                echo ""
-              fi
+              fn_decision "[user] create TARGET directory '$OPT'?" 1>/dev/null || exit 1
+              TARGET="$OPT"
+              mkdir -p "$TARGET"
+              args2=("${args2[@]}" "--directory" "$TARGET")
             fi
           fi
         fi
