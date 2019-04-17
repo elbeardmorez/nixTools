@@ -215,7 +215,7 @@ fn_extract_deb() {
   fi
   ar xv "$CWD$1"
   files=(data.tar.*)
-  [ ${#files[@]} -gt 0 ] && extract_ "${files[@]}"
+  [ ${#files[@]} -gt 0 ] && fn_extract_type "${files[@]}"
 }
 
 fn_extract_type() {
