@@ -7,6 +7,7 @@ x="$(dirname "$0")/$(basename "$0")"; [ ! -f "$x" ] && x="$(which $0)"; x="$(rea
 set +e
 
 SCRIPTNAME="${0##/*}"
+DEBUG=${DEBUG:-0}
 
 MULTIVOLUME=0
 REMOVEINVALID=0
@@ -39,7 +40,7 @@ fn_tarmv() {
   l=0
   while [ $l -lt "${#args[@]}" ]; do
     OPT="${args[l]}"
-    echo "opt $l: $OPT"
+    [ $DEBUG -ge 1 ] && echo "[debug] opt $l: $OPT" 1>&2
     case $OPT in
       "-C"|"--target")
         # test and set target if specified
@@ -74,7 +75,7 @@ fn_tarmv() {
         l=$((l + 1))
         MULTIVOLUME=1
         SIZE=${args[l]}
-        # echo size $SIZE
+        [ $DEBUG -ge 1 ] && echo "[debug] max size: $SIZE" 1>&2
         ;;
       "--split")
         l=$((l + 1))
@@ -99,10 +100,10 @@ fn_tarmv() {
         args2=("${args2[@]}" "--file" "$OPT")
         ;;
       "--type")
-        echo "$type"
         DEFAULTS=1
         l=$((l + 1))
         OPT="${args[l]}"
+        [ $DEBUG -ge 1 ] && echo "[debug] type set: $OPT" 1>&2
         case $OPT in
           "add")
             args2=("${args2[@]}" "--create")
@@ -116,11 +117,12 @@ fn_tarmv() {
             args2=("${args2[@]}" "--extract")
             ;;
           *)
-            echo "error: unsupported option arg '$OPT' for option '--type'" && help&& exit 1
+            help && echo "[error] unsupported option arg '$OPT' for option '--type'" 1>&2 && exit 1
             ;;
         esac
         ;;
       "-f"|"--file")
+        # no-op
         ;;
       *)
         args2=("${args2[@]}" "$OPT")
@@ -132,7 +134,7 @@ fn_tarmv() {
   args2=(${args2[@]:1:${#args2[@]}})
 
   # ensure non-optional parameters were set
-  [ "x$NAME" == "x" ] && help && echo "error: non-optional parameter 'NAME' missing" && exit 1
+  [ "x$NAME" == "x" ] && help && echo "[error] non-optional parameter 'NAME' missing" 1>&2 && exit 1
 
   # create tar multi-volume script
   MVTARSCRIPT=/tmp/tar.multi.volume
@@ -183,7 +185,7 @@ EOF
   if [ $REMOVEINVALID -eq 1 ]; then
     # get invalid
     TEMP=$(fn_temp_file)
-    echo tar "--diff" "${args2[@]}"
+    [ $DEBUG -ge 1 ] && echo "[debug] tar --diff ${args2[*]}" 1>&2
     tar "--diff" "${args2[@]}" 2>&1 | grep -i 'no such file' | awk -F: '{gsub(" ","",$2); print $2}' > $TEMP
     if [ $(wc -l $TEMP | sed 's|^[ ]*\([0-9]*\).*$|\1|g') -gt 0 ]; then
       # delete invalid (non-existent on host) files from archive
@@ -242,7 +244,7 @@ fn_extract_type() {
    *.iso)           fn_extract_iso "$1" ;;
    *.deb)           fn_extract_deb "$1" ;;
    *.jar)           jar xvf "$1" ;;
-   *) echo "unsupported archive type '$1'" ;;
+   *) echo "[error] unsupported archive type '$1'" 1>&2 && exit 1 ;;
   esac
 }
 
@@ -252,7 +254,7 @@ fn_extract() {
   if [ "$1" == "-t" ]; then
     shift
     if [ $# -lt 2 ]; then
-      echo "not enough args!" && help && exit 1
+      help && echo "[error] not enough args!" 1>&2 && exit 1
     else
       if [ ! -d "$1" ]; then
         if [ ! -f "$1" ]; then
@@ -262,9 +264,9 @@ fn_extract() {
       if [ -d "$1" ]; then
         dirtarget="$1"
         shift
-        echo "target directory: '$dirtarget'"
+        [ $DEBUG -ge 1 ] && echo "[debug] target directory: '$dirtarget'" 1>&2
       else
-        echo "invalid target directory: '$1'" && help && exit 1
+        help && echo "[error] invalid target directory: '$1'" 1>&2 && exit 1
       fi
     fi
   fi
@@ -284,21 +286,21 @@ fn_extract() {
           fi
         fi
       fi
-      echo "extracting '$file'"
+      [ $DEBUG -ge 1 ] && echo "[debug] extracting '$file'" 1>&2
       fn_extract_type "$file"
     else
-      echo "'$file' is not a valid file"
+      echo "[info] skipping invalid file: '$file'"
     fi
     cd "$dirorig"
   done
 }
 
-[ $# -lt 2 ] && echo "not enough args!" && help && exit 1
+[ $# -lt 2 ] && help && echo "[error] not enough args!" 1>&2 && exit 1
 
 case "$1" in
   "add"|"update") fn_tarmv --type "$@" ;;
   "extract") shift; fn_extract "$@" ;;
-  *) help && echo "unsupported mode '$1'" && exit 1 ;;
+  *) help && echo "[error] unsupported mode '$1'" 1>&2 && exit 1 ;;
 esac
 
-echo "done"
+echo "[info] done"
