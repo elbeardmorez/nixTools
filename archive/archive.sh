@@ -54,7 +54,7 @@ fn_tarmv() {
               TARGET="$OPT"
               args2=("${args2[@]}" "--directory" "$TARGET")
             else
-              fn_decision "[user] create TARGET directory '$OPT'?" 1>/dev/null || exit 1
+              fn_decision "[user] create TARGET directory '$OPT'?" 1>/dev/null || return 1
               TARGET="$OPT"
               mkdir -p "$TARGET"
               args2=("${args2[@]}" "--directory" "$TARGET")
@@ -111,7 +111,7 @@ fn_tarmv() {
             args2=("${args2[@]}" "--extract")
             ;;
           *)
-            help && echo "[error] unsupported option arg '$OPT' for option '--type'" 1>&2 && exit 1
+            help && echo "[error] unsupported option arg '$OPT' for option '--type'" 1>&2 && return 1
             ;;
         esac
         ;;
@@ -128,7 +128,7 @@ fn_tarmv() {
   args2=(${args2[@]:1:${#args2[@]}})
 
   # ensure non-optional parameters were set
-  [ "x$NAME" == "x" ] && help && echo "[error] non-optional parameter 'NAME' missing" 1>&2 && exit 1
+  [ "x$NAME" == "x" ] && help && echo "[error] non-optional parameter 'NAME' missing" 1>&2 && return 1
 
   # create tar multi-volume script
   MVTARSCRIPT=/tmp/tar.multi.volume
@@ -193,14 +193,15 @@ EOF
 }
 
 fn_extract_iso() {
-  result=1
+  res=1
   file=$(fn_temp_file) && rm $file && mkdir -p "$file" || return 1
   if [ -d "$file" ]; then
     mount -t iso9660 -o ro "$1" "$file"
-    result="$(cp -R "$file"/* "./")"
+    cp -R "$file"/* "./" 2>/dev/null
+    res=$?
     umount "$file" && rmdir "$file"
   fi
-  echo "$result"
+  return $res
 }
 
 fn_extract_deb() {
@@ -238,7 +239,7 @@ fn_extract_type() {
    *.iso)           fn_extract_iso "$1" ;;
    *.deb)           fn_extract_deb "$1" ;;
    *.jar)           jar xvf "$1" ;;
-   *) echo "[error] unsupported archive type '$1'" 1>&2 && exit 1 ;;
+   *) echo "[error] unsupported archive type '$1'" 1>&2 && return 1 ;;
   esac
 }
 
@@ -248,7 +249,7 @@ fn_extract() {
   if [ "$1" == "-t" ]; then
     shift
     if [ $# -lt 2 ]; then
-      help && echo "[error] not enough args!" 1>&2 && exit 1
+      help && echo "[error] not enough args!" 1>&2 && return 1
     else
       if [ ! -d "$1" ]; then
         if [ ! -f "$1" ]; then
@@ -260,7 +261,7 @@ fn_extract() {
         shift
         [ $DEBUG -ge 1 ] && echo "[debug] target directory: '$dirtarget'" 1>&2
       else
-        help && echo "[error] invalid target directory: '$1'" 1>&2 && exit 1
+        help && echo "[error] invalid target directory: '$1'" 1>&2 && return 1
       fi
     fi
   fi
@@ -281,7 +282,7 @@ fn_extract() {
         fi
       fi
       [ $DEBUG -ge 1 ] && echo "[debug] extracting '$file'" 1>&2
-      fn_extract_type "$file"
+      fn_extract_type "$file" || return 1
     else
       echo "[info] skipping invalid file: '$file'"
     fi
