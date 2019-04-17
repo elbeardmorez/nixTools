@@ -99,7 +99,7 @@ fn_tarmv() {
         args2=("${args2[@]}" "--file" "$OPT")
         ;;
       "--type")
-        echo type
+        echo "$type"
         DEFAULTS=1
         l=$((l + 1))
         OPT="${args[l]}"
