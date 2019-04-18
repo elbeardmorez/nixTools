@@ -224,6 +224,7 @@ fn_extract_type() {
    *.tar.bz2|*.tbz) tar xjf "$1" ;;
    *.tar.gz)        tar xzf "$1" ;;
    *.bz2)           bunzip2 "$1" ;;
+   *.xz)            xz -dk "$1" ;;
    *.rar)           unrar x "$1" ;;
    *.gz)            gunzip "$1" ;;
    *.tar)           fn_tarmv --extract --multi --name "$1" ;;
