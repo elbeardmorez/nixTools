@@ -14,23 +14,61 @@ REMOVEINVALID=0
 DEFAULTS=0
 EXTRACT=0
 
+default_multivolume_size=10240
+
 declare SIZE
 declare TARGET
 declare NAME
 
-help() {
-  echo "usage: $SCRIPTNAME [mode] [type] [options] [archive(s)]"
-  echo -e "\nmode:"
-  echo -e "\n add:  creation / addition [tar only]"
+supported_extract_formats=(
+  "tar [.tar]"
+  "gzip [.gz]"
+  "zx [.xz]"
+  "bzip2 [.bzip2/.bz2]"
+  "tar (gzip/bzip2/xz) [.tar.gz/.tgz/.tar.bz2/.tbz2/.tar.xz/.txz]"
+  "rar [.rar]"
+  "zip [.zip]"
+  "Lempel-Ziv [.Z]"
+  "7zip [.7z]"
+  "redhat package manager package [.rpm]"
+  "WinAce [.ace]"
+  "lzma [.lzma]"
+  "iso9660 image [.iso]"
+  "DebIan package [.deb]"
+  "java package [.jar]"
+)
 
-  echo -e "\n  options:"
-  echo -e "\t   --split\tsize (MB) to use for splitting archive into multiple volumes"
-  echo -e "\t   --name\t\tarchive name"
-  echo -e "\n update:  [tar only]"
-  echo -e "\n extract:  extract [multiple] archive files"
-  echo -e "\n  options:"
-  echo -e "\t   [-t 'target directory']  : extract to target directory"
-  echo -e "\t   'archive(s)  : archive files / directory containing archive files'\n"
+help() {
+  echo -e "SYNTAX: ${CLR_HL}$SCRIPTNAME [-h] [MODE] [OPTIONS]${CLR_OFF}
+\n  -h, --help  : print this help information
+\n  MODE:
+\n    ${CLR_HL}a, add${CLR_OFF}:  create a tar archive
+\n      SYNTAX: ${CLR_HL}$SCRIPTNAME --add --name NAME --target TARGET [OPTIONS]${CLR_OFF}
+\n      NAME:  achive name
+      TARGET:  path to files for addition
+      OPTIONS:
+        -mv, --multi-volume  : assume multi-volume archive
+        -s, --split  : max size (MB) to use for splitting archive into
+                       multiple volumes
+\n      support: tar only
+\n    ${CLR_HL}u, update${CLR_OFF}:  update a tar archive
+\n      SYNTAX: ${CLR_HL}$SCRIPTNAME --update --name NAME --target TARGET [OPTIONS]${CLR_OFF}
+\n      NAME:  achive name
+      TARGET:  path to files for addition / update
+      OPTIONS:
+        -mv, --multi-volume  : assume multi-volume archive
+\n      support: tar only
+\n    ${CLR_HL}x, extract${CLR_OFF}:  extract [multiple] archive files
+\n      SYNTAX: ${CLR_HL}$SCRIPTNAME --extract [OPTIONS] TARGETS${CLR_OFF}
+\n      OPTIONS:
+        -d, --dest PATH  : extract to PATH
+      TARGETS:  one or more archive files and/or directories
+                containing archive file(s)
+\n$(s="";
+    for f in "${supported_extract_formats[@]}"; do s="$s, $f"; done;
+    echo "      support:$(echo "${s:2}" | fold -s -w64 |
+    sed 's/\(.*\)/\t\1\t/')" | column -t -s$'\t')
+"
 }
 
 fn_tarmv() {
@@ -42,7 +80,31 @@ fn_tarmv() {
     OPT="${args[l]}"
     [ $DEBUG -ge 1 ] && echo "[debug] opt $l: $OPT" 1>&2
     case $OPT in
-      "-C"|"--target")
+      "--type")
+        DEFAULTS=1
+        l=$((l + 1))
+        OPT="${args[l]}"
+        [ $DEBUG -ge 1 ] && echo "[debug] type set: $OPT" 1>&2
+        case $OPT in
+          "add")
+            args2=("${args2[@]}" "--create")
+            ;;
+          "update")
+            REMOVEINVALID=1
+            args2=("${args2[@]}" "--update")
+            ;;
+          "extract")
+            EXTRACT=1
+            args2=("${args2[@]}" "--extract")
+            ;;
+      "-n"|"--name"|"-f"|"--file")
+        l=$((l + 1))
+        OPT="${args[l]}"
+        [ "${OPT:$((${#OPT} - 4)):4}" != ".tar" ] && OPT="$OPT.tar"
+        NAME="$OPT"
+        args2=("${args2[@]}" "--file" "$OPT")
+        ;;
+      "-t"|"--target")
         # test and set target if specified
         if [ $((l + 1)) -lt ${#args[@]} ]; then
           OPT="${args[$((l + 1))]}"
@@ -62,22 +124,19 @@ fn_tarmv() {
           fi
         fi
         ;;
-      "-F"|"--info-script"|"-M"|"--multi-volume"|"--multi")
+      "-mv"|"--multi-volume"|"-F"|"--info-script"|"-M")
         MULTIVOLUME=1
         ;;
-      "-L"|"--tape-length")
-        l=$((l + 1))
+      "-s"|"--split"|"-L"|"--tape-length")
         MULTIVOLUME=1
-        SIZE=${args[l]}
-        [ $DEBUG -ge 1 ] && echo "[debug] max size: $SIZE" 1>&2
-        ;;
-      "--split")
-        l=$((l + 1))
-        OPT=${args[l]}
-        MULTIVOLUME=1
-        # size in MB
-        SIZE=$(echo $OPT*1024 | bc)
-        SIZE=${SIZE%%.*}
+        SIZE=$default_multivolume_size
+        if [ -n "$(echo "$((l + 1))" | sed -n '/^[0-9.]\+$/p')" ]; then
+          l=$((l + 1))
+          SIZE=${args[l]}
+          [ "$OPT" == "--split" ] && \
+            SIZE=$((OPT * 1024)) && SIZE=${SIZE%%.*}  # size in MB
+        fi
+        [ $DEBUG -ge 1 ] && echo "[debug] max size: $SIZE kb" 1>&2
         ;;
       "-u"|"--update")
         REMOVEINVALID=1
@@ -86,37 +145,10 @@ fn_tarmv() {
         EXTRACT=1
         args2=("${args2[@]}" "$OPT")
         ;;
-      "--name")
-        l=$((l + 1))
-        OPT="${args[l]}"
-        [ "${OPT:$((${#OPT} - 4)):4}" != ".tar" ] && OPT="$OPT.tar"
-        NAME="$OPT"
-        args2=("${args2[@]}" "--file" "$OPT")
-        ;;
-      "--type")
-        DEFAULTS=1
-        l=$((l + 1))
-        OPT="${args[l]}"
-        [ $DEBUG -ge 1 ] && echo "[debug] type set: $OPT" 1>&2
-        case $OPT in
-          "add")
-            args2=("${args2[@]}" "--create")
-            ;;
-          "update")
-            REMOVEINVALID=1
-            args2=("${args2[@]}" "--update")
-            ;;
-          "extract")
-            EXTRACT=1
-            args2=("${args2[@]}" "--extract")
-            ;;
           *)
             help && echo "[error] unsupported option arg '$OPT' for option '--type'" 1>&2 && return 1
             ;;
         esac
-        ;;
-      "-f"|"--file")
-        # no-op
         ;;
       *)
         args2=("${args2[@]}" "$OPT")
@@ -128,7 +160,8 @@ fn_tarmv() {
   args2=(${args2[@]:1:${#args2[@]}})
 
   # ensure non-optional parameters were set
-  [ "x$NAME" == "x" ] && help && echo "[error] non-optional parameter 'NAME' missing" 1>&2 && return 1
+  [ -z "$NAME" ] && help && echo "[error] non-optional parameter 'NAME' missing" 1>&2 && return 1
+  [[ $EXTRACT == 0 && -z "$TARGET" ]] && help && echo "[error] non-optional parameter 'TARGET' missing" 1>&2 && return 1
 
   # create tar multi-volume script
   MVTARSCRIPT=/tmp/tar.multi.volume
@@ -166,12 +199,8 @@ EOF
     args2=("${args2[@]}" "--directory" $TARGET)
   fi
   if [ $MULTIVOLUME -eq 1 ]; then
-    if [[ $DEFAULTS -eq 1 && $EXTRACT -eq 0 ]]; then
-      if [ "x$SIZE" == "x" ]; then
-        SIZE=10240
-      fi
+    [[ $EXTRACT -eq 0 && -n "$SIZE" ]] && \
       args2=("--tape-length" "$SIZE" "${args2[@]}")
-    fi
     args2=("--multi-volume" "--info-script" "$MVTARSCRIPT" "${args2[@]}")
   fi
 
@@ -227,7 +256,7 @@ fn_extract_type() {
    *.xz)            xz -dk "$1" ;;
    *.rar)           unrar x "$1" ;;
    *.gz)            gunzip "$1" ;;
-   *.tar)           fn_tarmv --extract --multi --name "$1" ;;
+   *.tar)           fn_tarmv --extract --multi-volume --name "$1" ;;
    *.txz)           tar xvJf "$1" ;;
    *.tbz2)          tar xjf "$1" ;;
    *.tgz)           tar xzf "$1" ;;
@@ -247,7 +276,7 @@ fn_extract_type() {
 fn_extract() {
   cwd="$(pwd)"
   path_dest=""
-  if [ "$1" == "-t" ]; then
+  if [[ "$1" = "-d" || "$1" = "--dest" ]]; then
     shift
     if [ $# -lt 2 ]; then
       help && echo "[error] not enough args!" 1>&2 && return 1
@@ -285,12 +314,16 @@ fn_extract() {
   done
 }
 
-[ $# -lt 2 ] && help && echo "[error] not enough args!" 1>&2 && exit 1
-
-case "$1" in
-  "add"|"update") fn_tarmv --type "$@" ;;
-  "extract") shift; fn_extract "$@" ;;
-  *) help && echo "[error] unsupported mode '$1'" 1>&2 && exit 1 ;;
+arg="" && [ $# -gt 0 ] && arg="$(echo "$1" | sed 's/^[ ]*-*//')"
+case "$arg" in
+  ""|"h"|"help") help && exit ;;
+  *)
+    [ $# -lt 2 ] && help && echo "[error] not enough args!" 1>&2 && exit 1
+    case "$arg" in
+      "a"|"add"|"u"|"update") shift; fn_tarmv --type "$arg" "$@" ;;
+      "x"|"extract") shift; fn_extract "$@" ;;
+      *) help && echo "[error] unsupported mode '$1'" 1>&2 && exit 1 ;;
+    esac
 esac
 
 echo "[info] done"

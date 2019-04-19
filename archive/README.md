@@ -4,23 +4,50 @@ tar wrapper to ease multi-volume archives and updating
 
 ## usage
 ```
-usage: ./archive.sh [mode] [type] [options] [archive(s)]
+SYNTAX: ./archive.sh [-h] [MODE] [OPTIONS]
 
-mode:
+  -h, --help  : print this help information
 
- add:  creation / addition [tar only]
+  MODE:
 
-  options:
-	   --split	size (MB) to use for splitting archive into multiple volumes
-	   --name		archive name
+    a, add:  create a tar archive
 
- update:  [tar only]
+      SYNTAX: ./archive.sh --add --name NAME --target TARGET [OPTIONS]
 
- extract:  extract [multiple] archive files
+      NAME:  achive name
+      TARGET:  path to files for addition
+      OPTIONS:
+        -mv, --multi-volume  : assume multi-volume archive
+        -s, --split  : max size (MB) to use for splitting archive into
+                       multiple volumes
 
-  options:
-	   [-t 'target directory']  : extract to target directory
-	  'archive(s)  : archive files / directory containing archive files'
+      support: tar only
+
+    u, update:  update a tar archive
+
+      SYNTAX: ./archive.sh --update --name NAME --target TARGET [OPTIONS]
+
+      NAME:  achive name
+      TARGET:  path to files for addition / update
+      OPTIONS:
+        -mv, --multi-volume  : assume multi-volume archive
+
+      support: tar only
+
+    x, extract:  extract [multiple] archive files
+
+      SYNTAX: ./archive.sh --extract [OPTIONS] TARGETS
+
+      OPTIONS:
+        -d, --dest PATH  : extract to PATH
+      TARGETS:  one or more archive files and/or directories
+                containing archive file(s)
+
+      support:  tar [.tar], gzip [.gz], zx [.xz], bzip2 [.bzip2/.bz2], tar 
+                (gzip/bzip2/xz/lz) [.tar.gz/.tgz/.tar.bz2/.tbz2/.tar.xz/.txz], 
+                rar [.rar], zip [.zip], Lempel-Ziv [.Z], 7zip [.7z], redhat 
+                package manager package [.rpm], WinAce [.ace], lzma [.lzma], 
+                iso9660 image [.iso], DebIan package [.deb], java package [.jar]
 ```
 
 ## implementation
