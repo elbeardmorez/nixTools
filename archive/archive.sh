@@ -245,8 +245,8 @@ fn_extract_type() {
 }
 
 fn_extract() {
-  dirorig="$(pwd)"
-  dirtarget=""
+  cwd="$(pwd)"
+  path_dest=""
   if [ "$1" == "-t" ]; then
     shift
     if [ $# -lt 2 ]; then
@@ -258,11 +258,11 @@ fn_extract() {
         fi
       fi
       if [ -d "$1" ]; then
-        dirtarget="$1"
+        path_dest="$1"
         shift
-        [ $DEBUG -ge 1 ] && echo "[debug] target directory: '$dirtarget'" 1>&2
+        [ $DEBUG -ge 1 ] && echo "[debug] destination path: '$path_dest'" 1>&2
       else
-        help && echo "[error] invalid target directory: '$1'" 1>&2 && return 1
+        help && echo "[error] invalid destination path: '$1'" 1>&2 && return 1
       fi
     fi
   fi
@@ -270,24 +270,18 @@ fn_extract() {
   files=("$@")
   for file in "${files[@]}"; do
     if [ -f "$file" ] ; then
-      if [ "x$dirtarget" == "x" ]; then
-        dirtarget="$(echo "$file" | sed 's|\(.*\)/.*|\1|')"
-      fi
-      if [ -d "$dirtarget" ]; then
-        if ! [ "$dirtarget" == $(pwd) ]; then
-          cd "$dirtarget"
-          if ! [ -f "$file" ] ; then
-            # obviously it was a file in the old pwd
-            file="$dirorig/$file"
-          fi
-        fi
+      [ -z "$path_dest" ] && path_dest="$(echo "$file" | sed 's|\(.*\)/.*|\1|')"
+      if [[ -d "$path_dest" && "$path_dest" != "$cwd" ]]; then
+        cd "$path_dest"
+        # fix file path
+        [ ! -f "$file" ] && file="$cwd/$file"
       fi
       [ $DEBUG -ge 1 ] && echo "[debug] extracting '$file'" 1>&2
       fn_extract_type "$file" || return 1
     else
       echo "[info] skipping invalid file: '$file'"
     fi
-    cd "$dirorig"
+    cd "$cwd"
   done
 }
 
