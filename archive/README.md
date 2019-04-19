@@ -1,6 +1,9 @@
 # archive.sh
 
-tar wrapper to ease multi-volume archives and updating
+## description
+general purpose extractor and multi-volume tar wrapper to ease multi-volume archive creation and updating*
+
+*see implementation for further detail
 
 ## usage
 ```
