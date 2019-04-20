@@ -108,7 +108,7 @@ fn_tarmv() {
         # test and set target if specified
         if [ $((l + 1)) -lt ${#args[@]} ]; then
           OPT="${args[$((l + 1))]}"
-          if [ ! "${OPT:0:1}" == "-" ]; then
+          if [ "${OPT:0:1}" != "-" ]; then
             # consume arg
             l=$((l + 1))
             # assume directory
@@ -133,7 +133,7 @@ fn_tarmv() {
         if [ -n "$(echo "$((l + 1))" | sed -n '/^[0-9.]\+$/p')" ]; then
           l=$((l + 1))
           SIZE=${args[l]}
-          [ "$OPT" == "--split" ] && \
+          [ "$OPT" = "--split" ] && \
             SIZE=$((OPT * 1024)) && SIZE=${SIZE%%.*}  # size in MB
         fi
         [ $DEBUG -ge 1 ] && echo "[debug] max size: $SIZE kb" 1>&2
@@ -168,12 +168,12 @@ fn_tarmv() {
   cat > $MVTARSCRIPT << EOF
 #!/bin/sh
 TAR_NAME=\${name:-\$TAR_ARCHIVE}
-if [ "\${TAR_NAME:\$[\${#TAR_NAME}-4]:4}" == ".tar" ]; then
+if [ "\${TAR_NAME:\$[\${#TAR_NAME}-4]:4}" = ".tar" ]; then
   TAR_NAME="\${TAR_NAME:0:\$[\${#TAR_NAME}-4]}"
 fi
 TAR_BASE=\$TAR_NAME
 TAR_BASE=\`expr \$TAR_BASE : '\\(.*\\)-.*'\`
-if [ "x\$TAR_BASE" == "x" ]; then
+if [ "x\$TAR_BASE" = "x" ]; then
   TAR_BASE=\$TAR_NAME
 fi
 echo volume \$TAR_VOLUME of archive \'\$TAR_BASE\'
@@ -193,7 +193,7 @@ EOF
 
   if [ $DEFAULTS -eq 1 ]; then
     args2=("--verbose" "--seek" "${args2[@]}")
-    if [ "x$TARGET" == "x" ]; then
+    if [ "x$TARGET" = "x" ]; then
       TARGET=/
     fi
     args2=("${args2[@]}" "--directory" $TARGET)
@@ -276,7 +276,7 @@ fn_extract_type() {
 fn_extract() {
   cwd="$(pwd)"
   path_dest=""
-  if [[ "$1" = "-d" || "$1" = "--dest" ]]; then
+  if [[ "$1" == "-d" || "$1" == "--dest" ]]; then
     shift
     if [ $# -lt 2 ]; then
       help && echo "[error] not enough args!" 1>&2 && return 1
