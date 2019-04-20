@@ -248,28 +248,28 @@ fn_extract_deb() {
 }
 
 fn_extract_type() {
-  case "$1" in
-   *.tar.xz)        tar xvJf "$1" ;;
-   *.tar.bz2|*.tbz) tar xjf "$1" ;;
-   *.tar.gz)        tar xzf "$1" ;;
-   *.bz2)           bunzip2 "$1" ;;
-   *.xz)            xz -dk "$1" ;;
-   *.rar)           unrar x "$1" ;;
-   *.gz)            gunzip "$1" ;;
-   *.tar)           fn_tarmv --extract --multi-volume --name "$1" ;;
-   *.txz)           tar xvJf "$1" ;;
-   *.tbz2)          tar xjf "$1" ;;
-   *.tgz)           tar xzf "$1" ;;
-   *.zip)           unzip "$1" ;;
-   *.Z)             uncompress "$1" ;;
-   *.7z)            7za x "$1" ;;
-   *.rpm)           rpm2cpio "$1" | cpio -idmv ;;
-   *.ace)           unace x "$1" ;;
-   *.lzma)          lzma -d -v "$1" ;;
-   *.iso)           fn_extract_iso "$1" ;;
-   *.deb)           fn_extract_deb "$1" ;;
-   *.jar)           jar xvf "$1" ;;
-   *) echo "[error] unsupported archive type '$1'" 1>&2 && return 1 ;;
+  declare file
+  file="$1"
+  case "$file" in
+    *.tar.xz|*.txz|*.tar.bz|*.tbz|*.tar.bz2|*.tbz2|*.tar.gz|*.tgz|*.tar)
+      [ "${file##*.}" = "tar" ] && \
+        fn_tarmv --extract --multi-volume --name "$file" || \
+        tar xvf "$file"
+      ;;
+    *.xz)   xz -dk "$file" ;;
+    *.bz2)  bunzip2 "$file" ;;
+    *.gz)   gunzip "$file" ;;
+    *.zip)  unzip "$file" ;;
+    *.7z)   7za x "$file" ;;
+    *.Z)    uncompress "$file" ;;
+    *.lzma) lzma -d -v "$file" ;;
+    *.iso)  fn_extract_iso "$file" ;;
+    *.rar)  unrar x "$file" ;;
+    *.ace)  unace x "$file" ;;
+    *.rpm)  rpm2cpio "$file" | cpio -idmv ;;
+    *.deb)  fn_extract_deb "$file" ;;
+    *.jar)  jar xvf "$file" ;;
+    *) echo "[error] unsupported archive type '$file'" 1>&2 && return 1 ;;
   esac
 }
 
