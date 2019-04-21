@@ -20,23 +20,104 @@ declare SIZE
 declare TARGET
 declare NAME
 
-supported_extract_formats=(
-  "tar [.tar]"
-  "gzip [.gz]"
-  "zx [.xz]"
-  "bzip2 [.bzip2/.bz2]"
-  "tar (gzip/bzip2/xz) [.tar.gz/.tgz/.tar.bz2/.tbz2/.tar.xz/.txz]"
-  "rar [.rar]"
-  "zip [.zip]"
-  "Lempel-Ziv [.Z]"
-  "7zip [.7z]"
-  "redhat package manager package [.rpm]"
-  "WinAce [.ace]"
-  "lzma [.lzma]"
-  "iso9660 image [.iso]"
-  "DebIan package [.deb]"
-  "java package [.jar]"
-)
+# pretty names
+declare -A bin_package
+# bin extensions
+declare -A exts_bin
+
+# build supported maps
+del="|"
+
+## tar
+bin="tar"; name="tar (gzip/bzip2/xz)"
+if [ -n "$(which $bin)" ]; then
+  exts=("tar" "tar.xz" "txz" "tar.bz" "tbz" "tar.bz2"
+        "tbz2" "tar.gz" "tgz")
+  for ext in "${exts[@]}"; do exts_bin["$ext"]="$ext$del$bin"; done
+  bin_package["$bin"]="$name"
+fi
+## gzip
+bin="gunzip"; bin_ext="gz"; name="gzip"
+[ -n "$(which $bin 2>/dev/null)" ] && \
+  exts_bin["bin_ext"]="$bin_ext$del$bin" && \
+  bin_package["$bin"]="$name"
+## bzip2
+bin="bunzip2"; name="bzip"
+if [ -n "$(which $bin 2>/dev/null)" ]; then
+  exts=("bz" "bz2")
+  for ext in "${exts[@]}"; do exts_bin["$ext"]="$ext$del$bin"; done
+  bin_package["$bin"]="$name"
+fi
+## zip
+bin="unzip"; bin_ext="zip"; name="zip"
+[ -n "$(which $bin 2>/dev/null)" ] && \
+  exts_bin["$bin_ext"]="$bin_ext$del$bin" && \
+  bin_package["$bin"]="$name"
+## xz
+bin="xz"; bin_ext="xz"; name="xz"
+[ -n "$(which $bin 2>/dev/null)" ] && \
+  exts_bin["$bin_ext"]="$bin_ext$del$bin" && \
+  bin_package["$bin"]="$name"
+## WinRAR
+bin="rar"; bin_ext="rar"; name="WinRAR"
+[ -n "$(which $bin 2>/dev/null)" ] && \
+  exts_bin["$bin_ext"]="$bin_ext$del$bin" && \
+  bin_package["$bin"]="$name"
+## Lempel-Ziv
+bin="uncompress"; bin_ext="Z"; name="Lempel-Ziv"
+[ -n "$(which $bin 2>/dev/null)" ] && \
+  exts_bin["$bin_ext"]="$bin_ext$del$bin" && \
+  bin_package["$bin"]="$name"
+## 7-zip
+bin="7za"; bin_ext="7z"; name="7-zip"
+[ -n "$(which $bin 2>/dev/null)" ] && \
+  exts_bin["$bin_ext"]="$bin_ext$del$bin" && \
+  bin_package["$bin"]="$name"
+## Redhat package
+bin="rpm2cpio"; bin_ext="rpm"; name="Redhat package"
+[ -n "$(which $bin 2>/dev/null)" ] && \
+  exts_bin["$bin_ext"]="$bin_ext$del$bin" && \
+  bin_package["$bin"]="$name"
+## DebIan package"
+bin="ar"; bin_ext="deb"; name="Debian package"
+[ -n "$(which $bin 2>/dev/null)" ] && \
+  exts_bin["$bin_ext"]="$bin_ext$del$bin" && \
+  bin_package["$bin"]="$name"
+## WinAce
+bin="unace"; bin_ext="ace"; name="WinAce"
+[ -n "$(which $bin 2>/dev/null)" ] && \
+  exts_bin["$bin_ext"]="$bin_ext$del$bin" && \
+  bin_package["$bin"]="$name"
+## lzma (Lempel-Ziv-Markov chain)
+bin="lzma"; bin_ext="lzma"; name="Lempel-Ziv-Markov"
+[ -n "$(which $bin 2>/dev/null)" ] && \
+  exts_bin["$bin_ext"]="$bin_ext$del$bin" && \
+  bin_package["$bin"]="$name"
+## iso9660 image
+bin="mount"; bin_ext="iso"; name="iso9660 image"
+[ -n "$(which $bin 2>/dev/null)" ] && \
+  exts_bin["$bin_ext"]="$bin_ext$del$bin" && \
+  bin_package["$bin"]="$name"
+## Java jar
+bin="jar"; bin_ext="jar"; name="Java package"
+[ -n "$(which $bin 2>/dev/null)" ] && \
+  exts_bin["$bin_ext"]="$bin_ext$del$bin" && \
+  bin_package["$bin"]="$name"
+
+IFS=$'\n'; res=($(fn_reversed_map_values "$del" "${exts_bin[@]}")); IFS="$IFSORG"
+declare -A bin_exts
+for kvp in "${res[@]}"; do k="${kvp%%${del}*}"; bin_exts["$k"]="$kvp"; done
+
+fn_supported_extract_formats() {
+  declare del="$1";
+  declare s="";
+  for kvp in "${bin_exts[@]}"; do
+    k="${kvp%%${del}*}"
+    v=".$(echo "${kvp#*${del}}" | sed 's/'$del'/\/./g')"
+    s="$s, "${bin_package["$k"]}" [$v]"
+  done
+  echo "${s:2}"
+}
 
 help() {
   echo -e "SYNTAX: ${CLR_HL}$SCRIPTNAME [-h] [MODE] [OPTIONS]${CLR_OFF}
@@ -64,10 +145,9 @@ help() {
         -d, --dest PATH  : extract to PATH
       TARGETS:  one or more archive files and/or directories
                 containing archive file(s)
-\n$(s="";
-    for f in "${supported_extract_formats[@]}"; do s="$s, $f"; done;
-    echo "      support:$(echo "${s:2}" | fold -s -w64 |
-    sed 's/\(.*\)/\t\1\t/')" | column -t -s$'\t')
+\n$(echo "      support:$(echo "$(fn_supported_extract_formats $del)" |
+                          fold -s -w64 |  sed 's/\(.*\)/\t\1\t/')" |
+                          column -t -s$'\t')
 "
 }
 
@@ -250,26 +330,31 @@ fn_extract_deb() {
 fn_extract_type() {
   declare file
   file="$1"
+  fext="${file##*.}"
   case "$file" in
     *.tar.xz|*.txz|*.tar.bz|*.tbz|*.tar.bz2|*.tbz2|*.tar.gz|*.tgz|*.tar)
-      [ "${file##*.}" = "tar" ] && \
+      [ "" = "tar" ] && \
         fn_tarmv --extract --multi-volume --name "$file" || \
         tar xvf "$file"
       ;;
-    *.xz)   xz -dk "$file" ;;
-    *.bz2)  bunzip2 "$file" ;;
-    *.gz)   gunzip "$file" ;;
-    *.zip)  unzip "$file" ;;
-    *.7z)   7za x "$file" ;;
-    *.Z)    uncompress "$file" ;;
-    *.lzma) lzma -d -v "$file" ;;
-    *.iso)  fn_extract_iso "$file" ;;
-    *.rar)  unrar x "$file" ;;
-    *.ace)  unace x "$file" ;;
-    *.rpm)  rpm2cpio "$file" | cpio -idmv ;;
-    *.deb)  fn_extract_deb "$file" ;;
-    *.jar)  jar xvf "$file" ;;
-    *) echo "[error] unsupported archive type '$file'" 1>&2 && return 1 ;;
+    *.iso) fn_extract_iso "$file" ;;
+    *.deb) fn_extract_deb "$file" ;;
+    *)
+      ext_bin="${exts_bin["$fext"]}"
+      bin="${ext_bin#*$del}"
+      case "$fext" in
+        "xz")   $bin -dk "$file" ;;
+        "bz2")  $bin "$file" ;;
+        "gz")   $bin "$file" ;;
+        "zip")  $bin "$file" ;;
+        "7z")   $bin "$file" ;;
+        "Z")    $bin "$file" ;;
+        "lzma") $bin -d -v "$file" ;;
+        "rar")  $bin x "$file" ;;
+        "ace")  $bin x "$file" ;;
+        "rpm")  $bin "$file" | cpio -idmv ;;
+        "jar")  $bin xvf "$file" ;;
+      esac
   esac
 }
 
@@ -305,6 +390,16 @@ fn_extract() {
         # fix file path
         [ ! -f "$file" ] && file="$cwd/$file"
       fi
+      IFS="."; fps=($(echo "$file")); IFS="$IFSORG"
+      [ ${#fps[@]} -eq 1 ] && \
+        echo "[info] skipping file '$file', primitive type deduction" \
+             "is based on known file extensions" && continue
+      valid_ext="${exts_bin["${fps[$((${#fps[@]} - 1))]}"]}"
+      [[ -z "$valid_ext" && ${#fps[@]} -gt 2 ]] && \
+        valid_ext="${exts_bin["${fps[$((${#fps[@]} - 1))]}.${fps[$((${#fps[@]} - 1))]}"]}"
+      [ -z "$valid_ext" ] && \
+        echo "[info] skipping file '$file'," \
+             "unsupported type / missing binary" && continue
       [ $DEBUG -ge 1 ] && echo "[debug] extracting '$file'" 1>&2
       fn_extract_type "$file" || return 1
     else
