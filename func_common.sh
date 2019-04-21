@@ -391,3 +391,23 @@ fn_diff() {
   equal=$(fn_files_compare "$1" "$2" | cut -d$'\t' -f2)
   echo $((equal ^= 1))  # bitwise flip to invert
 }
+
+fn_reversed_map_values() {
+  IFSCUR="$IFS"
+  declare del="$1" && shift;
+  declare -A reversed_map
+  while [ -n "$1" ]; do
+    kvp="$1"
+    k="${kvp%%${del}*}"
+    v="${kvp#*${del}}"
+    IFS="$del"; vs=($(echo "$v")); IFS="$IFSCUR"
+    for v_ in "${vs[@]}"; do
+      existing="${reversed_map["$v_"]}"
+      [ -z "$existing" ] && \
+        reversed_map["$v_"]="$v_$del$k" || \
+        reversed_map["$v_"]="$existing$del$k"
+    done
+    shift
+  done
+  for v in "${reversed_map[@]}"; do echo "$v"; done
+}
