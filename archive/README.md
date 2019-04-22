@@ -68,3 +68,19 @@ the second, was that the multi-volume mechanism required either repeated calls /
 once upon a time way back when, this was suitable / necessary given 'a tape' would need physically removing and replacing with the next (empty) tape when full, and the process manually continued following that exchange
 
 the little 'multi.volume script' is trivial, but it would be totally unpalatable to write from scratch any time multi-volume backups were desired!
+
+## dependencies
+- which
+
+### optional
+- GNU tar
+- gzip [gunzip, uncompress]
+- bzip [bzip2]
+- zip [unzip]
+- xz
+- WinRAR [unrar]
+- 7-zip [7za]
+- WinAce [unace]
+- Java SDK / RE [jar]
+- binutils [ar]
+- util-linux [mount]
