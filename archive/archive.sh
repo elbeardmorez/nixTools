@@ -103,6 +103,12 @@ bin="jar"; bin_ext="jar"; name="Java package"
 [ -n "$(which $bin 2>/dev/null)" ] && \
   exts_bin["$bin_ext"]="$bin_ext$del$bin" && \
   bin_package["$bin"]="$name"
+## Microsoft installer
+bin="msiextract"; bin_ext="msi"; name="Microsoft installer"
+[ -n "$(which $bin 2>/dev/null)" ] && \
+  exts_bin["$bin_ext"]="$bin_ext$del$bin" && \
+  bin_package["$bin"]="$name"
+
 
 IFS=$'\n'; res=($(fn_reversed_map_values "$del" "${exts_bin[@]}")); IFS="$IFSORG"
 declare -A bin_exts
@@ -354,6 +360,7 @@ fn_extract_type() {
         "ace")  $bin x "$file" ;;
         "rpm")  $bin "$file" | cpio -idmv ;;
         "jar")  $bin xvf "$file" ;;
+        "msi")  $bin "$file" ;;
       esac
   esac
 }

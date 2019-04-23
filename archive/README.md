@@ -82,5 +82,6 @@ the little 'multi.volume script' is trivial, but it would be totally unpalatable
 - 7-zip [7za]
 - WinAce [unace]
 - Java SDK / RE [jar]
+- msitools [msiextract]
 - binutils [ar]
 - util-linux [mount]
