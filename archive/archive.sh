@@ -149,6 +149,8 @@ help() {
 \n      SYNTAX: ${CLR_HL}$SCRIPTNAME --extract [OPTIONS] TARGETS${CLR_OFF}
 \n      OPTIONS:
         -d, --dest PATH  : extract to PATH
+        -a, --as TYPE  : override extention based deduction of archive
+                         type
       TARGETS:  one or more archive files and/or directories
                 containing archive file(s)
 \n$(echo "      support:$(echo "$(fn_supported_extract_formats $del)" |
@@ -335,9 +337,13 @@ fn_extract_deb() {
 
 fn_extract_type() {
   declare file
-  file="$1"
-  fext="${file##*.}"
-  case "$file" in
+  declare override
+  declare type
+  file="$1" && shift
+  override="$1"
+  type="$file" && [ -n "$override" ] && type="$override"
+  fext="${type##*.}"
+  case "$type" in
     *.tar.xz|*.txz|*.tar.bz|*.tbz|*.tar.bz2|*.tbz2|*.tar.gz|*.tgz|*.tar)
       [ "" = "tar" ] && \
         fn_tarmv --extract --multi-volume --name "$file" || \
@@ -366,29 +372,55 @@ fn_extract_type() {
 }
 
 fn_extract() {
+  declare cwd
+  declare path_dest
+  declare override
+  declare -a files
   cwd="$(pwd)"
   path_dest=""
-  if [[ "$1" == "-d" || "$1" == "--dest" ]]; then
-    shift
-    if [ $# -lt 2 ]; then
-      help && echo "[error] not enough args!" 1>&2 && return 1
-    else
-      if [ ! -d "$1" ]; then
-        if [ ! -f "$1" ]; then
-          mkdir -p "$1"
-        fi
-      fi
-      if [ -d "$1" ]; then
-        path_dest="$1"
+  override=""
+  while [ -n "$1" ]; do
+    arg="$(echo "$1" | sed 's/^[ ]*-*//')"
+    case "$arg" in
+      "d"|"dest")
         shift
-        [ $DEBUG -ge 1 ] && echo "[debug] destination path: '$path_dest'" 1>&2
-      else
-        help && echo "[error] invalid destination path: '$1'" 1>&2 && return 1
-      fi
-    fi
-  fi
+        if [ $# -lt 2 ]; then
+          help && echo "[error] not enough args!" 1>&2 && return 1
+        else
+          if [ ! -d "$1" ]; then
+            if [ ! -f "$1" ]; then
+              mkdir -p "$1"
+            fi
+          fi
+          if [ -d "$1" ]; then
+            path_dest="$1"
+            shift
+            [ $DEBUG -ge 1 ] && echo "[debug] destination path: '$path_dest'" 1>&2
+          else
+            help && echo "[error] invalid destination path: '$1'" 1>&2 && return 1
+          fi
+        fi
+        ;;
 
-  files=("$@")
+      "a"|"as")
+        shift
+        override="$1"
+        # ensure validity, extension or binary translated to extension
+        valid="${exts_bin["$override"]}"
+        [ -z "$valid" ] && valid="${bin_exts["$override"]}"
+        [ -n "$valid" ] && \
+          override="${valid%%${del}*}" || \
+          echo "[error] type override '$override', unsupported or" \
+               "missing binary"
+        ;;
+
+      *)
+        files[${#files[@]}]="$arg"
+        ;;
+    esac
+    shift
+  done
+
   for file in "${files[@]}"; do
     if [ -f "$file" ] ; then
       [ -z "$path_dest" ] && path_dest="$(echo "$file" | sed 's|\(.*\)/.*|\1|')"
@@ -397,18 +429,20 @@ fn_extract() {
         # fix file path
         [ ! -f "$file" ] && file="$cwd/$file"
       fi
-      IFS="."; fps=($(echo "$file")); IFS="$IFSORG"
-      [ ${#fps[@]} -eq 1 ] && \
-        echo "[info] skipping file '$file', primitive type deduction" \
-             "is based on known file extensions" && continue
-      valid_ext="${exts_bin["${fps[$((${#fps[@]} - 1))]}"]}"
-      [[ -z "$valid_ext" && ${#fps[@]} -gt 2 ]] && \
-        valid_ext="${exts_bin["${fps[$((${#fps[@]} - 1))]}.${fps[$((${#fps[@]} - 1))]}"]}"
-      [ -z "$valid_ext" ] && \
-        echo "[info] skipping file '$file'," \
-             "unsupported type / missing binary" && continue
+      if [ -z "$override" ]; then
+        IFS="."; fps=($(echo "$file")); IFS="$IFSORG"
+        [ ${#fps[@]} -eq 1 ] && \
+          echo "[info] skipping file '$file', primitive type deduction" \
+               "is based on known file extensions" && continue
+        valid_ext="${exts_bin["${fps[$((${#fps[@]} - 1))]}"]}"
+        [[ -z "$valid_ext" && ${#fps[@]} -gt 2 ]] && \
+          valid_ext="${exts_bin["${fps[$((${#fps[@]} - 1))]}.${fps[$((${#fps[@]} - 1))]}"]}"
+        [ -z "$valid_ext" ] && \
+          echo "[info] skipping file '$file'," \
+               "unsupported type / missing binary" && continue
+      fi
       [ $DEBUG -ge 1 ] && echo "[debug] extracting '$file'" 1>&2
-      fn_extract_type "$file" || return 1
+      fn_extract_type "$file" "$override" || return 1
     else
       echo "[info] skipping invalid file: '$file'"
     fi

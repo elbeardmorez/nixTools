@@ -43,6 +43,8 @@ SYNTAX: ./archive.sh [-h] [MODE] [OPTIONS]
 
       OPTIONS:
         -d, --dest PATH  : extract to PATH
+        -a, --as TYPE  : override extention based deduction of archive
+                         type
       TARGETS:  one or more archive files and/or directories
                 containing archive file(s)
 
