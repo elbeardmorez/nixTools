@@ -387,11 +387,7 @@ fn_extract() {
         if [ $# -lt 2 ]; then
           help && echo "[error] not enough args!" 1>&2 && return 1
         else
-          if [ ! -d "$1" ]; then
-            if [ ! -f "$1" ]; then
-              mkdir -p "$1"
-            fi
-          fi
+          [ ! -e "$1" ] && mkdir -p "$1"
           if [ -d "$1" ]; then
             path_dest="$1"
             shift
