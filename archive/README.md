@@ -71,6 +71,18 @@ once upon a time way back when, this was suitable / necessary given 'a tape' wou
 
 the little 'multi.volume script' is trivial, but it would be totally unpalatable to write from scratch any time multi-volume backups were desired!
 
+## examples
+
+```sh
+$ file Npgsql.vsix
+Npgsql.vsix: Zip archive data, at least v1.0 to extract
+$ archive_ x Npgsql.vsix
+[info] skipping file 'Npgsql.vsix', unsupported type / missing binary
+$ archive_ x --as zip Npgsql.vsix
+Archive:  Npgsql.vsix
+ extracting: extension.vsixmanifest
+...
+
 ## dependencies
 - which
 
