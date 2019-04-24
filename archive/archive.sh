@@ -461,5 +461,3 @@ case "$arg" in
       *) help && echo "[error] unsupported mode '$1'" 1>&2 && exit 1 ;;
     esac
 esac
-
-echo "[info] done"
