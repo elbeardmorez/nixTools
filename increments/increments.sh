@@ -133,7 +133,7 @@ fn_precedence() {
   IFS=$'|'; precedence_sets_searches=($(echo "$precedence")); IFS="$IFSORG"
   l=0
   for pss in "${precedence_sets_searches[@]}"; do
-    s_table="$(echo -e "$s_table" | sed '/^\([^\t]\+\t\)\{'$((column_idx_precedence-1))'\}[0-9]\+/{b;};s/^\(\([^\t]\+\t\)\{'$((column_idx_file-1))'\}[^\t]*'"$(fn_rx_escape "sed" "$pss")"'[^\t]*\(\(\t[^\t]\+\)\+$\|$\)\)/\1\t'$l'/')"
+    s_table="$(echo -e "$s_table" | sed '/^\([^\t]\+\t\)\{'$((column_idx_precedence-1))'\}[0-9]\+/{b;};s/^\(\([^\t]\+\t\)\{'$((column_idx_file-1))'\}[^\t]*'"$(fn_escape "sed" "$pss")"'[^\t]*\(\(\t[^\t]\+\)\+$\|$\)\)/\1\t'$l'/')"
     l=$((l+1))
   done
   echo "$s_table"
@@ -193,7 +193,7 @@ fn_process() {
 
   # blacklist
   if [ -n "$blacklist" ]; then
-    blacklist="$(fn_rx_escape "sed" "$(echo "$blacklist" | sed 's/|/\\|/g')")"
+    blacklist="$(fn_escape "sed" "$(echo "$blacklist" | sed 's/|/\\|/g')")"
     declare -a files2
     i=0
     for f in "${files[@]}"; do
@@ -264,14 +264,14 @@ fn_process() {
           for transform in "${transforms[@]}"; do
             t=$(echo "$n2" | sed 's'"$transform")
             [ -z "$t" ] && continue
-            v=$(echo "$n" | sed -n '/'"$(fn_rx_escape "sed" "$t")"'/p')
+            v=$(echo "$n" | sed -n '/'"$(fn_escape "sed" "$t")"'/p')
             if [ -n "$v" ]; then
               match=2
             else
               # reverse variant
               t=$(echo "$n" | sed 's'"$transform")
               [ -z "$t" ] && continue
-              v=$(echo "$n2" | sed -n '/'"$(fn_rx_escape "sed" "$t")"'/p')
+              v=$(echo "$n2" | sed -n '/'"$(fn_escape "sed" "$t")"'/p')
               [ -n "$v" ] && match=3
             fi
           done
@@ -480,7 +480,7 @@ fn_process() {
         fi
         if [[ $diff_format_paths -eq 1 && -e $diff_pathfile && -e "$diff_pathfile" ]]; then
           # modify target paths
-          target_base_path="$(fn_rx_escape "sed" "$DIFF_TARGET_BASE_PATH")"
+          target_base_path="$(fn_escape "sed" "$DIFF_TARGET_BASE_PATH")"
           [ -n "$target_base_path" ] && \
             target_base_path="$(echo "$target_base_path" | sed 's/\/*$//g')\/"
           target_file="$DIFF_TARGET_FILE"

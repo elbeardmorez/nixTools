@@ -127,8 +127,8 @@ fn_write_data() {
     # overwrite entry
     current="'$var': $current"
     IFS=$'\n'; lines=($(echo -e "$current")); IFS="$IFSORG"
-    first="$(fn_rx_escape "awk" "${lines[0]}")"
-    last="$(fn_rx_escape "awk" "${lines[$((${#lines[@]}-1))]}")"
+    first="$(fn_escape "awk" "${lines[0]}")"
+    last="$(fn_escape "awk" "${lines[$((${#lines[@]}-1))]}")"
     update="'$var': $data"
     awk -v update="$update" -v first="$first" -v last="$last" '
 BEGIN{ data=""; match1=0; match2=0; rx_first="^"first"$"; rx_last="^"last"$" }
@@ -185,7 +185,7 @@ fn_target_files() {
   declare search
   target="$1" && shift
   search="${1:-""}"
-  grep -rl "'title':.*$([ -n "$search" ] && echo "$(fn_rx_escape "grep" "$search").*")" "$path_"
+  grep -rEl "'title':.*$([ -n "$search" ] && echo "$(fn_escape "ere" "$search").*")" "$path_"
 }
 
 fn_target_resolve() {
@@ -330,7 +330,7 @@ fn_list() {
     idx=$((idx+1))
   done
   header="${header:2}"
-  path_escaped="$(fn_rx_escape "sed" "$path_")"
+  path_escaped="$(fn_escape "sed" "$path_")"
 
   # raw
   tb=""

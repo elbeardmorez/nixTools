@@ -12,7 +12,9 @@ fi
 DEBUG=${DEBUG:-0}
 IFSORG="$IFS"
 ESCAPE_PATH=')]}{[($# '
-ESCAPE_GREP='].[*'
+ESCAPE_BRE='].[*'
+ESCAPE_ERE=']}.{[*?+'
+ESCAPE_PERL=']}.{[*?+'
 ESCAPE_SED='].[/-'
 ESCAPE_AWK='.\|[('
 TERM_RST='\033[2J\033[1;1H'  # reset terminal
@@ -326,17 +328,19 @@ fn_temp_dir() {
   echo "$tmp"
 }
 
-fn_rx_escape() {
+fn_escape() {
   # escape reserved characters
   type="$1" && shift
   exp="$1" && shift
   declare escape
   case "$type" in
     "path") escape="$ESCAPE_PATH" ;;
-    "grep") escape="$ESCAPE_GREP" ;;
+    "bre") escape="$ESCAPE_BRE" ;;
+    "ere") escape="$ESCAPE_ERE" ;;
+    "perl") escape="$ESCAPE_PERL" ;;
     "sed") escape="$ESCAPE_SED" ;;
     "awk") escape="$ESCAPE_AWK" ;;
-    *) echo "[error] unsupported regexp type" 1>&2 && return 1
+    *) echo "[error] unsupported escape type" 1>&2 && return 1
   esac
   [ $DEBUG -ge 3 ] && echo "[debug] raw expression: '$exp', $type protected chars: '$escape'" 1>&2
   exp="$(echo "$exp" | sed 's/\(['"$escape"']\)/\\\1/g')"
@@ -348,13 +352,13 @@ fn_path_resolve() {
   target="$1"
   # home
   [ -n "$(echo "$target" | sed -n '/^~/p')" ] &&\
-    target="$(echo "$target" | sed 's/^~/'"$(fn_rx_escape "sed" "$HOME")"'/')"
+    target="$(echo "$target" | sed 's/^~/'"$(fn_escape "sed" "$HOME")"'/')"
   echo "$target"
 }
 
 fn_path_safe() {
   path="$1" && shift
-  path="$(fn_rx_escape "path" "$path")"
+  path="$(fn_escape "path" "$path")"
   transforms="/=_"
   IFS="|" kvs=($(echo "$transforms")); IFS="$IFSORG"
   for kv in "${kvs[@]}"; do

@@ -187,7 +187,7 @@ for target in "${targets[@]}"; do
 
     "r"|"rename")
       [ ${#args[@]} -gt 0 ] && filter="${args[0]}" && shift
-      target="$(echo "$target" | grep -vP '(^\.{1,2}$|'"$(fn_rx_escape "grep" "$FILTER")"'\/$)')"
+      target="$(echo "$target" | grep -vP '(^\.{1,2}$|'"$(fn_escape "perl" "$FILTER")"'\/$)')"
       [ -z "$target" ] && continue
       transforms="$RENAME_TRANSFORMS_DEFAULT"
       if [ ${#args[@]} -gt 0 ]; then
@@ -223,8 +223,8 @@ for target in "${targets[@]}"; do
             ;;
          *=*)
             compress_periods=1
-            search="$(fn_rx_escape "awk" "${transform%=*}")"
-            replace="$(fn_rx_escape "awk" "${transform#*=}")"
+            search="$(fn_escape "awk" "${transform%=*}")"
+            replace="$(fn_escape "awk" "${transform#*=}")"
             [ $DEBUG -gt 0 ] && echo "[debug] rename transform '$search' -> '$replace'" 1>&2
             target2="$(echo "$target2" | awk -F'\n' '{gsub(/['"$search"']+/,"'$replace'"); print}')"
             ;;
