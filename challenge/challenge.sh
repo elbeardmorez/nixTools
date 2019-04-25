@@ -59,15 +59,15 @@ fn_exts() {
   declare target
   declare map
   target="$1" && shift
-  IFSTMP="$IFS"
-  IFS="|" parts=($(echo "$target" | sed 's/\.-\./|/g')); IFS="$IFSTMP"
+  IFSCUR="$IFS"
+  IFS="|" parts=($(echo "$target" | sed 's/\.-\./|/g')); IFS="$IFSCUR"
   exts=""
   for p in "${parts[@]}"; do
     map="${exts_map["$p"]}"
     [ -n "$map" ] && exts="$map" && break
   done
   [ -z "$map" ] && exts="${exts_map["default"]}"
-  echo $exts
+  echo "$exts"
 }
 
 fn_files() {
@@ -77,16 +77,16 @@ fn_files() {
   target="$1" && shift
   quote=0 && [ $# -gt 0 ] && quote=$1 && shift
   name="$(echo "$target" | sed 's/^.*\.-\.//')"
-  IFSTMP="$IFS"
-  IFS="|"; exts=($(fn_exts "$target")); IFS="$IFSTMP"
+  IFSCUR="$IFS"
+  IFS="|"; exts=($(fn_exts "$target")); IFS="$IFSCUR"
   lexts=${#exts[@]}
   while [ $lexts -gt 0 ]; do
     idx=$(echo "$RANDOM % ($lexts)" | bc)
     [ $DEBUG -gt 0 ] && echo "[debug] ext idx: '$idx'" 1>&2
     ext="${exts[$idx]}"
     unset 'exts['$idx']'
-    IFSTMP="$IFS"
-    IFS="$IFSORG"; exts=($(echo "${exts[@]}")); IFS="$IFSTMP"
+    IFSCUR="$IFS"
+    IFS="$IFSORG"; exts=($(echo "${exts[@]}")); IFS="$IFSCUR"
     lexts=$(($lexts-1))
     file="$name.$ext"
     [ $quote -eq 1 ] && file="\"$file\""
