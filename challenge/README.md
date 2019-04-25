@@ -28,7 +28,9 @@ where MODE can be:
       NAME  : solution name
   edit [OPTIONS] SEARCH  : search for and re-edit an existing challenge
     with:
-      OPTIONS  : supports the following option as described above:
+      OPTIONS  :
+        -rx, --rx-search  : switch from glob to ERE flavour searches
+        and as described above:
         -nss | --no-subshell, -dec | --dump-edit-command,
         -eec[=VAR] | --export-edit-command[=VAR]
   dump [LANGUAGES] TARGET  : search TARGET for files suffixed with

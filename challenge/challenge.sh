@@ -45,7 +45,9 @@ help() {
       NAME  : solution name
   edit [OPTIONS] SEARCH  : search for and re-edit an existing challenge
     with:
-      OPTIONS  : supports the following option as described above:
+      OPTIONS  :
+        -rx, --rx-search  : switch from glob to ERE flavour searches
+        and as described above:
         -nss | --no-subshell, -dec | --dump-edit-command,
         -eec[=VAR] | --export-edit-command[=VAR]
   dump [LANGUAGES] TARGET  : search TARGET for files suffixed with
@@ -234,6 +236,8 @@ case "$mode" in
     ;;
 
   "edit")
+    declare rx
+    rx=0
     subshell=1
     dump_edit_command=0
     env_var="$SCRIPTNAME"
@@ -252,6 +256,7 @@ case "$mode" in
         "nss"|"no-subshell") subshell=0 ;;
         "dec"|"dump-edit-command") dump_edit_command=1 ;;
         "eec"|"export-edit-command") [ -n "$v" ] && env_var="$v" ;;
+        "rx"|"rx-search") rx=1 ;;
         *)
           [ -n "$search" ] && echo "[error] unsupported arg '${args[$l]}'" && exit 1
           search="${args[$l]}"
@@ -262,7 +267,11 @@ case "$mode" in
 
     # set target
     search="$(printf "$search" | tr "\- " "." | tr "A-Z" "a-z")"
-    IFS=$'\n'; targets=($(find . -type d -iname "*$search*")); IFS="$IFSORG"
+    if [ $rx -eq 0 ]; then
+      IFS=$'\n'; targets=($(find . -type d -iname "*$search*")); IFS="$IFSORG"
+    else
+      IFS=$'\n'; targets=($(find . -type d -regextype "posix-extended" -iregex "$search")); IFS="$IFSORG"
+    fi
     matches=${#targets[@]}
     case $matches in
       0) echo "[info] no matches found" && exit 0 ;;
