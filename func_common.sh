@@ -108,9 +108,7 @@ done
   chmod +x "$observer"
 
   # save pipes
-  exec 6<&0
-  exec 7>&1
-  exec 8>&2
+  exec 6<&0 7>&1 8>&2
 
   # start observer
   setsid "$observer" &
@@ -138,11 +136,12 @@ fn_observer_heartbeat() {
 fn_observer_cleanup() {
   declare observer_
   declare -a observer
+  exec 6<&- 7>&- 8>&-
   for observer_ in "${observers[@]}"; do
     IFS="|"; observer=($(echo "$observer_")); IFS="$IFSORG"
-    [ $DEBUG -ge 1 ] && "[debug] cleaning up '${observer[0]}' observer" 1>&2
-    kill -KILL ${observer[1]} 2>/dev/null 1>&2  # observer proc
-    kill -KILL ${observer[2]} 2>/dev/null 1>&2  # heartbeat proc
+    [ $DEBUG -ge 1 ] && echo "[debug] cleaning up '${observer[0]}' observer" 1>&2
+    kill -TERM ${observer[1]} 2>/dev/null  # observer proc
+    kill -TERM ${observer[2]} 2>/dev/null  # heartbeat proc
     [ -e "${observer[3]}" ] && rm "${observer[3]}"  # script
     [ -e "${observer[4]}" ] && rm "${observer[4]}"  # socket
   done

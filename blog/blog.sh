@@ -51,8 +51,8 @@ fn_restore_cursor() {
 }
 
 fn_cleanup() {
-  fn_observer_cleanup
   fn_restore_cursor
+  fn_observer_cleanup
 }
 
 fn_safe() {
