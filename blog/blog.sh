@@ -423,7 +423,7 @@ fn_menu() {
   [ $# -lt 1 ] && echo "[error] not enough args!" && exit 1
 
   # setup observer to restore prompt when suspending
-  fn_observer "$cmd_restore_cursor"
+  fn_observer "blog_menu" "$cmd_restore_cursor"
 
   stty -echo
   declare target

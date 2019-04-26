@@ -47,21 +47,30 @@ keychr_maps["$KEY_ARR_D"]="$KEY_ARR_D|$CHR_ARR_D"
 keychr_maps["$KEY_ARR_L"]="$KEY_ARR_L|$CHR_ARR_L"
 keychr_maps["$KEY_ARR_R"]="$KEY_ARR_R|$CHR_ARR_R"
 
-declare observer_pid
-declare observer_heartbeat_pid
-declare observer
-declare observer_socket
+trap 'fn_observer_cleanup' EXIT
+
+declare -A observers
 
 fn_observer() {
-  # pause / resume process observer with on_state_change action support
-  # using simple socket poll ipc
-  declare pause
-  declare resume
+  declare observer_id
+  declare action_pause
+  declare action_resume
   declare log
-  pause="$1" && shift
-  [ $# -gt 0 ] && resume="$1" && shift
+
+  observer_id="$1" && shift
+  [ -n "${observers["$observer_id"]}" ] && \
+    echo "[error] observer id is not unique" && \
+    observer_cleanup && exit 1
+  action_pause="$1" && shift
+  [ $# -gt 0 ] && action_resume="$1" && shift
   log='/tmp/nixTools.observer_.log'
   [ $# -gt 0 ] && log="$1" && shift
+
+  declare observer_pid
+  declare observer_heartbeat_pid
+  declare observer
+  declare observer_socket
+
   observer="$(mktemp -u)"
   observer_socket="$(mktemp -u)"
   echo '#!/bin/sh
@@ -86,9 +95,9 @@ while true; do
   if [ $live -ne $last ]; then
     # state changed
     if [ $live -eq 1 ]; then
-      '${resume:-"pass=\"\""}' >> $log  # resume
+      '${action_resume:-"pass=\"\""}' >> $log  # resume
     else
-      '${pause:-"pass=\"\""}' >> $log  # pause
+      '${action_pause:-"pass=\"\""}' >> $log  # pause
     fi
   fi
   [ $DEBUG -ge 1 ] && \
@@ -106,11 +115,12 @@ done
   # start observer
   setsid "$observer" &
   observer_pid=$!
-  [ $DEBUG -ge 1 ] && echo "[debug] observer running with pid '$observer_pid'"
+  [ $DEBUG -ge 1 ] && echo "[debug] observer running with pid '$observer_pid'" 1>&2
   # start heartbeat
   fn_observer_heartbeat "$observer_socket" &
   observer_heartbeat_pid=$!
-  [ $DEBUG -ge 1 ] && echo "[debug] observer heartbeat running with pid '$observer_heartbeat_pid'"
+  [ $DEBUG -ge 1 ] && echo "[debug] observer heartbeat running with pid '$observer_heartbeat_pid'" 1>&2
+  observers[${#observers[@]}]="$observer_id|$observer_pid|$observer_heartbeat_pid|$observer|$observer_socket"
 }
 
 fn_observer_heartbeat() {
@@ -126,12 +136,17 @@ fn_observer_heartbeat() {
 }
 
 fn_observer_cleanup() {
-  kill -KILL $observer_pid 2>/dev/null 1>&2
-  kill -KILL $observer_heartbeat_pid 2>/dev/null 1>&2
-  [ -e "$observer" ] && rm "$observer"
-  [ -e "$observer_socket" ] && rm "$observer_socket"
+  declare observer_
+  declare -a observer
+  for observer_ in "${observers[@]}"; do
+    IFS="|"; observer=($(echo "$observer_")); IFS="$IFSORG"
+    [ $DEBUG -ge 1 ] && "[debug] cleaning up '${observer[0]}' observer" 1>&2
+    kill -KILL ${observer[1]} 2>/dev/null 1>&2  # observer proc
+    kill -KILL ${observer[2]} 2>/dev/null 1>&2  # heartbeat proc
+    [ -e "${observer[3]}" ] && rm "${observer[3]}"  # script
+    [ -e "${observer[4]}" ] && rm "${observer[4]}"  # socket
+  done
 }
-trap 'fn_observer_cleanup' EXIT
 
 fn_stty() {
   declare opt
