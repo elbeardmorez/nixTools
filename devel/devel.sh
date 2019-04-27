@@ -1,4 +1,11 @@
 #!/bin/sh
+
+# includes
+set -e
+x="$(dirname "$0")/$(basename "$0")"; [ ! -f "$x" ] && x="$(which $0)"; x="$(readlink -e "$x" || echo "$x")"
+. ${x%/*}/../func_common.sh
+set +e
+
 SCRIPTNAME="${0##*/}"
 IFSORG=$IFS
 DEBUG=${DEBUG:-0}
@@ -234,19 +241,7 @@ fn_debug() {
   done
 
   # execute
-  echo -n "[user] debug: $debugger $debugger_args ? [(y)es/(n)o]:  "
-  retry=1
-  while [ $retry -eq 1 ]; do
-    echo -en '\033[1D\033[K'
-    read -n 1 -s result
-    case "$result" in
-      "n" | "N") echo -n $result; retry=0; echo ""; exit ;;
-      "y" | "Y") echo -n $result; retry=0 ;;
-      *) echo -n " " 1>&2
-    esac
-  done
-  echo ""
-
+  fn_decision "[user] debug: $bin ${bin_args[*]} ?" >/dev/null || return 0
   $bin ${bin_args[*]}
 }
 
