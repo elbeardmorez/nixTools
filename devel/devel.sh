@@ -7,21 +7,21 @@ TEST=${TEST:-0}
 #defaults
 option='find'
 
-function help() {
-  echo -e "syntax: $SCRIPTNAME [option] [option-arg1 [option-arg2 .. ]]
-\noption:
+help() {
+  echo -e "SYNTAX: $SCRIPTNAME [OPTION] [OPTION-ARG1 [OPTION-ARG2 .. ]]
+\nwith OPTION:
   find  : find extraneous whitespace
-    [args]
+    ARGS:
     target file/dir  : target
     filter  : regexp filter for files to test (default: '.*')
-    max-depth  : limit target files to within given hierarchy level
-                 (default: 1)
+    [max-depth]  : limit target files to within given hierarchy level
+                   (default: 1)
   fix
   fix-c
   debug
   changelog
   commits  : process diffs into fix/mod/hack repo structure
-    [args]
+    ARGS:
     target  : location of repository to extract/use patch set from
               (default: '.')
     prog    : program name (default: target directory name)
@@ -30,7 +30,7 @@ function help() {
 "
 }
 
-function fnCommits() {
+fn_commits() {
 
   target="$PWD" && [ $# -gt 0 ] && [ -e "$1" ] && target="`cd "$1"; pwd`" && shift
   source="$target" && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift
@@ -120,7 +120,7 @@ function fnCommits() {
   esac
 }
 
-function fnChangelog() {
+fn_changelog() {
 
   target=. && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift 1
   vcs=git && [ $# -gt 0 ] && [ "x`echo "$1" | sed -n '/\(git\|svn\|bzr\)/p'`" != "x" ] && vcs="$1" && shift
@@ -182,58 +182,62 @@ function fnChangelog() {
   esac
 }
 
-function fnDebug() {
-  LANGUAGEDEFAULT=c
-  declare -A type
-  declare -A typeargs
+fn_debug() {
 
-  type["c"]="gdb"
-  typeargs["c"]="\$NAME --pid=\$PID"
+  declare language_default
+  declare language
+  declare -A debugger
+  declare -A debugger_args
+
+  language_default=c
+
+  debugger["c"]="gdb"
+  debugger_args["c"]="\$NAME --pid=\$PID"
 
   NAME="$1"
   PID="${PID:-$2}"
 
-  LANGUAGE=${LANGUAGE:-$LANGUAGEDEFAULT}
+  language=${language:-$language_default}
 
-  DEBUGGER="${type["$LANGUAGE"]}"
-  DEBUGGERARGS="${typeargs["$LANGUAGE"]}"
+  debugger="${debugger["$language"]}"
+  debugger_args="${debugger_args["$language"]}"
 
-  arrDynamic=("NAME" "PID")
-  for arg in "${arrDynamic[@]}"; do
+  sub_args=("NAME" "PID")
+  for arg in "${sub_args[@]}"; do
     case "$arg" in
       "PID")
         PID=${PID:-$(pgrep -x "$NAME")}
         [ -z "$PID" ] && PID="$(pidof $NAME)"
         if [ "x$PID" != "x" ]; then
-          DEBUGGERARGS="$(echo "$DEBUGGERARGS" | sed 's|\$'$arg'|'$PID'|')"
+          debugger_args="$(echo "$debugger_args" | sed 's/\$'$arg'/'$PID'/')"
         else
-          DEBUGGERARGS="$(echo "$DEBUGGERARGS" | sed 's|\$'"$arg"'|'"$PID"'|')"
+          debugger_args="$(echo "$debugger_args" | sed 's/\$'"$arg"'/'"$PID"'/')"
         fi
         ;;
       *)
-        DEBUGGERARGS="$(echo "$DEBUGGERARGS" | sed 's|\$'"$arg"'|'"${!arg}"'|')"
+        debugger_args="$(echo "$debugger_args" | sed 's/\$'"$arg"'/'"${!arg}"'/')"
         ;;
     esac
   done
 
   # execute
-  echo -n "[user] debug: $DEBUGGER $DEBUGGERARGS ? [(y)es/(n)o]:  "
-  bRetry=1
-  while [ $bRetry -eq 1 ]; do
+  echo -n "[user] debug: $debugger $debugger_args ? [(y)es/(n)o]:  "
+  retry=1
+  while [ $retry -eq 1 ]; do
     echo -en '\033[1D\033[K'
     read -n 1 -s result
     case "$result" in
-      "n" | "N") echo -n $result; bRetry=0; echo ""; exit ;;
-      "y" | "Y") echo -n $result; bRetry=0 ;;
+      "n" | "N") echo -n $result; retry=0; echo ""; exit ;;
+      "y" | "Y") echo -n $result; retry=0 ;;
       *) echo -n " " 1>&2
     esac
   done
   echo ""
 
-  $DEBUGGER $DEBUGGERARGS
+  $debugger $debugger_args
 }
 
-function fnProcess() {
+fn_process() {
 
   case "$option" in
     "find")
@@ -303,16 +307,16 @@ case "$option" in
     help
     ;;
   "commits")
-    fnCommits "$@"
+    fn_commits "$@"
     ;;
   "changelog")
-    fnChangelog "$@"
+    fn_changelog "$@"
     ;;
   "debug")
-    fnDebug "$@"
+    fn_debug "$@"
     ;;
   "find"|"fix"|"fix-c")
-    fnProcess "$@"
+    fn_process "$@"
     ;;
   *)
     help
