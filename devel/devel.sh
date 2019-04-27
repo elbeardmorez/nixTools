@@ -8,8 +8,7 @@ TEST=${TEST:-0}
 option='find'
 
 function help() {
-  echo -e "
-syntax: $SCRIPTNAME [option] [option-arg1 [option-arg2 .. ]]
+  echo -e "syntax: $SCRIPTNAME [option] [option-arg1 [option-arg2 .. ]]
 \noption:
   find  : find extraneous whitespace
     [args]
@@ -178,8 +177,8 @@ function fnChangelog() {
 
       ;;
     *)
-     echo "[user] vcs type: '$vcs' not implemented" && exit 1
-     ;;
+      echo "[user] vcs type: '$vcs' not implemented" && exit 1
+      ;;
   esac
 }
 
@@ -217,7 +216,7 @@ function fnDebug() {
     esac
   done
 
-  #execute
+  # execute
   echo -n "[user] debug: $DEBUGGER $DEBUGGERARGS ? [(y)es/(n)o]:  "
   bRetry=1
   while [ $bRetry -eq 1 ]; do
