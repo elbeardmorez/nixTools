@@ -184,40 +184,53 @@ fn_changelog() {
 
 fn_debug() {
 
+  declare supported_languages
+  supported_languages="c c++"
+
   declare language_default
   declare language
-  declare -A debugger
+  declare -A debuggers
   declare -A debugger_args
 
+  # c
+  debuggers["c"]="gdb"
+  debugger_args["c"]="NAME|NAME PID|--pid=PID"
+  # c++
+  debuggers["c++"]="gdb"
+  debugger_args["c++"]="NAME|NAME PID|--pid=PID"
+
   language_default=c
-
-  debugger["c"]="gdb"
-  debugger_args["c"]="\$NAME --pid=\$PID"
-
-  NAME="$1"
-  PID="${PID:-$2}"
-
+  arg=$1
+  [ -n "$(echo "$arg" | sed -n '/^\('"$(echo "$supported_languages" | sed 's/ /\|/g')"'\)$/p')" ] && language="$arg" && shift
   language=${language:-$language_default}
 
-  debugger="${debugger["$language"]}"
-  debugger_args="${debugger_args["$language"]}"
+  declare bin
+  declare -a bin_args
 
-  sub_args=("NAME" "PID")
-  for arg in "${sub_args[@]}"; do
-    case "$arg" in
-      "PID")
-        PID=${PID:-$(pgrep -x "$NAME")}
-        [ -z "$PID" ] && PID="$(pidof $NAME)"
-        if [ "x$PID" != "x" ]; then
-          debugger_args="$(echo "$debugger_args" | sed 's/\$'$arg'/'$PID'/')"
-        else
-          debugger_args="$(echo "$debugger_args" | sed 's/\$'"$arg"'/'"$PID"'/')"
-        fi
-        ;;
-      *)
-        debugger_args="$(echo "$debugger_args" | sed 's/\$'"$arg"'/'"${!arg}"'/')"
-        ;;
-    esac
+  bin="${debuggers["$language"]}"
+
+  args=(${debugger_args["$language"]})
+  declare -A arg_vs
+  for arg in "${args[@]}"; do
+    n="${arg%%|*}"
+    t="${arg#*|}"
+    v="$(eval 'echo "$'$n'"')"
+    [[ -z "$v" && -n "$1" ]] && v="$1" && shift
+    if [ -z "$v" ]; then
+      # special handling
+      case "$n" in
+        "PID")
+          name="${arg_vs["NAME"]}"
+          [ -z "$name" ] && continue
+          v=$(pgrep -x "$name")
+          [ -z "$v" ] && v="$(pidof $name)"
+          ;;
+      esac
+    fi
+    if [ -n "$v" ]; then
+      arg_vs["$n"]="$v"
+      bin_args[${#bin_args[@]}]="$(echo "$t" | sed 's/'"$n"'/'"$v"'/')"
+    fi
   done
 
   # execute
@@ -234,7 +247,7 @@ fn_debug() {
   done
   echo ""
 
-  $debugger $debugger_args
+  $bin ${bin_args[*]}
 }
 
 fn_process() {
