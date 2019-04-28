@@ -207,8 +207,29 @@ fn_debug() {
   debugger_args["c++"]="NAME|NAME PID|--pid=PID"
 
   language_default=c
-  arg=$1
-  [ -n "$(echo "$arg" | sed -n '/^\('"$(echo "$supported_languages" | sed 's/ /\|/g')"'\)$/p')" ] && language="$arg" && shift
+
+  declare -a args
+  while [ -n "$1" ]; do
+    arg="$(echo "$1" | awk '{gsub(/^[ ]*-+/,"",$0); print(tolower($0))}')"
+    if [ ${#arg} -lt ${#1} ]; then
+      # process named options
+      case "$arg" in
+        "l"|"language") shift && language="$1" ;;
+        *) help && echo "[error] unrecognised arg '$1'" && return 1
+      esac
+    else
+      args[${#args[@]}]="$1"
+    fi
+    shift
+  done
+
+  # validate args
+  [[ -n "$language" && \
+     -z "$(echo "$language" | \
+       sed -n '/^\('"$(echo "$supported_languages" | \
+         sed 's/ /\\|/g')"'\)$/p')" ]] && \
+    help && echo "[error] unsupported language '$language'" && return 1
+
   language=${language:-$language_default}
 
   declare bin
@@ -222,7 +243,8 @@ fn_debug() {
     n="${arg%%|*}"
     t="${arg#*|}"
     v="$(eval 'echo "$'$n'"')"
-    [[ -z "$v" && -n "$1" ]] && v="$1" && shift
+    [[ -z "$v" && -n "${args[$args_idx]}" ]] && \
+      v="${args[$args_idx]}" && args_idx=$((args_idx + 1))
     if [ -z "$v" ]; then
       # special handling
       case "$n" in
