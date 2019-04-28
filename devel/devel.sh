@@ -192,7 +192,7 @@ fn_changelog() {
 fn_debug() {
 
   declare supported_languages
-  supported_languages="c c++"
+  supported_languages="c c++ javascript"
 
   declare language_default
   declare language
@@ -208,6 +208,10 @@ fn_debug() {
   debuggers["c++"]="gdb"
   debugger_args["c++"]="NAME PID"
   debugger_args_template["c++"]="NAME PID|--pid=PID"
+  # javascript
+  debuggers["javascript"]="node"
+  debugger_args["javascript"]="SRC PORT"
+  debugger_args_template["javascript"]="PORT|--inspect-brk=PORT SRC"
 
   language_default=c
 
