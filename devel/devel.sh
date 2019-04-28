@@ -198,13 +198,16 @@ fn_debug() {
   declare language
   declare -A debuggers
   declare -A debugger_args
+  declare -A debugger_args_template
 
   # c
   debuggers["c"]="gdb"
-  debugger_args["c"]="NAME|NAME PID|--pid=PID"
+  debugger_args["c"]="NAME PID"
+  debugger_args_template["c"]="NAME PID|--pid=PID"
   # c++
   debuggers["c++"]="gdb"
-  debugger_args["c++"]="NAME|NAME PID|--pid=PID"
+  debugger_args["c++"]="NAME PID"
+  debugger_args_template["c++"]="NAME PID|--pid=PID"
 
   language_default=c
 
@@ -237,11 +240,13 @@ fn_debug() {
 
   bin="${debuggers["$language"]}"
 
-  args=(${debugger_args["$language"]})
+  # deduce, consume, or calculate arg values
+  args_ns=(${debugger_args["$language"]})
   declare -A arg_vs
-  for arg in "${args[@]}"; do
-    n="${arg%%|*}"
-    t="${arg#*|}"
+  declare args_idx
+  args_idx=0
+  for arg_n in "${args_ns[@]}"; do
+    n="$arg_n"
     v="$(eval 'echo "$'$n'"')"
     [[ -z "$v" && -n "${args[$args_idx]}" ]] && \
       v="${args[$args_idx]}" && args_idx=$((args_idx + 1))
@@ -256,10 +261,15 @@ fn_debug() {
           ;;
       esac
     fi
-    if [ -n "$v" ]; then
-      arg_vs["$n"]="$v"
-      bin_args[${#bin_args[@]}]="$(echo "$t" | sed 's/'"$n"'/'"$v"'/')"
-    fi
+    [ -n "$v" ] && arg_vs["$n"]="$v"
+  done
+  # replace template placeholders with any available values
+  args_ts=(${debugger_args_template["$language"]})
+  for arg_t in "${args_ts[@]}"; do
+    n="${arg_t%%|*}"
+    t="${arg_t#*|}"
+    v="${arg_vs["$n"]}"
+    [ -n "$v" ] && bin_args[${#bin_args[@]}]="$(echo "$t" | sed 's/'"$n"'/'"$v"'/')"
   done
 
   # execute
