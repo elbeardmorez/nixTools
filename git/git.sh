@@ -119,6 +119,8 @@ fn_commit_by_name() {
 fn_log() {
   command="$1" && shift
   search=""
+  declare path
+  path=""
   declare count
   declare -a binargs
   declare -a cmdargs
@@ -126,7 +128,16 @@ fn_log() {
   while [ -n "$1" ]; do
     [ "x$(echo "$1" | sed -n '/^[0-9]\+$/p')" != "x" ] && count=$1 && shift && continue
     [ "x$(echo "$1" | sed -n '/^[^-]\+/p')" != "x" ] && search=$1 && shift && continue
-    [ "x$1" = "x--" ] && shift && cmdargs=("${cmdargs[@]}" "$@") && break
+    if [ "x$1" = "x--" ]; then
+      shift
+      while [ -n "$1" ]; do
+        [ -n "$(git rev-list -n1 HEAD -- "$1" 2>/dev/null)" ] && \
+          path="$1" || \
+          cmdargs[${#cmdargs[@]}]="$1"
+        shift
+      done
+      break
+    fi
     cmdargs[${#cmdargs[@]}]="$1"
     shift
   done
@@ -134,6 +145,8 @@ fn_log() {
     commits="$(fn_commit "$search" "${count:-nolimit}")"
     res=$?; [ $res -ne 0 ] && exit $res
     IFS=$'\n'; commits=($(echo "$commits")); IFS="$IFSORG"
+  elif [ -n "$path" ]; then
+    commits=("$path")
   else
     commits=("HEAD")
   fi
