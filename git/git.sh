@@ -208,6 +208,18 @@ fn_rebase() {
   git rebase "${cmdargs[@]}"
 }
 
+fn_formatpatch() {
+  [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
+  id="$1" && shift
+  n=1 && [ $# -gt 0 ] && n="$1" && shift
+  [ "x`echo "$n" | sed -n '/^[0-9]\+$/p'`" = "x" ] && echo "[error] invalid number of patches: '$n'" && exit 1
+  commit=$(fn_commit "$id")
+  res=$?; [ $res -ne 0 ] && exit $res
+  sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
+  echo "[info] formatting patch for rebasing from commit '$commit'"
+  git format-patch -k -$n $sha
+}
+
 fn_dates_order_check() {
   declare target
   declare prev_commit
@@ -364,15 +376,7 @@ fn_process() {
       git diff --ignore-all-space --no-color --unified=0 "$@" | git apply --cached --ignore-whitespace --unidiff-zero
       ;;
     "fp"|"formatpatch"|"format-patch")
-      [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
-      id="$1" && shift
-      n=1 && [ $# -gt 0 ] && n="$1" && shift
-      [ "x`echo "$n" | sed -n '/^[0-9]\+$/p'`" = "x" ] && echo "[error] invalid number of patches: '$n'" && exit 1
-      commit=$(fn_commit "$id")
-      res=$?; [ $res -ne 0 ] && exit $res
-      sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
-      echo "[info] formatting patch for rebasing from commit '$commit'"
-      git format-patch -k -$n $sha
+      fn_formatpatch "$@"
       ;;
     "rb"|"rebase")
       fn_rebase "$@"
