@@ -65,5 +65,6 @@ where <OPTION> can be:
   smr|submodule-remove <NAME> [PATH]  : remove a submodule named NAME
                                         at PATH (default: NAME)
 
-*note: optional binary args are supported for commands: log, rebase
+*note: optional binary args are supported for commands:
+       log, rebase, formatpatch
 ```

@@ -64,7 +64,8 @@ help() {
       -i|--issues  : only output non-chronological commits
 \n  smr|submodule-remove <NAME> [PATH]  : remove a submodule named NAME
                                         at PATH (default: NAME)
-\n*note: optional binary args are supported for commands: log, rebase
+\n*note: optional binary args are supported for commands:
+       log, rebase, formatpatch
 "
 }
 
@@ -215,9 +216,15 @@ fn_formatpatch() {
   [ "x`echo "$n" | sed -n '/^[0-9]\+$/p'`" = "x" ] && echo "[error] invalid number of patches: '$n'" && exit 1
   commit=$(fn_commit "$id")
   res=$?; [ $res -ne 0 ] && exit $res
+  declare -a cmdargs
+  if [ $# -gt 0 ]; then
+    # additional args
+    [ "x$1" != "x--" ] && echo "[error] unrecognised arg '$1'" && return 1
+    shift; while [ -n "$1" ]; do cmdargs[${#cmdargs[@]}]="$1"; shift; done
+  fi
   sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
   echo "[info] formatting patch for rebasing from commit '$commit'"
-  git format-patch -k -$n $sha
+  git format-patch -k -$n $sha "${cmdargs[@]}"
 }
 
 fn_dates_order_check() {
