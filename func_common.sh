@@ -3,14 +3,17 @@
 # compatibility
 if [ -n "$BASH_VERSION" ]; then
   CMDARGS_READ_SINGLECHAR=("-s" "-n1")
+  CMDARGS_READ_MULTICHAR=("-s" "-n")
 elif [ -n "$ZSH_VERSION" ]; then
   CMDARGS_READ_SINGLECHAR=("-s" "-k1")
+  CMDARGS_READ_MULTICHAR=("-s" "-k")
   setopt KSH_ARRAYS
 fi
 
 # constants
 DEBUG=${DEBUG:-0}
 IFSORG="$IFS"
+READ_MULTICHAR_TIMEOUT=1
 ESCAPE_PATH=')]}{[($# '
 ESCAPE_BRE='].[*'
 ESCAPE_ERE=']}.{[*?+'
@@ -243,14 +246,24 @@ fn_decision() {
   [ ! -t 0 ] &&\
     "[error] stdin is not attached to a suitable input device" 1>&2 && return 1
   buffer=""
+  declare submatch
+  submatch=""
 #  clear stdin
 #  read -s -t 0.1 &&\
 #    while [ -n "$REPLY" ]; do REPLY="" && read -s -t 0.1; done
   while [ 1 ]; do
     [ $optecho -eq 1 ] && stty echo
-    read "${cmd_args[@]}"
+    if [ -z "$submatch" ]; then
+      read "${cmd_args[@]}"
+    else
+      read "${cmd_args[@]}" -t $READ_MULTICHAR_TIMEOUT
+    fi
     stty -echo
     R="$REPLY"
+    if [[ -z "$R" && -n "$submatch" ]]; then
+      match="$submatch"
+      break
+    fi
     [ "x$R" = "x"$'\E' ] && R='\033'
     r="$(echo "$R" | tr '[A-Z]' '[a-z]')"
     map=""
@@ -267,28 +280,42 @@ fn_decision() {
         fi
       done
     fi
-    match=0
-    chr=""
+    match=""
     for option in "${options[@]}"; do
       if [[ -n "$map" && "x$option" == "x$map" ]]; then
-        chr=""
         keychr="${keychr_maps["$map"]}"
-        [ -n "$keychr" ] && chr="${keychr#*|}"
-        match=1
+        [ -n "$keychr" ] && match="${keychr#*|}"
         break
-      elif [[ -z "$map" && "x$option" == "x$r" ]]; then
-        chr="$r"
-        match=1
+      elif [[ -z "$map" && ("x$option" == "x$r" ||
+                            "x$option" == "x$submatch$r") ]]; then
+        submatch+="$r"
+        # unique combo / single char?
+        lsm=${#submatch}
+        count=0
+        for option2 in "${options[@]}"; do
+            [[ ${#option2} -ge $lsm && \
+               "x${option2:0:$lsm}" == "x$submatch" ]] && \
+                  count=$((count + 1))
+        done
+        if [ $count -eq 1 ]; then
+            match="$submatch"  # unique!
+        elif [ $count -eq 0 ]; then
+            # reset invalid
+            submatch=""
+        else
+            # multiple valid possibilities
+            true  # noop
+        fi
         break
       fi
     done
-    if [ $match -eq 1 ]; then
-      [ $optecho -eq 1 ] && echo "$chr" 1>&2
-      echo "$chr"
-      break
-    fi
+    [ -n "$match" ] && break
     buffer+="$R"
   done
+  if [ -n "$match" ]; then
+    [ $optecho -eq 1 ] && echo "$match" 1>&2
+    echo "$match"
+  fi
   [ $tty_echo -eq 1 ] && stty echo
   [ "x$r" = "xy" ] && return 0 || return 1
 }
