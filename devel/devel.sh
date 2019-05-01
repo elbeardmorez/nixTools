@@ -260,8 +260,55 @@ fn_debug() {
         "PID")
           name="${arg_vs["NAME"]}"
           [ -z "$name" ] && continue
-          v=$(pgrep -x "$name")
-          [ -z "$v" ] && v="$(pidof $name)"
+          declare proc
+          declare select
+          select=0
+          pgrep="$(which pgrep)"
+          if [ -n "$pgrep" ]; then
+            IFS=$'\n'; proc=($(pgrep -x -a "$name")); IFS="$IFSORG"
+            if [ ${#proc[@]} -eq 0 ]; then
+              IFS=$'\n'; proc=$((pgrep -f -a "$name")); IFS="$IFSORG"
+              if [ ${#proc[@]} -gt 0 ]; then
+                echo "[info] no exact process matched '$name'. " \
+                     "full command line search found ${#proc[@]} " \
+                     "possibilit$([ ${#proc[@]} -eq 1 ] && echo "y" \
+                                                        || echo "ies")"
+                select=1  # force
+              fi
+            fi
+          else
+            pidof="$(which pidof)"
+            if [ -z "$pidof" ]; then
+              echo "[info] missing pgrep / pidof binaries, cannot " \
+                   "identify target process for debugging"
+            else
+              IFS=$'\n'; proc=($(pidof "$name")); IFS="$IFSORG"
+            fi
+          fi
+          if [[ ${#proc[@]} -gt 1 || $select -eq 1 ]]; then
+            opts=""
+            lmax="${#proc[@]}"
+            llmax=${#lmax}
+            pmax="${proc[$((${#proc[@]} - 1))]}"
+            p_max="${pmax%% *}"
+            lp_max="${#p_max}"
+            l=0
+            for ps in "${proc[@]}"; do
+              l=$((l + 1))
+              opts+="|$l"
+              ps_="${ps%% *}"
+              printf "%$((llmax - ${#l}))s[%d] %$((lp_max - ${#ps_}))s%s\n" "" $l "" "$ps_ | ${ps#* }"
+            done
+            opts="${opts:1}|x"
+            prompt="select item # or e(${CLR_HL}x${CLR_OFF})it "
+            prompt+="[${CLR_HL}1${CLR_OFF}-${CLR_HL}$l${CLR_OFF}"
+            prompt+="|${CLR_HL}x${CLR_OFF}]"
+            res="$(fn_decision "$(echo -e "$prompt")" "$opts" 0 0 1)"
+            if [ "x$res" != "xx" ]; then
+              ps="${proc[$((res - 1))]}"
+              v="${ps%% *}"
+            fi
+          fi
           ;;
       esac
     fi
