@@ -281,35 +281,33 @@ fn_decision() {
       done
     fi
     match=""
+    submatch_=0
     for option in "${options[@]}"; do
       if [[ -n "$map" && "x$option" == "x$map" ]]; then
         keychr="${keychr_maps["$map"]}"
         [ -n "$keychr" ] && match="${keychr#*|}"
         break
-      elif [[ -z "$map" && ("x$option" == "x$r" ||
-                            "x$option" == "x$submatch$r") ]]; then
-        submatch+="$r"
-        # unique combo / single char?
-        lsm=${#submatch}
-        count=0
-        for option2 in "${options[@]}"; do
-            [[ ${#option2} -ge $lsm && \
-               "x${option2:0:$lsm}" == "x$submatch" ]] && \
-                  count=$((count + 1))
-        done
-        if [ $count -eq 1 ]; then
-            match="$submatch"  # unique!
-        elif [ $count -eq 0 ]; then
-            # reset invalid
-            submatch=""
-        else
-            # multiple valid possibilities
-            true  # noop
-        fi
-        break
+      elif [[ -z "$map" && (-n "$submatch" && \
+                            (${#option} -gt ${#submatch} && \
+                             "x${option:0:$((${#submatch} + 1))}" == "x$submatch$r")) ]]; then
+        submatch_=$((submatch_ + 1))
+        [ "x$option" = "x$submatch$r" ] && match="$submatch$r"
+      elif [[ -z "$map" && (-z "$submatch" && \
+                            "x${option:0:1}" == "x$r") ]]; then
+        submatch_=$((submatch_ + 1))
+        [ "x$option" == "x$r" ] && match="$r"
       fi
     done
-    [ -n "$match" ] && break
+    if [ $submatch_ -eq 1 ]; then
+      # unique combo / single char
+      break
+    elif [ $submatch_ -eq 0 ]; then
+      # invalid / reset
+      submatch=""
+    else
+      # multiple valid possibilities
+      submatch+="$r"
+    fi
     buffer+="$R"
   done
   if [ -n "$match" ]; then
