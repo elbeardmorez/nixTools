@@ -320,7 +320,7 @@ fn_debug() {
     n="${arg_t%%|*}"
     t="${arg_t#*|}"
     v="${arg_vs["$n"]}"
-    [ -n "$v" ] && bin_args[${#bin_args[@]}]="$(echo "$t" | sed 's/'"$n"'/'"$v"'/')"
+    [ -n "$v" ] && bin_args[${#bin_args[@]}]="$(echo "$t" | sed 's/'"$n"'/'"$(fn_escape "path" "$v")"'/')"
   done
 
   # execute
