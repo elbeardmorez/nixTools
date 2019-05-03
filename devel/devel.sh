@@ -267,7 +267,7 @@ fn_debug() {
           if [ -n "$pgrep" ]; then
             IFS=$'\n'; proc=($(pgrep -x -a "$name")); IFS="$IFSORG"
             if [ ${#proc[@]} -eq 0 ]; then
-              IFS=$'\n'; proc=$((pgrep -f -a "$name")); IFS="$IFSORG"
+              IFS=$'\n'; proc=($(pgrep -f -a "$name")); IFS="$IFSORG"
               if [ ${#proc[@]} -gt 0 ]; then
                 echo "[info] no exact process matched '$name'. " \
                      "full command line search found ${#proc[@]} " \
