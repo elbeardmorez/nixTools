@@ -271,7 +271,8 @@ fn_debug() {
     # special handling
     case "$n" in
       "_ARGS_")
-        [ -n "$args_pt" ] && \
+        [ -z "$args_pt" ] && \
+          v="" || \
           v="$(echo "$v" | sed 's/'"$n"'/'"$(fn_escape "path" "$args_pt")"'/')"
         ;;
       "PID")
