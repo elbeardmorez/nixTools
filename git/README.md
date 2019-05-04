@@ -29,7 +29,7 @@ where <OPTION> can be:
   st|status      : show column format status with untracked local
                    path files only
   sta|status-all : show column format status
-  addnws  : add all files, ignoring white-space changes
+  anws|add-no-whitespace  : stage non-whitespace-only changes
   fp|format-patch <ID> [N]  : format N patch(es) back from an id or
                               partial description string
   rb|rebase <ID> [N]  : interactively rebase back from id or partial
@@ -66,5 +66,5 @@ where <OPTION> can be:
                                         at PATH (default: NAME)
 
 *note: optional binary args are supported for commands:
-       log, rebase, formatpatch
+       log, rebase, formatpatch, add-no-whitespace
 ```

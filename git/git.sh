@@ -31,7 +31,7 @@ help() {
   st|status      : show column format status with untracked local
                    path files only
   sta|status-all : show column format status
-  addnws  : add all files, ignoring white-space changes
+  anws|add-no-whitespace  : stage non-whitespace-only changes
   fp|format-patch <ID> [N]  : format N patch(es) back from an id or
                               partial description string
   rb|rebase <ID> [N]  : interactively rebase back from id or partial
@@ -65,7 +65,7 @@ help() {
 \n  smr|submodule-remove <NAME> [PATH]  : remove a submodule named NAME
                                         at PATH (default: NAME)
 \n*note: optional binary args are supported for commands:
-       log, rebase, formatpatch
+       log, rebase, formatpatch, add-no-whitespace
 "
 }
 
@@ -378,8 +378,8 @@ fn_process() {
     "sta"|"status-all")
       git status --col
       ;;
-    "addnws")
-      echo "[info] git: adding all files, ignoring white-space changes"
+    "anws"|"add-no-whitespace")
+      echo "[info] git, staging non-whitespace-only changes"
       git diff --ignore-all-space --no-color --unified=0 "$@" | git apply --cached --ignore-whitespace --unidiff-zero
       ;;
     "fp"|"formatpatch"|"format-patch")
