@@ -199,22 +199,23 @@ fn_debug() {
   declare -A debuggers
   declare -A debugger_args
   declare -A debugger_args_template
+  declare args_pt
 
   # c
   debuggers["c"]="gdb"
-  debugger_args["c"]="NAME PID"
-  debugger_args_template["c"]="NAME PID|--pid=PID"
+  debugger_args["c"]="NAME PID _ARGS_"
+  debugger_args_template["c"]="NAME PID|--pid=PID _ARGS_"
   # c++
   debuggers["c++"]="gdb"
-  debugger_args["c++"]="NAME PID"
-  debugger_args_template["c++"]="NAME PID|--pid=PID"
+  debugger_args["c++"]="NAME PID _ARGS_"
+  debugger_args_template["c++"]="NAME PID|--pid=PID _ARGS_"
   # javascript
   debuggers["javascript"]="node"
-  debugger_args["javascript"]="SRC PORT"
-  debugger_args_template["javascript"]="PORT|--inspect-brk=PORT SRC"
+  debugger_args["javascript"]="SRC PORT _ARGS_"
+  debugger_args_template["javascript"]="PORT|--inspect-brk=PORT SRC _ARGS_"
 
   language_default=c
-
+  args_pt=""
   declare -a args
   while [ -n "$1" ]; do
     arg="$(echo "$1" | awk '{gsub(/^[ ]*-+/,"",$0); print(tolower($0))}')"
@@ -222,6 +223,14 @@ fn_debug() {
       # process named options
       case "$arg" in
         "l"|"language") shift && language="$1" ;;
+        "")
+          # pass-through remaining args
+          shift
+          s="";
+          while [ -n "$1" ]; do s="$s $(fn_escape "space" "$1")"; shift; done
+          args_pt="${s:1}"
+          continue;
+          ;;
         *) help && echo "[error] unrecognised arg '$1'" && return 1
       esac
     else
@@ -244,6 +253,11 @@ fn_debug() {
 
   bin="${debuggers["$language"]}"
 
+  _ARGS_="-- _ARGS_"
+  case "$bin" in
+    "gdb") _ARGS_="-ex 'set args _ARGS_'" ;;
+  esac
+
   # deduce, consume, or calculate arg values
   args_ns=(${debugger_args["$language"]})
   declare -A arg_vs
@@ -254,10 +268,14 @@ fn_debug() {
     v="$(eval 'echo "$'$n'"')"
     [[ -z "$v" && -n "${args[$args_idx]}" ]] && \
       v="${args[$args_idx]}" && args_idx=$((args_idx + 1))
-    if [ -z "$v" ]; then
       # special handling
       case "$n" in
+      "_ARGS_")
+        [ -n "$args_pt" ] && \
+          v="$(echo "$v" | sed 's/'"$n"'/'"$(fn_escape "path" "$args_pt")"'/')"
+        ;;
         "PID")
+        [ -n "$v" ] && continue
           name="${arg_vs["NAME"]}"
           [ -z "$name" ] && continue
           declare proc
@@ -311,7 +329,6 @@ fn_debug() {
           fi
           ;;
       esac
-    fi
     [ -n "$v" ] && arg_vs["$n"]="$v"
   done
   # replace template placeholders with any available values
@@ -325,7 +342,7 @@ fn_debug() {
 
   # execute
   fn_decision "[user] debug: $bin ${bin_args[*]} ?" >/dev/null || return 0
-  $bin ${bin_args[*]}
+  eval "$bin ${bin_args[*]}"
 }
 
 fn_process() {
