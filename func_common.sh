@@ -14,6 +14,7 @@ fi
 DEBUG=${DEBUG:-0}
 IFSORG="$IFS"
 READ_MULTICHAR_TIMEOUT=1
+ESCAPE_SPACE='[:space:]'
 ESCAPE_PATH='])(}{$# /['
 ESCAPE_BRE='].*['
 ESCAPE_ERE=']}{.*?+['
@@ -373,6 +374,7 @@ fn_escape() {
   exp="$1" && shift
   declare escape
   case "$type" in
+    "space") escape="$ESCAPE_SPACE" ;;
     "path") escape="$ESCAPE_PATH" ;;
     "bre") escape="$ESCAPE_BRE" ;;
     "ere") escape="$ESCAPE_ERE" ;;
