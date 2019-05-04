@@ -211,7 +211,7 @@ fn_debug() {
   debugger_args_template["c++"]="NAME PID|--pid=PID _ARGS_"
   # javascript
   debuggers["javascript"]="node"
-  debugger_args["javascript"]="SRC PORT _ARGS_"
+  debugger_args["javascript"]="SRC PORT=9229 _ARGS_"
   debugger_args_template["javascript"]="PORT|--inspect-brk=PORT SRC _ARGS_"
 
   language_default=c
@@ -264,15 +264,16 @@ fn_debug() {
   declare args_idx
   args_idx=0
   for arg_n in "${args_ns[@]}"; do
-    n="$arg_n"
+    n="${arg_n%%=*}"
     v="$(eval 'echo "$'$n'"')"
     [[ -z "$v" && -n "${args[$args_idx]}" ]] && \
       v="${args[$args_idx]}" && args_idx=$((args_idx + 1))
+    [[ -z "$v" && ${#n} -ne ${#arg_n} ]] && \
+      v="${arg_n#*=}"
     # special handling
     case "$n" in
       "_ARGS_")
-        [ -z "$args_pt" ] && \
-          v="" || \
+        [ -n "$args_pt" ] && \
           v="$(echo "$v" | sed 's/'"$n"'/'"$(fn_escape "path" "$args_pt")"'/')"
         ;;
       "PID")
