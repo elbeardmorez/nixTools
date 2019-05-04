@@ -105,8 +105,12 @@ elif [[ ! "x$(dirname "$search")" == "x." || "x${search:0:1}" == "x." ]]; then
   fi
 else
   # use search targets
-  for p in "${search_targets[@]}"; do
-    p="$(fn_path_resolve "$p")"  # resolve target
+  fallback=1
+  lsts="${#search_targets[@]}";
+  l=0
+  while [ $l -lt $lsts ]; do
+    p="$(fn_path_resolve "${search_targets[$l]}")"  # resolve target
+    [ $DEBUG -ge 1 ] && echo "[debug] searching path: '$p'" 1>&2
     if [ -e "$p" ]; then
       IFS=$'\n'; files2=($(find $p -name "$search" \( -type f -o -type l \))); IFS="$IFSORG"
       for file in "${files2[@]}"; do
@@ -117,6 +121,14 @@ else
     elif [ $verbose -eq 1 ]; then
       echo "[info] path '$p' invalid or it no longer exists, ignoring" 1>&2
     fi
+    if [[ $l -eq $((lsts - 1)) && $fallback -eq 1 ]]; then
+      # fallback to local path
+      fallback=0
+      [ ${#map[@]} -eq 0 ] && \
+         search_targets[${#search_targets[@]}]="$PWD" && \
+         lsts=$((lsts + 1))
+    fi
+    l=$((l + 1))
   done
 
   for file in "${files[@]}"; do
