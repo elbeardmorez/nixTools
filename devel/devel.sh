@@ -11,8 +11,8 @@ IFSORG=$IFS
 DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
 
-#defaults
-option='find'
+# defaults
+option="debug"
 
 help() {
   echo -e "SYNTAX: $SCRIPTNAME [OPTION] [OPTION-ARG1 [OPTION-ARG2 .. ]]
