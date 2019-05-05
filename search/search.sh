@@ -103,9 +103,9 @@ elif [[ ! "x$(dirname "$search")" == "x." || "x${search:0:1}" == "x." ]]; then
   fi
 else
   # use search targets
-  IFS=$'\n'; files=($(fn_search_set "$search" "${search_targets[@]}")); IFS="$IFSORG"
+  IFS=$'\n'; files=($(fn_search_set "$search" 0 fl "${search_targets[@]}")); IFS="$IFSORG"
   if [ ${#files[@]} -eq 0 ]; then
-    IFS=$'\n'; files=($(fn_search_set "$search" "./")); IFS="$IFSORG"
+    IFS=$'\n'; files=($(fn_search_set "$search" 0 fl "./")); IFS="$IFSORG"
   fi
 
   for f in "${files[@]}"; do

@@ -460,14 +460,41 @@ fn_reversed_map_values() {
 fn_search_set() {
   declare search
   search="$1" && shift
+  declare rx
+  rx=0
+  [[ $# -gt 1 &&
+     -n "$(echo "$1" | sed -n '/^[01]$/p')" ]] && \
+    rx=$1 && shift
+  declare types
+  types="f"
+  [[ $# -gt 1 &&
+     -n "$(echo "$1" | sed -n '/^[fld]\{1,3\}$/p')" ]] && \
+    types="$1" && shift
   declare -a files
   declare -a files2
   declare -A map
+  declare -a bin_args
+  if [ $rx -eq 0 ]; then
+    bin_args[${#bin_args[@]}]="-iname"
+  else
+    bin_args[${#bin_args[@]}]="-iregex"
+  fi
+  bin_args[${#bin_args[@]}]="$search"
+  l=0
+  bin_args[${#bin_args[@]}]="("
+  while [ $l -lt ${#types} ]; do
+    [ $l -gt 0 ] && \
+      bin_args[${#bin_args[@]}]="-o"
+    bin_args[${#bin_args[@]}]="-type"
+    bin_args[${#bin_args[@]}]="${types:$l:1}"
+    l=$((l + 1))
+  done
+  bin_args[${#bin_args[@]}]=")"
   while [ -n "$1" ]; do
     p="$(fn_path_resolve "$1")"  # resolve target
     [ $DEBUG -ge 1 ] && echo "[debug] searching path: '$p'" 1>&2
     if [ -e "$p" ]; then
-      IFS=$'\n'; files2=($(find $p -name "$search" \( -type f -o -type l \))); IFS="$IFSORG"
+      IFS=$'\n'; files2=($(find "$p" "${bin_args[@]}")); IFS="$IFSORG"
       for file in "${files2[@]}"; do
         [ -n "${map["$file"]}" ] && continue  # no dupes
         map["$file"]=1
