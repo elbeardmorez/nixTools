@@ -79,7 +79,8 @@ fi
 if [ $custom_targets -eq 1 ]; then
   [ ! -e "${search_targets[0]}" ] && echo "[error] invalid custom search targets set '${search_targets[@]}'" 1>&2 && exit 1
   # expand file
-  [ -f "${search_targets[0]}" ] && { IFS=$'\n'; search_targets=($(cat "${search_targets[0]}")); IFS="$IFSORG"; }
+  [ -f "${search_targets[0]}" ] && \
+    { IFS=$'\n'; search_targets=($(cat "${search_targets[0]}")); IFS="$IFSORG"; }
 fi
 
 # run help after option parsing / verification
