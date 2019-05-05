@@ -456,3 +456,28 @@ fn_reversed_map_values() {
   done
   for v in "${reversed_map[@]}"; do echo "$v"; done
 }
+
+fn_search_set() {
+  declare search
+  search="$1" && shift
+  declare -a files
+  declare -a files2
+  declare -A map
+  while [ -n "$1" ]; do
+    p="$(fn_path_resolve "$1")"  # resolve target
+    [ $DEBUG -ge 1 ] && echo "[debug] searching path: '$p'" 1>&2
+    if [ -e "$p" ]; then
+      IFS=$'\n'; files2=($(find $p -name "$search" \( -type f -o -type l \))); IFS="$IFSORG"
+      for file in "${files2[@]}"; do
+        [ -n "${map["$file"]}" ] && continue  # no dupes
+        map["$file"]=1
+        files[${#files[@]}]="$file";
+      done
+    elif [ $verbose -eq 1 ]; then
+      echo "[info] path '$p' invalid or it no longer exists, ignoring" 1>&2
+    fi
+    shift
+  done
+  # push
+  for f in "${files[@]}"; do echo "$f"; done
+}

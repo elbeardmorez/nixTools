@@ -86,9 +86,7 @@ fi
 [ "x$option" == "xhelp" ] && help && exit
 
 declare -a files
-declare -a files2
 declare -a results
-declare -A map
 
 if [[ -f "$search" && $custom_targets -eq 0 ]]; then
   # prioritise local files
@@ -105,41 +103,20 @@ elif [[ ! "x$(dirname "$search")" == "x." || "x${search:0:1}" == "x." ]]; then
   fi
 else
   # use search targets
-  fallback=1
-  lsts="${#search_targets[@]}";
-  l=0
-  while [ $l -lt $lsts ]; do
-    p="$(fn_path_resolve "${search_targets[$l]}")"  # resolve target
-    [ $DEBUG -ge 1 ] && echo "[debug] searching path: '$p'" 1>&2
-    if [ -e "$p" ]; then
-      IFS=$'\n'; files2=($(find $p -name "$search" \( -type f -o -type l \))); IFS="$IFSORG"
-      for file in "${files2[@]}"; do
-        [ -n "${map["$file"]}" ] && continue  # no dupes
-        map["$file"]=1
-        files[${#files[@]}]="$file";
-      done
-    elif [ $verbose -eq 1 ]; then
-      echo "[info] path '$p' invalid or it no longer exists, ignoring" 1>&2
-    fi
-    if [[ $l -eq $((lsts - 1)) && $fallback -eq 1 ]]; then
-      # fallback to local path
-      fallback=0
-      [ ${#map[@]} -eq 0 ] && \
-         search_targets[${#search_targets[@]}]="$PWD" && \
-         lsts=$((lsts + 1))
-    fi
-    l=$((l + 1))
-  done
+  IFS=$'\n'; files=($(fn_search_set "$search" "${search_targets[@]}")); IFS="$IFSORG"
+  if [ ${#files[@]} -eq 0 ]; then
+    IFS=$'\n'; files=($(fn_search_set "$search" "./")); IFS="$IFSORG"
+  fi
 
-  for file in "${files[@]}"; do
+  for f in "${files[@]}"; do
     if [[ $interactive -eq -1 || ${#files[@]} -le $interactive ]]; then
-      results[${#results[@]}]="$file"
+      results[${#results[@]}]="$f"
     else
       result=""
-      res="$(fn_decision "[user] search match, use file '$file'?" "ync")"
+      res="$(fn_decision "[user] search match, use file '$f'?" "ync")"
       [ "x$res" == "xc" ] && exit  # !break, no partial results
       [ "x$res" == "xn" ] && continue
-      results[${#results[@]}]="$file"
+      results[${#results[@]}]="$f"
     fi
   done
 fi
