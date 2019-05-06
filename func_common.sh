@@ -499,17 +499,21 @@ fn_search_set() {
   done
   bin_args[${#bin_args[@]}]=")"
   while [ -n "$1" ]; do
-    p="$(fn_path_resolve "$1")"  # resolve target
-    [ $DEBUG -ge 1 ] && echo "[debug] searching path: '$p'" 1>&2
-    if [ -e "$p" ]; then
-      IFS=$'\n'; files2=($(find "$p" "${bin_args[@]}")); IFS="$IFSORG"
-      for file in "${files2[@]}"; do
-        [ -n "${map["$file"]}" ] && continue  # no dupes
-        map["$file"]=1
-        files[${#files[@]}]="$file";
+    t="$(fn_path_resolve "$1")"  # resolve target
+    [ $DEBUG -ge 1 ] && echo "[debug] searching target: '$t'" 1>&2
+    if [ -e "$t" ]; then
+      if [ -f "$t" ]; then
+        files2=("$t")
+      else
+        IFS=$'\n'; files2=($(find "$t" "${bin_args[@]}")); IFS="$IFSORG"
+      fi
+      for f in "${files2[@]}"; do
+        [ -n "${map["$f"]}" ] && continue  # no dupes
+        map["$f"]=1
+        files[${#files[@]}]="$f"
       done
-    elif [ $verbose -eq 1 ]; then
-      echo "[info] path '$p' invalid or it no longer exists, ignoring" 1>&2
+    elif [ $DEBUG -ge 1 ]; then
+      echo "[debug] target '$t' invalid / no longer exists, ignoring" 1>&2
     fi
     shift
   done
