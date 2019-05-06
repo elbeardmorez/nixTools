@@ -89,11 +89,14 @@ fi
 declare -a files
 declare -a results
 
-if [[ -f "$search" && $custom_targets -eq 0 ]]; then
-  # prioritise local files
+if [[ -f "$search" && ("x$(dirname "$search")" != "x." ||
+                       "x${search:0:1}" == "x." ||
+                       $custom_targets -eq 0) ]]; then
+  # differentiate 'search' strings from paths (absolute or relative)
+  # assume local file if no custom targets are specified
   results[${#results[@]}]="$search"
-elif [[ ! "x$(dirname "$search")" == "x." || "x${search:0:1}" == "x." ]]; then
-  # create file
+elif [[ "x$(dirname "$search")" != "x." || "x${search:0:1}" == "x." ]]; then
+  # create explicit relative files
   if [ $interactive -ge 0 ]; then
     # new file. offer creation
     fn_decision "[user] file '$search' does not exist, create it?" >/dev/null || exit
