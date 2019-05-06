@@ -470,10 +470,18 @@ fn_search_set() {
   [[ $# -gt 1 &&
      -n "$(echo "$1" | sed -n '/^[fld]\{1,3\}$/p')" ]] && \
     types="$1" && shift
+  declare depth
+  [[ $# -gt 1 &&
+     -n "$(echo "$1" | sed -n '/^[1-9]$/p')" ]] && \
+    depth=$1 && shift
   declare -a files
   declare -a files2
   declare -A map
   declare -a bin_args
+  if [ -n "$depth" ]; then
+    bin_args[${#bin_args[@]}]="-maxdepth"
+    bin_args[${#bin_args[@]}]="$depth"
+  fi
   if [ $rx -eq 0 ]; then
     bin_args[${#bin_args[@]}]="-iname"
   else
