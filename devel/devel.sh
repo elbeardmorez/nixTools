@@ -347,24 +347,79 @@ fn_debug() {
   eval "$bin ${bin_args[*]}"
 }
 
-fn_process() {
+fn_refactor() {
 
-  case "$option" in
-    "find")
-      target="." && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift
-      filter=".*" && [ $# -gt 0 ] && filter="$1" && shift
-      maxdepth=1 && [ $# -gt 0 ] && maxdepth="$1" && shift
-      sFiles=()
-      IFS=$'\n'
-      if [ -f "$target" ]; then
-        sFiles=("$target")
-      elif [ -d "$target" ]; then
-        sFiles=($(find "$target" -iregex "$filter" -maxdepth $maxdepth))
+  declare -a targets
+  declare targets_default
+  targets_default="."
+  declare filter
+  declare depth
+  declare modify
+  modify=0
+  declare xi
+  xi=0
+  declare xi_profile
+  declare -a xi_profiles_valid
+  xi_profiles_valid["standard"]="standard"
+  declare xi_profile_default
+  xi_profile_default="standard"
+
+  while [ -n "$1" ]; do
+    arg="$(echo "$1" | awk '{gsub(/^[ ]*-+/,"",$0); print(tolower($0))}')"
+    if [ ${#arg} -lt ${#1} ]; then
+      # process named options
+      case "$arg" in
+        "f"|"filter") shift && filter="$1" ;;
+        "d"|"depth") shift && depth="$1" ;;
+        "m"|"modify") modify=1 ;;
+        "xi"|"external-indent")
+          shift
+          xi=1
+          [[ -n "$1" && -n "${xi_profiles_valid["$1"]}" ]] && xi_profile
+          ;;
+      esac
+    else
+      [ ! -e "$1" ] && \
+        echo "[info] dropping invalid target '$1'" || \
+        targets[${#targets[@]}]="$1"
       fi
-      IFS="$IFSORG"
+    shift
+  done
+
+  # ensure args
+  [ ${#targets[@]} -eq 0 ] && targets=("$targets_default")
+  [ -z "$filter" ] && filter=".*"
+  [ -z "$depth" ] && depth=1
+
+  # set targets
+  IFS=$'\n'; files=($(fn_search_set "$filter" 1 $depth "${targets[@]}")); IFS="$IFSORG"
+
+  # process targets
+  if [ $xi -eq 1 ]; then
+    # 'GNU indent' wrapper
+
+    # ensure args
+    [ -z "$xi_profile" ] && xi_profile="$xi_profile_default"
+
+    for f in "${files[@]}"; do
+      [ $DEBUG -ge 1 ] && echo "[info] processing target file '$f'" 1>&2
+      case $xi_profile in
+        "standard")
+          indent -bap -bbb -br -brs -cli2 -i2 -sc -sob -nut -ce -cdw -saf -sai -saw -ss -nprs -npcs -l120 "$f"
+          ;;
+      esac
+    done
+
+  else
+    # custom refactoring
+
+    for f in "${files[@]}"; do
+      [ $DEBUG -ge 1 ] && echo "[info] processing target file '$f'" 1>&2
+
+      if [ $modify -eq 0 ]; then
+        # search only #
 
       SEDCMD="$([ $TEST -gt 0 ] && echo "echo ")sed"
-      for f in "${sFiles[@]}"; do
         echo -e "\n##########"
         echo -e "#searching for 'braces after new line' in file '$f'\n"
         sed -n 'H;x;/.*)\s*\n\+\s*{.*/p' "$f"
@@ -377,36 +432,20 @@ fn_process() {
         for line in "${lines[@]}"; do
           echo "$line" | sed -n ':1;s/^\(.*\S\)\s\(\s*$\)/\1·\2/;t1;p'
         done
-      done
-      ;;
 
-    "fix")
-      target="." && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift
-      filter=".*" && [ $# -gt 0 ] && filter="$1" && shift
-      maxdepth=1 && [ $# -gt 0 ] && maxdepth="$1" && shift
-      sFiles=()
-      IFS=$'\n'
-      if [ -f "$target" ]; then
-        sFiles=("$target")
-      elif [ -d "$target" ]; then
-        sFiles=($(find "$target" -iregex "$filter" -maxdepth $maxdepth))
-      fi
-      IFS="$IFSORG"
+      else
+        # persist #
 
       SEDCMD="$([ $TEST -gt 0 ] && echo "echo ")sed"
-      for f in "${sFiles[@]}"; do
         # replace tabs with double spaces
         $SEDCMD -i 's/\t/  /g' "$f"
         # remove trailing whitespace
         $SEDCMD -i 's/\s*$//g' "$f"
-      done
-      ;;
 
-    "fix-c")
-      file="$1"
-      indent -bap -bbb -br -brs -cli2 -i2 -sc -sob -nut -ce -cdw -saf -sai -saw -ss -nprs -npcs -l120 "$file"
-      ;;
-  esac
+      fi
+      done
+
+  fi
 }
 
 # args
@@ -425,8 +464,8 @@ case "$option" in
   "debug")
     fn_debug "$@"
     ;;
-  "find"|"fix"|"fix-c")
-    fn_process "$@"
+  "refactor")
+    fn_refactor "$@"
     ;;
   *)
     help
