@@ -382,7 +382,7 @@ fn_refactor() {
       [ ! -e "$1" ] && \
         echo "[info] dropping invalid target '$1'" || \
         targets[${#targets[@]}]="$1"
-      fi
+    fi
     shift
   done
 
@@ -419,7 +419,7 @@ fn_refactor() {
       if [ $modify -eq 0 ]; then
         # search only #
 
-      SEDCMD="$([ $TEST -gt 0 ] && echo "echo ")sed"
+        SEDCMD="$([ $TEST -gt 0 ] && echo "echo ")sed"
         echo -e "\n##########"
         echo -e "#searching for 'braces after new line' in file '$f'\n"
         sed -n 'H;x;/.*)\s*\n\+\s*{.*/p' "$f"
@@ -436,14 +436,14 @@ fn_refactor() {
       else
         # persist #
 
-      SEDCMD="$([ $TEST -gt 0 ] && echo "echo ")sed"
+        SEDCMD="$([ $TEST -gt 0 ] && echo "echo ")sed"
         # replace tabs with double spaces
         $SEDCMD -i 's/\t/  /g' "$f"
         # remove trailing whitespace
         $SEDCMD -i 's/\s*$//g' "$f"
 
       fi
-      done
+    done
 
   fi
 }
