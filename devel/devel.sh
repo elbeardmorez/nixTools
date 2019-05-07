@@ -398,6 +398,9 @@ fn_refactor() {
   if [ $xi -eq 1 ]; then
     # 'GNU indent' wrapper
 
+    [ -z "$(which indent)" ] && \
+      echo "[error] no binary 'indent' found on this system" && return 1
+
     # ensure args
     [ -z "$xi_profile" ] && xi_profile="$xi_profile_default"
 
