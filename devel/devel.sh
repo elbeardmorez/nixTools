@@ -468,8 +468,9 @@ fn_refactor() {
 }
 
 # args
-option="debug"
+option="help"
 if [ $# -gt 0 ]; then
+  option="debug"
   arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
   [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|r\|refactor\|d\|debug\|cl\|changelog\|c\|commits\)$/p')" ] && option="$arg" && shift
 fi
