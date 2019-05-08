@@ -149,7 +149,7 @@ fn_changelog() {
   vcs=git && [ $# -gt 0 ] && [ "x`echo "$1" | sed -n '/\(git\|svn\|bzr\)/p'`" != "x" ] && vcs="$1" && shift
 
   cd "$target"
-  #*IMPLEMENT repo test or die
+
   fTmp=`tempfile`
   case $vcs in
     "git")
