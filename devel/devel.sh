@@ -14,23 +14,42 @@ TEST=${TEST:-0}
 help() {
   echo -e "SYNTAX: $SCRIPTNAME [OPTION] [OPTION-ARG1 [OPTION-ARG2 .. ]]
 \nwith OPTION:
-  find  : find extraneous whitespace
-    ARGS:
-    target file/dir  : target
-    filter  : regexp filter for files to test (default: '.*')
-    [max-depth]  : limit target files to within given hierarchy level
-                   (default: 1)
-  fix
-  fix-c
-  debug
-  changelog
-  commits  : process diffs into fix/mod/hack repo structure
-    ARGS:
-    target  : location of repository to extract/use patch set from
-              (default: '.')
-    prog    : program name (default: target directory name)
-    vcs     : version control type, git, svn, bzr, cvs (default: git)
-    [count] : number of patches to process (default: 1)
+\n  -r, --refactor  : perform code refactoring
+\n    SYNTAX: $SCRIPTNAME refactor [ARGS] TARGETS
+\n    ARGS:
+      -f, --filter FILTER  : regexp filter to limit files to work on
+                             (default: '.*')
+      -d, --depth MAXDEPTH  : limit files to within MAXDEPTH target
+                              hierarchy level (default: 1)
+      -m, --modify  : persist transforms
+      -xi, --external-indent [PROFILE]  : use external gnu indent
+                                          binary with PROFILE
+                                          (default: standard*)
+                                          (support: c)
+\n      *note: see README.md for PROFILE types
+\n    TARGETS  : target file(s) / dir(s) to work on
+\n  -d, --debug  : call supported debugger
+\n    SYNTAX: $SCRIPTNAME debug [-l LANGUAGE] [-d DEBUGGER]
+                                [ARGS] [-- BIN_ARGS]
+\n    -l, --language LANGUAGE  : specify target language (default: c)
+    -d, --debugger  : override language specific default debugger
+\n    ARGS:
+      gdb:  NAME, [PID]
+      node inspect:  SRC, [PORT]
+\n      note: the above args are overriden by default by environment
+            variables of the same name, and where not, are consumed
+            in a position dependent manner
+\n    support: c/c++|gdb, javascript|node inspect
+\n  -cl, --changelog
+\n    SYNTAX: $SCRIPTNAME changelog [ARGS]
+\n  -c, --commits  : process diffs into fix/mod/hack repo structure
+\n    SYNTAX: $SCRIPTNAME commits [ARGS]
+\n    ARGS:
+      [target]  : location of repository to extract/use patch set from
+                  (default: '.')
+      [prog]  : program name (default: target directory name)
+      [vcs]  : version control type, git, svn, bzr, cvs (default: git)
+      [count]  : number of patches to process (default: 1)
 "
 }
 
