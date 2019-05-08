@@ -11,9 +11,6 @@ IFSORG=$IFS
 DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
 
-# defaults
-option="debug"
-
 help() {
   echo -e "SYNTAX: $SCRIPTNAME [OPTION] [OPTION-ARG1 [OPTION-ARG2 .. ]]
 \nwith OPTION:
@@ -452,22 +449,26 @@ fn_refactor() {
 }
 
 # args
-[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(help\|--help\|-h\|find\|fix\|fix-c\|debug\|changelog\|commits\)/p')" != "x" ] && option="$1" && shift
+option="debug"
+if [ $# -gt 0 ]; then
+  arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
+  [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|r\|refactor\|d\|debug\|cl\|changelog\|c\|commits\)$/p')" ] && option="$arg" && shift
+fi
 
 case "$option" in
-  "help"|"--help"|"-h")
+  "h"|"help")
     help
     ;;
-  "commits")
+  "c"|"commits")
     fn_commits "$@"
     ;;
-  "changelog")
+  "cl"|"changelog")
     fn_changelog "$@"
     ;;
-  "debug")
+  "d"|"debug")
     fn_debug "$@"
     ;;
-  "refactor")
+  "r"|"refactor")
     fn_refactor "$@"
     ;;
   *)
