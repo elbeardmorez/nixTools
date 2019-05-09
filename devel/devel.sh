@@ -473,25 +473,25 @@ fn_refactor() {
 
         SEDCMD="$([ $TEST -gt 0 ] && echo "echo ")sed"
         for t in "${transforms[@]}"; do
-        echo -e "\n##########"
+          echo -e "\n##########"
           case "$t" in
             "braces")
               # search for braces following new lines
-        echo -e "#searching for 'braces after new line' in file '$f'\n"
-        sed -n 'H;x;/.*)\s*\n\+\s*{.*/p' "$f"
+              echo -e "#searching for 'braces after new line' in file '$f'\n"
+              sed -n 'H;x;/.*)\s*\n\+\s*{.*/p' "$f"
               ;;
             "tabs")
               # search for tabs characters
-        echo -e "#searching for 'tab' character' in file '$f'\n"
-        sed -n 's/\t/<TAB>/gp' "$f"
+              echo -e "#searching for 'tab' character' in file '$f'\n"
+              sed -n 's/\t/<TAB>/gp' "$f"
               ;;
             "whitespace")
               # search for trailing whitespace
-        echo -e "#searching for 'trailing white-space' in file '$f'\n"
-        IFS=$'\n'; lines=$(sed -n '/\s$/p' "$f"); IFS=$IFSORG
-        for line in "${lines[@]}"; do
-          echo "$line" | sed -n ':1;s/^\(.*\S\)\s\(\s*$\)/\1·\2/;t1;p'
-        done
+              echo -e "#searching for 'trailing white-space' in file '$f'\n"
+              IFS=$'\n'; lines=$(sed -n '/\s$/p' "$f"); IFS=$IFSORG
+              for line in "${lines[@]}"; do
+                echo "$line" | sed -n ':1;s/^\(.*\S\)\s\(\s*$\)/\1·\2/;t1;p'
+              done
               ;;
           esac
         done
@@ -503,12 +503,12 @@ fn_refactor() {
         for t in "${transforms[@]}"; do
           case "$t" in
             "tabs")
-        # replace tabs with double spaces
-        $SEDCMD -i 's/\t/  /g' "$f"
+              # replace tabs with double spaces
+              $SEDCMD -i 's/\t/  /g' "$f"
               ;;
             "whitespace")
-        # remove trailing whitespace
-        $SEDCMD -i 's/\s*$//g' "$f"
+              # remove trailing whitespace
+              $SEDCMD -i 's/\s*$//g' "$f"
               ;;
           esac
         done
