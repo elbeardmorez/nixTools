@@ -19,6 +19,15 @@ with OPTION:
       -d, --depth MAXDEPTH  : limit files to within MAXDEPTH target
                               hierarchy level (default: 1)
       -m, --modify  : persist transforms
+      -t, --transforms TRANSFORMS  : override default refactor
+                                     transforms set. TRANSFORMS is a
+                                     comma delimited list of supported
+                                     transforms
+                                     (default: tabs,whitespace)
+          TRANFORMS:
+            tabs  : replace tab characters with 2 spaces
+            whitespace  : remove trailing whitespace
+            brackets  : inline leading control structure bracket
       -xi, --external-indent [PROFILE]  : use external gnu indent
                                           binary with PROFILE
                                           (default: standard*)

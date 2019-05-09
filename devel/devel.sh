@@ -22,6 +22,15 @@ help() {
       -d, --depth MAXDEPTH  : limit files to within MAXDEPTH target
                               hierarchy level (default: 1)
       -m, --modify  : persist transforms
+      -t, --transforms TRANSFORMS  : override default refactor
+                                     transforms set. TRANSFORMS is a
+                                     comma delimited list of supported
+                                     transforms
+                                     (default: tabs,whitespace)
+          TRANFORMS:
+            tabs  : replace tab characters with 2 spaces
+            whitespace  : remove trailing whitespace
+            brackets  : inline leading control structure bracket
       -xi, --external-indent [PROFILE]  : use external gnu indent
                                           binary with PROFILE
                                           (default: standard*)
@@ -372,6 +381,13 @@ fn_refactor() {
   declare depth
   declare modify
   modify=0
+  declare -a transforms
+  declare -A transforms_valid
+  transforms_valid["braces"]="braces"
+  transforms_valid["tabs"]="tabs"
+  transforms_valid["whitespace"]="whitespace"
+  declare transform_default
+  transforms_default="tabs whitespace"
   declare xi
   xi=0
   declare xi_profile
@@ -388,6 +404,20 @@ fn_refactor() {
         "f"|"filter") shift && filter="$1" ;;
         "d"|"depth") shift && depth="$1" ;;
         "m"|"modify") modify=1 ;;
+        "t"|"transforms")
+          shift
+          declare -a transforms_
+          IFS=','; transforms_=($(echo "$1")); IFS="$IFSORG"
+          declare -a unrecognised
+          for t in "${transforms_[@]}"; do
+            [ -n "${transforms_valid["$t"]}" ] && \
+              transforms[${#transforms[@]}]="$t" || \
+              unrecognised[${#unrecognised[@]}]="$t"
+          done
+          [[ ${#unrecognised[@]} -gt 0 ]] && \
+            echo "[info] dropped unrecognised transform"\
+                 "$([ ${#unrecognised[@]} -ne 1 ] && echo "s") '${unrecognised[*]}'"
+          ;;
         "xi"|"external-indent")
           shift
           xi=1
@@ -432,6 +462,9 @@ fn_refactor() {
   else
     # custom refactoring
 
+    # ensure args
+    [ ${#transforms[@]} -eq 0 ] && transforms=($(echo "$transforms_default"))
+
     for f in "${files[@]}"; do
       [ $DEBUG -ge 1 ] && echo "[info] processing target file '$f'" 1>&2
 
@@ -439,27 +472,46 @@ fn_refactor() {
         # search only #
 
         SEDCMD="$([ $TEST -gt 0 ] && echo "echo ")sed"
+        for t in "${transforms[@]}"; do
         echo -e "\n##########"
+          case "$t" in
+            "braces")
+              # search for braces following new lines
         echo -e "#searching for 'braces after new line' in file '$f'\n"
         sed -n 'H;x;/.*)\s*\n\+\s*{.*/p' "$f"
-        echo -e "\n##########"
+              ;;
+            "tabs")
+              # search for tabs characters
         echo -e "#searching for 'tab' character' in file '$f'\n"
         sed -n 's/\t/<TAB>/gp' "$f"
-        echo -e "\n##########"
+              ;;
+            "whitespace")
+              # search for trailing whitespace
         echo -e "#searching for 'trailing white-space' in file '$f'\n"
         IFS=$'\n'; lines=$(sed -n '/\s$/p' "$f"); IFS=$IFSORG
         for line in "${lines[@]}"; do
           echo "$line" | sed -n ':1;s/^\(.*\S\)\s\(\s*$\)/\1·\2/;t1;p'
+        done
+              ;;
+          esac
         done
 
       else
         # persist #
 
         SEDCMD="$([ $TEST -gt 0 ] && echo "echo ")sed"
+        for t in "${transforms[@]}"; do
+          case "$t" in
+            "tabs")
         # replace tabs with double spaces
         $SEDCMD -i 's/\t/  /g' "$f"
+              ;;
+            "whitespace")
         # remove trailing whitespace
         $SEDCMD -i 's/\s*$//g' "$f"
+              ;;
+          esac
+        done
 
       fi
     done
