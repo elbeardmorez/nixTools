@@ -464,7 +464,26 @@ fn_refactor() {
       [ $DEBUG -ge 1 ] && echo "[info] processing target file '$f'" 1>&2
       case $xi_profile in
         "standard")
-          indent -bap -bbb -br -brs -cli2 -i2 -sc -sob -nut -ce -cdw -saf -sai -saw -ss -nprs -npcs -l120 "$f"
+          indent \
+            --blank-lines-after-procedures \
+            --blank-lines-before-block-comments \
+            --braces-on-if-line \
+            --braces-on-struct-decl-line \
+            --case-indentation 2 \
+            --indent-leveln \
+            --start-left-side-of-comment \
+            --swallow-optional-blank-lines \
+            --no-tabs \
+            --cuddle-else \
+            --cuddle-do-while \
+            --space-after-for \
+            --space-after-if \
+            --space-after-while \
+            --space-special-semicolon \
+            --no-space-after-function-call-names \
+            --no-space-after-parentheses \
+            --line-length 120 \
+              "$f"
           ;;
       esac
     done
