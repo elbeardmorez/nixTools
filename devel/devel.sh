@@ -25,7 +25,8 @@ help() {
       -t, --transforms TRANSFORMS  : override default refactor
                                      transforms set. TRANSFORMS is a
                                      comma delimited list of supported
-                                     transforms
+                                     transforms. the 'all' transform
+                                     enables all implemented transforms
                                      (default: tabs,whitespace)
           TRANFORMS:
             tabs  : replace tab characters with 2 spaces
@@ -418,6 +419,7 @@ fn_refactor() {
           IFS=','; transforms_=($(echo "$1")); IFS="$IFSORG"
           declare -a unrecognised
           for t in "${transforms_[@]}"; do
+            [ "x$t" == "xall" ] && transforms=("${transforms_valid[@]}") && break
             [ -n "${transforms_valid["$t"]}" ] && \
               transforms[${#transforms[@]}]="$t" || \
               unrecognised[${#unrecognised[@]}]="$t"

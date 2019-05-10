@@ -22,7 +22,8 @@ with OPTION:
       -t, --transforms TRANSFORMS  : override default refactor
                                      transforms set. TRANSFORMS is a
                                      comma delimited list of supported
-                                     transforms
+                                     transforms. the 'all' transform
+                                     enables all implemented transforms
                                      (default: tabs,whitespace)
           TRANFORMS:
             tabs  : replace tab characters with 2 spaces
