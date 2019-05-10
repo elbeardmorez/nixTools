@@ -488,7 +488,7 @@ fn_refactor() {
             "whitespace")
               # search for trailing whitespace
               echo -e "#searching for 'trailing white-space' in file '$f'\n"
-              IFS=$'\n'; lines=$(sed -n '/\s$/p' "$f"); IFS=$IFSORG
+              IFS=$'\n'; lines=($(sed -n '/\s$/p' "$f")); IFS=$IFSORG
               for line in "${lines[@]}"; do
                 echo "$line" | sed -n ':1;s/^\(.*\S\)\s\(\s*$\)/\1·\2/;t1;p'
               done
