@@ -377,7 +377,7 @@ fn_header() {
   declare info
   info="$1" && shift
   printf "%s\n%s\n%s\n" $(printf "%.s-" $(seq 1 1 ${#info})) \
-                        "$info" \
+                        "$(printf ${CLR_HL}"$info"${CLR_OFF})" \
                         $(printf "%.s-" $(seq 1 1 ${#info}))
 }
 
@@ -506,19 +506,19 @@ fn_refactor() {
             "braces")
               # search for function braces on new lines
               fn_header "> searching for 'function brace on new line' in file '$f'"
-              sed -n 'H;x;/.*)\s*\n\+\s*{.*/p' "$f"
+              sed -n 'H;x;/.*)\s*\n\+\s*{.*/{s/\n/'"$(printf "${CLR_RED}%s${CLR_OFF}" "\\\n")"'\n/;p}' "$f"
               ;;
             "tabs")
               # search for tabs characters
               fn_header "> searching for 'tab characters' in file '$f'"
-              sed -n 's/\t/[  ]/gp' "$f"
+              sed -n 's/\t/'"$(printf ${CLR_RED})"'[ ]'"$(printf ${CLR_OFF})"'/gp' "$f"
               ;;
             "whitespace")
               # search for trailing whitespace
               fn_header "> searching for 'trailing whitespace' in file '$f'"
               IFS=$'\n'; lines=($(sed -n '/\s$/p' "$f")); IFS=$IFSORG
               for line in "${lines[@]}"; do
-                echo "$line" | sed -n ':1;s/^\(.*\S\)\s\(\s*$\)/\1·\2/;t1;p'
+                echo "$line" | sed -n ':1;s/^\(.*\S\)\s\(\s*$\)/\1\'"$(printf ${CLR_RED})"'·\2/;t1;s/$/\'"$(printf ${CLR_OFF})"'/;p'
               done
               ;;
           esac
