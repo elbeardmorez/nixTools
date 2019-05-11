@@ -296,7 +296,7 @@ fn_decision() {
       elif [[ -z "$map" && (-z "$submatch" && \
                             "x${option:0:1}" == "x$r") ]]; then
         submatch_=$((submatch_ + 1))
-        [ "x$option" == "x$r" ] && match="$r"
+        [ "x$option" = "x$r" ] && match="$r"
       fi
     done
     if [ $submatch_ -eq 1 ]; then
