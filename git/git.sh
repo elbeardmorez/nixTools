@@ -457,10 +457,10 @@ fn_process() {
         echo -e "[info] file: $file | ln#: $line | auth: ${CLR_RED}${auth}${CLR_OFF} | date: $(date -d "@$dt1" "+%d %b %Y %H:%M:%S") $dt2"
         echo -e "\n$data\n"
         res="$(fn_decision "[user] (s)how, (r)ebase from, or (i)gnore commit '$id'?" "srix")"
-        [ "x$res" == "xs" ] && git show "$id"
-        [ "x$res" == "xr" ] && fn_rebase "$id" -- --autostash; exit
-        [ "x$res" == "xi" ] && continue
-        [ "x$res" == "xx" ] && exit
+        [ "x$res" = "xs" ] && git show "$id"
+        [ "x$res" = "xr" ] && fn_rebase "$id" -- --autostash; exit
+        [ "x$res" = "xi" ] && continue
+        [ "x$res" = "xx" ] && exit
       done
       ;;
     "doc"|"dates-order-check")
