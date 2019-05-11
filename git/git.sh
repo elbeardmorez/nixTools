@@ -458,7 +458,7 @@ fn_process() {
         echo -e "\n$data\n"
         res="$(fn_decision "[user] (s)how, (r)ebase from, or (i)gnore commit '$id'?" "srix")"
         [ "x$res" = "xs" ] && git show "$id"
-        [ "x$res" = "xr" ] && fn_rebase "$id" -- --autostash; exit
+        [ "x$res" = "xr" ] && { fn_rebase "$id" -- --autostash; exit; }
         [ "x$res" = "xi" ] && continue
         [ "x$res" = "xx" ] && exit
       done
