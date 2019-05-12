@@ -74,8 +74,11 @@ with OPTION:
 
 ## examples
 
-```
+### debug
+```sh
   $ devel_ debug zsh
+```
+```
    [1]   637 | -zsh
    [2]  1056 | -/bin/zsh
    [3]  2106 | -/bin/zsh
@@ -87,6 +90,59 @@ with OPTION:
   [16] 30694 | -zsh
   select item # or e(x)it [1-16|x]: 15
   [user] debug: gdb zsh --pid=30023 ? [y/n]: y
+```
+
+### refactor
+```sh
+  $ head -n 20 usbreset.c
+```
+```
+  #include <stdio.h>
+  #include <unistd.h>
+  #include <fcntl.h>  
+  #include <errno.h> 
+  #include <sys/ioctl.h>    
+  #include <linux/usbdevice_fs.h>
+  
+  int main(int argc, char **argv)
+  {
+  	const char *filename;
+  	int fd;
+  	int rc;
+  
+  	if (argc != 2) {
+  		fprintf(stderr, "Usage: usbreset device-filename\n");
+  		return 1;
+  	}
+  	filename = argv[1];
+  
+```
+```sh
+  $ devel_ -r -t all usbreset.c
+```
+```
+  -----------------------------------------------------------------
+  > searching for 'function brace on new line' in file 'usbreset.c'
+  -----------------------------------------------------------------
+  int main(int argc, char **argv)\n
+  {
+
+  ----------------------------------------------------------
+  > searching for 'trailing whitespace' in file 'usbreset.c'
+  ----------------------------------------------------------
+  #include <fcntl.h>··
+  #include <errno.h>·
+  #include <sys/ioctl.h>····
+
+  -----------------------------------------------------
+  > searching for 'tab characters' in file 'usbreset.c'
+  -----------------------------------------------------
+  [ ]const char *filename;
+  [ ]int fd;
+  [ ]int rc;
+  [ ]if (argc != 2) {
+  [ ][ ]fprintf(stderr, "Usage: usbreset device-filename\n");
+  [ ][ ]return 1;
 ```
 
 ## todo
