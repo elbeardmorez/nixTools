@@ -30,8 +30,9 @@ where <OPTION> can be:
                    path files only
   sta|status-all : show column format status
   anws|add-no-whitespace  : stage non-whitespace-only changes
-  fp|format-patch <ID> [N]  : format N patch(es) back from an id or
+  fp|format-patch [ID] [N]  : format N patch(es) back from an id or
                               partial description string
+                              (default: HEAD)
   rb|rebase <ID> [N]  : interactively rebase back from id or partial
                         description string. use N to limit the search
                         range to the last N commits

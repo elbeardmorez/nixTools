@@ -32,8 +32,9 @@ help() {
                    path files only
   sta|status-all : show column format status
   anws|add-no-whitespace  : stage non-whitespace-only changes
-  fp|format-patch <ID> [N]  : format N patch(es) back from an id or
+  fp|format-patch [ID] [N]  : format N patch(es) back from an id or
                               partial description string
+                              (default: HEAD)
   rb|rebase <ID> [N]  : interactively rebase back from id or partial
                         description string. use N to limit the search
                         range to the last N commits
@@ -210,18 +211,29 @@ fn_rebase() {
 }
 
 fn_formatpatch() {
-  [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
-  id="$1" && shift
-  n=1 && [ $# -gt 0 ] && n="$1" && shift
-  [ "x`echo "$n" | sed -n '/^[0-9]\+$/p'`" = "x" ] && echo "[error] invalid number of patches: '$n'" && exit 1
+  declare id
+  id=HEAD
+  declare n
+  n=1
+  declare -a cmdargs
+  while [ -n "$1" ]; do
+    if [ "x$1" = "x--" ]; then
+      # cmdargs
+      shift; while [ -n "$1" ]; do cmdargs[${#cmdargs[@]}]="$1"; shift; done
+    else
+      arg="$(echo "$1" | sed 's/^[ ]*-*//')"
+      if [ -n "$(echo "$arg" | sed -n '/^[0-9]\+$/p')" ]; then
+        n="$arg"
+      elif [ -z "$id" ]; then
+        id="$arg"
+      else
+        echo "[error] unrecognised arg '$1'" && return 1
+      fi
+    fi
+    shift
+  done
   commit=$(fn_commit "$id")
   res=$?; [ $res -ne 0 ] && exit $res
-  declare -a cmdargs
-  if [ $# -gt 0 ]; then
-    # additional args
-    [ "x$1" != "x--" ] && echo "[error] unrecognised arg '$1'" && return 1
-    shift; while [ -n "$1" ]; do cmdargs[${#cmdargs[@]}]="$1"; shift; done
-  fi
   sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
   echo "[info] formatting patch for rebasing from commit '$commit'"
   git format-patch -k -$n $sha "${cmdargs[@]}"
