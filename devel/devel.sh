@@ -521,6 +521,9 @@ fn_refactor() {
                 echo "$line" | sed -n ':1;s/^\(.*\S\)\s\(\s*$\)/\1\'"$(printf ${CLR_RED})"'·\2/;t1;s/$/\'"$(printf ${CLR_OFF})"'/;p'
               done
               ;;
+            *)
+              printf "${CLR_RED}[error] missing transform '$t'${CLR_OFF}\n"
+              ;;
           esac
           l=$((l + 1))
           [ $l -ne ${#transforms[@]} ] && printf "\n"
@@ -542,6 +545,9 @@ fn_refactor() {
               # remove trailing whitespace
               fn_header "> removing 'trailing whitespace' in file '$f'"
               $sedcmd -i 's/\s*$//g' "$f"
+              ;;
+            *)
+              printf "${CLR_RED}[error] missing transform '$t'${CLR_OFF}\n"
               ;;
           esac
           l=$((l + 1))
