@@ -31,7 +31,7 @@ help() {
           TRANFORMS:
             tabs  : replace tab characters with 2 spaces
             whitespace  : remove trailing whitespace
-            brackets  : inline leading control structure bracket
+            braces  : inline leading control structure braces
       -xi, --external-indent [PROFILE]  : use external gnu indent
                                           binary with PROFILE
                                           (default: standard*)
@@ -504,8 +504,8 @@ fn_refactor() {
         for t in "${transforms[@]}"; do
           case "$t" in
             "braces")
-              # search for function braces on new lines
-              fn_header "> searching for 'function brace on new line' in file '$f'"
+              # search for new line character preceding brace
+              fn_header "> searching for 'new line characters preceding braces' in file '$f'"
               sed -n 'H;x;/.*)\s*\n\+\s*{.*/{s/\n/'"$(printf "${CLR_RED}%s${CLR_OFF}" "\\\n")"'\n/;p}' "$f"
               ;;
             "tabs")
@@ -537,9 +537,9 @@ fn_refactor() {
         for t in "${transforms[@]}"; do
           case "$t" in
             "braces")
-              # remove new line preceding function brace
-              fn_header "> removing 'new lines preceding function braces' in file '$f'"
+              # remove new line character preceding brace
               $sedcmd -i -n '1{${p;b;};h;b};/^\s*{/{x;/)\s*$/{x;H;x;s/\s*\n\s*/ /;p;n;x;b;};x;};x;p;' "$f"
+              fn_header "> removing 'new line characters preceding braces' in file '$f'"
               ;;
             "tabs")
               # replace tabs with double spaces

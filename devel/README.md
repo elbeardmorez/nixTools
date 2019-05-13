@@ -28,7 +28,7 @@ with OPTION:
           TRANFORMS:
             tabs  : replace tab characters with 2 spaces
             whitespace  : remove trailing whitespace
-            brackets  : inline leading control structure bracket
+            braces  : inline leading control structure braces
       -xi, --external-indent [PROFILE]  : use external gnu indent
                                           binary with PROFILE
                                           (default: standard*)
@@ -121,9 +121,9 @@ with OPTION:
   $ devel_ -r -t all usbreset.c
 ```
 ```
-  -----------------------------------------------------------------
-  > searching for 'function brace on new line' in file 'usbreset.c'
-  -----------------------------------------------------------------
+  ---------------------------------------------------------------------------
+  > searching for 'new line characters preceding braces' in file 'usbreset.c'
+  ---------------------------------------------------------------------------
   int main(int argc, char **argv)\n
   {
 
