@@ -536,6 +536,11 @@ fn_refactor() {
         l=0
         for t in "${transforms[@]}"; do
           case "$t" in
+            "braces")
+              # remove new line preceding function brace
+              fn_header "> removing 'new lines preceding function braces' in file '$f'"
+              $sedcmd -i -n '${p;b;};h;N;/.*)\s*\n\+\s*{.*/{s/\s*\n\s*/ /p;b};p' "$f"
+              ;;
             "tabs")
               # replace tabs with double spaces
               fn_header "> replacing 'tab characters' in file '$f'"
