@@ -539,7 +539,7 @@ fn_refactor() {
             "braces")
               # remove new line preceding function brace
               fn_header "> removing 'new lines preceding function braces' in file '$f'"
-              $sedcmd -i -n '1{h;b};/^\s*{/{x;/)\s*$/{x;H;x;s/\s*\n\s*/ /;p;n;x;b;};x;};x;p;' "$f"
+              $sedcmd -i -n '1{${p;b;};h;b};/^\s*{/{x;/)\s*$/{x;H;x;s/\s*\n\s*/ /;p;n;x;b;};x;};x;p;' "$f"
               ;;
             "tabs")
               # replace tabs with double spaces
