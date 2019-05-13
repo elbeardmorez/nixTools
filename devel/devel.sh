@@ -65,10 +65,10 @@ help() {
 
 fn_commits() {
 
-  target="$PWD" && [ $# -gt 0 ] && [ -e "$1" ] && target="`cd "$1"; pwd`" && shift
+  target="$PWD" && [ $# -gt 0 ] && [ -e "$1" ] && target="$(cd "$1"; pwd)" && shift
   source="$target" && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift
-  prog=`cd "$source"; pwd` && prog="${prog##*/}" && [ $# -gt 0 ] && prog="$1" && shift
-  vcs=git && [ $# -gt 0 ] && [ "x`echo "$(cd "$source"; pwd)" | sed -n '/\(git\|svn\|bzr\)/p'`" != "x" ] && vcs="$1" && shift
+  prog=$(cd "$source"; pwd) && prog="${prog##*/}" && [ $# -gt 0 ] && prog="$1" && shift
+  vcs=git && [ $# -gt 0 ] && [ -n "$(echo "$(cd "$source"; pwd)" | sed -n '/\(git\|svn\|bzr\)/p')" ] && vcs="$1" && shift
   count=1 && [ $# -gt 0 ] && count=$1 && shift
 
   case $vcs in
@@ -91,15 +91,15 @@ fn_commits() {
       mv "$source"/00*patch ./
       # process patches
       for p in 00*patch; do
-        #commithash=`cd $source; git log --format=oneline | head -n$[$count] | tail -n1 | cut -d' ' -f1; cd - 1>/dev/null`
-        commithash=`head -n1 "$p" | cut -d' ' -f2`
-        date=`head -n3 "$p" | sed '$!d;s/Date: //'`
+        #commithash="$(cd $source; git log --format=oneline | head -n$[$count] | tail -n1 | cut -d' ' -f1; cd - 1>/dev/null)"
+        commithash=$(head -n1 "$p" | cut -d' ' -f2)
+        date=$(head -n3 "$p" | sed '$!d;s/Date: //')
         # name
-        subject=`sed -n '/^Subject/{N;s/\n//;s|^Subject: \[PATCH[^]]*\] \(.*\)|\1|p}' "$p"`
+        subject=$(sed -n '/^Subject/{N;s/\n//;s|^Subject: \[PATCH[^]]*\] \(.*\)|\1|p}' "$p")
         name="$subject"
-        name=`echo "$name" | sed 's|[ ]|.|g'`
-        name=`echo "$name" | sed 's|[\/:]|_|g'`
-        p2="`echo "$name" | awk '{print tolower($0)}'`.diff"
+        name=$(echo "$name" | sed 's|[ ]|.|g')
+        name=$(echo "$name" | sed 's|[\/:]|_|g')
+        p2="$(echo "$name" | awk '{print tolower($0)}').diff"
         [ $DEBUG -gt 0 ] && echo "moving '$p' -> '$p2'" 1>&2
         mv "$p" "$p2"
         # clean subject
@@ -122,10 +122,10 @@ fn_commits() {
         mkdir -p "$type/$prog"
         mv "$p2" "$type/$prog/"
         # append patch to repo readme
-        entry="$p2 [git sha:$commithash | `[ "x$type" == "xhack" ] && echo "unsubmitted" || echo "pending"`]"
+        entry="$p2 [git sha:$commithash | $([ "x$type" = "xhack" ] && echo "unsubmitted" || echo "pending")]"
         if [ -e $type/README ]; then
           # search for existing program entry
-          if [ "x`sed -n '/^### '$prog'$/p' "$type/README"`" == "x" ]; then
+          if [ -z "$(sed -n '/^### '$prog'$/p' "$type/README")" ]; then
             echo -e "### $prog\n-$entry\n" >> $type/README
           else
             # insert entry
@@ -135,7 +135,7 @@ fn_commits() {
           echo -e "\n### $prog\n-$entry\n" >> "$type/README"
         fi
         # append patch details to program specific readme
-        comments=`sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$type/$prog/$p2"`
+        comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$type/$prog/$p2")"
         echo -e "\n# $entry" >> "$type/$prog/README"
         [ "x$comments" != "x" ] && echo "$comments" >> "$type/$prog/README"
 
@@ -156,20 +156,20 @@ fn_commits() {
 fn_changelog() {
 
   target=. && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift 1
-  vcs=git && [ $# -gt 0 ] && [ "x`echo "$1" | sed -n '/\(git\|svn\|bzr\)/p'`" != "x" ] && vcs="$1" && shift
+  vcs=git && [ $# -gt 0 ] && [ -n "$(echo "$1" | sed -n '/\(git\|svn\|bzr\)/p')" ] && vcs="$1" && shift
 
   cd "$target"
 
-  fTmp=`tempfile`
+  f_tmp="$(tempfile)"
   case $vcs in
     "git")
       if [ -f ./ChangeLog ]; then
         merge=0
         # valid last logged commit?
-        commit=`head -n1 ChangeLog | sed -n 's/.*version \(\S*\).*/\1/p'`
+        commit="$(head -n1 ChangeLog | sed -n 's/.*version \(\S*\).*/\1/p')"
         if [ "x$commit" != "x" ]; then
           echo "+current ChangeLog head commit: '$commit'"
-          if [ "x`git log --format=oneline | grep "$commit"`" != "x" ]; then
+          if [ -n "$(git log --format=oneline | grep "$commit")" ]; then
             echo "-commit is valid, using it!"
             merge=1
           else
@@ -178,10 +178,10 @@ fn_changelog() {
           fi
         fi
         # valid first commit?
-        if [ "x$commit" == "x" ]; then
-          commit=`git log --format=oneline | tail -n 1 | cut -d' ' -f1`
+        if [ "x$commit" = "x" ]; then
+          commit="$(git log --format=oneline | tail -n 1 | cut -d' ' -f1)"
           echo "+first project commit: '$commit'"
-          if [ "x`grep "$commit" ChangeLog`" != "x" ]; then
+          if [ -n "$(grep "$commit" ChangeLog)" ]; then
             echo "-found in ChangeLog"
             merge=1
           else
@@ -189,7 +189,7 @@ fn_changelog() {
           fi
         fi
         git log -n 1 $commit 2>/dev/null 1>&2
-        [ $? -eq 0 ] && commits=`git log --pretty=oneline $commit.. | wc -l`
+        [ $? -eq 0 ] && commits=$(git log --pretty=oneline $commit.. | wc -l)
 
         if [ $merge -eq 1 ]; then
           echo "+clearing messages"
@@ -199,13 +199,13 @@ fn_changelog() {
       else
         echo "+new ChangeLog"
         touch ./ChangeLog
-        commits=`git log --pretty=oneline | wc -l`
+        commits=$(git log --pretty=oneline | wc -l)
       fi
 
-      echo "+$commits commit`[ $commits -gt 1 ] && echo "s"` to add to ChangeLog"
+      echo "+$commits commit$([ $commits -gt 1 ] && echo "s") to add to ChangeLog"
       [ $commits -eq 0 ] && exit 0
 
-      git log -n $commits --pretty=format:"%at version %H%n - %s (%an)" | awk '{if ($1 ~ /[0-9]+/) {printf strftime("%Y%b%d",$1); $1=""}; print $0}' | cat - ChangeLog > $fTmp && mv $fTmp ChangeLog
+      git log -n $commits --pretty=format:"%at version %H%n - %s (%an)" | awk '{if ($1 ~ /[0-9]+/) {printf strftime("%Y%b%d",$1); $1=""}; print $0}' | cat - ChangeLog > $f_tmp && mv $f_tmp ChangeLog
       cd ->/dev/null
 
       ;;
@@ -419,7 +419,7 @@ fn_refactor() {
           IFS=','; transforms_=($(echo "$1")); IFS="$IFSORG"
           declare -a unrecognised
           for t in "${transforms_[@]}"; do
-            [ "x$t" == "xall" ] && transforms=("${transforms_valid[@]}") && break
+            [ "x$t" = "xall" ] && transforms=("${transforms_valid[@]}") && break
             [ -n "${transforms_valid["$t"]}" ] && \
               transforms[${#transforms[@]}]="$t" || \
               unrecognised[${#unrecognised[@]}]="$t"
