@@ -104,7 +104,9 @@ if [ -d "$target" ]; then
     *) IFS=$'\n'; targets=($(find "$target" -type f)); IFS="$IFSORG" ;;
   esac
 else
-  IFS=$'\n'; targets=($(search_ "${search_args[@]}" "$target")); IFS="$IFSORG"
+  targets_="$(search_ "${search_args[@]}" "$target")"
+  res=$? && [ $res -ne 0 ] && exit $res
+  IFS=$'\n'; targets=($(echo "$targets_")); IFS="$IFSORG"
 fi
 
 if [ ${#targets[@]} -gt 0 ]; then
