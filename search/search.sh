@@ -89,6 +89,9 @@ fi
 declare -a files
 declare -a results
 
+[ -z "$search" ] && \
+  echo "[error] missing search criteria" 1>&2 && exit 1
+
 if [[ -f "$search" && ("x$(dirname "$search")" != "x." ||
                        "x${search:0:1}" == "x." ||
                        $custom_targets -eq 0) ]]; then
