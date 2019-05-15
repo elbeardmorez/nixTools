@@ -58,7 +58,9 @@ with OPTION:
 
   -cl, --changelog
 
-    SYNTAX: devel_ changelog [ARGS]
+    SYNTAX: $SCRIPTNAME changelog [TARGET]
+
+    TARGET:  location of repository to query for changes
 
   -c, --commits  : process diffs into fix/mod/hack repo structure
 

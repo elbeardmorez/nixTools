@@ -51,7 +51,8 @@ help() {
             in a position dependent manner
 \n    support: c/c++|gdb, javascript|node inspect
 \n  -cl, --changelog
-\n    SYNTAX: $SCRIPTNAME changelog [ARGS]
+\n    SYNTAX: $SCRIPTNAME changelog [TARGET]
+\n    TARGET:  location of repository to query for changes
 \n  -c, --commits  : process diffs into fix/mod/hack repo structure
 \n    SYNTAX: $SCRIPTNAME commits [ARGS]
 \n    ARGS:
