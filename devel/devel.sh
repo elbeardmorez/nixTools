@@ -174,16 +174,27 @@ fn_changelog() {
   declare vcs
 
   # process args
-  if [ $# -gt 0 ]; then
-     [ -d "$1" ] && \
-       target="$1" || \
-       { help && echo "[error] unrecognised arg '$1'" && return 1; }
-  else
-    target="$target_default"
-  fi
-  vcs="$(fn_repo_type "$target")"
+  declare -a args
+  while [ -n "$1" ]; do
+    arg="$(echo "$1" | awk '{gsub(/^[ ]*-+/,"",$0); print(tolower($0))}')"
+    if [ ${#arg} -lt ${#1} ]; then
+      # process named options
+      case "$arg" in
+        *) help && echo "[error] unrecognised arg '$1'" && return 1 ;;
+      esac
+    else
+      [ -z "$target" ] && \
+        target="$1" || \
+        help && echo "[error] unrecognised arg '$1'" && return 1
+    fi
+    shift
+  done
 
   # validate args
+  [ -z "$target" ] && target="$target_default"
+  [ -d "$target" ] || \
+    { help && echo "[error] invalid target '$target'" && return 1; }
+  vcs="$(fn_repo_type "$target")"
   [ -z "$vcs" ] && echo "[error] unsupported repository type" && return 1
 
   cd "$target"
