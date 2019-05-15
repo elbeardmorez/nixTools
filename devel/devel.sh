@@ -242,14 +242,14 @@ fn_changelog() {
       fi
 
       echo "+$commits commit$([ $commits -gt 1 ] && echo "s") to add to ChangeLog"
-      [ $commits -eq 0 ] && exit 0
+      [ $commits -eq 0 ] && return 0
 
       git log -n $commits --pretty=format:"%at version %H%n - %s (%an)" | awk '{if ($1 ~ /[0-9]+/) {printf strftime("%Y%b%d",$1); $1=""}; print $0}' | cat - "$file" > $f_tmp && mv $f_tmp "$file"
       cd ->/dev/null
 
       ;;
     *)
-      echo "[user] vcs type: '$vcs' not implemented" && exit 1
+      echo "[user] vcs type: '$vcs' not implemented" && return 1
       ;;
   esac
 }
