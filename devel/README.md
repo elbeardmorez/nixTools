@@ -60,6 +60,10 @@ with OPTION:
 
     SYNTAX: $SCRIPTNAME changelog [TARGET]
 
+    ARGS:
+      -f, --file FILE  : overwrite changelog file name
+                         (default: CHANGELOG.md)
+
     TARGET:  location of repository to query for changes
 
   -c, --commits  : process diffs into fix/mod/hack repo structure

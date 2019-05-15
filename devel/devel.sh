@@ -51,7 +51,10 @@ help() {
             in a position dependent manner
 \n    support: c/c++|gdb, javascript|node inspect
 \n  -cl, --changelog
-\n    SYNTAX: $SCRIPTNAME changelog [TARGET]
+\n    SYNTAX: $SCRIPTNAME changelog [ARGS] [TARGET]
+\n    ARGS:
+      -f, --file FILE  : overwrite changelog file name
+                         (default: CHANGELOG.md)
 \n    TARGET:  location of repository to query for changes
 \n  -c, --commits  : process diffs into fix/mod/hack repo structure
 \n    SYNTAX: $SCRIPTNAME commits [ARGS]
@@ -172,6 +175,7 @@ fn_changelog() {
   declare target
   declare target_default="."
   declare vcs
+  declare file; file="CHANGELOG.md"
 
   # process args
   declare -a args
@@ -180,6 +184,7 @@ fn_changelog() {
     if [ ${#arg} -lt ${#1} ]; then
       # process named options
       case "$arg" in
+        "f"|"file") shift && file="$1" ;;
         *) help && echo "[error] unrecognised arg '$1'" && return 1 ;;
       esac
     else
@@ -202,10 +207,10 @@ fn_changelog() {
   declare f_tmp; f_tmp="$(fn_temp_file "$SCRIPTNAME")"
   case $vcs in
     "git")
-      if [ -f ./ChangeLog ]; then
+      if [ -f "$file" ]; then
         merge=0
         # valid last logged commit?
-        commit="$(head -n1 ChangeLog | sed -n 's/.*version \(\S*\).*/\1/p')"
+        commit="$(head -n1 "$file" | sed -n 's/.*version \(\S*\).*/\1/p')"
         if [ "x$commit" != "x" ]; then
           echo "+current ChangeLog head commit: '$commit'"
           if [ -n "$(git log --format=oneline | grep "$commit")" ]; then
@@ -220,7 +225,7 @@ fn_changelog() {
         if [ "x$commit" = "x" ]; then
           commit="$(git log --format=oneline | tail -n 1 | cut -d' ' -f1)"
           echo "+first project commit: '$commit'"
-          if [ -n "$(grep "$commit" ChangeLog)" ]; then
+          if [ -n "$(grep "$commit" "$file")" ]; then
             echo "-found in ChangeLog"
             merge=1
           else
@@ -232,19 +237,19 @@ fn_changelog() {
 
         if [ $merge -eq 1 ]; then
           echo "+clearing messages"
-          sed -i -n '0,/.*'$commit'\s*/{/.*'$commit'\s*/p;b;};p' ChangeLog
+          sed -i -n '0,/.*'$commit'\s*/{/.*'$commit'\s*/p;b;};p' "$file"
           echo "+merging"
         fi
       else
         echo "+new ChangeLog"
-        touch ./ChangeLog
+        touch "$file"
         commits=$(git log --pretty=oneline | wc -l)
       fi
 
       echo "+$commits commit$([ $commits -gt 1 ] && echo "s") to add to ChangeLog"
       [ $commits -eq 0 ] && exit 0
 
-      git log -n $commits --pretty=format:"%at version %H%n - %s (%an)" | awk '{if ($1 ~ /[0-9]+/) {printf strftime("%Y%b%d",$1); $1=""}; print $0}' | cat - ChangeLog > $f_tmp && mv $f_tmp ChangeLog
+      git log -n $commits --pretty=format:"%at version %H%n - %s (%an)" | awk '{if ($1 ~ /[0-9]+/) {printf strftime("%Y%b%d",$1); $1=""}; print $0}' | cat - "$file" > $f_tmp && mv $f_tmp "$file"
       cd ->/dev/null
 
       ;;
