@@ -211,7 +211,7 @@ fn_changelog() {
         merge=0
         # valid last logged commit?
         commit="$(head -n1 "$file" | sed -n 's/.*version \(\S*\).*/\1/p')"
-        if [ "x$commit" != "x" ]; then
+        if [ -n "$commit" ]; then
           echo "+current ChangeLog head commit: '$commit'"
           if [ -n "$(git log --format=oneline | grep "$commit")" ]; then
             echo "-commit is valid, using it!"
@@ -222,15 +222,10 @@ fn_changelog() {
           fi
         fi
         # valid first commit?
-        if [ "x$commit" = "x" ]; then
+        if [ -z "$commit" ]; then
           commit="$(git log --format=oneline | tail -n 1 | cut -d' ' -f1)"
-          echo "+first project commit: '$commit'"
-          if [ -n "$(grep "$commit" "$file")" ]; then
-            echo "-found in ChangeLog"
-            merge=1
-          else
-            echo "-not found in ChangeLog"
-          fi
+          [ -n "$(grep "$commit" "$file")" ] && merge=1
+          echo "[info] fallback root commit '$commit'$([ $merge -eq 0 ] && echo " not") found in changelog"
         fi
         git log -n 1 $commit 2>/dev/null 1>&2
         [ $? -eq 0 ] && commits=$(git log --pretty=oneline $commit.. | wc -l)
