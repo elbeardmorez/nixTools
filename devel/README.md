@@ -145,9 +145,6 @@ with OPTION:
   [ ][ ]return 1;
 ```
 
-## todo
-- changelog, repo test or die
-
 ## dependencies
 - procps-ng (pgrep, pidof)
 - which (which)

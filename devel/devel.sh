@@ -169,7 +169,8 @@ fn_commits() {
 fn_changelog() {
 
   target=. && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift 1
-  vcs=git && [ $# -gt 0 ] && [ -n "$(echo "$1" | sed -n '/\(git\|svn\|bzr\)/p')" ] && vcs="$1" && shift
+  vcs="$(fn_repo_type "$target")"
+  [ -z "$vcs" ] && echo "[error] unsupported repository type" && return 1
 
   cd "$target"
 
