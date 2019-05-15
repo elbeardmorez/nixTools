@@ -207,17 +207,16 @@ fn_changelog() {
   declare f_tmp; f_tmp="$(fn_temp_file "$SCRIPTNAME")"
   case $vcs in
     "git")
+      merge=0
       if [ -f "$file" ]; then
-        merge=0
         # valid last logged commit?
         commit="$(head -n1 "$file" | sed -n 's/.*version \(\S*\).*/\1/p')"
         if [ -n "$commit" ]; then
-          echo "+current ChangeLog head commit: '$commit'"
           if [ -n "$(git log --format=oneline | grep "$commit")" ]; then
-            echo "-commit is valid, using it!"
+            [ $DEBUG -ge 1 ] && echo "[debug] last changelog commit '${commit:0:8}..' validated" 1>&2
             merge=1
           else
-            echo "-commit is invalid!"
+            echo "[info] last changelog commit '${commit:0:8}..' unrecognised"
             commit=""
           fi
         fi
@@ -231,24 +230,23 @@ fn_changelog() {
         [ $? -eq 0 ] && commits=$(git log --pretty=oneline $commit.. | wc -l)
 
         if [ $merge -eq 1 ]; then
-          echo "+clearing messages"
+          [ $DEBUG -ge 1 ] && echo "[debug] clearing any overlapping entries" 1>&2
           sed -i -n '0,/.*'$commit'\s*/{/.*'$commit'\s*/p;b;};p' "$file"
-          echo "+merging"
         fi
       else
-        echo "+new ChangeLog"
         touch "$file"
         commits=$(git log --pretty=oneline | wc -l)
       fi
 
-      echo "+$commits commit$([ $commits -gt 1 ] && echo "s") to add to ChangeLog"
+      echo "[info] $commits commit$([ $commits -gt 1 ] && echo "s") to add to changelog"
       [ $commits -eq 0 ] && return 0
 
+      echo "[info] $([ $merge -eq 1 ] && echo "updating" || echo "creating new") changelog"
       git log -n $commits --pretty=format:"%at version %H%n - %s (%an)" | awk '{if ($1 ~ /[0-9]+/) {printf strftime("%Y%b%d",$1); $1=""}; print $0}' | cat - "$file" > $f_tmp && mv $f_tmp "$file"
 
       ;;
     *)
-      echo "[user] vcs type: '$vcs' not implemented" && return 1
+      echo "[info] vcs type: '$vcs' not implemented" && return 1
       ;;
   esac
 }
