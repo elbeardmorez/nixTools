@@ -63,6 +63,19 @@ help() {
 "
 }
 
+fn_repo_type() {
+  declare target="$1"
+  [ ! -d "$target" ] && \
+    echo "[error] invalid vcs root '$target'" && return 1
+  if [ -d "$target/.git" ]; then echo "git"
+  elif [ -d "$target/.svn" ]; then echo "subversion"
+  elif [ -d "$target/.bzr" ]; then echo "bazaar"
+  elif [ -d "$target/.hg" ]; then echo "mercurial"
+  elif [ -d "$target/.cvs" ]; then echo "cvs"
+  else echo ""
+  fi
+}
+
 fn_commits() {
 
   target="$PWD" && [ $# -gt 0 ] && [ -e "$1" ] && target="$(cd "$1"; pwd)" && shift
