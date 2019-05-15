@@ -169,8 +169,21 @@ fn_commits() {
 
 fn_changelog() {
 
-  target=. && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift 1
+  declare target
+  declare target_default="."
+  declare vcs
+
+  # process args
+  if [ $# -gt 0 ]; then
+     [ -d "$1" ] && \
+       target="$1" || \
+       { help && echo "[error] unrecognised arg '$1'" && return 1; }
+  else
+    target="$target_default"
+  fi
   vcs="$(fn_repo_type "$target")"
+
+  # validate args
   [ -z "$vcs" ] && echo "[error] unsupported repository type" && return 1
 
   cd "$target"
