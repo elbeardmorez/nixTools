@@ -188,7 +188,7 @@ fn_changelog() {
 
   cd "$target"
 
-  f_tmp="$(tempfile)"
+  declare f_tmp; f_tmp="$(fn_temp_file "$SCRIPTNAME")"
   case $vcs in
     "git")
       if [ -f ./ChangeLog ]; then
