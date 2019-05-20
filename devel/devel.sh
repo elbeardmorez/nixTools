@@ -80,6 +80,33 @@ fn_repo_type() {
   fi
 }
 
+fn_repo_search() {
+  declare vcs; vcs=$1 && shift
+  declare limit; limit=$1 && shift
+  declare res
+  declare search
+  case "$vcs" in
+    "git")
+      declare -a cmd_args
+      cmd_args=("--format=format:'%at|%H|%s'")
+      [ $limit -gt 0 ] && cmd_args[${#cmd_args[@]}]="-n$limit"
+      if [ $# -eq 0 ]; then
+        res="$(git log "${cmd_args[@]}")"
+      else
+        cmd_args[${#cmd_args[@]}]="-P"
+        while [ -n "$1" ]; do
+          search="$1" && shift
+          res="$res\n$(git log "${cmd_args}" --grep='$search')"
+        done
+      fi
+      echo "$res"
+      ;;
+    *)
+      echo "[user] vcs type: '$vcs' not implemented" && exit 1
+      ;;
+  esac
+}
+
 fn_commits() {
 
   target="$PWD" && [ $# -gt 0 ] && [ -e "$1" ] && target="$(cd "$1"; pwd)" && shift
@@ -204,6 +231,10 @@ fn_changelog() {
 
   cd "$target"
 
+  declare commit
+  declare commit_range;
+  declare -a commits
+  declare commits_count;
   declare f_tmp; f_tmp="$(fn_temp_file "$SCRIPTNAME")"
   case $vcs in
     "git")
@@ -214,10 +245,30 @@ fn_changelog() {
         if [ -n "$commit" ]; then
           if [ -n "$(git log --format=oneline | grep "$commit")" ]; then
             [ $DEBUG -ge 1 ] && echo "[debug] last changelog commit '${commit:0:8}..' validated" 1>&2
+            commit_range="$commit..HEAD"
             merge=1
           else
-            echo "[info] last changelog commit '${commit:0:8}..' unrecognised"
-            commit=""
+            echo "[info] last changelog commit '${commit:0:8}..' unrecognised, searching for merge point"
+            # search
+            IFS=$'\n'; commits=($(fn_repo_search "git" 0)); IFS="$IFSORG"
+            declare match
+            declare id
+            declare description
+            for c in "${commits[@]}"; do
+              id="$(echo "$c" | cut -d'|' -f2)"
+              match="$(grep "$id" "$file")"
+              if [ -n "$match" ]; then
+                description="$(echo "$c" | cut -d'|' -f3)"
+                commit="$id"
+                break
+              fi
+            done
+            if [ -n "$commit" ]; then
+              echo -e "[info] matched: [${CLR_BWN}$id${CLR_OFF}] $description\n\n'$(echo "$match" | sed 's/'"$id"'/'"$(echo -e "${CLR_HL}$id${CLR_OFF}")"'/')'\n"
+              fn_decision "[user] merge with existing changelog at this point?" 1>/dev/null || return 1
+              merge=1
+              commit_range="$commit..HEAD"
+            fi
           fi
         fi
         # valid first commit?
@@ -225,24 +276,26 @@ fn_changelog() {
           commit="$(git log --format=oneline | tail -n 1 | cut -d' ' -f1)"
           [ -n "$(grep "$commit" "$file")" ] && merge=1
           echo "[info] fallback root commit '$commit'$([ $merge -eq 0 ] && echo " not") found in changelog"
+          commit_range="$commit..HEAD"
         fi
         git log -n 1 $commit 2>/dev/null 1>&2
-        [ $? -eq 0 ] && commits=$(git log --pretty=oneline $commit.. | wc -l)
+        [ $? -eq 0 ] && commits_count=$(git log --pretty=oneline $commit_range | wc -l)
 
         if [ $merge -eq 1 ]; then
           [ $DEBUG -ge 1 ] && echo "[debug] clearing any overlapping entries" 1>&2
           sed -i -n '0,/.*'$commit'\s*/{/.*'$commit'\s*/p;b;};p' "$file"
         fi
       else
+        commit_range=""
+        commits_count=$(git log --pretty=oneline "$commit_range" | wc -l)
         touch "$file"
-        commits=$(git log --pretty=oneline | wc -l)
       fi
 
-      echo "[info] $commits commit$([ $commits -gt 1 ] && echo "s") to add to changelog"
-      [ $commits -eq 0 ] && return 0
+      echo "[info] $commits_count commit$([ $commits_count -gt 1 ] && echo "s") to add to changelog"
+      [ $commits_count -eq 0 ] && return 0
 
       echo "[info] $([ $merge -eq 1 ] && echo "updating" || echo "creating new") changelog"
-      git log -n $commits --pretty=format:"%at version %H%n - %s (%an)" | awk '{if ($1 ~ /[0-9]+/) {printf strftime("%Y%b%d",$1); $1=""}; print $0}' | cat - "$file" > $f_tmp && mv $f_tmp "$file"
+      git log -n $commits_count --pretty=format:"%at version %H%n - %s (%an)" | awk '{if ($1 ~ /[0-9]+/) {printf strftime("%Y%b%d",$1); $1=""}; print $0}' | cat - "$file" > $f_tmp && mv $f_tmp "$file"
 
       ;;
     *)
