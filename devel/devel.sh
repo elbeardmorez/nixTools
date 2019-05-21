@@ -256,8 +256,10 @@ fn_changelog() {
             declare description
             for c in "${commits[@]}"; do
               id="$(echo "$c" | cut -d'|' -f2)"
-              match="$(grep "$id" "$file")"
+              match="$(grep -n "$id" "$file")"
               if [ -n "$match" ]; then
+                merge=${match%%:*}
+                match=${match#*:}
                 description="$(echo "$c" | cut -d'|' -f3)"
                 commit="$id"
                 break
@@ -266,9 +268,12 @@ fn_changelog() {
             if [ -n "$commit" ]; then
               echo -e "[info] matched: [${CLR_BWN}$id${CLR_OFF}] $description\n\n'$(echo "$match" | sed 's/'"$id"'/'"$(echo -e "${CLR_HL}$id${CLR_OFF}")"'/')'\n"
               fn_decision "[user] merge with existing changelog at this point?" 1>/dev/null || return 1
-              merge=1
               commit_range="$commit..HEAD"
             fi
+          fi
+          if [ $merge -gt 1 ]; then
+            [ $DEBUG -ge 1 ] && echo "[debug] clearing $((merge - 1)) overlapping lines" 1>&2
+            sed -i '1,'$((merge - 1))'d' "$file"
           fi
         fi
         # valid first commit?
@@ -280,11 +285,6 @@ fn_changelog() {
         fi
         git log -n 1 $commit 2>/dev/null 1>&2
         [ $? -eq 0 ] && commits_count=$(git log --pretty=oneline $commit_range | wc -l)
-
-        if [ $merge -eq 1 ]; then
-          [ $DEBUG -ge 1 ] && echo "[debug] clearing any overlapping entries" 1>&2
-          sed -i -n '0,/.*'$commit'\s*/{/.*'$commit'\s*/p;b;};p' "$file"
-        fi
       else
         commit_range=""
         commits_count=$(git log --pretty=oneline "$commit_range" | wc -l)
