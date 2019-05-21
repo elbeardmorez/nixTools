@@ -231,6 +231,7 @@ fn_changelog() {
 
   cd "$target"
 
+  declare merge
   declare commit
   declare commit_range;
   declare -a commits
@@ -239,16 +240,23 @@ fn_changelog() {
   case $vcs in
     "git")
       merge=0
+      commit_range="HEAD"
       if [ -f "$file" ]; then
-        # valid last logged commit?
+        # merge or clear
         commit="$(head -n1 "$file" | sed -n 's/.*version \(\S*\).*/\1/p')"
-        if [ -n "$commit" ]; then
+        if [ -z "$commit" ]; then
+          if [ $(cat "$file" | wc -l) -gt 0 ]; then
+            fn_decision "[user] no commits found with search expression so target '$file' will be overwritten, continue?" 1>/dev/null || return 0
+          fi
+          # set range
+          rm "$file" && touch "$file"
+        else
+          # last changelog commit valid?
           if [ -n "$(git log --format=oneline | grep "$commit")" ]; then
             [ $DEBUG -ge 1 ] && echo "[debug] last changelog commit '${commit:0:8}..' validated" 1>&2
             commit_range="$commit..HEAD"
             merge=1
-          else
-            echo "[info] last changelog commit '${commit:0:8}..' unrecognised, searching for merge point"
+          elif fn_decision "[user] last changelog commit '${commit:0:8}..' unrecognised, search for merge point?" 1>/dev/null; then
             # search
             IFS=$'\n'; commits=($(fn_repo_search "git" 0)); IFS="$IFSORG"
             declare match
@@ -269,6 +277,9 @@ fn_changelog() {
               echo -e "[info] matched: [${CLR_BWN}$id${CLR_OFF}] $description\n\n'$(echo "$match" | sed 's/'"$id"'/'"$(echo -e "${CLR_HL}$id${CLR_OFF}")"'/')'\n"
               fn_decision "[user] merge with existing changelog at this point?" 1>/dev/null || return 1
               commit_range="$commit..HEAD"
+            else
+              fn_decision "[user] no merge point identified, clear all existing entries?" 1>/dev/null || return 1
+              rm "$file" && touch "$file"
             fi
           fi
           if [ $merge -gt 1 ]; then
@@ -276,21 +287,10 @@ fn_changelog() {
             sed -i '1,'$((merge - 1))'d' "$file"
           fi
         fi
-        # valid first commit?
-        if [ -z "$commit" ]; then
-          commit="$(git log --format=oneline | tail -n 1 | cut -d' ' -f1)"
-          [ -n "$(grep "$commit" "$file")" ] && merge=1
-          echo "[info] fallback root commit '$commit'$([ $merge -eq 0 ] && echo " not") found in changelog"
-          commit_range="$commit..HEAD"
-        fi
-        git log -n 1 $commit 2>/dev/null 1>&2
-        [ $? -eq 0 ] && commits_count=$(git log --pretty=oneline $commit_range | wc -l)
-      else
-        commit_range=""
-        commits_count=$(git log --pretty=oneline "$commit_range" | wc -l)
-        touch "$file"
       fi
 
+      commits_count=$(git log --pretty=oneline "$commit_range" | wc -l)
+      touch "$file"
       echo "[info] $commits_count commit$([ $commits_count -gt 1 ] && echo "s") to add to changelog"
       [ $commits_count -eq 0 ] && return 0
 
