@@ -11,6 +11,8 @@ IFSORG=$IFS
 DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
 
+declare changelog_rx_id; changelog_rx_id='version \([^ ]*\)'
+
 help() {
   echo -e "SYNTAX: $SCRIPTNAME [OPTION] [OPTION-ARG1 [OPTION-ARG2 .. ]]
 \nwith OPTION:
@@ -55,6 +57,9 @@ help() {
 \n    ARGS:
       -f, --file FILE  : overwrite changelog file name
                          (default: CHANGELOG.md)
+      -rxid, --rx-id REGEXP  : override (sed) regular expression used
+                               to extract ids
+                               (default: '$changelog_rx_id')
 \n    TARGET:  location of repository to query for changes
 \n  -c, --commits  : process diffs into fix/mod/hack repo structure
 \n    SYNTAX: $SCRIPTNAME commits [ARGS]
@@ -203,6 +208,7 @@ fn_changelog() {
   declare target_default="."
   declare vcs
   declare file; file="CHANGELOG.md"
+  declare rx_id
 
   # process args
   declare -a args
@@ -212,6 +218,7 @@ fn_changelog() {
       # process named options
       case "$arg" in
         "f"|"file") shift && file="$1" ;;
+        "rxid"|"rx-id") shift && rx_id="$1" ;;
         *) help && echo "[error] unrecognised arg '$1'" && return 1 ;;
       esac
     else
@@ -228,6 +235,7 @@ fn_changelog() {
     { help && echo "[error] invalid target '$target'" && return 1; }
   vcs="$(fn_repo_type "$target")"
   [ -z "$vcs" ] && echo "[error] unsupported repository type" && return 1
+  [ -z "$rx_id" ] && rx_id="$changelog_rx_id"
 
   cd "$target"
 
@@ -243,10 +251,10 @@ fn_changelog() {
       commit_range="HEAD"
       if [ -f "$file" ]; then
         # merge or clear
-        commit="$(head -n1 "$file" | sed -n 's/.*version \(\S*\).*/\1/p')"
+        commit="$(head -n1 "$file" | sed -n 's/^.*'"$rx_id"'.*$/\1/p')"
         if [ -z "$commit" ]; then
           if [ $(cat "$file" | wc -l) -gt 0 ]; then
-            fn_decision "[user] no commits found with search expression so target '$file' will be overwritten, continue?" 1>/dev/null || return 0
+            fn_decision "[user] no commits found with search expression '$rx_id' so target '$file' will be overwritten, continue?" 1>/dev/null || return 0
           fi
           # set range
           rm "$file" && touch "$file"

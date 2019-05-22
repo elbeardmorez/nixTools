@@ -63,6 +63,9 @@ with OPTION:
     ARGS:
       -f, --file FILE  : overwrite changelog file name
                          (default: CHANGELOG.md)
+      -rxid, --rx-id REGEXP  : override (sed) regular expression used
+                               to extract ids
+                               (default: 'version \([^ ]*\)')
 
     TARGET:  location of repository to query for changes
 
