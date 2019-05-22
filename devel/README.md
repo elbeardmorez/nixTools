@@ -63,8 +63,12 @@ with OPTION:
     ARGS:
       -f, --file FILE  : overwrite changelog file name
                          (default: CHANGELOG.md)
+      -as, --anchor-start NUMBER  : start processing entries at line
+                                    NUMBER, allowing for headers etc.
+      -ae, --anchor-entry NUMBER  : override each entry's anchor line
+                                    (line containing %id)
       -rxid, --rx-id REGEXP  : override (sed) regular expression used
-                               to extract ids
+                               to extract ids and thus delimit entries
                                (default: 'version \([^ ]*\)')
 
     TARGET:  location of repository to query for changes

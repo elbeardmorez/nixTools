@@ -57,8 +57,12 @@ help() {
 \n    ARGS:
       -f, --file FILE  : overwrite changelog file name
                          (default: CHANGELOG.md)
+      -as, --anchor-start NUMBER  : start processing entries at line
+                                    NUMBER, allowing for headers etc.
+      -ae, --anchor-entry NUMBER  : override each entry's anchor line
+                                    (line containing %id)
       -rxid, --rx-id REGEXP  : override (sed) regular expression used
-                               to extract ids
+                               to extract ids and thus delimit entries
                                (default: '$changelog_rx_id')
 \n    TARGET:  location of repository to query for changes
 \n  -c, --commits  : process diffs into fix/mod/hack repo structure
@@ -208,6 +212,8 @@ fn_changelog() {
   declare target_default="."
   declare vcs
   declare file; file="CHANGELOG.md"
+  declare anchor_start; anchor_start=1
+  declare anchor_entry; anchor_entry=1
   declare rx_id
 
   # process args
@@ -218,6 +224,9 @@ fn_changelog() {
       # process named options
       case "$arg" in
         "f"|"file") shift && file="$1" ;;
+        "as"|"anchor_start") shift && anchor_start="$1" ;;
+        "p"|"profile") shift && profile="$1" ;;
+        "ae"|"anchor_entry") shift && anchor_entry="$1" ;;
         "rxid"|"rx-id") shift && rx_id="$1" ;;
         *) help && echo "[error] unrecognised arg '$1'" && return 1 ;;
       esac
@@ -251,7 +260,7 @@ fn_changelog() {
       commit_range="HEAD"
       if [ -f "$file" ]; then
         # merge or clear
-        commit="$(head -n1 "$file" | sed -n 's/^.*'"$rx_id"'.*$/\1/p')"
+        commit="$(sed -n 's/^.*'"$rx_id"'.*$/\1/p' "$file" | head -n1)"
         if [ -z "$commit" ]; then
           if [ $(cat "$file" | wc -l) -gt 0 ]; then
             fn_decision "[user] no commits found with search expression '$rx_id' so target '$file' will be overwritten, continue?" 1>/dev/null || return 0
@@ -263,7 +272,7 @@ fn_changelog() {
           if [ -n "$(git log --format=oneline | grep "$commit")" ]; then
             [ $DEBUG -ge 1 ] && echo "[debug] last changelog commit '${commit:0:8}..' validated" 1>&2
             commit_range="$commit..HEAD"
-            merge=1
+            merge="$(grep -n "$commit" $file | cut -d':' -f1)"
           elif fn_decision "[user] last changelog commit '${commit:0:8}..' unrecognised, search for merge point?" 1>/dev/null; then
             # search
             IFS=$'\n'; commits=($(fn_repo_search "git" 0)); IFS="$IFSORG"
@@ -290,9 +299,10 @@ fn_changelog() {
               rm "$file" && touch "$file"
             fi
           fi
-          if [ $merge -gt 1 ]; then
-            [ $DEBUG -ge 1 ] && echo "[debug] clearing $((merge - 1)) overlapping lines" 1>&2
-            sed -i '1,'$((merge - 1))'d' "$file"
+          declare merge_start; merge_start=$((merge - anchor_entry))
+          if [ $merge_start -gt $anchor_start ]; then
+            [ $DEBUG -ge 1 ] && echo "[debug] clearing $((merge_start - anchor_start)) overlapping lines" 1>&2
+            sed -i $anchor_start','$merge_start'd' "$file"
           fi
         fi
       fi
@@ -302,9 +312,20 @@ fn_changelog() {
       echo "[info] $commits_count commit$([ $commits_count -gt 1 ] && echo "s") to add to changelog"
       [ $commits_count -eq 0 ] && return 0
 
-      echo "[info] $([ $merge -eq 1 ] && echo "updating" || echo "creating new") changelog"
-      git log -n $commits_count --pretty=format:"%at version %H%n - %s (%an)" | awk '{if ($1 ~ /[0-9]+/) {printf strftime("%Y%b%d",$1); $1=""}; print $0}' | cat - "$file" > $f_tmp && mv $f_tmp "$file"
-
+      echo "[info] $([ $merge -gt 0 ] && echo "updating" || echo "creating new") changelog"
+      head -n$((anchor_start - 1)) "$file" > "$f_tmp"
+      case "$profile" in
+        "default")
+          git log -n $commits_count --pretty=format:"%at version %H%n - %s (%an)" | awk '{if ($1 ~ /[0-9]+/) {printf strftime("%Y%b%d",$1); $1=""} print $0}' >> "$f_tmp"
+          ;;
+        "update")
+          git log -n 1 --pretty=format:"%n#### %at%n## release: %d version: %H" | awk '{if ($2 ~ /[0-9]+/) {$2 = strftime("%Y%b%d",$2)} print $0}' | sed '/release: .\{2,\}version/{/tag/{s/release:.*tag: \([^ )]*\).*version/release: \1 version/;b;};s/release:.*version/release: - version/;b;}' >> "$f_tmp"
+          git log -n $commits_count --pretty=format:"- %s ([%an](%ae))" >> "$f_tmp"
+          echo "" >> "$f_tmp"
+          ;;
+      esac
+      tail -n+$anchor_start "$file" >> "$f_tmp"
+      mv "$f_tmp" "$file"
       ;;
     *)
       echo "[info] vcs type: '$vcs' not implemented" && return 1
