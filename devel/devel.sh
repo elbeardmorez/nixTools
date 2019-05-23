@@ -64,6 +64,11 @@ help() {
       -rxid, --rx-id REGEXP  : override (sed) regular expression used
                                to extract ids and thus delimit entries
                                (default: '$changelog_rx_id')
+      -p, --profile NAME  : use profile temple NAME
+\n        NAME:
+          default:  %date version %id\\\n - %description (%author)
+          update:  [1] \\\n##### %date\\\nrelease: %tag version: $id
+                   [>=1]- %description ([%author](%email))
 \n    TARGET:  location of repository to query for changes
 \n  -c, --commits  : process diffs into fix/mod/hack repo structure
 \n    SYNTAX: $SCRIPTNAME commits [ARGS]
@@ -215,6 +220,11 @@ fn_changelog() {
   declare anchor_start; anchor_start=1
   declare anchor_entry; anchor_entry=1
   declare rx_id
+  declare profile; profile="default"
+
+  declare -A profiles
+  profiles["default"]=1
+  profiles["update"]=1
 
   # process args
   declare -a args
@@ -228,6 +238,7 @@ fn_changelog() {
         "p"|"profile") shift && profile="$1" ;;
         "ae"|"anchor_entry") shift && anchor_entry="$1" ;;
         "rxid"|"rx-id") shift && rx_id="$1" ;;
+        "p"|"profile") shift && profile="$1" ;;
         *) help && echo "[error] unrecognised arg '$1'" && return 1 ;;
       esac
     else
@@ -245,6 +256,8 @@ fn_changelog() {
   vcs="$(fn_repo_type "$target")"
   [ -z "$vcs" ] && echo "[error] unsupported repository type" && return 1
   [ -z "$rx_id" ] && rx_id="$changelog_rx_id"
+  [ -z "${profiles["$profile"]}" ] && \
+    { help && echo "[error] invalid profile '$profile'" && return 1; }
 
   cd "$target"
 
@@ -309,7 +322,7 @@ fn_changelog() {
 
       commits_count=$(git log --pretty=oneline "$commit_range" | wc -l)
       touch "$file"
-      echo "[info] $commits_count commit$([ $commits_count -gt 1 ] && echo "s") to add to changelog"
+      echo "[info] $commits_count commit$([ $commits_count -ne 1 ] && echo "s") to add to changelog"
       [ $commits_count -eq 0 ] && return 0
 
       echo "[info] $([ $merge -gt 0 ] && echo "updating" || echo "creating new") changelog"

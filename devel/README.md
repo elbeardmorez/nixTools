@@ -70,6 +70,12 @@ with OPTION:
       -rxid, --rx-id REGEXP  : override (sed) regular expression used
                                to extract ids and thus delimit entries
                                (default: 'version \([^ ]*\)')
+      -p, --profile NAME  : use profile temple NAME
+
+        NAME:
+          default  : %date version %id\n - %description (%author)
+          update  : [1] \n##### %date\nrelease: %tag version: $id
+                    [>=1]- %description ([%author](%email))
 
     TARGET:  location of repository to query for changes
 
@@ -161,4 +167,5 @@ with OPTION:
 ## dependencies
 - procps-ng (pgrep, pidof)
 - which (which)
+- GNU coreutils (head, tail)
 - GNU indent (indent)
