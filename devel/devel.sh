@@ -11,7 +11,15 @@ IFSORG=$IFS
 DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
 
-declare changelog_rx_id; changelog_rx_id='version \([^ ]*\)'
+declare -A changelog_profile_rx_file
+changelog_profile_file["default"]='CHANGELOG.md'
+changelog_profile_file["update"]='CHANGELOG.md'
+declare -A changelog_profile_rx_id
+changelog_profile_rx_id["default"]='version \([^ ]*\)'
+changelog_profile_rx_id["update"]='version: \([^ ]*\)'
+declare -A changelog_profile_anchor_entry
+changelog_profile_anchor_entry["default"]=1
+changelog_profile_anchor_entry["update"]=3
 
 help() {
   echo -e "SYNTAX: $SCRIPTNAME [OPTION] [OPTION-ARG1 [OPTION-ARG2 .. ]]
@@ -55,20 +63,21 @@ help() {
 \n  -cl, --changelog
 \n    SYNTAX: $SCRIPTNAME changelog [ARGS] [TARGET]
 \n    ARGS:
-      -f, --file FILE  : overwrite changelog file name
-                         (default: CHANGELOG.md)
       -as, --anchor-start NUMBER  : start processing entries at line
                                     NUMBER, allowing for headers etc.
-      -ae, --anchor-entry NUMBER  : override each entry's anchor line
-                                    (line containing %id)
-      -rxid, --rx-id REGEXP  : override (sed) regular expression used
-                               to extract ids and thus delimit entries
-                               (default: '$changelog_rx_id')
       -p, --profile NAME  : use profile temple NAME
 \n        NAME:
           default:  %date version %id\\\n - %description (%author)
           update:  [1] \\\n##### %date\\\nrelease: %tag version: $id
                    [>=1]- %description ([%author](%email))
+\n      -f, --file FILE  : overwrite changelog file name
+                         (default: '${changelog_profile_file["default"]}')
+      -rxid, --rx-id REGEXP  : override (sed) regular expression used
+                               to extract ids and thus delimit entries
+                               (default: '${changelog_profile_rx_id["default"]}')
+      -ae, --anchor-entry NUMBER  : override each entry's anchor line
+                                    (line containing %id)
+                                    (default: '${changelog_profile_anchor_entry["default"]}')
 \n    TARGET:  location of repository to query for changes
 \n  -c, --commits  : process diffs into fix/mod/hack repo structure
 \n    SYNTAX: $SCRIPTNAME commits [ARGS]
@@ -216,15 +225,15 @@ fn_changelog() {
   declare target
   declare target_default="."
   declare vcs
-  declare file; file="CHANGELOG.md"
   declare anchor_start; anchor_start=1
-  declare anchor_entry; anchor_entry=1
-  declare rx_id
   declare profile; profile="default"
+  declare file
+  declare rx_id
+  declare anchor_entry
 
-  declare -A profiles
-  profiles["default"]=1
-  profiles["update"]=1
+  declare -A changelog_profiles
+  changelog_profiles["default"]=1
+  changelog_profiles["update"]=1
 
   # process args
   declare -a args
@@ -233,12 +242,11 @@ fn_changelog() {
     if [ ${#arg} -lt ${#1} ]; then
       # process named options
       case "$arg" in
-        "f"|"file") shift && file="$1" ;;
         "as"|"anchor_start") shift && anchor_start="$1" ;;
         "p"|"profile") shift && profile="$1" ;;
-        "ae"|"anchor_entry") shift && anchor_entry="$1" ;;
+        "f"|"file") shift && file="$1" ;;
         "rxid"|"rx-id") shift && rx_id="$1" ;;
-        "p"|"profile") shift && profile="$1" ;;
+        "ae"|"anchor_entry") shift && anchor_entry="$1" ;;
         *) help && echo "[error] unrecognised arg '$1'" && return 1 ;;
       esac
     else
@@ -255,9 +263,11 @@ fn_changelog() {
     { help && echo "[error] invalid target '$target'" && return 1; }
   vcs="$(fn_repo_type "$target")"
   [ -z "$vcs" ] && echo "[error] unsupported repository type" && return 1
-  [ -z "$rx_id" ] && rx_id="$changelog_rx_id"
-  [ -z "${profiles["$profile"]}" ] && \
+  [ -z "${changelog_profiles["$profile"]}" ] && \
     { help && echo "[error] invalid profile '$profile'" && return 1; }
+  [ -z "$file" ] && file="${changelog_profile_file["$profile"]}"
+  [ -z "$rx_id" ] && rx_id="${changelog_profile_rx_id["$profile"]}"
+  [ -z "$anchor_entry" ] && anchor_entry="${changelog_profile_anchor_entry["$profile"]}"
 
   cd "$target"
 
