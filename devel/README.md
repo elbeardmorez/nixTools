@@ -25,10 +25,12 @@ with OPTION:
                                     transforms. the 'all' transform
                                     enables all implemented transforms
                                     (default: tabs,whitespace)
+
           TRANFORMS:
             tabs  : replace tab characters with 2 spaces
             whitespace  : remove trailing whitespace
             braces  : inline leading control structure braces
+
       -xi|--external-indent [PROFILE]  : use external gnu indent
                                          binary with PROFILE
                                          (default: standard*)

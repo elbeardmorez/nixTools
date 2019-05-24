@@ -38,11 +38,11 @@ help() {
                                     transforms. the 'all' transform
                                     enables all implemented transforms
                                     (default: tabs,whitespace)
-          TRANFORMS:
+\n          TRANFORMS:
             tabs  : replace tab characters with 2 spaces
             whitespace  : remove trailing whitespace
             braces  : inline leading control structure braces
-      -xi|--external-indent [PROFILE]  : use external gnu indent
+\n      -xi|--external-indent [PROFILE]  : use external gnu indent
                                          binary with PROFILE
                                          (default: standard*)
                                          (support: c)
