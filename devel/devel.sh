@@ -24,35 +24,35 @@ changelog_profile_anchor_entry["update"]=3
 help() {
   echo -e "SYNTAX: $SCRIPTNAME [OPTION] [OPTION-ARG1 [OPTION-ARG2 .. ]]
 \nwith OPTION:
-\n  -r, --refactor  : perform code refactoring
+\n  -r|--refactor  : perform code refactoring
 \n    SYNTAX: $SCRIPTNAME refactor [ARGS] TARGETS
 \n    ARGS:
-      -f, --filter FILTER  : regexp filter to limit files to work on
-                             (default: '.*')
-      -d, --depth MAXDEPTH  : limit files to within MAXDEPTH target
-                              hierarchy level (default: 1)
-      -m, --modify  : persist transforms
-      -t, --transforms TRANSFORMS  : override default refactor
-                                     transforms set. TRANSFORMS is a
-                                     comma delimited list of supported
-                                     transforms. the 'all' transform
-                                     enables all implemented transforms
-                                     (default: tabs,whitespace)
+      -f|--filter FILTER  : regexp filter to limit files to work on
+                            (default: '.*')
+      -d|--depth MAXDEPTH  : limit files to within MAXDEPTH target
+                             hierarchy level (default: 1)
+      -m|--modify  : persist transforms
+      -t|--transforms TRANSFORMS  : override default refactor
+                                    transforms set. TRANSFORMS is a
+                                    comma delimited list of supported
+                                    transforms. the 'all' transform
+                                    enables all implemented transforms
+                                    (default: tabs,whitespace)
           TRANFORMS:
             tabs  : replace tab characters with 2 spaces
             whitespace  : remove trailing whitespace
             braces  : inline leading control structure braces
-      -xi, --external-indent [PROFILE]  : use external gnu indent
-                                          binary with PROFILE
-                                          (default: standard*)
-                                          (support: c)
+      -xi|--external-indent [PROFILE]  : use external gnu indent
+                                         binary with PROFILE
+                                         (default: standard*)
+                                         (support: c)
 \n      *note: see README.md for PROFILE types
 \n    TARGETS  : target file(s) / dir(s) to work on
-\n  -d, --debug  : call supported debugger
+\n  -d|--debug  : call supported debugger
 \n    SYNTAX: $SCRIPTNAME debug [-l LANGUAGE] [-d DEBUGGER]
                                 [ARGS] [-- BIN_ARGS]
-\n    -l, --language LANGUAGE  : specify target language (default: c)
-    -d, --debugger  : override language specific default debugger
+\n    -l|--language LANGUAGE  : specify target language (default: c)
+    -d|--debugger  : override language specific default debugger
 \n    ARGS:
       gdb:  NAME, [PID]
       node inspect:  SRC, [PORT]
@@ -60,26 +60,26 @@ help() {
             variables of the same name, and where not, are consumed
             in a position dependent manner
 \n    support: c/c++|gdb, javascript|node inspect
-\n  -cl, --changelog
+\n  -cl|--changelog
 \n    SYNTAX: $SCRIPTNAME changelog [ARGS] [TARGET]
 \n    ARGS:
-      -as, --anchor-start NUMBER  : start processing entries at line
-                                    NUMBER, allowing for headers etc.
-      -p, --profile NAME  : use profile temple NAME
+      -as|--anchor-start NUMBER  : start processing entries at line
+                                   NUMBER, allowing for headers etc.
+      -p|--profile NAME  : use profile temple NAME
 \n        NAME:
           default:  %date version %id\\\n - %description (%author)
           update:  [1] \\\n##### %date\\\nrelease: %tag version: $id
                    [>=1]- %description ([%author](%email))
-\n      -f, --file FILE  : overwrite changelog file name
-                         (default: '${changelog_profile_file["default"]}')
-      -rxid, --rx-id REGEXP  : override (sed) regular expression used
-                               to extract ids and thus delimit entries
-                               (default: '${changelog_profile_rx_id["default"]}')
-      -ae, --anchor-entry NUMBER  : override each entry's anchor line
-                                    (line containing %id)
-                                    (default: '${changelog_profile_anchor_entry["default"]}')
+\n      -f|--file FILE  : overwrite changelog file name
+                        (default: '${changelog_profile_file["default"]}')
+      -rxid|--rx-id REGEXP  : override (sed) regular expression used
+                              to extract ids and thus delimit entries
+                              (default: '${changelog_profile_rx_id["default"]}')
+      -ae|--anchor-entry NUMBER  : override each entry's anchor line
+                                   (line containing %id)
+                                   (default: '${changelog_profile_anchor_entry["default"]}')
 \n    TARGET:  location of repository to query for changes
-\n  -c, --commits  : process diffs into fix/mod/hack repo structure
+\n  -c|--commits  : process diffs into fix/mod/hack repo structure
 \n    SYNTAX: $SCRIPTNAME commits [ARGS]
 \n    ARGS:
       [target]  : location of repository to extract/use patch set from
