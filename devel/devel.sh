@@ -91,16 +91,18 @@ help() {
 }
 
 fn_repo_type() {
+  declare vcs=""
   declare target="$1"
   [ ! -d "$target" ] && \
     echo "[error] invalid vcs root '$target'" && return 1
-  if [ -d "$target/.git" ]; then echo "git"
-  elif [ -d "$target/.svn" ]; then echo "subversion"
-  elif [ -d "$target/.bzr" ]; then echo "bazaar"
-  elif [ -d "$target/.hg" ]; then echo "mercurial"
-  elif [ -d "$target/.cvs" ]; then echo "cvs"
-  else echo ""
+  if [ -d "$target/.git" ]; then vcs="git"
+  elif [ -d "$target/.svn" ]; then vcs="subversion"
+  elif [ -d "$target/.bzr" ]; then vcs="bazaar"
+  elif [ -d "$target/.hg" ]; then vcs="mercurial"
+  elif [ -d "$target/.cvs" ]; then vcs="cvs"
   fi
+  echo "$vcs"
+  [ -n "$vcs" ] && return 0 || return 1
 }
 
 fn_repo_search() {
