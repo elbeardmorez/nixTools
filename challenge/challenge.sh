@@ -50,6 +50,18 @@ help() {
         and as described above:
         -nss | --no-subshell, -dec | --dump-edit-command,
         -eec[=VAR] | --export-edit-command[=VAR]
+  test TYPE [OPTIONS] TEST  : run challenge tests for a language
+     with:
+       TYPE  : a supported challenge type
+         hackerrank  : assumes 'OUTPUT_PATH' env variable
+       OPTIONS  :
+         -l, --language  : language to run tests with, assumes single
+                           appropriately suffixed source file.
+                           supported languages: c++*, c#*, python,
+                           javascript (node)
+                           (default: c++)
+                           *compilation of source supported
+       TEST  : test item (number)
   dump [LANGUAGES] TARGET  : search TARGET for files suffixed with
                              items in the delimited LANGUAGES list
                              (default: 'py|js|cs') and dump matches
@@ -108,7 +120,7 @@ fn_edit_command() {
 declare -a args
 while [ -n "$1" ]; do
   arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-  [[ -z $mode && -n "$(printf "$arg" | sed -n '/^\(h\|help\|new\|edit\|dump\)$/p')" ]] && mode="$arg" && shift && continue
+  [[ -z $mode && -n "$(printf "$arg" | sed -n '/^\(h\|help\|new\|edit\|test\|dump\)$/p')" ]] && mode="$arg" && shift && continue
   case "$arg" in
     *) args[${#args[@]}]="$1"
   esac
@@ -293,6 +305,96 @@ case "$mode" in
     fi
     [ $dump_edit_command -eq 1 ] &&\
       echo "edit command:" 1>&2 && echo "$s_cmd_edit"
+    ;;
+
+  "test")
+    declare language; language="c++"
+    declare -A language_suffix_map
+    for kv in "c++,cpp|cpp" "c#,cs|cs" "python,py|py" "javascript,node,js|js"; do
+      IFS=","; ks=($(echo "${kv%|*}")); IFS="$IFSORG"
+      v="${kv#*|}"
+      for k in "${ks[@]}"; do
+        [ $DEBUG -ge 5 ] && echo "[debug] add '$k -> $v' to languages map" 1>&2
+        language_suffix_map["$k"]="$v"
+      done
+    done
+    declare test
+    declare test_file
+    declare -a source_
+    declare res="results"
+    declare type;
+
+    # process args
+    type="${args[0]}" && args=("${args[@]:1}")
+    l=0
+    while [ $l -lt ${#args[@]} ]; do
+      kv="${args[$l]}"
+      k=${kv%%=*}
+      v="" && [ "x$k" != "x$kv" ] && v="${kv#*=}"
+      s="$(printf " $k" | awk '{ if (/^[ ]*-+/) { gsub(/^[ ]*-+/,""); print(tolower($0)) } }')"
+      [ $DEBUG -ge 5 ] && echo "[debug] testing arg: $kv -> $s"
+      case "$s" in
+        "l"|"language") l=$((l + 1)) && language="${args[$l]}" ;;
+        *)
+          if [ -n "$(echo "${args[$l]}" | sed -n '/[0-9]\+/p')" ]; then
+            test=${args[$l]}
+          else
+            echo "[error] unsupported arg '${args[$l]}'" && exit 1
+          fi
+          ;;
+      esac
+      l=$((l+1))
+    done
+
+    # validate args
+    source_suffix="${language_suffix_map["$language"]}"
+    [ -z "$source_suffix" ] && \
+      help && echo "[error] unsupported language" 1>&2 && exit 1
+    [ -z "$test" ] && \
+      help && echo "[error] missing test arg" 1>&2 && exit 1
+
+    case "$type" in
+      "hackerrank")
+
+        # source
+        IFS=$'\n'; source_=($(find "." -maxdepth 1 -name "*$source_suffix")); IFS="$IFSORG"
+        [ ${#source_[@]} -eq 0 ] && \
+          echo "[error] no source file for language '$language' [$source_suffix]" 1>&2 && exit 1
+        [ ${#source_[@]} -gt 1 ] && \
+          echo "[error] too many source files found  for language '$language' [$source_suffix]" 1>&2 && exit 1
+
+        # compilation
+        case "$source_suffix" in
+          "cpp")
+            echo "[info] compiling c++ source '${source_[0]}'"
+            g++ -std=c++11 -o bin "${source_[0]}" || exit 1
+            ;;
+          "cs")
+            echo "[info] compiling c# source '${source_[0]}'"
+            mcs -debug *.cs -out:bin.exe "${source_[0]}" || exit 1
+            ;;
+        esac
+
+        # test
+        test_file="input/input$test.txt"
+        [ ! -f "$test_file" ] && \
+          test_file="input/input0$test.txt"
+        [ ! -f "$test_file" ] && \
+          echo "[error] missing test '$test' input file" 1>&2 && exit 1
+
+        echo "[info] running test '$test_file'"
+        echo "" > "$res"
+        case "$source_suffix" in
+          "cpp") OUTPUT_PATH="$res" ./bin < "$test_file" > $res ;;
+          "cs") OUTPUT_PATH="$res" ./bin.exe < "$test_file" > $res ;;
+          "py") OUTPUT_PATH="$res" python "$source_" < "$test_file" > $res ;;
+          "js") OUTPUT_PATH="$res" node "$source_" < "$test_file" > $res ;;
+        esac
+        ;;
+      *)
+        help && echo "[error] unsupported type '$type'" && exit 1
+        ;;
+    esac
     ;;
 
   "dump")
