@@ -422,10 +422,13 @@ fn_debug() {
 
   bin="${debuggers["$language"]}"
 
-  _ARGS_="-- _ARGS_"
-  case "$bin" in
-    "gdb") _ARGS_="-ex 'set args _ARGS_'" ;;
-  esac
+  _ARGS_=""
+  if [ -n "$args_pt" ]; then
+    case "$bin" in
+      "gdb") _ARGS_="-ex 'set args _ARGS_'" ;;
+      *) _ARGS_="-- _ARGS_" ;;
+    esac
+  fi
 
   # deduce, consume, or calculate arg values
   args_ns=(${debugger_args["$language"]})
