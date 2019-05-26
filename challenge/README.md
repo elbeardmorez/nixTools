@@ -33,7 +33,7 @@ where MODE can be:
         and as described above:
         -nss | --no-subshell, -dec | --dump-edit-command,
         -eec[=VAR] | --export-edit-command[=VAR]
-  test TYPE [OPTIONS] TEST  : run challenge tests for a language
+  test TYPE [OPTIONS] [TESTS]  : run challenge tests for a language
      with:
        TYPE  : a supported challenge type
          hackerrank  : assumes 'OUTPUT_PATH' env variable
@@ -44,7 +44,7 @@ where MODE can be:
                            javascript (node)
                            (default: c++)
                            *compilation of source supported
-       TEST  : test item (number)
+       TESTS  : optional test items (numbers), or delimited list(s) of
   dump [LANGUAGES] TARGET  : search TARGET for files suffixed with
                              items in the delimited LANGUAGES list
                              (default: 'py|js|cs') and dump matches

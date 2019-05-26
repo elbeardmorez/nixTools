@@ -50,7 +50,7 @@ help() {
         and as described above:
         -nss | --no-subshell, -dec | --dump-edit-command,
         -eec[=VAR] | --export-edit-command[=VAR]
-  test TYPE [OPTIONS] TEST  : run challenge tests for a language
+  test TYPE [OPTIONS] [TESTS]  : run challenge tests for a language
      with:
        TYPE  : a supported challenge type
          hackerrank  : assumes 'OUTPUT_PATH' env variable
@@ -61,7 +61,7 @@ help() {
                            javascript (node)
                            (default: c++)
                            *compilation of source supported
-       TEST  : test item (number)
+       TESTS  : optional test items (numbers), or delimited list(s) of
   dump [LANGUAGES] TARGET  : search TARGET for files suffixed with
                              items in the delimited LANGUAGES list
                              (default: 'py|js|cs') and dump matches
@@ -318,8 +318,8 @@ case "$mode" in
         language_suffix_map["$k"]="$v"
       done
     done
-    declare test
-    declare test_file
+    declare -a tests
+    declare -a test_files
     declare -a source_
     declare res="results"
     declare type;
@@ -337,7 +337,7 @@ case "$mode" in
         "l"|"language") l=$((l + 1)) && language="${args[$l]}" ;;
         *)
           if [ -n "$(echo "${args[$l]}" | sed -n '/[0-9]\+/p')" ]; then
-            test=${args[$l]}
+            tests[${#tests[@]}]="${args[$l]}"
           else
             echo "[error] unsupported arg '${args[$l]}'" && exit 1
           fi
@@ -350,8 +350,14 @@ case "$mode" in
     source_suffix="${language_suffix_map["$language"]}"
     [ -z "$source_suffix" ] && \
       help && echo "[error] unsupported language" 1>&2 && exit 1
-    [ -z "$test" ] && \
-      help && echo "[error] missing test arg" 1>&2 && exit 1
+    if [ ${#tests[@]} -gt 0 ]; then
+      declare -a tests_; tests_=("${tests[@]}")
+      tests=()
+      for t in ${tests_[@]}; do
+        IFS=",|"; test__=($(echo "$t")); IFS="$IFSORG"
+        for t_ in "${tests__[@]}"; do tests[${#test_[@]}]=$t_; done
+      done
+    fi
 
     case "$type" in
       "hackerrank")
@@ -375,21 +381,33 @@ case "$mode" in
             ;;
         esac
 
-        # test
-        test_file="input/input$test.txt"
-        [ ! -f "$test_file" ] && \
-          test_file="input/input0$test.txt"
-        [ ! -f "$test_file" ] && \
-          echo "[error] missing test '$test' input file" 1>&2 && exit 1
+        # tests
+        for t in ${tests[@]}; do
+          test_file="input/input$t.txt"
+          [ ! -f "$test_file" ] && \
+            test_file="input/input0$t.txt"
+          [ ! -f "$test_file" ] && \
+            echo "[info] skipping test '$t', missing file"
+          test_files[${#test_files[@]}]="$test_file"
+        done
 
-        echo "[info] running test '$test_file'"
-        echo "" > "$res"
-        case "$source_suffix" in
-          "cpp") OUTPUT_PATH="$res" ./bin < "$test_file" > $res ;;
-          "cs") OUTPUT_PATH="$res" ./bin.exe < "$test_file" > $res ;;
-          "py") OUTPUT_PATH="$res" python "$source_" < "$test_file" > $res ;;
-          "js") OUTPUT_PATH="$res" node "$source_" < "$test_file" > $res ;;
-        esac
+        [ ${#test_files[@]} -eq 0 ] && \
+          IFS=$'\n'; test_files=($(find ./input -type f -name "*.txt")); IFS="$IFSORG"
+
+        [ ${#test_files[@]} -eq 0 ] && \
+          echo "[error] no test files found" 1>&2 && exit 1
+
+        echo "[info] running ${#test_files[@]} test$([ ${#test_files[@]} -ne 1 ] && echo "s")"
+        rm "$res"
+        for tf in "${test_files[@]}"; do
+          echo -e "\n[info] running test file '$tf'" | tee -a "$res"
+          case "$source_suffix" in
+            "cpp") OUTPUT_PATH="$res" ./bin < "$tf" | tee -a $res ;;
+            "cs") OUTPUT_PATH="$res" ./bin.exe < "$tf" | tee -a $res ;;
+            "py") OUTPUT_PATH="$res" python "$source_" < "$tf" | tee -a $res ;;
+            "js") OUTPUT_PATH="$res" node "$source_" < "$tf" | tee -a $res ;;
+          esac
+        done
         ;;
       *)
         help && echo "[error] unsupported type '$type'" && exit 1
