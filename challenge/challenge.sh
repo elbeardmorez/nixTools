@@ -61,6 +61,7 @@ help() {
                            javascript (node)
                            (default: c++)
                            *compilation of source supported
+         -d, --diffs  : take diffs of test output and expected
        TESTS  : optional test items (numbers), or delimited list(s) of
   dump [LANGUAGES] TARGET  : search TARGET for files suffixed with
                              items in the delimited LANGUAGES list
@@ -318,6 +319,7 @@ case "$mode" in
         language_suffix_map["$k"]="$v"
       done
     done
+    declare diffs; diffs=0
     declare -a tests
     declare -a test_files
     declare -a source_
@@ -335,6 +337,7 @@ case "$mode" in
       [ $DEBUG -ge 5 ] && echo "[debug] testing arg: $kv -> $s"
       case "$s" in
         "l"|"language") l=$((l + 1)) && language="${args[$l]}" ;;
+        "d"|"diffs") diffs=1 ;;
         *)
           if [ -n "$(echo "${args[$l]}" | sed -n '/[0-9]\+/p')" ]; then
             tests[${#tests[@]}]="${args[$l]}"
@@ -398,15 +401,22 @@ case "$mode" in
           echo "[error] no test files found" 1>&2 && exit 1
 
         echo "[info] running ${#test_files[@]} test$([ ${#test_files[@]} -ne 1 ] && echo "s")"
+        f_tmp="$(fn_temp_file)"
         rm "$res"
         for tf in "${test_files[@]}"; do
           echo -e "\n[info] running test file '$tf'" | tee -a "$res"
           case "$source_suffix" in
-            "cpp") OUTPUT_PATH="$res" ./bin < "$tf" | tee -a $res ;;
-            "cs") OUTPUT_PATH="$res" ./bin.exe < "$tf" | tee -a $res ;;
-            "py") OUTPUT_PATH="$res" python "$source_" < "$tf" | tee -a $res ;;
-            "js") OUTPUT_PATH="$res" node "$source_" < "$tf" | tee -a $res ;;
+            "cpp") OUTPUT_PATH="$res" ./bin < "$tf" | tee -a $res | tee "$f_tmp" || exit 1;;
+            "cs") OUTPUT_PATH="$res" ./bin.exe < "$tf" | tee -a $res | tee "$f_tmp" || exit 1 ;;
+            "py") OUTPUT_PATH="$res" python "$source_" < "$tf" | tee -a $res | tee "$f_tmp" || exit 1 ;;
+            "js") OUTPUT_PATH="$res" node "$source_" < "$tf" | tee -a $res | tee "$f_tmp" || exit 1 ;;
           esac
+          if [ $diffs -eq 1 ]; then
+            of="$(echo "$tf" | sed 's/in/out/g')"
+            [ ! -f "$of" ] && \
+              echo "[info] skipping diff for test '$tf', missing corresponding output file"
+            diff -u --color "$of" "$f_tmp"
+          fi
         done
         ;;
       *)

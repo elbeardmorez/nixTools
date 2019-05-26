@@ -44,6 +44,7 @@ where MODE can be:
                            javascript (node)
                            (default: c++)
                            *compilation of source supported
+         -d, --diffs  : take diffs of test output and expected
        TESTS  : optional test items (numbers), or delimited list(s) of
   dump [LANGUAGES] TARGET  : search TARGET for files suffixed with
                              items in the delimited LANGUAGES list
