@@ -395,7 +395,7 @@ case "$mode" in
         done
 
         [ ${#test_files[@]} -eq 0 ] && \
-          IFS=$'\n'; test_files=($(find ./input -type f -name "*.txt")); IFS="$IFSORG"
+          IFS=$'\n'; test_files=($(find ./input -type f -name "*.txt" | sort)); IFS="$IFSORG"
 
         [ ${#test_files[@]} -eq 0 ] && \
           echo "[error] no test files found" 1>&2 && exit 1
