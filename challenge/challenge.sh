@@ -212,7 +212,7 @@ fn_new() {
       ;;
 
     *)
-      help && echo "[error] unsupported type '$type'" && return 1
+      help && echo "[error] unsupported challenge type '$type'" && return 1
       ;;
   esac
 }
@@ -391,7 +391,7 @@ fn_test() {
       done
       ;;
     *)
-      help && echo "[error] unsupported type '$type'" && return 1
+      help && echo "[error] unsupported challenge type '$type'" && return 1
       ;;
   esac
 }
