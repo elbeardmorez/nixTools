@@ -117,38 +117,7 @@ fn_edit_command() {
   echo "$editor ${cmd_args_editor[*]} ${s_files:1}"
 }
 
-# args parse
-declare -a args
-while [ -n "$1" ]; do
-  arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-  [[ -z $mode && -n "$(printf "$arg" | sed -n '/^\(h\|help\|new\|edit\|test\|dump\)$/p')" ]] && mode="$arg" && shift && continue
-  case "$arg" in
-    *) args[${#args[@]}]="$1"
-  esac
-  shift
-done
-mode=${mode:-new}
-
-# rc parse
-if [ -e "$RC_DEFAULT" ]; then
-  IFS=$'\n'; lines=($(sed -n '/^[ ]*[^#]/p' "$RC_DEFAULT")); IFS="$IFSORG"
-  for kv in "${lines[@]}"; do
-    IFS='|'; types=($(echo "${kv%=*}")); IFS="$IFSORG"
-    maps="${kv#*=}"
-    for type in "${types[@]}"; do
-      exts_map["$type"]="$maps"
-      [ $DEBUG -ge 1 ] && echo "[debug] added extention maps '$maps' for type '$type'"
-    done
-  done
-fi
-
-case "$mode" in
-  "h"|"help")
-    help
-    exit 0
-    ;;
-
-  "new")
+fn_new() {
     edit=1
     subshell=1
     dump_edit_command=0
@@ -246,9 +215,9 @@ case "$mode" in
         help && echo "[error] unsupported type '$type'" && exit 1
         ;;
     esac
-    ;;
+}
 
-  "edit")
+fn_edit() {
     declare rx
     rx=0
     subshell=1
@@ -306,9 +275,9 @@ case "$mode" in
     fi
     [ $dump_edit_command -eq 1 ] &&\
       echo "edit command:" 1>&2 && echo "$s_cmd_edit"
-    ;;
+}
 
-  "test")
+fn_test() {
     declare language; language="c++"
     declare -A language_suffix_map
     for kv in "c++,cpp|cpp" "c#,cs|cs" "python,py|py" "javascript,node,js|js"; do
@@ -425,9 +394,9 @@ case "$mode" in
         help && echo "[error] unsupported type '$type'" && exit 1
         ;;
     esac
-    ;;
+}
 
-  "dump")
+fn_dump() {
     types="$dump_types_default"
     [ ${#args[@]} -gt 1 ] && types="${args[0]}"
     target="${args[$((${#args[@]}-1))]}"
@@ -446,5 +415,37 @@ case "$mode" in
         cat "$f" >> "$out"
       done
     done
-    ;;
+}
+
+# args parse
+declare -a args
+while [ -n "$1" ]; do
+  arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
+  [[ -z $mode && -n "$(printf "$arg" | sed -n '/^\(h\|help\|new\|edit\|test\|dump\)$/p')" ]] && mode="$arg" && shift && continue
+  case "$arg" in
+    *) args[${#args[@]}]="$1"
+  esac
+  shift
+done
+mode=${mode:-new}
+
+# rc parse
+if [ -e "$RC_DEFAULT" ]; then
+  IFS=$'\n'; lines=($(sed -n '/^[ ]*[^#]/p' "$RC_DEFAULT")); IFS="$IFSORG"
+  for kv in "${lines[@]}"; do
+    IFS='|'; types=($(echo "${kv%=*}")); IFS="$IFSORG"
+    maps="${kv#*=}"
+    for type in "${types[@]}"; do
+      exts_map["$type"]="$maps"
+      [ $DEBUG -ge 1 ] && echo "[debug] added extention maps '$maps' for type '$type'"
+    done
+  done
+fi
+
+case "$mode" in
+  "h"|"help") help ;;
+  "new") fn_new "$@" ;;
+  "edit") fn_edit "$@" ;;
+  "test") fn_test "$@" ;;
+  "dump") fn_dump "$@" ;;
 esac
