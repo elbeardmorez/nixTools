@@ -325,6 +325,7 @@ case "$mode" in
     declare -a source_
     declare res="results"
     declare type;
+    declare s
 
     # process args
     type="${args[0]}" && args=("${args[@]:1}")
@@ -404,7 +405,8 @@ case "$mode" in
         f_tmp="$(fn_temp_file)"
         rm "$res"
         for tf in "${test_files[@]}"; do
-          echo -e "\n[info] running test file '$tf'" | tee -a "$res"
+          s="[info] running test file '$tf'"
+          echo -e "\n$s\n$(printf "%.0s-" $(seq 1 1 ${#s}))\n" | tee -a "$res"
           case "$source_suffix" in
             "cpp") OUTPUT_PATH="$res" ./bin < "$tf" | tee -a $res | tee "$f_tmp" || exit 1;;
             "cs") OUTPUT_PATH="$res" ./bin.exe < "$tf" | tee -a $res | tee "$f_tmp" || exit 1 ;;
