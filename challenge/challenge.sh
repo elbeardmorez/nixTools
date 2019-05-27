@@ -118,303 +118,303 @@ fn_edit_command() {
 }
 
 fn_new() {
-    edit=1
-    subshell=1
-    dump_edit_command=0
-    export_edit_command=0
-    env_var="$SCRIPTNAME"
-    declare -a mode_args
-    l=0
-    while [ $l -lt ${#args[@]} ]; do
-      kv="${args[$l]}"
-      k=${kv%%=*}
-      v="" && [ "x$k" != "x$kv" ] && v="${kv#*=}"
-      s="$(printf " $k" | awk '{ if (/^[ ]*-+/) { gsub(/^[ ]*-+/,""); print(tolower($0)) } }')"
-      case "$s" in
-        "ne"|"no-edit") edit=0 ;;
-        "nss"|"no-subshell") subshell=0 ;;
-        "dec"|"dump-edit-command") dump_edit_command=1 ;;
-        "eec"|"export-edit-command") export_edit_command=1 && [ -n "$v" ] && env_var="$v" ;;
-        *) mode_args[${#mode_args[@]}]="$kv" ;;
-      esac
-      l=$(($l+1))
-    done
-    args=("${mode_args[@]}")
-
-    type="${args[0]}" && args=("${args[@]:1}")
-    case "$type" in
-      "hackerrank")
-        # ensure structure
-        if [ "x$(basename $PWD)" != "x$type" ]; then
-          [ ! -d ./"$type" ] && mkdir "$type"
-          cd "$type"
-        fi
-        # cleanups args
-        args2=()
-        for s in "${args[@]}"; do
-          args2[${#args2[@]}]="$(printf "$s" | tr "\- " "." | tr "A-Z" "a-z")";
-        done
-        args=("${args2[@]}")
-        name="${args[$[$# - 1]]}"
-        target="$(echo "${args[@]}" | sed 's/ /.-./g')"
-        [ $DEBUG -gt 0 ] && echo "name: $name, target: $target" 1>&2
-        [ ! -d "$target" ] && mkdir -p "$target"
-        cd "$target" || exit 1
-        IFS=$'\n'; files=($(find ./ -maxdepth 1 -iregex ".*$name.*\(pdf\|zip\)")); IFS=$IFSORG
-        if [ ${#files[@]} -eq 0 ]; then
-          # move files
-          search="$name"
-          IFS='.'; searches=($(echo "$search")); IFS="$IFSORG"
-          last="${searches[0]}"
-          for l in $(seq 1 1 $((${#searches[@]}-1))); do
-            searches[${#searches[@]}]="$last.${searches[$l]}" && last="$last.${searches[$l]}"
-          done
-          for l in $(seq $((${#searches[@]}-1)) -1 0); do
-            [ $DEBUG -gt 0 ] && echo "[debug] search: '${searches[$l]}'" 1>&2
-            IFS=$'\n'; files=($(find $cwd -maxdepth 1 -iregex ".*${searches[$l]}.*\(pdf\|zip\)")); IFS=$IFSORG
-            [ $DEBUG -gt 0 ] && echo "[debug] files#: '${#files[@]}'" 1>&2
-            [ ${#files[@]} -eq 2 ] && echo "located challenge description / testcase files" && break
-          done
-          [ ${#files[@]} -ne 2 ] && echo "cannot locate challenge both description and testcase files" && exit 1
-          for f in "${files[@]}"; do
-            ext="${f##*.}"
-            f2=""
-            case "$ext" in
-              "pdf") f2="$name.$ext" ;;
-              "zip") f2="$name.testcases.$ext" ;;
-              *) echo "[error] unexpected file '$f'" && exit 1
-            esac
-            [ ! -e "$f2" ] && mv "$f" "$f2"
-          done
-        fi
-        [ ! -e "input" ] && unzip *zip 2>/dev/null 1>&2
-
-        # open some appropriate files for editing
-        IFS='|'; exts=($(fn_exts "$target")); IFS=IFSORG
-        # ensure files
-        for ext in "${exts[@]}"; do
-          [ ! -f "$name.$ext" ] && touch "$name.$ext"
-        done
-        # editing
-        s_cmd_edit="$editor ${cmd_args_editor[*]}"
-        [[ ${#exts[@]} -gt 0 &&\
-           ( $edit || $dump_edit_command || $export_edit_command ) ]] &&\
-          s_cmd_edit="$(fn_edit_command "$target")"
-
-        [ $edit -eq 1 ] &&\
-          eval "$s_cmd_edit"
-        [ $export_edit_command -eq 1 ] &&\
-          eval "export $env_var='$s_cmd_edit'"
-        [ $subshell -eq 1 ] &&\
-          exec $(fn_shell)
-        [ $dump_edit_command -eq 1 ] &&\
-          echo "edit command:" 1>&2 && echo "$s_cmd_edit"
-        ;;
-
-      *)
-        help && echo "[error] unsupported type '$type'" && exit 1
-        ;;
+  edit=1
+  subshell=1
+  dump_edit_command=0
+  export_edit_command=0
+  env_var="$SCRIPTNAME"
+  declare -a mode_args
+  l=0
+  while [ $l -lt ${#args[@]} ]; do
+    kv="${args[$l]}"
+    k=${kv%%=*}
+    v="" && [ "x$k" != "x$kv" ] && v="${kv#*=}"
+    s="$(printf " $k" | awk '{ if (/^[ ]*-+/) { gsub(/^[ ]*-+/,""); print(tolower($0)) } }')"
+    case "$s" in
+      "ne"|"no-edit") edit=0 ;;
+      "nss"|"no-subshell") subshell=0 ;;
+      "dec"|"dump-edit-command") dump_edit_command=1 ;;
+      "eec"|"export-edit-command") export_edit_command=1 && [ -n "$v" ] && env_var="$v" ;;
+      *) mode_args[${#mode_args[@]}]="$kv" ;;
     esac
+    l=$(($l+1))
+  done
+  args=("${mode_args[@]}")
+
+  type="${args[0]}" && args=("${args[@]:1}")
+  case "$type" in
+    "hackerrank")
+      # ensure structure
+      if [ "x$(basename $PWD)" != "x$type" ]; then
+        [ ! -d ./"$type" ] && mkdir "$type"
+        cd "$type"
+      fi
+      # cleanups args
+      args2=()
+      for s in "${args[@]}"; do
+        args2[${#args2[@]}]="$(printf "$s" | tr "\- " "." | tr "A-Z" "a-z")";
+      done
+      args=("${args2[@]}")
+      name="${args[$[$# - 1]]}"
+      target="$(echo "${args[@]}" | sed 's/ /.-./g')"
+      [ $DEBUG -gt 0 ] && echo "name: $name, target: $target" 1>&2
+      [ ! -d "$target" ] && mkdir -p "$target"
+      cd "$target" || exit 1
+      IFS=$'\n'; files=($(find ./ -maxdepth 1 -iregex ".*$name.*\(pdf\|zip\)")); IFS=$IFSORG
+      if [ ${#files[@]} -eq 0 ]; then
+        # move files
+        search="$name"
+        IFS='.'; searches=($(echo "$search")); IFS="$IFSORG"
+        last="${searches[0]}"
+        for l in $(seq 1 1 $((${#searches[@]}-1))); do
+          searches[${#searches[@]}]="$last.${searches[$l]}" && last="$last.${searches[$l]}"
+        done
+        for l in $(seq $((${#searches[@]}-1)) -1 0); do
+          [ $DEBUG -gt 0 ] && echo "[debug] search: '${searches[$l]}'" 1>&2
+          IFS=$'\n'; files=($(find $cwd -maxdepth 1 -iregex ".*${searches[$l]}.*\(pdf\|zip\)")); IFS=$IFSORG
+          [ $DEBUG -gt 0 ] && echo "[debug] files#: '${#files[@]}'" 1>&2
+          [ ${#files[@]} -eq 2 ] && echo "located challenge description / testcase files" && break
+        done
+        [ ${#files[@]} -ne 2 ] && echo "cannot locate challenge both description and testcase files" && exit 1
+        for f in "${files[@]}"; do
+          ext="${f##*.}"
+          f2=""
+          case "$ext" in
+            "pdf") f2="$name.$ext" ;;
+            "zip") f2="$name.testcases.$ext" ;;
+            *) echo "[error] unexpected file '$f'" && exit 1
+          esac
+          [ ! -e "$f2" ] && mv "$f" "$f2"
+        done
+      fi
+      [ ! -e "input" ] && unzip *zip 2>/dev/null 1>&2
+
+      # open some appropriate files for editing
+      IFS='|'; exts=($(fn_exts "$target")); IFS=IFSORG
+      # ensure files
+      for ext in "${exts[@]}"; do
+        [ ! -f "$name.$ext" ] && touch "$name.$ext"
+      done
+      # editing
+      s_cmd_edit="$editor ${cmd_args_editor[*]}"
+      [[ ${#exts[@]} -gt 0 &&\
+         ( $edit || $dump_edit_command || $export_edit_command ) ]] &&\
+        s_cmd_edit="$(fn_edit_command "$target")"
+
+      [ $edit -eq 1 ] &&\
+        eval "$s_cmd_edit"
+      [ $export_edit_command -eq 1 ] &&\
+        eval "export $env_var='$s_cmd_edit'"
+      [ $subshell -eq 1 ] &&\
+        exec $(fn_shell)
+      [ $dump_edit_command -eq 1 ] &&\
+        echo "edit command:" 1>&2 && echo "$s_cmd_edit"
+      ;;
+
+    *)
+      help && echo "[error] unsupported type '$type'" && exit 1
+      ;;
+  esac
 }
 
 fn_edit() {
-    declare rx
-    rx=0
-    subshell=1
-    dump_edit_command=0
-    env_var="$SCRIPTNAME"
-    declare target
-    declare -a targets
-    declare search
+  declare rx
+  rx=0
+  subshell=1
+  dump_edit_command=0
+  env_var="$SCRIPTNAME"
+  declare target
+  declare -a targets
+  declare search
 
-    # process args
-    l=0
-    while [ $l -lt ${#args[@]} ]; do
-      kv="${args[$l]}"
-      k=${kv%%=*}
-      v="" && [ "x$k" != "x$kv" ] && v="${kv#*=}"
-      s="$(printf " $k" | awk '{ if (/^[ ]*-+/) { gsub(/^[ ]*-+/,""); print(tolower($0)) } }')"
-      case "$s" in
-        "nss"|"no-subshell") subshell=0 ;;
-        "dec"|"dump-edit-command") dump_edit_command=1 ;;
-        "eec"|"export-edit-command") [ -n "$v" ] && env_var="$v" ;;
-        "rx"|"rx-search") rx=1 ;;
-        *)
-          [ -n "$search" ] && echo "[error] unsupported arg '${args[$l]}'" && exit 1
-          search="${args[$l]}"
-          ;;
-      esac
-      l=$((l+1))
-    done
-
-    # set target
-    search="$(printf "$search" | tr "\- " "." | tr "A-Z" "a-z")"
-    if [ $rx -eq 0 ]; then
-      IFS=$'\n'; targets=($(find . -type d -iname "*$search*")); IFS="$IFSORG"
-    else
-      IFS=$'\n'; targets=($(find . -type d -regextype "posix-extended" -iregex "$search")); IFS="$IFSORG"
-    fi
-    matches=${#targets[@]}
-    case $matches in
-      0) echo "[info] no matches found" && exit 0 ;;
-      1) target="${targets[0]}" ;;
-      *) echo "[info] multiple matches found, please try a more specific search" && exit 0 ;;
+  # process args
+  l=0
+  while [ $l -lt ${#args[@]} ]; do
+    kv="${args[$l]}"
+    k=${kv%%=*}
+    v="" && [ "x$k" != "x$kv" ] && v="${kv#*=}"
+    s="$(printf " $k" | awk '{ if (/^[ ]*-+/) { gsub(/^[ ]*-+/,""); print(tolower($0)) } }')"
+    case "$s" in
+      "nss"|"no-subshell") subshell=0 ;;
+      "dec"|"dump-edit-command") dump_edit_command=1 ;;
+      "eec"|"export-edit-command") [ -n "$v" ] && env_var="$v" ;;
+      "rx"|"rx-search") rx=1 ;;
+      *)
+        [ -n "$search" ] && echo "[error] unsupported arg '${args[$l]}'" && exit 1
+        search="${args[$l]}"
+        ;;
     esac
-    cd "$target" || exit 1
-    target="$(basename "$target")"
+    l=$((l+1))
+  done
 
-    # set edit command
-    s_cmd_edit="$(fn_edit_command "$target")"
+  # set target
+  search="$(printf "$search" | tr "\- " "." | tr "A-Z" "a-z")"
+  if [ $rx -eq 0 ]; then
+    IFS=$'\n'; targets=($(find . -type d -iname "*$search*")); IFS="$IFSORG"
+  else
+    IFS=$'\n'; targets=($(find . -type d -regextype "posix-extended" -iregex "$search")); IFS="$IFSORG"
+  fi
+  matches=${#targets[@]}
+  case $matches in
+    0) echo "[info] no matches found" && exit 0 ;;
+    1) target="${targets[0]}" ;;
+    *) echo "[info] multiple matches found, please try a more specific search" && exit 0 ;;
+  esac
+  cd "$target" || exit 1
+  target="$(basename "$target")"
 
-    # execute
-    if [ $subshell -eq 0 ]; then
-      eval "$s_cmd_edit"
-    else
-      eval "export $env_var='$s_cmd_edit'"
-      exec $(fn_shell)
-    fi
-    [ $dump_edit_command -eq 1 ] &&\
-      echo "edit command:" 1>&2 && echo "$s_cmd_edit"
+  # set edit command
+  s_cmd_edit="$(fn_edit_command "$target")"
+
+  # execute
+  if [ $subshell -eq 0 ]; then
+    eval "$s_cmd_edit"
+  else
+    eval "export $env_var='$s_cmd_edit'"
+    exec $(fn_shell)
+  fi
+  [ $dump_edit_command -eq 1 ] &&\
+    echo "edit command:" 1>&2 && echo "$s_cmd_edit"
 }
 
 fn_test() {
-    declare language; language="c++"
-    declare -A language_suffix_map
-    for kv in "c++,cpp|cpp" "c#,cs|cs" "python,py|py" "javascript,node,js|js"; do
-      IFS=","; ks=($(echo "${kv%|*}")); IFS="$IFSORG"
-      v="${kv#*|}"
-      for k in "${ks[@]}"; do
-        [ $DEBUG -ge 5 ] && echo "[debug] add '$k -> $v' to languages map" 1>&2
-        language_suffix_map["$k"]="$v"
-      done
+  declare language; language="c++"
+  declare -A language_suffix_map
+  for kv in "c++,cpp|cpp" "c#,cs|cs" "python,py|py" "javascript,node,js|js"; do
+    IFS=","; ks=($(echo "${kv%|*}")); IFS="$IFSORG"
+    v="${kv#*|}"
+    for k in "${ks[@]}"; do
+      [ $DEBUG -ge 5 ] && echo "[debug] add '$k -> $v' to languages map" 1>&2
+      language_suffix_map["$k"]="$v"
     done
-    declare diffs; diffs=0
-    declare -a tests
-    declare -a test_files
-    declare -a source_
-    declare res="results"
-    declare type;
-    declare s
+  done
+  declare diffs; diffs=0
+  declare -a tests
+  declare -a test_files
+  declare -a source_
+  declare res="results"
+  declare type;
+  declare s
 
-    # process args
-    type="${args[0]}" && args=("${args[@]:1}")
-    l=0
-    while [ $l -lt ${#args[@]} ]; do
-      kv="${args[$l]}"
-      k=${kv%%=*}
-      v="" && [ "x$k" != "x$kv" ] && v="${kv#*=}"
-      s="$(printf " $k" | awk '{ if (/^[ ]*-+/) { gsub(/^[ ]*-+/,""); print(tolower($0)) } }')"
-      [ $DEBUG -ge 5 ] && echo "[debug] testing arg: $kv -> $s"
-      case "$s" in
-        "l"|"language") l=$((l + 1)) && language="${args[$l]}" ;;
-        "d"|"diffs") diffs=1 ;;
-        *)
-          if [ -n "$(echo "${args[$l]}" | sed -n '/[0-9]\+/p')" ]; then
-            tests[${#tests[@]}]="${args[$l]}"
-          else
-            echo "[error] unsupported arg '${args[$l]}'" && exit 1
-          fi
-          ;;
-      esac
-      l=$((l+1))
-    done
-
-    # validate args
-    source_suffix="${language_suffix_map["$language"]}"
-    [ -z "$source_suffix" ] && \
-      help && echo "[error] unsupported language" 1>&2 && exit 1
-    if [ ${#tests[@]} -gt 0 ]; then
-      declare -a tests_; tests_=("${tests[@]}")
-      tests=()
-      for t in ${tests_[@]}; do
-        IFS=",|"; test__=($(echo "$t")); IFS="$IFSORG"
-        for t_ in "${tests__[@]}"; do tests[${#test_[@]}]=$t_; done
-      done
-    fi
-
-    case "$type" in
-      "hackerrank")
-
-        # source
-        IFS=$'\n'; source_=($(find "." -maxdepth 1 -name "*$source_suffix")); IFS="$IFSORG"
-        [ ${#source_[@]} -eq 0 ] && \
-          echo "[error] no source file for language '$language' [$source_suffix]" 1>&2 && exit 1
-        [ ${#source_[@]} -gt 1 ] && \
-          echo "[error] too many source files found  for language '$language' [$source_suffix]" 1>&2 && exit 1
-
-        # compilation
-        case "$source_suffix" in
-          "cpp")
-            echo "[info] compiling c++ source '${source_[0]}'"
-            g++ -std=c++11 -o bin "${source_[0]}" || exit 1
-            ;;
-          "cs")
-            echo "[info] compiling c# source '${source_[0]}'"
-            mcs -debug *.cs -out:bin.exe "${source_[0]}" || exit 1
-            ;;
-        esac
-
-        # tests
-        for t in ${tests[@]}; do
-          test_file="input/input$t.txt"
-          [ ! -f "$test_file" ] && \
-            test_file="input/input0$t.txt"
-          [ ! -f "$test_file" ] && \
-            echo "[info] skipping test '$t', missing file"
-          test_files[${#test_files[@]}]="$test_file"
-        done
-
-        [ ${#test_files[@]} -eq 0 ] && \
-          IFS=$'\n'; test_files=($(find ./input -type f -name "*.txt" | sort)); IFS="$IFSORG"
-
-        [ ${#test_files[@]} -eq 0 ] && \
-          echo "[error] no test files found" 1>&2 && exit 1
-
-        echo "[info] running ${#test_files[@]} test$([ ${#test_files[@]} -ne 1 ] && echo "s")"
-        f_tmp="$(fn_temp_file)"
-        rm "$res"
-        for tf in "${test_files[@]}"; do
-          s="[info] running test file '$tf'"
-          echo -e "\n$s\n$(printf "%.0s-" $(seq 1 1 ${#s}))\n" | tee -a "$res"
-          case "$source_suffix" in
-            "cpp") OUTPUT_PATH="$res" ./bin < "$tf" | tee -a $res | tee "$f_tmp" || exit 1;;
-            "cs") OUTPUT_PATH="$res" ./bin.exe < "$tf" | tee -a $res | tee "$f_tmp" || exit 1 ;;
-            "py") OUTPUT_PATH="$res" python "$source_" < "$tf" | tee -a $res | tee "$f_tmp" || exit 1 ;;
-            "js") OUTPUT_PATH="$res" node "$source_" < "$tf" | tee -a $res | tee "$f_tmp" || exit 1 ;;
-          esac
-          if [ $diffs -eq 1 ]; then
-            of="$(echo "$tf" | sed 's/in/out/g')"
-            [ ! -f "$of" ] && \
-              echo "[info] skipping diff for test '$tf', missing corresponding output file"
-            diff -u --color=always "$of" "$f_tmp"
-          fi
-        done
-        ;;
+  # process args
+  type="${args[0]}" && args=("${args[@]:1}")
+  l=0
+  while [ $l -lt ${#args[@]} ]; do
+    kv="${args[$l]}"
+    k=${kv%%=*}
+    v="" && [ "x$k" != "x$kv" ] && v="${kv#*=}"
+    s="$(printf " $k" | awk '{ if (/^[ ]*-+/) { gsub(/^[ ]*-+/,""); print(tolower($0)) } }')"
+    [ $DEBUG -ge 5 ] && echo "[debug] testing arg: $kv -> $s"
+    case "$s" in
+      "l"|"language") l=$((l + 1)) && language="${args[$l]}" ;;
+      "d"|"diffs") diffs=1 ;;
       *)
-        help && echo "[error] unsupported type '$type'" && exit 1
+        if [ -n "$(echo "${args[$l]}" | sed -n '/[0-9]\+/p')" ]; then
+          tests[${#tests[@]}]="${args[$l]}"
+        else
+          echo "[error] unsupported arg '${args[$l]}'" && exit 1
+        fi
         ;;
     esac
+    l=$((l+1))
+  done
+
+  # validate args
+  source_suffix="${language_suffix_map["$language"]}"
+  [ -z "$source_suffix" ] && \
+    help && echo "[error] unsupported language" 1>&2 && exit 1
+  if [ ${#tests[@]} -gt 0 ]; then
+    declare -a tests_; tests_=("${tests[@]}")
+    tests=()
+    for t in ${tests_[@]}; do
+      IFS=",|"; test__=($(echo "$t")); IFS="$IFSORG"
+      for t_ in "${tests__[@]}"; do tests[${#test_[@]}]=$t_; done
+    done
+  fi
+
+  case "$type" in
+    "hackerrank")
+
+      # source
+      IFS=$'\n'; source_=($(find "." -maxdepth 1 -name "*$source_suffix")); IFS="$IFSORG"
+      [ ${#source_[@]} -eq 0 ] && \
+        echo "[error] no source file for language '$language' [$source_suffix]" 1>&2 && exit 1
+      [ ${#source_[@]} -gt 1 ] && \
+        echo "[error] too many source files found  for language '$language' [$source_suffix]" 1>&2 && exit 1
+
+      # compilation
+      case "$source_suffix" in
+        "cpp")
+          echo "[info] compiling c++ source '${source_[0]}'"
+          g++ -std=c++11 -o bin "${source_[0]}" || exit 1
+          ;;
+        "cs")
+          echo "[info] compiling c# source '${source_[0]}'"
+          mcs -debug *.cs -out:bin.exe "${source_[0]}" || exit 1
+          ;;
+      esac
+
+      # tests
+      for t in ${tests[@]}; do
+        test_file="input/input$t.txt"
+        [ ! -f "$test_file" ] && \
+          test_file="input/input0$t.txt"
+        [ ! -f "$test_file" ] && \
+          echo "[info] skipping test '$t', missing file"
+        test_files[${#test_files[@]}]="$test_file"
+      done
+
+      [ ${#test_files[@]} -eq 0 ] && \
+        IFS=$'\n'; test_files=($(find ./input -type f -name "*.txt" | sort)); IFS="$IFSORG"
+
+      [ ${#test_files[@]} -eq 0 ] && \
+        echo "[error] no test files found" 1>&2 && exit 1
+
+      echo "[info] running ${#test_files[@]} test$([ ${#test_files[@]} -ne 1 ] && echo "s")"
+      f_tmp="$(fn_temp_file)"
+      rm "$res"
+      for tf in "${test_files[@]}"; do
+        s="[info] running test file '$tf'"
+        echo -e "\n$s\n$(printf "%.0s-" $(seq 1 1 ${#s}))\n" | tee -a "$res"
+        case "$source_suffix" in
+          "cpp") OUTPUT_PATH="$res" ./bin < "$tf" | tee -a $res | tee "$f_tmp" || exit 1;;
+          "cs") OUTPUT_PATH="$res" ./bin.exe < "$tf" | tee -a $res | tee "$f_tmp" || exit 1 ;;
+          "py") OUTPUT_PATH="$res" python "$source_" < "$tf" | tee -a $res | tee "$f_tmp" || exit 1 ;;
+          "js") OUTPUT_PATH="$res" node "$source_" < "$tf" | tee -a $res | tee "$f_tmp" || exit 1 ;;
+        esac
+        if [ $diffs -eq 1 ]; then
+          of="$(echo "$tf" | sed 's/in/out/g')"
+          [ ! -f "$of" ] && \
+            echo "[info] skipping diff for test '$tf', missing corresponding output file"
+          diff -u --color=always "$of" "$f_tmp"
+        fi
+      done
+      ;;
+    *)
+      help && echo "[error] unsupported type '$type'" && exit 1
+      ;;
+  esac
 }
 
 fn_dump() {
-    types="$dump_types_default"
-    [ ${#args[@]} -gt 1 ] && types="${args[0]}"
-    target="${args[$((${#args[@]}-1))]}"
-    [ ! -d "$target" ] && echo "[error] invalid target directory '$target'" && exit 1
-    IFS="|/,"; types=($(echo "$types")); IFS="$IFSORG"
-    for type in "${types[@]}"; do
-      out="$target.$type"
-      if [ -e $out ]; then
-        [ $DEBUG -ge 1 ] && echo "[info] replacing existing file '$out'"
-        rm "$out"
-      fi
-      echo "# $target | '$type' dump" >> "$out"
-      IFS=$'\n'; files=($(find "$target" -type f -iname "*$type")); IFS="$IFSORG"
-      for f in "${files[@]}"; do
-        echo -e "\n\n/* # "$f" # */\n" >> "$out"
-        cat "$f" >> "$out"
-      done
+  types="$dump_types_default"
+  [ ${#args[@]} -gt 1 ] && types="${args[0]}"
+  target="${args[$((${#args[@]}-1))]}"
+  [ ! -d "$target" ] && echo "[error] invalid target directory '$target'" && exit 1
+  IFS="|/,"; types=($(echo "$types")); IFS="$IFSORG"
+  for type in "${types[@]}"; do
+    out="$target.$type"
+    if [ -e $out ]; then
+      [ $DEBUG -ge 1 ] && echo "[info] replacing existing file '$out'"
+      rm "$out"
+    fi
+    echo "# $target | '$type' dump" >> "$out"
+    IFS=$'\n'; files=($(find "$target" -type f -iname "*$type")); IFS="$IFSORG"
+    for f in "${files[@]}"; do
+      echo -e "\n\n/* # "$f" # */\n" >> "$out"
+      cat "$f" >> "$out"
     done
+  done
 }
 
 # args parse
