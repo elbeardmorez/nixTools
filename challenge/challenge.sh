@@ -159,7 +159,7 @@ fn_new() {
       target="$(echo "${args[@]}" | sed 's/ /.-./g')"
       [ $DEBUG -gt 0 ] && echo "name: $name, target: $target" 1>&2
       [ ! -d "$target" ] && mkdir -p "$target"
-      cd "$target" || exit 1
+      cd "$target" || return 1
       IFS=$'\n'; files=($(find ./ -maxdepth 1 -iregex ".*$name.*\(pdf\|zip\)")); IFS=$IFSORG
       if [ ${#files[@]} -eq 0 ]; then
         # move files
@@ -175,14 +175,14 @@ fn_new() {
           [ $DEBUG -gt 0 ] && echo "[debug] files#: '${#files[@]}'" 1>&2
           [ ${#files[@]} -eq 2 ] && echo "located challenge description / testcase files" && break
         done
-        [ ${#files[@]} -ne 2 ] && echo "cannot locate challenge both description and testcase files" && exit 1
+        [ ${#files[@]} -ne 2 ] && echo "cannot locate challenge both description and testcase files" && return 1
         for f in "${files[@]}"; do
           ext="${f##*.}"
           f2=""
           case "$ext" in
             "pdf") f2="$name.$ext" ;;
             "zip") f2="$name.testcases.$ext" ;;
-            *) echo "[error] unexpected file '$f'" && exit 1
+            *) echo "[error] unexpected file '$f'" && return 1
           esac
           [ ! -e "$f2" ] && mv "$f" "$f2"
         done
@@ -212,7 +212,7 @@ fn_new() {
       ;;
 
     *)
-      help && echo "[error] unsupported type '$type'" && exit 1
+      help && echo "[error] unsupported type '$type'" && return 1
       ;;
   esac
 }
@@ -240,7 +240,7 @@ fn_edit() {
       "eec"|"export-edit-command") [ -n "$v" ] && env_var="$v" ;;
       "rx"|"rx-search") rx=1 ;;
       *)
-        [ -n "$search" ] && echo "[error] unsupported arg '${args[$l]}'" && exit 1
+        [ -n "$search" ] && echo "[error] unsupported arg '${args[$l]}'" && return 1
         search="${args[$l]}"
         ;;
     esac
@@ -256,11 +256,11 @@ fn_edit() {
   fi
   matches=${#targets[@]}
   case $matches in
-    0) echo "[info] no matches found" && exit 0 ;;
+    0) echo "[info] no matches found" && return 0 ;;
     1) target="${targets[0]}" ;;
-    *) echo "[info] multiple matches found, please try a more specific search" && exit 0 ;;
+    *) echo "[info] multiple matches found, please try a more specific search" && return 0 ;;
   esac
-  cd "$target" || exit 1
+  cd "$target" || return 1
   target="$(basename "$target")"
 
   # set edit command
@@ -312,7 +312,7 @@ fn_test() {
         if [ -n "$(echo "${args[$l]}" | sed -n '/[0-9]\+/p')" ]; then
           tests[${#tests[@]}]="${args[$l]}"
         else
-          echo "[error] unsupported arg '${args[$l]}'" && exit 1
+          echo "[error] unsupported arg '${args[$l]}'" && return 1
         fi
         ;;
     esac
@@ -322,7 +322,7 @@ fn_test() {
   # validate args
   source_suffix="${language_suffix_map["$language"]}"
   [ -z "$source_suffix" ] && \
-    help && echo "[error] unsupported language" 1>&2 && exit 1
+    help && echo "[error] unsupported language" 1>&2 && return 1
   if [ ${#tests[@]} -gt 0 ]; then
     declare -a tests_; tests_=("${tests[@]}")
     tests=()
@@ -338,19 +338,19 @@ fn_test() {
       # source
       IFS=$'\n'; source_=($(find "." -maxdepth 1 -name "*$source_suffix")); IFS="$IFSORG"
       [ ${#source_[@]} -eq 0 ] && \
-        echo "[error] no source file for language '$language' [$source_suffix]" 1>&2 && exit 1
+        echo "[error] no source file for language '$language' [$source_suffix]" 1>&2 && return 1
       [ ${#source_[@]} -gt 1 ] && \
-        echo "[error] too many source files found  for language '$language' [$source_suffix]" 1>&2 && exit 1
+        echo "[error] too many source files found  for language '$language' [$source_suffix]" 1>&2 && return 1
 
       # compilation
       case "$source_suffix" in
         "cpp")
           echo "[info] compiling c++ source '${source_[0]}'"
-          g++ -std=c++11 -o bin "${source_[0]}" || exit 1
+          g++ -std=c++11 -o bin "${source_[0]}" || return 1
           ;;
         "cs")
           echo "[info] compiling c# source '${source_[0]}'"
-          mcs -debug *.cs -out:bin.exe "${source_[0]}" || exit 1
+          mcs -debug *.cs -out:bin.exe "${source_[0]}" || return 1
           ;;
       esac
 
@@ -368,7 +368,7 @@ fn_test() {
         IFS=$'\n'; test_files=($(find ./input -type f -name "*.txt" | sort)); IFS="$IFSORG"
 
       [ ${#test_files[@]} -eq 0 ] && \
-        echo "[error] no test files found" 1>&2 && exit 1
+        echo "[error] no test files found" 1>&2 && return 1
 
       echo "[info] running ${#test_files[@]} test$([ ${#test_files[@]} -ne 1 ] && echo "s")"
       f_tmp="$(fn_temp_file)"
@@ -377,10 +377,10 @@ fn_test() {
         s="[info] running test file '$tf'"
         echo -e "\n$s\n$(printf "%.0s-" $(seq 1 1 ${#s}))\n" | tee -a "$res"
         case "$source_suffix" in
-          "cpp") OUTPUT_PATH="$res" ./bin < "$tf" | tee -a $res | tee "$f_tmp" || exit 1;;
-          "cs") OUTPUT_PATH="$res" ./bin.exe < "$tf" | tee -a $res | tee "$f_tmp" || exit 1 ;;
-          "py") OUTPUT_PATH="$res" python "$source_" < "$tf" | tee -a $res | tee "$f_tmp" || exit 1 ;;
-          "js") OUTPUT_PATH="$res" node "$source_" < "$tf" | tee -a $res | tee "$f_tmp" || exit 1 ;;
+          "cpp") OUTPUT_PATH="$res" ./bin < "$tf" | tee -a $res | tee "$f_tmp" || return 1;;
+          "cs") OUTPUT_PATH="$res" ./bin.exe < "$tf" | tee -a $res | tee "$f_tmp" || return 1 ;;
+          "py") OUTPUT_PATH="$res" python "$source_" < "$tf" | tee -a $res | tee "$f_tmp" || return 1 ;;
+          "js") OUTPUT_PATH="$res" node "$source_" < "$tf" | tee -a $res | tee "$f_tmp" || return 1 ;;
         esac
         if [ $diffs -eq 1 ]; then
           of="$(echo "$tf" | sed 's/in/out/g')"
@@ -391,7 +391,7 @@ fn_test() {
       done
       ;;
     *)
-      help && echo "[error] unsupported type '$type'" && exit 1
+      help && echo "[error] unsupported type '$type'" && return 1
       ;;
   esac
 }
@@ -400,7 +400,7 @@ fn_dump() {
   types="$dump_types_default"
   [ ${#args[@]} -gt 1 ] && types="${args[0]}"
   target="${args[$((${#args[@]}-1))]}"
-  [ ! -d "$target" ] && echo "[error] invalid target directory '$target'" && exit 1
+  [ ! -d "$target" ] && echo "[error] invalid target directory '$target'" && return 1
   IFS="|/,"; types=($(echo "$types")); IFS="$IFSORG"
   for type in "${types[@]}"; do
     out="$target.$type"
