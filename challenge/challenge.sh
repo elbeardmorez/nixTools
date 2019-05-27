@@ -415,7 +415,7 @@ case "$mode" in
             of="$(echo "$tf" | sed 's/in/out/g')"
             [ ! -f "$of" ] && \
               echo "[info] skipping diff for test '$tf', missing corresponding output file"
-            diff -u --color "$of" "$f_tmp"
+            diff -u --color=always "$of" "$f_tmp"
           fi
         done
         ;;
