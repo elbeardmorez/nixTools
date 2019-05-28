@@ -9,6 +9,7 @@ set +e
 SCRIPTNAME=${0##*/}
 IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
+trap fn_exit EXIT
 
 RC_DEFAULT="$HOME/.nixTools/$SCRIPTNAME"
 
@@ -16,6 +17,7 @@ declare -A exts_map
 exts_map["default"]="cpp|cs|py|js"
 
 cwd="$PWD"
+declare -a temp_files
 editor="${EDITOR:-vim}"
 dump_types_default="py|js|cs"
 declare -a cmd_args_editor
@@ -68,6 +70,17 @@ help() {
                              (default: 'py|js|cs') and dump matches
                              to TARGET.LANGUAGE files
 "
+}
+
+fn_exit() {
+  code=$?
+  [ $# -gt 0 ] && code=$1 && shift
+  fn_cleanup
+  exit $code
+}
+
+fn_cleanup() {
+  for f in "${temp_files[@]}"; do [ -f "$f" ] && rm "$f" >/dev/null 2>&1; done
 }
 
 fn_exts() {
@@ -372,6 +385,7 @@ fn_test() {
 
       echo "[info] running ${#test_files[@]} test$([ ${#test_files[@]} -ne 1 ] && echo "s")"
       f_tmp="$(fn_temp_file)"
+      temp_files[${#temp_files[@]}]="$f_tmp"
       rm "$res"
       for tf in "${test_files[@]}"; do
         s="[info] running test file '$tf'"
@@ -449,3 +463,4 @@ case "$mode" in
   "test") fn_test "$@" ;;
   "dump") fn_dump "$@" ;;
 esac
+res=$? && fn_exit $res
