@@ -340,8 +340,8 @@ fn_test() {
     declare -a tests_; tests_=("${tests[@]}")
     tests=()
     for t in ${tests_[@]}; do
-      IFS=",|"; test__=($(echo "$t")); IFS="$IFSORG"
-      for t_ in "${tests__[@]}"; do tests[${#test_[@]}]=$t_; done
+      IFS=",|"; tests__=($(echo "$t")); IFS="$IFSORG"
+      for t_ in "${tests__[@]}"; do tests[${#tests[@]}]=$t_; done
     done
   fi
 
@@ -378,7 +378,7 @@ fn_test() {
       done
 
       [ ${#test_files[@]} -eq 0 ] && \
-        IFS=$'\n'; test_files=($(find ./input -type f -name "*.txt" | sort)); IFS="$IFSORG"
+        { IFS=$'\n'; test_files=($(find ./input -type f -name "*.txt" | sort)); IFS="$IFSORG"; }
 
       [ ${#test_files[@]} -eq 0 ] && \
         echo "[error] no test files found" 1>&2 && return 1
