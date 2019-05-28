@@ -384,23 +384,27 @@ fn_test() {
         echo "[error] no test files found" 1>&2 && return 1
 
       echo "[info] running ${#test_files[@]} test$([ ${#test_files[@]} -ne 1 ] && echo "s")"
-      f_tmp="$(fn_temp_file)"
-      temp_files[${#temp_files[@]}]="$f_tmp"
+      f_tmp_results="$(fn_temp_file "$SCRIPTNAME")"
+      temp_files[${#temp_files[@]}]="$f_tmp_results"
+      f_tmp_expected="$(fn_temp_file "$SCRIPTNAME")"
+      temp_files[${#temp_files[@]}]="$f_tmp_expected"
       rm "$res"
       for tf in "${test_files[@]}"; do
         s="[info] running test file '$tf'"
         echo -e "\n$s\n$(printf "%.0s-" $(seq 1 1 ${#s}))\n" | tee -a "$res"
         case "$source_suffix" in
-          "cpp") OUTPUT_PATH="$res" ./bin < "$tf" | tee -a $res | tee "$f_tmp" || return 1;;
-          "cs") OUTPUT_PATH="$res" ./bin.exe < "$tf" | tee -a $res | tee "$f_tmp" || return 1 ;;
-          "py") OUTPUT_PATH="$res" python "$source_" < "$tf" | tee -a $res | tee "$f_tmp" || return 1 ;;
-          "js") OUTPUT_PATH="$res" node "$source_" < "$tf" | tee -a $res | tee "$f_tmp" || return 1 ;;
+          "cpp") OUTPUT_PATH="$res" ./bin < "$tf" | tee -a $res | tee "$f_tmp_results" || return 1;;
+          "cs") OUTPUT_PATH="$res" ./bin.exe < "$tf" | tee -a $res | tee "$f_tmp_results" || return 1 ;;
+          "py") OUTPUT_PATH="$res" python "$source_" < "$tf" | tee -a $res | tee "$f_tmp_results" || return 1 ;;
+          "js") OUTPUT_PATH="$res" node "$source_" < "$tf" | tee -a $res | tee "$f_tmp_results" || return 1 ;;
         esac
         if [ $diffs -eq 1 ]; then
           of="$(echo "$tf" | sed 's/in/out/g')"
           [ ! -f "$of" ] && \
             echo "[info] skipping diff for test '$tf', missing corresponding output file"
-          diff -u --color=always "$of" "$f_tmp"
+          # ensure EOF/newline byte
+          sed '$a\' "$of" > "$f_tmp_expected"
+          diff -u --color=always "$f_tmp_expected" "$f_tmp_results"
         fi
       done
       ;;
