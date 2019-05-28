@@ -1,7 +1,7 @@
 # challenge.sh
 
 ## description
-coding challenge aid featuring structuring of challenge files and provision of a set of empty solution files ready for editing
+coding challenge aid to simplify structuring of challenge files, creation of appropriate empty solution sets ready for editing and ultimately solution testing
 
 ## usage
 ```
