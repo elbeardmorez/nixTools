@@ -373,7 +373,7 @@ fn_test() {
         [ ! -f "$test_file" ] && \
           test_file="input/input0$t.txt"
         [ ! -f "$test_file" ] && \
-          echo "[info] skipping test '$t', missing file"
+          echo "[info] skipping test '$t', missing file" && continue
         test_files[${#test_files[@]}]="$test_file"
       done
 
