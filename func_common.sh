@@ -325,6 +325,8 @@ fn_next_file() {
   suffix="${3:-""}"
   [[ -n "$suffix" && ${#file} -gt ${#suffix} && \
         "x${file:$((${#file}-${#suffix}))}" == "x$suffix" ]] && file="${file:0:$((${#file}-${#suffix}))}"
+  [[ "x${file:$((${#file}-1))}" == "x." && "x${suffix:0:1}" != "x." ]] &&
+    file=${file:0:${#file}-1} && suffix=".$suffix"
   if [ -e "${file}${suffix}" ]; then
     num="$(echo "$file" | sed -n 's/.*'"$delim"'\([0-9]*\)\('"$suffix"'\)\?$/\1/p')"
     [ "x$num" = "x" ] && num=2 || file="${file:0:$((${#file}-${#delim}-${#num}))}"
