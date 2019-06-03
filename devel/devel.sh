@@ -80,13 +80,17 @@ help() {
                                    (default: '${changelog_profile_anchor_entry["default"]}')
 \n    TARGET:  location of repository to query for changes
 \n  -c|--commits  : process diffs into fix/mod/hack repo structure
-\n    SYNTAX: $SCRIPTNAME commits [ARGS]
-\n    ARGS:
-      [target]  : location of repository to extract/use patch set from
-                  (default: '.')
-      [prog]  : program name (default: target directory name)
-      [vcs]  : version control type, git, svn, bzr, cvs (default: git)
-      [count]  : number of patches to process (default: 1)
+\n    SYNTAX: $SCRIPTNAME commits [OPTIONS] [SOURCE] TARGET
+\n    with OPTIONS in:
+      -l|--limit [=LIMIT]  : limit number of patches to process to
+                             LIMIT (default: 1)
+      -p|--program-name  : program name (default: target directory name)
+      -vcs|--version-control-system =VCS  :
+        override default version control type for unknown targets
+        (default: git)
+\n    SOURCE  : location of repository to extract/use patch set from
+              (default: '.')
+\n    TARGET  : location of repository / directory to push diffs to
 "
 }
 
@@ -134,18 +138,59 @@ fn_repo_search() {
 
 fn_commits() {
 
-  target="$PWD" && [ $# -gt 0 ] && [ -e "$1" ] && target="$(cd "$1"; pwd)" && shift
-  source="$target" && [ $# -gt 0 ] && [ -e "$1" ] && target="$1" && shift
-  prog=$(cd "$source"; pwd) && prog="${prog##*/}" && [ $# -gt 0 ] && prog="$1" && shift
-  vcs=git && [ $# -gt 0 ] && [ -n "$(echo "$(cd "$source"; pwd)" | sed -n '/\(git\|svn\|bzr\)/p')" ] && vcs="$1" && shift
-  count=1 && [ $# -gt 0 ] && count=$1 && shift
+  declare source
+  declare target
+  declare limit
+  declare program_name
+  declare vcs
+  declare res
+
+  # process args
+  declare arg
+  while [ -n "$1" ]; do
+    arg="$(echo "$1" | sed 's/^\ *-*//')"
+    if [ ${#1} -gt ${#arg} ]; then
+      case "$arg" in
+        "l"|"limit")
+          shift && s="$(echo "$1" | sed -n '/^[^-]/{s/=\?\([0-9]\+\)$/\1/p;}')"
+          limit="${s:-1}"
+          [ -z "$s" ] && continue  # no shift
+          ;;
+        "p|prog-name")
+          shift
+          program_name="$1"
+          ;;
+        "vcs"|"version-control-system")
+          shift
+          vcs="$(echo "$1" | sed -n '/^[^-]/{s/=\?//p;}')"
+          ;;
+      esac
+    else
+      if [ -z "$target" ]; then
+        target="$1"
+      elif [ -z "$source" ]; then
+        source="$target"
+        target="$1"
+      else
+        help && echo "[error] unknown arg '$1'" && return 1
+      fi
+    fi
+    shift
+  done
+
+  # validate args
+  source="${source:="."}"
+  target="${target:="."}"
+  limit=${limit:-1}
+  program_name="${program_name:="$target"}"
+  vcs="${vcs:="$(fn_repo_type "$source")"}"
 
   case $vcs in
     "git")
       commithash="xxx"
-      if [ $count -gt 0 ]; then
+      if [ $limit -gt 0 ]; then
         cd "$source"
-        git format-patch -$count HEAD
+        git format-patch -$limit HEAD
         cd - >/dev/null
       fi
       if [[ ! -e "$target"/fix ||
@@ -160,7 +205,7 @@ fn_commits() {
       mv "$source"/00*patch ./
       # process patches
       for p in 00*patch; do
-        #commithash="$(cd $source; git log --format=oneline | head -n$[$count] | tail -n1 | cut -d' ' -f1; cd - 1>/dev/null)"
+        #commithash="$(cd $source; git log --format=oneline | head -n$[$limit] | tail -n1 | cut -d' ' -f1; cd - 1>/dev/null)"
         commithash=$(head -n1 "$p" | cut -d' ' -f2)
         date=$(head -n3 "$p" | sed '$!d;s/Date: //')
         # name
@@ -175,7 +220,7 @@ fn_commits() {
         sed -i 's|^Subject: \[PATCH[^]]*\]|Subject:|' "$p2"
         # get patch type
         type=""
-        echo "# prog: $prog | patch: '$p2'"
+        echo "# program: $program_name | patch: '$p2'"
         echo -ne "set patch type [f]ix/[m]od/[h]ack/e[x]it: " 1>&2
         bRetry=1
         while [ $bRetry -gt 0 ]; do
@@ -188,25 +233,25 @@ fn_commits() {
             "x"|"X") echo "$result" 1>&2; return 1 ;;
           esac
         done
-        mkdir -p "$type/$prog"
-        mv "$p2" "$type/$prog/"
+        mkdir -p "$type/$program_name"
+        mv "$p2" "$type/$program_name/"
         # append patch to repo readme
         entry="$p2 [git sha:$commithash | $([ "x$type" = "xhack" ] && echo "unsubmitted" || echo "pending")]"
         if [ -e $type/README ]; then
           # search for existing program entry
-          if [ -z "$(sed -n '/^### '$prog'$/p' "$type/README")" ]; then
-            echo -e "### $prog\n-$entry\n" >> $type/README
+          if [ -z "$(sed -n '/^### '$program_name'$/p' "$type/README")" ]; then
+            echo -e "### $program_name\n-$entry\n" >> $type/README
           else
             # insert entry
-            sed -n -i '/^### '$prog'$/,/^$/{/^### '$prog'$/{h;b};/^$/{x;s/\(.*\)/\1\n-'"$entry"'\n/p;b;}; H;$!b};${x;/^### '$prog'/{s/\(.*\)/\1\n-'"$entry"'/p;b;};x;p;b;};p' "$type/README"
+            sed -n -i '/^### '$program_name'$/,/^$/{/^### '$program_name'$/{h;b};/^$/{x;s/\(.*\)/\1\n-'"$entry"'\n/p;b;}; H;$!b};${x;/^### '$program_name'/{s/\(.*\)/\1\n-'"$entry"'/p;b;};x;p;b;};p' "$type/README"
           fi
         else
-          echo -e "\n### $prog\n-$entry\n" >> "$type/README"
+          echo -e "\n### $program_name\n-$entry\n" >> "$type/README"
         fi
         # append patch details to program specific readme
-        comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$type/$prog/$p2")"
-        echo -e "\n# $entry" >> "$type/$prog/README"
-        [ "x$comments" != "x" ] && echo "$comments" >> "$type/$prog/README"
+        comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$type/$program_name/$p2")"
+        echo -e "\n# $entry" >> "$type/$program_name/README"
+        [ "x$comments" != "x" ] && echo "$comments" >> "$type/$program_name/README"
 
         # commit commands
         echo "commit: git add .; GIT_AUTHOR_DATE='$date' GIT_COMMITTER_DATE='$date' git commit"

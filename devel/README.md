@@ -85,14 +85,20 @@ with OPTION:
 
   -c|--commits  : process diffs into fix/mod/hack repo structure
 
-    SYNTAX: devel_ commits [ARGS]
+    SYNTAX: devel_ commits [OPTIONS] [SOURCE] TARGET
 
-    ARGS:
-      [target]  : location of repository to extract/use patch set from
-                  (default: '.')
-      [prog]  : program name (default: target directory name)
-      [vcs]  : version control type, git, svn, bzr, cvs (default: git)
-      [count]  : number of patches to process (default: 1)
+    with OPTIONS in:
+      -l|--limit [=LIMIT]  : limit number of patches to process to
+                             LIMIT (default: 1)
+      -p|--program-name  : program name (default: target directory name)
+      -vcs|--version-control-system =VCS  :
+        override default version control type for unknown targets
+        (default: git)
+
+    SOURCE  : location of repository to extract/use patch set from
+              (default: '.')
+
+    TARGET  : location of repository / directory to push diffs to
 ```
 
 ## examples
