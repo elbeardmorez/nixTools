@@ -237,18 +237,13 @@ fn_commits() {
         # get patch type
         type=""
         echo "# program: $program_name | patch: '$name'"
-        echo -ne "set patch type [f]ix/[m]od/[h]ack/e[x]it: " 1>&2
-        bRetry=1
-        while [ $bRetry -gt 0 ]; do
-          result=
-          read -s -n 1 result
-          case "$result" in
-            "f"|"F") echo "$result" 1>&2; bRetry=0; type="fix" ;;
-            "m"|"M") echo "$result" 1>&2; bRetry=0; type="mod" ;;
-            "h"|"H") echo "$result" 1>&2; bRetry=0; type="hack" ;;
-            "x"|"X") echo "$result" 1>&2; return 1 ;;
-          esac
-        done
+        res="$(fn_decision "[user] set patch type (f)ix/(m)od/(h)ack/e(x)it" "f|m|h|x")"
+        case "$res" in
+          "f") type="fix" ;;
+          "m") type="mod" ;;
+          "h") type="hack" ;;
+          "x") return 1 ;;
+        esac
         mkdir -p "$type/$program_name"
         mv "$name" "$type/$program_name/"
         # append patch to repo readme
