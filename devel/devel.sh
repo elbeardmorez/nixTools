@@ -109,6 +109,24 @@ fn_repo_type() {
   [ -n "$vcs" ] && return 0 || return 1
 }
 
+fn_patch_name() {
+  declare description="$1" && shift
+  declare name
+
+  # construct name
+  name="$description"
+  # replace whitespace and special characters
+  name="$(echo "$name" | sed 's/[ ]/./g;s/[\/:]/_/g')"
+  # strip any prefix garbage
+  name="$(echo "$name" | sed 's/^\[PATCH[^]]*\][. ]*//;s/\n//;')"
+  # lower case
+  name="$(echo "$name" | awk '{print tolower($0)}').diff"
+
+  [ $DEBUG -ge 5 ] && echo "[debug]  '$description' -> '$name'" 1>&2
+
+  echo "$name"
+}
+
 fn_repo_search() {
   declare vcs; vcs=$1 && shift
   declare limit; limit=$1 && shift
@@ -143,6 +161,7 @@ fn_commits() {
   declare limit
   declare program_name
   declare vcs
+  declare description
   declare res
 
   # process args
@@ -209,18 +228,15 @@ fn_commits() {
         commithash=$(head -n1 "$p" | cut -d' ' -f2)
         date=$(head -n3 "$p" | sed '$!d;s/Date: //')
         # name
-        subject=$(sed -n '/^Subject/{N;s/\n//;s|^Subject: \[PATCH[^]]*\] \(.*\)|\1|p}' "$p")
-        name="$subject"
-        name=$(echo "$name" | sed 's|[ ]|.|g')
-        name=$(echo "$name" | sed 's|[\/:]|_|g')
-        p2="$(echo "$name" | awk '{print tolower($0)}').diff"
-        [ $DEBUG -gt 0 ] && echo "moving '$p' -> '$p2'" 1>&2
-        mv "$p" "$p2"
+        description=$(sed -n '/^Subject/{N;s/\n//;s|^Subject: \(.*\)|\1|p}' "$p")
+        name="$(fn_patch_name "$description")"
+        [ $DEBUG -gt 0 ] && echo "moving '$p' -> '$name'" 1>&2
+        mv "$p" "$name"
         # clean subject
-        sed -i 's|^Subject: \[PATCH[^]]*\]|Subject:|' "$p2"
+        sed -i 's|^Subject: \[PATCH[^]]*\]|Subject:|' "$name"
         # get patch type
         type=""
-        echo "# program: $program_name | patch: '$p2'"
+        echo "# program: $program_name | patch: '$name'"
         echo -ne "set patch type [f]ix/[m]od/[h]ack/e[x]it: " 1>&2
         bRetry=1
         while [ $bRetry -gt 0 ]; do
@@ -234,9 +250,9 @@ fn_commits() {
           esac
         done
         mkdir -p "$type/$program_name"
-        mv "$p2" "$type/$program_name/"
+        mv "$name" "$type/$program_name/"
         # append patch to repo readme
-        entry="$p2 [git sha:$commithash | $([ "x$type" = "xhack" ] && echo "unsubmitted" || echo "pending")]"
+        entry="$name [git sha:$commithash | $([ "x$type" = "xhack" ] && echo "unsubmitted" || echo "pending")]"
         if [ -e $type/README ]; then
           # search for existing program entry
           if [ -z "$(sed -n '/^### '$program_name'$/p' "$type/README")" ]; then
@@ -249,7 +265,7 @@ fn_commits() {
           echo -e "\n### $program_name\n-$entry\n" >> "$type/README"
         fi
         # append patch details to program specific readme
-        comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$type/$program_name/$p2")"
+        comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$type/$program_name/$name")"
         echo -e "\n# $entry" >> "$type/$program_name/README"
         [ "x$comments" != "x" ] && echo "$comments" >> "$type/$program_name/README"
 
