@@ -154,6 +154,29 @@ fn_repo_search() {
   esac
 }
 
+fn_repo_pull() {
+  declare target="$1" && shift
+  declare id_out
+  declare id
+  declare vcs
+  vcs="$(fn_repo_type "$target")" || return 1
+  cd "$target" 1>/dev/null
+  while [ -n "$1" ]; do
+    id_out="$1" && shift
+    id="${id_out%|*}"
+    out="${id_out#*|}"
+    case "$vcs" in
+      "git")
+        git format-patch -k --stdout -1 "$id" > "$out"
+        ;;
+      *)
+        echo "[user] vcs type: '$vcs' not implemented" && exit 1
+        ;;
+    esac
+  done
+  cd - 1>/dev/null || return 1
+}
+
 fn_commits() {
 
   declare source
@@ -161,7 +184,10 @@ fn_commits() {
   declare limit
   declare program_name
   declare vcs
+  declare -a commits
   declare description
+  declare name
+  declare type
   declare res
 
   # process args
@@ -204,39 +230,29 @@ fn_commits() {
   program_name="${program_name:="$target"}"
   vcs="${vcs:="$(fn_repo_type "$source")"}"
 
-  case $vcs in
-    "git")
-      commithash="xxx"
-      if [ $limit -gt 0 ]; then
-        cd "$source"
-        git format-patch -$limit HEAD
-        cd - >/dev/null
-      fi
+  # repo structure
       if [[ ! -e "$target"/fix ||
            ! -e "$target"/mod ||
            ! -e "$target"/hack ]]; then
-        mkdir -p commits/{fix,mod,hack}
-        cd commits
-      else
-        cd "$target"
+    mkdir -p "$target"/{fix,mod,hack} 2>/dev/null
       fi
 
-      mv "$source"/00*patch ./
-      # process patches
-      for p in 00*patch; do
-        #commithash="$(cd $source; git log --format=oneline | head -n$[$limit] | tail -n1 | cut -d' ' -f1; cd - 1>/dev/null)"
-        commithash=$(head -n1 "$p" | cut -d' ' -f2)
-        date=$(head -n3 "$p" | sed '$!d;s/Date: //')
-        # name
-        description=$(sed -n '/^Subject/{N;s/\n//;s|^Subject: \(.*\)|\1|p}' "$p")
-        name="$(fn_patch_name "$description")"
-        [ $DEBUG -gt 0 ] && echo "moving '$p' -> '$name'" 1>&2
-        mv "$p" "$name"
-        # clean subject
-        sed -i 's|^Subject: \[PATCH[^]]*\]|Subject:|' "$name"
+  # identify commits
+  IFS=$'\n'; commits=($(fn_repo_search "git" $limit)) || return 1; IFS="$IFSORG"
+  echo "[info] ${#commits[@]} commit$([ ${#commits[@]} -ne 1 ] && echo "s") identified"
+  [ ${#commits[@]} -eq 0 ] && return 1
+
+  # process commits
+  declare -a parts
+  declare target_fq; target_fq="$(cd "$target" && pwd)"
+  for s in "${commits[@]}"; do
+    IFS="|"; parts=($(echo "$s")); IFS="$IFSORG"
+    dt="${parts[0]}"
+    id="${parts[1]}"
+    description="${parts[2]}"
+    name="$(fn_patch_name "$description")"
         # get patch type
-        type=""
-        echo "# program: $program_name | patch: '$name'"
+    echo "# program: $program_name | patch: '$name'"
         res="$(fn_decision "[user] set patch type (f)ix/(m)od/(h)ack/e(x)it" "f|m|h|x")"
         case "$res" in
           "f") type="fix" ;;
@@ -244,38 +260,34 @@ fn_commits() {
           "h") type="hack" ;;
           "x") return 1 ;;
         esac
-        mkdir -p "$type/$program_name"
-        mv "$name" "$type/$program_name/"
+
+    mkdir -p "$target_fq/$type/$program_name"
+    target_fqn="$target_fq/$type/$program_name/$name"
+    fn_repo_pull "$source" "$id|$target_fqn"
+
         # append patch to repo readme
-        entry="$name [git sha:$commithash | $([ "x$type" = "xhack" ] && echo "unsubmitted" || echo "pending")]"
-        if [ -e $type/README ]; then
+        entry="$name [git sha:$id | $([ "x$type" = "xhack" ] && echo "unsubmitted" || echo "pending")]"
+    if [ -e $target_fq/$type/README ]; then
           # search for existing program entry
-          if [ -z "$(sed -n '/^### '$program_name'$/p' "$type/README")" ]; then
-            echo -e "### $program_name\n-$entry\n" >> $type/README
+      if [ -z "$(sed -n '/^### '$program_name'$/p' "$target_fq/$type/README")" ]; then
+        echo -e "### $program_name\n-$entry\n" >> $target_fq/$type/README
           else
             # insert entry
-            sed -n -i '/^### '$program_name'$/,/^$/{/^### '$program_name'$/{h;b};/^$/{x;s/\(.*\)/\1\n-'"$entry"'\n/p;b;}; H;$!b};${x;/^### '$program_name'/{s/\(.*\)/\1\n-'"$entry"'/p;b;};x;p;b;};p' "$type/README"
+        sed -n -i '/^### '$program_name'$/,/^$/{/^### '$program_name'$/{h;b};/^$/{x;s/\(.*\)/\1\n-'"$entry"'\n/p;b;}; H;$!b};${x;/^### '$program_name'/{s/\(.*\)/\1\n-'"$entry"'/p;b;};x;p;b;};p' "$target_fq/$type/README"
           fi
         else
-          echo -e "\n### $program_name\n-$entry\n" >> "$type/README"
+      echo -e "\n### $program_name\n-$entry\n" >> "$target_fq/$type/README"
         fi
         # append patch details to program specific readme
-        comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$type/$program_name/$name")"
-        echo -e "\n# $entry" >> "$type/$program_name/README"
-        [ "x$comments" != "x" ] && echo "$comments" >> "$type/$program_name/README"
+    comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$target_fq/$type/$program_name/$name")"
+    echo -e "\n# $entry" >> "$target_fq/$type/$program_name/README"
+    [ "x$comments" != "x" ] && echo "$comments" >> "$target_fq/$type/$program_name/README"
 
         # commit commands
-        echo "commit: git add .; GIT_AUTHOR_DATE='$date' GIT_COMMITTER_DATE='$date' git commit"
+        echo "commit: git add .; GIT_AUTHOR_DATE='$dt' GIT_COMMITTER_DATE='$dt' git commit"
       done
 
       echo "# patches added to fix/mod/hack hierarchy at '$target'"
-
-      cd - >/dev/null
-      ;;
-    *)
-      echo "[user] vcs type: '$vcs' not implemented" && exit 1
-      ;;
-  esac
 }
 
 fn_changelog() {
