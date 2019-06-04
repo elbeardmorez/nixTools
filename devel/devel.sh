@@ -135,7 +135,7 @@ fn_repo_search() {
   case "$vcs" in
     "git")
       declare -a cmd_args
-      cmd_args=("--format=format:'%at|%H|%s'")
+      cmd_args=("--format=format:%at|%H|%s")
       [ $limit -gt 0 ] && cmd_args[${#cmd_args[@]}]="-n$limit"
       if [ $# -eq 0 ]; then
         res="$(git log "${cmd_args[@]}")"
