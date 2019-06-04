@@ -128,10 +128,14 @@ fn_patch_name() {
 }
 
 fn_repo_search() {
-  declare vcs; vcs=$1 && shift
+  declare target; target="$1" && shift
   declare limit; limit=$1 && shift
   declare res
   declare search
+  declare vcs
+  vcs="$(fn_repo_type "$target")" || \
+    { echo "[error] unknown vcs type for source directory '$target'" 1>&2 && return 1; }
+  cd "$target" 1>/dev/null
   case "$vcs" in
     "git")
       declare -a cmd_args
@@ -152,6 +156,7 @@ fn_repo_search() {
       echo "[user] vcs type: '$vcs' not implemented" && exit 1
       ;;
   esac
+  cd - 1>/dev/null || return 1
 }
 
 fn_repo_pull() {
@@ -238,7 +243,7 @@ fn_commits() {
   fi
 
   # identify commits
-  IFS=$'\n'; commits=($(fn_repo_search "git" $limit)) || return 1; IFS="$IFSORG"
+  IFS=$'\n'; commits=($(fn_repo_search "$source" $limit)) || return 1; IFS="$IFSORG"
   echo "[info] ${#commits[@]} commit$([ ${#commits[@]} -ne 1 ] && echo "s") identified"
   [ ${#commits[@]} -eq 0 ] && return 1
 
@@ -369,7 +374,7 @@ fn_changelog() {
             merge="$(grep -n "$commit" $file | cut -d':' -f1)"
           elif fn_decision "[user] last changelog commit '${commit:0:8}..' unrecognised, search for merge point?" 1>/dev/null; then
             # search
-            IFS=$'\n'; commits=($(fn_repo_search "git" 0)); IFS="$IFSORG"
+            IFS=$'\n'; commits=($(fn_repo_search "." 0)); IFS="$IFSORG"
             declare match
             declare id
             declare description
