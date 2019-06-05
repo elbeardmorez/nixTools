@@ -266,12 +266,12 @@ fn_commits() {
   vcs="${vcs:="$(fn_repo_type "$source")"}"
 
   if [ $dump -eq 0 ]; then
-  # repo structure
-  if [[ ! -e "$target"/fix ||
-       ! -e "$target"/mod ||
-       ! -e "$target"/hack ]]; then
-    mkdir -p "$target"/{fix,mod,hack} 2>/dev/null
-  fi
+    # repo structure
+    if [[ ! -e "$target"/fix ||
+         ! -e "$target"/mod ||
+         ! -e "$target"/hack ]]; then
+      mkdir -p "$target"/{fix,mod,hack} 2>/dev/null
+    fi
   fi
 
   # identify commits
@@ -296,44 +296,44 @@ fn_commits() {
         echo "[info] name clash for: '$target_fqn'"
       fn_repo_pull "$source" "$id|$target_fqn_"
     else
-    # get patch type
-    echo "# program: $program_name | patch: '$name'"
-    res="$(fn_decision "[user] set patch type (f)ix/(m)od/(h)ack/e(x)it" "f|m|h|x")"
-    case "$res" in
-      "f") type="fix" ;;
-      "m") type="mod" ;;
-      "h") type="hack" ;;
-      "x") return 1 ;;
-    esac
+      # get patch type
+      echo "# program: $program_name | patch: '$name'"
+      res="$(fn_decision "[user] set patch type (f)ix/(m)od/(h)ack/e(x)it" "f|m|h|x")"
+      case "$res" in
+        "f") type="fix" ;;
+        "m") type="mod" ;;
+        "h") type="hack" ;;
+        "x") return 1 ;;
+      esac
 
-    mkdir -p "$target_fq/$type/$program_name"
-    target_fqn="$target_fq/$type/$program_name/$name"
-    fn_repo_pull "$source" "$id|$target_fqn"
+      mkdir -p "$target_fq/$type/$program_name"
+      target_fqn="$target_fq/$type/$program_name/$name"
+      fn_repo_pull "$source" "$id|$target_fqn"
 
-    # append patch to repo readme
-    entry="$name [git sha:$id | $([ "x$type" = "xhack" ] && echo "unsubmitted" || echo "pending")]"
-    if [ -e $target_fq/$type/README ]; then
-      # search for existing program entry
-      if [ -z "$(sed -n '/^### '$program_name'$/p' "$target_fq/$type/README")" ]; then
-        echo -e "### $program_name\n-$entry\n" >> $target_fq/$type/README
+      # append patch to repo readme
+      entry="$name [git sha:$id | $([ "x$type" = "xhack" ] && echo "unsubmitted" || echo "pending")]"
+      if [ -e $target_fq/$type/README ]; then
+        # search for existing program entry
+        if [ -z "$(sed -n '/^### '$program_name'$/p' "$target_fq/$type/README")" ]; then
+          echo -e "### $program_name\n-$entry\n" >> $target_fq/$type/README
+        else
+          # insert entry
+          sed -n -i '/^### '$program_name'$/,/^$/{/^### '$program_name'$/{h;b};/^$/{x;s/\(.*\)/\1\n-'"$entry"'\n/p;b;}; H;$!b};${x;/^### '$program_name'/{s/\(.*\)/\1\n-'"$entry"'/p;b;};x;p;b;};p' "$target_fq/$type/README"
+        fi
       else
-        # insert entry
-        sed -n -i '/^### '$program_name'$/,/^$/{/^### '$program_name'$/{h;b};/^$/{x;s/\(.*\)/\1\n-'"$entry"'\n/p;b;}; H;$!b};${x;/^### '$program_name'/{s/\(.*\)/\1\n-'"$entry"'/p;b;};x;p;b;};p' "$target_fq/$type/README"
+        echo -e "\n### $program_name\n-$entry\n" >> "$target_fq/$type/README"
       fi
-    else
-      echo -e "\n### $program_name\n-$entry\n" >> "$target_fq/$type/README"
-    fi
-    # append patch details to program specific readme
-    comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$target_fq/$type/$program_name/$name")"
-    echo -e "\n# $entry" >> "$target_fq/$type/$program_name/README"
-    [ "x$comments" != "x" ] && echo "$comments" >> "$target_fq/$type/$program_name/README"
+      # append patch details to program specific readme
+      comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$target_fq/$type/$program_name/$name")"
+      echo -e "\n# $entry" >> "$target_fq/$type/$program_name/README"
+      [ "x$comments" != "x" ] && echo "$comments" >> "$target_fq/$type/$program_name/README"
 
-    # commit commands
-    echo "commit: git add .; GIT_AUTHOR_DATE='$dt' GIT_COMMITTER_DATE='$dt' git commit"
+      # commit commands
+      echo "commit: git add .; GIT_AUTHOR_DATE='$dt' GIT_COMMITTER_DATE='$dt' git commit"
     fi
   done
   [ $dump -eq 0 ] && \
-  echo "# patches added to fix/mod/hack hierarchy at '$target'"
+    echo "# patches added to fix/mod/hack hierarchy at '$target'"
 }
 
 fn_changelog() {
