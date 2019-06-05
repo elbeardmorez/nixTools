@@ -91,6 +91,7 @@ help() {
       -vcs|--version-control-system =VCS  :
         override default version control type for unknown targets
         (default: git)
+      -d|--dump  : dump patch set only
 \n    SOURCE  : location of repository to extract/use patch set from
               (default: '.')
 \n    TARGET  : location of repository / directory to push diffs to
@@ -195,6 +196,7 @@ fn_commits() {
   declare program_name
   declare vcs
   declare -a commits
+  declare dump; dump=0
   declare description
   declare name
   declare type
@@ -223,6 +225,9 @@ fn_commits() {
         "vcs"|"version-control-system")
           shift
           vcs="$(echo "$1" | sed -n '/^[^-]/{s/=\?//p;}')"
+          ;;
+        "d"|"dump")
+          dump=1
           ;;
       esac
     else
@@ -260,11 +265,13 @@ fn_commits() {
   program_name="${program_name:="$target"}"
   vcs="${vcs:="$(fn_repo_type "$source")"}"
 
+  if [ $dump -eq 0 ]; then
   # repo structure
   if [[ ! -e "$target"/fix ||
        ! -e "$target"/mod ||
        ! -e "$target"/hack ]]; then
     mkdir -p "$target"/{fix,mod,hack} 2>/dev/null
+  fi
   fi
 
   # identify commits
@@ -282,6 +289,13 @@ fn_commits() {
     description="${parts[2]}"
     name="$(fn_patch_name "$description")"
 
+    if [ $dump -eq 1 ]; then
+      target_fqn="$target_fq/$name"
+      target_fqn_="$(fn_next_file "$target_fqn" "_" "diff")"
+      [ "x$target_fqn_" != "x$target_fqn" ] && \
+        echo "[info] name clash for: '$target_fqn'"
+      fn_repo_pull "$source" "$id|$target_fqn_"
+    else
     # get patch type
     echo "# program: $program_name | patch: '$name'"
     res="$(fn_decision "[user] set patch type (f)ix/(m)od/(h)ack/e(x)it" "f|m|h|x")"
@@ -316,8 +330,9 @@ fn_commits() {
 
     # commit commands
     echo "commit: git add .; GIT_AUTHOR_DATE='$dt' GIT_COMMITTER_DATE='$dt' git commit"
+    fi
   done
-
+  [ $dump -eq 0 ] && \
   echo "# patches added to fix/mod/hack hierarchy at '$target'"
 }
 

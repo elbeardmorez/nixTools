@@ -97,6 +97,7 @@ with OPTION:
       -vcs|--version-control-system =VCS  :
         override default version control type for unknown targets
         (default: git)
+      -d|--dump  : dump patch set only
 
     SOURCE  : location of repository to extract/use patch set from
               (default: '.')
