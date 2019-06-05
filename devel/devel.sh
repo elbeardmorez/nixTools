@@ -240,6 +240,14 @@ fn_commits() {
 
   # validate args
   source="${source:="."}"
+  if [ ! -d "$source" ]; then
+    [ -z "$source" ] && \
+      echo "[error] missing '$source' directory, aborting" || \
+      echo "[error] invalid source directory '$source', aborting"
+    return 1
+  fi
+  fn_repo_type "$source" 1>/dev/null || \
+    { echo "[error] unknown vcs type for source directory '$source', aborting" && return 1; }
   target="${target:="."}"
   if [ ! -d "$target" ]; then
     if [ -z "$target" ]; then
