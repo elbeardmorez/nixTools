@@ -195,12 +195,16 @@ fn_commits() {
   declare -a filters
   declare program_name
   declare vcs
+  declare vcs_default; vcs_default="git"
   declare -a commits
   declare dump; dump=0
   declare description
   declare name
   declare type
   declare res
+
+  declare -A vcs_cmds_init
+  vcs_cmds_init["git"]="git init"
 
   # process args
   declare arg
@@ -264,8 +268,16 @@ fn_commits() {
   fi
   program_name="${program_name:="$target"}"
   vcs="${vcs:="$(fn_repo_type "$source")"}"
-
   if [ $dump -eq 0 ]; then
+    vcs="$(fn_repo_type "$target")"
+    if [ -z "$vcs" ]; then
+      fn_decision "[user] initialise "$vcs_default" repo at target directory '$target'?" 1>/dev/null || return 1
+      init="${vcs_cmds_init[$vcs]}"
+      [ -z "$init" ] && \
+        echo "[error] unsupported repository type, missing 'init' command" && return 1
+      (cd $target && $init)
+    fi
+
     # repo structure
     if [[ ! -e "$target"/fix ||
          ! -e "$target"/mod ||
