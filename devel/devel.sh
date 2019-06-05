@@ -334,23 +334,23 @@ fn_commits() {
       fn_repo_pull "$source" "$id|$target_fqn"
 
       if [ -n "$readme" ]; then
-      # append patch to repo readme
-      entry="$name [git sha:$id | $([ "x$type" = "xhack" ] && echo "unsubmitted" || echo "pending")]"
-      if [ -e $target_fq/$type/$readme ]; then
-        # search for existing program entry
-        if [ -z "$(sed -n '/^### '$program_name'$/p' "$target_fq/$type/$readme")" ]; then
-          echo -e "### $program_name\n-$entry\n" >> $target_fq/$type/$readme
+        # append patch to repo readme
+        entry="$name [git sha:$id | $([ "x$type" = "xhack" ] && echo "unsubmitted" || echo "pending")]"
+        if [ -e $target_fq/$type/$readme ]; then
+          # search for existing program entry
+          if [ -z "$(sed -n '/^### '$program_name'$/p' "$target_fq/$type/$readme")" ]; then
+            echo -e "### $program_name\n-$entry\n" >> $target_fq/$type/$readme
+          else
+            # insert entry
+            sed -n -i '/^### '$program_name'$/,/^$/{/^### '$program_name'$/{h;b};/^$/{x;s/\(.*\)/\1\n-'"$entry"'\n/p;b;}; H;$!b};${x;/^### '$program_name'/{s/\(.*\)/\1\n-'"$entry"'/p;b;};x;p;b;};p' "$target_fq/$type/$readme"
+          fi
         else
-          # insert entry
-          sed -n -i '/^### '$program_name'$/,/^$/{/^### '$program_name'$/{h;b};/^$/{x;s/\(.*\)/\1\n-'"$entry"'\n/p;b;}; H;$!b};${x;/^### '$program_name'/{s/\(.*\)/\1\n-'"$entry"'/p;b;};x;p;b;};p' "$target_fq/$type/$readme"
+          echo -e "\n### $program_name\n-$entry\n" >> "$target_fq/$type/$readme"
         fi
-      else
-        echo -e "\n### $program_name\n-$entry\n" >> "$target_fq/$type/$readme"
-      fi
-      # append patch details to program specific readme
-      comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$target_fq/$type/$program_name/$name")"
-      echo -e "\n# $entry" >> "$target_fq/$type/$program_name/$readme"
-      [ "x$comments" != "x" ] && echo "$comments" >> "$target_fq/$type/$program_name/$readme"
+        # append patch details to program specific readme
+        comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$target_fq/$type/$program_name/$name")"
+        echo -e "\n# $entry" >> "$target_fq/$type/$program_name/$readme"
+        [ "x$comments" != "x" ] && echo "$comments" >> "$target_fq/$type/$program_name/$readme"
       fi
 
       # commit commands
