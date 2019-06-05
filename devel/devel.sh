@@ -84,6 +84,9 @@ help() {
 \n    with OPTIONS in:
       -l|--limit [=LIMIT]  : limit number of patches to process to
                              LIMIT (default: 1)
+      -f|--filter [=]FILTER  : only use commits matching the (regex)
+                               expression FILTER. repeated filter args
+                               are supported
       -p|--program-name  : program name (default: target directory name)
       -vcs|--version-control-system =VCS  :
         override default version control type for unknown targets
@@ -147,7 +150,7 @@ fn_repo_search() {
         cmd_args[${#cmd_args[@]}]="-P"
         while [ -n "$1" ]; do
           search="$1" && shift
-          res="$res\n$(git log "${cmd_args}" --grep='$search')"
+          res="$res\n$(git log "${cmd_args}" --grep="$search")"
         done
       fi
       echo "$res"
@@ -186,7 +189,9 @@ fn_commits() {
 
   declare source
   declare target
-  declare limit
+  declare limit; limit=0  # unlimited
+  declare filter; filter=0
+  declare -a filters
   declare program_name
   declare vcs
   declare -a commits
@@ -205,6 +210,11 @@ fn_commits() {
           shift && s="$(echo "$1" | sed -n '/^[^-]/{s/=\?\([0-9]\+\)$/\1/p;}')"
           limit="${s:-1}"
           [ -z "$s" ] && continue  # no shift
+          ;;
+        "f"|"filter")
+          filter=1
+          shift
+          filters[${#filters[@]}]="$(echo "$1" | sed -n '/^[^-]/{s/=\?//p;}')"
           ;;
         "p|prog-name")
           shift
@@ -231,7 +241,14 @@ fn_commits() {
   # validate args
   source="${source:="."}"
   target="${target:="."}"
-  limit=${limit:-1}
+  if [ ! -d "$target" ]; then
+    if [ -z "$target" ]; then
+      echo "[error] missing '$target' directory, aborting" && return 1
+    else
+      fn_decision "[user] create target '$target'?" 1>/dev/null || return 1
+      mkdir -p "$target" || return 1
+    fi
+  fi
   program_name="${program_name:="$target"}"
   vcs="${vcs:="$(fn_repo_type "$source")"}"
 
@@ -243,7 +260,7 @@ fn_commits() {
   fi
 
   # identify commits
-  IFS=$'\n'; commits=($(fn_repo_search "$source" $limit)) || return 1; IFS="$IFSORG"
+  IFS=$'\n'; commits=($(fn_repo_search "$source" $limit "${filters[@]}")) || return 1; IFS="$IFSORG"
   echo "[info] ${#commits[@]} commit$([ ${#commits[@]} -ne 1 ] && echo "s") identified"
   [ ${#commits[@]} -eq 0 ] && return 1
 

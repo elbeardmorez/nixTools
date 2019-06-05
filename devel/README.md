@@ -90,6 +90,9 @@ with OPTION:
     with OPTIONS in:
       -l|--limit [=LIMIT]  : limit number of patches to process to
                              LIMIT (default: 1)
+      -f|--filter [=]FILTER  : only use commits matching the (regex)
+                               expression FILTER. repeated filter args
+                               are supported
       -p|--program-name  : program name (default: target directory name)
       -vcs|--version-control-system =VCS  :
         override default version control type for unknown targets
