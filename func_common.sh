@@ -522,3 +522,10 @@ fn_search_set() {
   # push
   for f in "${files[@]}"; do echo "$f"; done
 }
+
+fn_str_join() {
+  delim="$1" && shift
+  res=""
+  while [ -n "$1" ]; do res="$res$delim$1"; shift; done
+  echo "${res:${#delim}}"
+}
