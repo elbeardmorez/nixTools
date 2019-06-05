@@ -289,11 +289,11 @@ fn_commits() {
   [[ $repo_maps -eq 1 && ${#repo_map[@]} -eq 0 ]] && \
     repo_map=("$(basename "$(cd "$target" && pwd)")")
 
-  vcs="${vcs:="$(fn_repo_type "$source")"}"
+  vcs="${vcs:="$vcs_default"}"
   if [ $dump -eq 0 ]; then
-    vcs="$(fn_repo_type "$target")"
-    if [ -z "$vcs" ]; then
-      fn_decision "[user] initialise "$vcs_default" repo at target directory '$target'?" 1>/dev/null || return 1
+    vcs_="$(fn_repo_type "$target")"
+    if [ -z "$vcs_" ]; then
+      fn_decision "[user] initialise "$vcs" repo at target directory '$target'?" 1>/dev/null || return 1
       init="${vcs_cmds_init[$vcs]}"
       [ -z "$init" ] && \
         echo "[error] unsupported repository type, missing 'init' command" && return 1
