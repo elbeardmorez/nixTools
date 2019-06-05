@@ -92,6 +92,8 @@ help() {
         override default version control type for unknown targets
         (default: git)
       -d|--dump  : dump patch set only
+      -rn|--readme-name [=]NAME  : override default readme file name
+                                   (default: README.md)
 \n    SOURCE  : location of repository to extract/use patch set from
               (default: '.')
 \n    TARGET  : location of repository / directory to push diffs to
@@ -198,6 +200,7 @@ fn_commits() {
   declare vcs_default; vcs_default="git"
   declare -a commits
   declare dump; dump=0
+  declare readme; readme="README.md"
   declare description
   declare name
   declare type
@@ -232,6 +235,10 @@ fn_commits() {
           ;;
         "d"|"dump")
           dump=1
+          ;;
+        "rn"|"readme-name")
+          shift
+          readme="$(echo "$1" | sed -n '/^[^-]/{s/=\?//p;}')"
           ;;
       esac
     else
@@ -324,21 +331,21 @@ fn_commits() {
 
       # append patch to repo readme
       entry="$name [git sha:$id | $([ "x$type" = "xhack" ] && echo "unsubmitted" || echo "pending")]"
-      if [ -e $target_fq/$type/README ]; then
+      if [ -e $target_fq/$type/$readme ]; then
         # search for existing program entry
-        if [ -z "$(sed -n '/^### '$program_name'$/p' "$target_fq/$type/README")" ]; then
-          echo -e "### $program_name\n-$entry\n" >> $target_fq/$type/README
+        if [ -z "$(sed -n '/^### '$program_name'$/p' "$target_fq/$type/$readme")" ]; then
+          echo -e "### $program_name\n-$entry\n" >> $target_fq/$type/$readme
         else
           # insert entry
-          sed -n -i '/^### '$program_name'$/,/^$/{/^### '$program_name'$/{h;b};/^$/{x;s/\(.*\)/\1\n-'"$entry"'\n/p;b;}; H;$!b};${x;/^### '$program_name'/{s/\(.*\)/\1\n-'"$entry"'/p;b;};x;p;b;};p' "$target_fq/$type/README"
+          sed -n -i '/^### '$program_name'$/,/^$/{/^### '$program_name'$/{h;b};/^$/{x;s/\(.*\)/\1\n-'"$entry"'\n/p;b;}; H;$!b};${x;/^### '$program_name'/{s/\(.*\)/\1\n-'"$entry"'/p;b;};x;p;b;};p' "$target_fq/$type/$readme"
         fi
       else
-        echo -e "\n### $program_name\n-$entry\n" >> "$target_fq/$type/README"
+        echo -e "\n### $program_name\n-$entry\n" >> "$target_fq/$type/$readme"
       fi
       # append patch details to program specific readme
       comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$target_fq/$type/$program_name/$name")"
-      echo -e "\n# $entry" >> "$target_fq/$type/$program_name/README"
-      [ "x$comments" != "x" ] && echo "$comments" >> "$target_fq/$type/$program_name/README"
+      echo -e "\n# $entry" >> "$target_fq/$type/$program_name/$readme"
+      [ "x$comments" != "x" ] && echo "$comments" >> "$target_fq/$type/$program_name/$readme"
 
       # commit commands
       echo "commit: git add .; GIT_AUTHOR_DATE='$dt' GIT_COMMITTER_DATE='$dt' git commit"
