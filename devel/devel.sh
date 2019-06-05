@@ -87,7 +87,11 @@ help() {
       -f|--filter [=]FILTER  : only use commits matching the (regex)
                                expression FILTER. repeated filter args
                                are supported
-      -p|--program-name  : program name (default: target directory name)
+      -rm|--repo-map [=CATEGORY]  : push diffs to sub-directory based
+                                    upon the comma delimited CATEGORY
+                                    list, with each item corresponding
+                                    to a tier in the hierarchy
+                                    (default: target directory name)
       -vcs|--version-control-system =VCS  :
         override default version control type for unknown targets
         (default: git)
@@ -196,7 +200,9 @@ fn_commits() {
   declare limit; limit=0  # unlimited
   declare filter; filter=0
   declare -a filters
-  declare program_name
+  declare repo_maps; repo_maps=0
+  declare -a repo_map
+  declare repo_map_path; repo_map_path=""
   declare vcs
   declare vcs_default; vcs_default="git"
   declare -a commits
@@ -226,9 +232,11 @@ fn_commits() {
           shift
           filters[${#filters[@]}]="$(echo "$1" | sed -n '/^[^-]/{s/=\?//p;}')"
           ;;
-        "p|prog-name")
-          shift
-          program_name="$1"
+        "rm"|"repo-map")
+          repo_maps=1
+          shift && s="$(echo "$1" | sed -n '/^[^-]/{s/=\?//p;}')"
+          [ -z "$s" ] && continue  # no shift
+          IFS=","; repo_map=($(echo "$s")); IFS="$IFSORG"
           ;;
         "vcs"|"version-control-system")
           shift
@@ -277,7 +285,10 @@ fn_commits() {
       mkdir -p "$target" || return 1
     fi
   fi
-  program_name="${program_name:="$target"}"
+
+  [[ $repo_maps -eq 1 && ${#repo_map[@]} -eq 0 ]] && \
+    repo_map=("$(basename "$(cd "$target" && pwd)")")
+
   vcs="${vcs:="$(fn_repo_type "$source")"}"
   if [ $dump -eq 0 ]; then
     vcs="$(fn_repo_type "$target")"
@@ -295,6 +306,10 @@ fn_commits() {
          ! -e "$target"/hack ]]; then
       mkdir -p "$target"/{fix,mod,hack} 2>/dev/null
     fi
+
+    # repo map path
+    [ ${#repo_map[@]} -gt 0 ] && \
+      repo_map_path="$(fn_str_join "/" "${repo_map[@]}")"
   fi
 
   # identify commits
@@ -320,7 +335,7 @@ fn_commits() {
       fn_repo_pull "$source" "$id|$target_fqn_"
     else
       # get patch type
-      echo "# program: $program_name | patch: '$name'"
+      echo "# categories: ${repo_map[*]} | patch: '$name'"
       res="$(fn_decision "[user] set patch type (f)ix/(m)od/(h)ack/e(x)it" "f|m|h|x")"
       case "$res" in
         "f") type="fix" ;;
@@ -329,28 +344,31 @@ fn_commits() {
         "x") return 1 ;;
       esac
 
-      mkdir -p "$target_fq/$type/$program_name"
-      target_fqn="$target_fq/$type/$program_name/$name"
+      mkdir -p "$target_fq/$type/$repo_map_path"
+      target_fqn="$target_fq/$type/$repo_map_path/$name"
+      new=1
+      [ -e "$target_fqn" ] && new=0
       fn_repo_pull "$source" "$id|$target_fqn"
 
       if [ -n "$readme" ]; then
         # append patch to repo readme
         entry="$name [git sha:$id | $([ "x$type" = "xhack" ] && echo "unsubmitted" || echo "pending")]"
+        declare repo_map_; repo_map_="$(fn_escape "sed" "$(fn_str_join " | " "${repo_map[@]}")")"
         if [ -e $target_fq/$type/$readme ]; then
-          # search for existing program entry
-          if [ -z "$(sed -n '/^### '$program_name'$/p' "$target_fq/$type/$readme")" ]; then
-            echo -e "### $program_name\n-$entry\n" >> $target_fq/$type/$readme
+          # search for existing entry
+          if [ -z "$(sed -n '/^### '$repo_map_'$/p' "$target_fq/$type/$readme")" ]; then
+            echo -e "### $repo_map_\n-$entry\n" >> $target_fq/$type/$readme
           else
             # insert entry
-            sed -n -i '/^### '$program_name'$/,/^$/{/^### '$program_name'$/{h;b};/^$/{x;s/\(.*\)/\1\n-'"$entry"'\n/p;b;}; H;$!b};${x;/^### '$program_name'/{s/\(.*\)/\1\n-'"$entry"'/p;b;};x;p;b;};p' "$target_fq/$type/$readme"
+            sed -n -i '/^### '$repo_map_'$/,/^$/{/^### '$repo_map_'$/{h;b};/^$/{x;s/\(.*\)/\1\n-'"$entry"'\n/p;b;}; H;$!b};${x;/^### '$repo_map_'/{s/\(.*\)/\1\n-'"$entry"'/p;b;};x;p;b;};p' "$target_fq/$type/$readme"
           fi
         else
-          echo -e "\n### $program_name\n-$entry\n" >> "$target_fq/$type/$readme"
+          echo -e "\n### $repo_map_\n-$entry\n" >> "$target_fq/$type/$readme"
         fi
-        # append patch details to program specific readme
-        comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$target_fq/$type/$program_name/$name")"
-        echo -e "\n# $entry" >> "$target_fq/$type/$program_name/$readme"
-        [ "x$comments" != "x" ] && echo "$comments" >> "$target_fq/$type/$program_name/$readme"
+        # append patch details to category specific readme
+        comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$target_fq/$type/$repo_map_path/$name")"
+        echo -e "\n# $entry" >> "$target_fq/$type/$repo_map_path/$readme"
+        [ "x$comments" != "x" ] && echo "$comments" >> "$target_fq/$type/$repo_map_path/$readme"
       fi
 
       # commit commands

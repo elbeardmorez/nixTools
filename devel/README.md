@@ -93,7 +93,11 @@ with OPTION:
       -f|--filter [=]FILTER  : only use commits matching the (regex)
                                expression FILTER. repeated filter args
                                are supported
-      -p|--program-name  : program name (default: target directory name)
+      -rm|--repo-map [=CATEGORY]  : push diffs to sub-directory based
+                                    upon the comma delimited CATEGORY
+                                    list, with each item corresponding
+                                    to a tier in the hierarchy
+                                    (default: target directory name)
       -vcs|--version-control-system =VCS  :
         override default version control type for unknown targets
         (default: git)
