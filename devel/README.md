@@ -100,6 +100,7 @@ with OPTION:
       -d|--dump  : dump patch set only
       -rn|--readme-name [=]NAME  : override default readme file name
                                    (default: README.md)
+      -nr|--no-readme  : don't update target readme(s)
 
     SOURCE  : location of repository to extract/use patch set from
               (default: '.')

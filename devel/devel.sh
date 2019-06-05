@@ -94,6 +94,7 @@ help() {
       -d|--dump  : dump patch set only
       -rn|--readme-name [=]NAME  : override default readme file name
                                    (default: README.md)
+      -nr|--no-readme  : don't update target readme(s)
 \n    SOURCE  : location of repository to extract/use patch set from
               (default: '.')
 \n    TARGET  : location of repository / directory to push diffs to
@@ -240,6 +241,9 @@ fn_commits() {
           shift
           readme="$(echo "$1" | sed -n '/^[^-]/{s/=\?//p;}')"
           ;;
+        "nr"|"no-readme")
+          readme=""
+          ;;
       esac
     else
       if [ -z "$target" ]; then
@@ -329,6 +333,7 @@ fn_commits() {
       target_fqn="$target_fq/$type/$program_name/$name"
       fn_repo_pull "$source" "$id|$target_fqn"
 
+      if [ -n "$readme" ]; then
       # append patch to repo readme
       entry="$name [git sha:$id | $([ "x$type" = "xhack" ] && echo "unsubmitted" || echo "pending")]"
       if [ -e $target_fq/$type/$readme ]; then
@@ -346,6 +351,7 @@ fn_commits() {
       comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$target_fq/$type/$program_name/$name")"
       echo -e "\n# $entry" >> "$target_fq/$type/$program_name/$readme"
       [ "x$comments" != "x" ] && echo "$comments" >> "$target_fq/$type/$program_name/$readme"
+      fi
 
       # commit commands
       echo "commit: git add .; GIT_AUTHOR_DATE='$dt' GIT_COMMITTER_DATE='$dt' git commit"
