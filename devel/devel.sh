@@ -161,7 +161,7 @@ fn_repo_search() {
           res="$res\n$(git log "${cmd_args}" --grep="$search")"
         done
       fi
-      echo "$res"
+      echo "${res:2}"
       ;;
     *)
       echo "[user] vcs type: '$vcs' not implemented" && exit 1
