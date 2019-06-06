@@ -98,6 +98,10 @@ with OPTION:
                                     list, with each item corresponding
                                     to a tier in the hierarchy
                                     (default: target directory name)
+      -mrm|--multi-repo-map [=REPOS]  :
+        map diffs to repositories selected from the comma delimited
+        REPOS list
+        (default: fix,mod,hack)
       -vcs|--version-control-system =VCS  :
         override default version control type for unknown targets
         (default: git)

@@ -79,7 +79,7 @@ help() {
                                    (line containing %id)
                                    (default: '${changelog_profile_anchor_entry["default"]}')
 \n    TARGET:  location of repository to query for changes
-\n  -c|--commits  : process diffs into fix/mod/hack repo structure
+\n  -c|--commits  : process source diffs into a target repo
 \n    SYNTAX: $SCRIPTNAME commits [OPTIONS] [SOURCE] TARGET
 \n    with OPTIONS in:
       -l|--limit [=LIMIT]  : limit number of patches to process to
@@ -92,6 +92,10 @@ help() {
                                     list, with each item corresponding
                                     to a tier in the hierarchy
                                     (default: target directory name)
+      -mrm|--multi-repo-map [=REPOS]  :
+        map diffs to repositories selected from the comma delimited
+        REPOS list
+        (default: fix,mod,hack)
       -vcs|--version-control-system =VCS  :
         override default version control type for unknown targets
         (default: git)
@@ -203,6 +207,10 @@ fn_commits() {
   declare repo_maps; repo_maps=0
   declare -a repo_map
   declare repo_map_path; repo_map_path=""
+  declare multi_repo_maps; multi_repo_maps=0
+  declare -a multi_repo_map
+  declare multi_repo_map_default; multi_repo_map_default="fix,mod,hack"
+  declare repos
   declare vcs
   declare vcs_default; vcs_default="git"
   declare -a commits
@@ -237,6 +245,12 @@ fn_commits() {
           shift && s="$(echo "$1" | sed -n '/^[^-]/{s/=\?//p;}')"
           [ -z "$s" ] && continue  # no shift
           IFS=","; repo_map=($(echo "$s")); IFS="$IFSORG"
+          ;;
+        "mrm"|"multi-repo-map")
+          multi_repo_maps=1
+          shift && s="$(echo "$1" | sed -n '/^[^-]/{s/=\?//p;}')"
+          IFS=","; multi_repo_map=($(echo "${s:-$multi_repo_map_default}")); IFS="$IFSORG"
+          [ -z "$s" ] && continue  # no shift
           ;;
         "vcs"|"version-control-system")
           shift
@@ -291,21 +305,25 @@ fn_commits() {
 
   vcs="${vcs:="$vcs_default"}"
   if [ $dump -eq 0 ]; then
-    vcs_="$(fn_repo_type "$target")"
-    if [ -z "$vcs_" ]; then
-      fn_decision "[user] initialise "$vcs" repo at target directory '$target'?" 1>/dev/null || return 1
-      init="${vcs_cmds_init[$vcs]}"
-      [ -z "$init" ] && \
-        echo "[error] unsupported repository type, missing 'init' command" && return 1
-      (cd $target && $init)
-    fi
+    # repo(s) structure
+    declare vcs_
+    [ $multi_repo_maps -eq 0 ] && \
+      repos=("$target") || \
+      repos=("${multi_repo_map[@]}")
 
-    # repo structure
-    if [[ ! -e "$target"/fix ||
-         ! -e "$target"/mod ||
-         ! -e "$target"/hack ]]; then
-      mkdir -p "$target"/{fix,mod,hack} 2>/dev/null
-    fi
+    for repo in "${repos[@]}"; do
+      [ "x$(dirname "$repo")" = "x." ] && repo="$target/$repo"
+      [ $DEBUG -ge 1 ] && echo "[debug] initialising repo: $repo" 1>&2
+      vcs_="$(fn_repo_type "$repo")"
+      [ ! -d "$repo" ] && { mkdir -p "$repo" || return 1; }
+      if [ -z "$vcs_" ]; then
+        fn_decision "[user] initialise "$vcs" repo at target directory '$repo'?" 1>/dev/null || return 1
+        init="${vcs_cmds_init[$vcs]}"
+        [ -z "$init" ] && \
+          echo "[error] unsupported repository type, missing 'init' command" && return 1
+        (cd "$repo" && $init)
+      fi
+    done
 
     # repo map path
     [ ${#repo_map[@]} -gt 0 ] && \
@@ -336,15 +354,24 @@ fn_commits() {
     else
       # get patch type
       echo "# categories: ${repo_map[*]} | patch: '$name'"
-      res="$(fn_decision "[user] set patch type (f)ix/(m)od/(h)ack/e(x)it" "f|m|h|x")"
-      case "$res" in
-        "f") type="fix" ;;
-        "m") type="mod" ;;
-        "h") type="hack" ;;
-        "x") return 1 ;;
-      esac
-
+      type=""
+      if [ ${#repos[@]} -gt 1 ]; then
+        declare decision_opts; decision_opts="$(fn_decision_options "${repos[*]} exit" 1 "exit|x")"
+        declare opt_string; opt_string="${decision_opts%|*}"
+        declare opt_keys; opt_keys=($(echo "${decision_opts#*|}"))
+        declare opt_keys_; opt_keys_="$(fn_str_join "|" "${opt_keys[@]}")"
+        res="$(fn_decision "[user] set patch type. $opt_string" "$opt_keys_")"
+        [ "x$res" = "xx" ] && return 1
+        declare idx; idx=0
+        for k in ${opt_keys[@]}; do
+          [ "x$res" = "x$k" ] && break
+          idx=$(($idx + 1))
+        done
+        type="${repos[$idx]}"
+      fi
       mkdir -p "$target_fq/$type/$repo_map_path"
+
+      # pull patch
       target_fqn="$target_fq/$type/$repo_map_path/$name"
       new=1
       [ -e "$target_fqn" ] && new=0
@@ -376,7 +403,7 @@ fn_commits() {
     fi
   done
   [ $dump -eq 0 ] && \
-    echo "# patches added to fix/mod/hack hierarchy at '$target'"
+    echo "# patches added to repo$([ ${#repos[@]} -eq 1 ] && echo "s") at '$target'"
 }
 
 fn_changelog() {
