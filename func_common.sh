@@ -206,7 +206,7 @@ fn_decision() {
     question="$1" && shift
     echo -En "$question" 1>&2
   fi
-  optdelim="/|,"
+  optdelim="/|, "
   soptions="${1:-y/n}"
   if [ $# -gt 1 ]; then
     while [ -n "$1" ]; do
@@ -222,9 +222,9 @@ fn_decision() {
   fi
   optshow=${optshow:-1}
   optecho=${optecho:-1}
-  if [ -n "$(echo "$soptions" | sed -n '/['$optdelim']/p')" ]; then
+  if [ -n "$(echo "$soptions" | sed -n '/['"$optdelim"']/p')" ]; then
     [ ${#optdelim} -ne 1 ] &&\
-      optdelim="$(echo "$soptions" | sed -n 's/.*\(['$optdelim']\).*/\1/p')"
+      optdelim="$(echo "$soptions" | sed -n 's/.*\(['"$optdelim"']\).*/\1/p')"
   else
     soptions="$(echo "$soptions" | sed 's/\(.\)/\/\1/g;s/^\///')"
     optdelim='/'
