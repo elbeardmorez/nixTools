@@ -319,6 +319,54 @@ fn_decision() {
   [ "x$r" = "xy" ] && return 0 || return 1
 }
 
+fn_decision_options() {
+  declare -a options; IFS=", "; options=($(echo "$1")); IFS="$IFSORG"; shift
+  declare -A map_string
+  declare -A map_key
+  declare -A keys
+  declare opt
+  declare key
+  if [ $# -gt 0 ]; then
+    # assign map overrides
+    while [ -n "$1" ]; do
+      opt="${1%|*}"
+      key="${1#*|}"
+      map_string["$opt"]="$(echo "$opt" | sed 's/'"$key"'/('"$key"')/')"
+      map_key["$opt"]="$key"
+      keys["$key"]=1
+      shift
+    done
+  fi
+
+  declare l; l=0
+  declare last; last=0
+  while [ ${#map_key[@]} -lt ${#options[@]} ]; do
+    for opt in "${options[@]}"; do
+      key=${opt:$l:1}
+      [ -n "${map_key["$opt"]}" ] && continue
+      if [ $l = ${#opt} ]; then
+        # map numeric
+        last=$(($last + 1))
+        map_string["$opt"]="($last)$opt"
+        map_key["$opt"]=$last
+      elif [ -z "${keys["$key"]}" ]; then
+        # mappable key
+        keys["$key"]=1
+        map_string["$opt"]="$(echo "$opt" | sed 's/'"$key"'/('"$key"')/')"
+        map_key["$opt"]="$key"
+      fi
+    done
+    l=$((l + 1))
+  done
+  declare res_strings=""
+  declare res_keys=""
+  for opt in "${options[@]}"; do
+    res_strings="$res_strings ${map_string["$opt"]}"
+    res_keys="$res_keys ${map_key["$opt"]}"
+  done
+  echo "${res_strings:1}|${res_keys:1}"
+}
+
 fn_next_file() {
   file="$1"
   delim="${2:-"_"}"
