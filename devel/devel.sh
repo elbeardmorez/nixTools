@@ -158,7 +158,7 @@ fn_repo_search() {
         cmd_args[${#cmd_args[@]}]="-P"
         while [ -n "$1" ]; do
           search="$1" && shift
-          res="$res\n$(git log "${cmd_args}" --grep="$search")"
+          res="$res\n$(git log "${cmd_args[@]}" --grep="$search")"
         done
       fi
       echo "${res:2}"
