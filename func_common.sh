@@ -326,6 +326,9 @@ fn_decision_options() {
   declare -A keys
   declare opt
   declare key
+  declare format_string; format_string=0
+  [[ $# -gt 0 && -n "$(echo "$1" | sed -n '/^[0-1]$/p')" ]] && \
+    format_string=1 && shift
   if [ $# -gt 0 ]; then
     # assign map overrides
     while [ -n "$1" ]; do
@@ -360,9 +363,21 @@ fn_decision_options() {
   done
   declare res_strings=""
   declare res_keys=""
+  l=1
   for opt in "${options[@]}"; do
-    res_strings="$res_strings ${map_string["$opt"]}"
+    if [ $format_string -eq 1 ]; then
+      if [ $l -eq 1 ]; then
+        res_strings=" ${map_string["$opt"]}"
+      elif [ $l -eq ${#options[@]} ]; then
+        res_strings="$res_strings or ${map_string["$opt"]}"
+      else
+        res_strings="$res_strings, ${map_string["$opt"]}"
+      fi
+    else
+      res_strings="$res_strings ${map_string["$opt"]}"
+    fi
     res_keys="$res_keys ${map_key["$opt"]}"
+    l=$((l + 1))
   done
   echo "${res_strings:1}|${res_keys:1}"
 }
