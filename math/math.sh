@@ -12,6 +12,7 @@ lt="define lt(x,y) { if(x<y) return 1 else return -1}; scale=0"
 le="define le(x,y) { if(x<=y) return 1 else return -1}; scale=0"
 max="define max(x,y) { if(x>y) return x else return y}; scale=0"
 min="define min(x,y) { if(x<y) return x else return y}; scale=0"
+factorial="define factorial(n) { if (n == 0) return(1); return(n * factorial(n - 1)); }"
 
 #params
 DEBUG=0
