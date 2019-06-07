@@ -106,8 +106,11 @@ help() {
                                        to the readme entry
                                        (default: pending)
       -nr|--no-readme  : don't update target readme(s)
-      -ac|--auto-commit  : attempt to commit to target repo(s) non-
-                           interactively
+      -ac|--auto-commit [=MODE]  : attempt to commit to target repo(s)
+                                   non-interactively
+\n        with MODE:
+          auto  : commit set unconditionally (default)
+          verify  : require user verification prior to execution
 \n    SOURCE  : location of repository to extract/use patch set from
               (default: '.')
 \n    TARGET  : location of repository / directory to push diffs to
@@ -223,7 +226,7 @@ fn_commits() {
   declare readme; readme="README.md"
   declare readme_status; readme_status=""
   declare readme_status_default; readme_status_default="pending"
-  declare auto_commit; auto_commit=0
+  declare auto_commit
   declare description
   declare name
   declare type
@@ -280,7 +283,10 @@ fn_commits() {
           readme=""
           ;;
         "ac"|"auto-commit")
-          auto_commit=1
+          auto_commit="auto"
+          shift && s="$(echo "$1" | sed -n '/^[^-]/{s/=\?\(auto\|verify\)/\1/p;}')"
+          [ -z "$s" ] && continue  # no shift
+          auto_commit="$s"
           ;;
       esac
     else
@@ -424,8 +430,11 @@ fn_commits() {
       # commit
       echo "[info] commit set:"
       for f in "${commit_set[@]}"; do echo "$f"; done
-      if [ $auto_commit -eq 1 ]; then
+      if [ -n "$auto_commit" ]; then
         cd "$target_fq/$type" 1>/dev/null
+        if [ "x$auto_commit" = "xverify" ]; then
+          fn_decision "[user] authored: $(date -d "@$dt" "+%d %b %Y %T %Z"), commit set?" 1>/dev/null || return 1
+        fi
         for f in "${commit_set[@]}"; do
           f_=".$(echo "$f" | sed 's|^'"$target_fq/$type"'||')"
           git add "$f_" || return 1

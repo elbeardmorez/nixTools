@@ -112,8 +112,12 @@ with OPTION:
                                        to the readme entry
                                        (default: pending)
       -nr|--no-readme  : don't update target readme(s)
-      -ac|--auto-commit  : attempt to commit to target repo(s) non-
-                           interactively
+      -ac|--auto-commit [=MODE]  : attempt to commit to target repo(s)
+                                   non-interactively
+
+        with MODE:
+          auto  : commit set unconditionally (default)
+          verify  : require user verification prior to execution
 
     SOURCE  : location of repository to extract/use patch set from
               (default: '.')
