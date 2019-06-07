@@ -112,6 +112,8 @@ with OPTION:
                                        to the readme entry
                                        (default: pending)
       -nr|--no-readme  : don't update target readme(s)
+      -ac|--auto-commit  : attempt to commit to target repo(s) non-
+                           interactively
 
     SOURCE  : location of repository to extract/use patch set from
               (default: '.')

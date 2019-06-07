@@ -106,6 +106,8 @@ help() {
                                        to the readme entry
                                        (default: pending)
       -nr|--no-readme  : don't update target readme(s)
+      -ac|--auto-commit  : attempt to commit to target repo(s) non-
+                           interactively
 \n    SOURCE  : location of repository to extract/use patch set from
               (default: '.')
 \n    TARGET  : location of repository / directory to push diffs to
@@ -221,6 +223,7 @@ fn_commits() {
   declare readme; readme="README.md"
   declare readme_status; readme_status=""
   declare readme_status_default; readme_status_default="pending"
+  declare auto_commit; auto_commit=0
   declare description
   declare name
   declare type
@@ -275,6 +278,9 @@ fn_commits() {
           ;;
         "nr"|"no-readme")
           readme=""
+          ;;
+        "ac"|"auto-commit")
+          auto_commit=1
           ;;
       esac
     else
@@ -349,6 +355,8 @@ fn_commits() {
   declare -a parts
   declare target_fq; target_fq="$(cd "$target" && pwd)"
   declare entry
+  declare -a commit_set
+  declare new
   for s in "${commits[@]}"; do
     IFS="|"; parts=($(echo "$s")); IFS="$IFSORG"
     dt="${parts[0]}"
@@ -387,6 +395,7 @@ fn_commits() {
       new=1
       [ -e "$target_fqn" ] && new=0
       fn_repo_pull "$source" "$id|$target_fqn"
+      commit_set=("$target_fqn")
 
       if [ -n "$readme" ]; then
         # append patch to repo readme
@@ -403,14 +412,29 @@ fn_commits() {
         else
           echo -e "\n### $repo_map_\n-$entry\n" >> "$target_fq/$type/$readme"
         fi
+        commit_set[${#commit_set[@]}]="$target_fq/$type/$readme"
+
         # append patch details to category specific readme
         comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$target_fq/$type/$repo_map_path/$name")"
         echo -e "\n# $entry" >> "$target_fq/$type/$repo_map_path/$readme"
         [ "x$comments" != "x" ] && echo "$comments" >> "$target_fq/$type/$repo_map_path/$readme"
+        commit_set[${#commit_set[@]}]="$target_fq/$type/$repo_map_path/$readme"
       fi
 
-      # commit commands
-      echo "commit: git add .; GIT_AUTHOR_DATE='$dt' GIT_COMMITTER_DATE='$dt' git commit"
+      # commit
+      echo "[info] commit set:"
+      for f in "${commit_set[@]}"; do echo "$f"; done
+      if [ $auto_commit -eq 1 ]; then
+        cd "$target_fq/$type" 1>/dev/null
+        for f in "${commit_set[@]}"; do
+          f_=".$(echo "$f" | sed 's|^'"$target_fq/$type"'||')"
+          git add "$f_" || return 1
+        done
+        declare commit_message
+        commit_message="[$([ $new -eq 1 ] && echo "add" || echo "mod")] $description"
+        GIT_AUTHOR_DATE="$dt" GIT_COMMITTER_DATE="$dt" git commit -m "$commit_message"
+        cd - 1>/dev/null
+      fi
     fi
   done
   [ $dump -eq 0 ] && \
