@@ -102,6 +102,9 @@ help() {
       -d|--dump  : dump patch set only
       -rn|--readme-name [=]NAME  : override default readme file name
                                    (default: README.md)
+      -rs|--readme-status [=STATUS]  : append a commit status string
+                                       to the readme entry
+                                       (default: pending)
       -nr|--no-readme  : don't update target readme(s)
 \n    SOURCE  : location of repository to extract/use patch set from
               (default: '.')
@@ -216,6 +219,8 @@ fn_commits() {
   declare -a commits
   declare dump; dump=0
   declare readme; readme="README.md"
+  declare readme_status; readme_status=""
+  declare readme_status_default; readme_status_default="pending"
   declare description
   declare name
   declare type
@@ -262,6 +267,11 @@ fn_commits() {
         "rn"|"readme-name")
           shift
           readme="$(echo "$1" | sed -n '/^[^-]/{s/=\?//p;}')"
+          ;;
+        "rs"|"readme-status")
+          shift && s="$(echo "$1" | sed -n '/^[^-]/{s/=\?//p;}')"
+          readme="${s:-$readme_status_default}"
+          [ -z "$s" ] && continue  # no shift
           ;;
         "nr"|"no-readme")
           readme=""
@@ -338,6 +348,7 @@ fn_commits() {
   # process commits
   declare -a parts
   declare target_fq; target_fq="$(cd "$target" && pwd)"
+  declare entry
   for s in "${commits[@]}"; do
     IFS="|"; parts=($(echo "$s")); IFS="$IFSORG"
     dt="${parts[0]}"
@@ -379,7 +390,7 @@ fn_commits() {
 
       if [ -n "$readme" ]; then
         # append patch to repo readme
-        entry="$name [git sha:$id | $([ "x$type" = "xhack" ] && echo "unsubmitted" || echo "pending")]"
+        entry="$name [git sha:$id$([ -n "$readme_status" ] && echo " | $readme_status")]"
         declare repo_map_; repo_map_="$(fn_escape "sed" "$(fn_str_join " | " "${repo_map[@]}")")"
         if [ -e $target_fq/$type/$readme ]; then
           # search for existing entry
