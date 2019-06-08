@@ -173,7 +173,7 @@ fn_repo_search() {
           res="$res\n$(git log "${cmd_args[@]}" --grep="$search")"
         done
       fi
-      echo "${res:2}"
+      echo -e "${res:2}" | tac
       ;;
     *)
       echo "[user] vcs type: '$vcs' not implemented" && exit 1
@@ -354,6 +354,7 @@ fn_commits() {
 
   # identify commits
   IFS=$'\n'; commits=($(fn_repo_search "$source" $limit "${filters[@]}")) || return 1; IFS="$IFSORG"
+  [ $DEBUG -ge 1 ] && echo "[debug] commits:" && { for c in "${commits[@]}"; do echo "$c"; done; }
   echo "[info] ${#commits[@]} commit$([ ${#commits[@]} -ne 1 ] && echo "s") identified"
   [ ${#commits[@]} -eq 0 ] && return 1
 

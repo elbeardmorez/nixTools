@@ -201,5 +201,5 @@ with OPTION:
 ## dependencies
 - procps-ng (pgrep, pidof)
 - which (which)
-- GNU coreutils (head, tail)
+- GNU coreutils (head, tail, tac)
 - GNU indent (indent)
