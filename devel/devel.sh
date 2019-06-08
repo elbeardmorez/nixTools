@@ -121,7 +121,7 @@ fn_repo_type() {
   declare vcs=""
   declare target="$1"
   [ ! -d "$target" ] && \
-    echo "[error] invalid vcs root '$target'" && return 1
+    { echo "[error] invalid vcs root '$target'" 1>&2 && return 1; }
   if [ -d "$target/.git" ]; then vcs="git"
   elif [ -d "$target/.svn" ]; then vcs="subversion"
   elif [ -d "$target/.bzr" ]; then vcs="bazaar"
