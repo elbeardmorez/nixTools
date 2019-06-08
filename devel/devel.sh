@@ -361,7 +361,10 @@ fn_commits() {
   # process commits
   declare -a parts
   declare target_fq; target_fq="$(cd "$target" && pwd)"
-  declare entry
+  declare entry_description
+  declare entry_ref
+  declare entry_ref2
+  declare f_readme
   declare -a commit_set
   declare new
   for s in "${commits[@]}"; do
@@ -406,26 +409,30 @@ fn_commits() {
 
       if [ -n "$readme" ]; then
         # append patch to repo readme
-        entry="$name [git sha:$id$([ -n "$readme_status" ] && echo " | $readme_status")]"
+        f_readme="$target_fq/$type/$readme"
+        entry_description="$description"
+        entry_ref="[git sha:${id:0:9}]"
+        entry_ref2="[git sha:$id$([ -n "$readme_status" ] && echo " | $readme_status")]"
         declare repo_map_; repo_map_="$(fn_escape "sed" "$(fn_str_join " | " "${repo_map[@]}")")"
-        if [ -e $target_fq/$type/$readme ]; then
-          # search for existing entry
-          if [ -z "$(sed -n '/^### '"$repo_map_"'$/p' "$target_fq/$type/$readme")" ]; then
-            echo -e "### $repo_map_\n-$entry\n" >> $target_fq/$type/$readme
-          else
-            # insert entry
-            sed -n -i '/^### '"$repo_map_"'$/,/^$/{/^### '$repo_map_'$/{h;b};/^$/{x;s/\(.*\)/\1\n-'"$entry"'\n/p;b;}; H;$!b};${x;/^### '"$repo_map_"'/{s/\(.*\)/\1\n-'"$entry"'/p;b;};x;p;b;};p' "$target_fq/$type/$readme"
-          fi
+        [ ! -e "$f_readme" ] && \
+          echo -e "### $type" >> "$f_readme"
+        # search for existing entry
+        if [ -z "$(sed -n '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/p' "$f_readme")" ]; then
+          # add entry
+          echo -e "\n#### [$repo_map_]($repo_map_)\n"'```'"\n$entry_description $entry_ref\n"'```' >> "$f_readme"
         else
-          echo -e "\n### $repo_map_\n-$entry\n" >> "$target_fq/$type/$readme"
+          # insert entry
+          sed -n -i '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/,/^$/{/^#### \['"$repo_map_"'\]('"$repo_map_"')$/{N;h;b};/^```$/{x;s/\(.*\)/\1\n'"$entry_description $entry_ref"'\n```/p;b;}; H;$!b};${x;/^#### ['"$repo_map_"'\]('"$repo_map_"')/{s/\(.*\)/\1\n'"$entry_description $entry_ref"'/p;b;};x;p;b;};p' "$f_readme"
         fi
-        commit_set[${#commit_set[@]}]="$target_fq/$type/$readme"
+        commit_set[${#commit_set[@]}]="$f_readme"
 
         # append patch details to category specific readme
+        f_readme="$target_fq/$type/$repo_map_path/$readme"
+        [ ! -e "$f_readme" ] && \
+          echo "### $repo_map_" >> "$f_readme"
         comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$target_fq/$type/$repo_map_path/$name")"
-        echo -e "\n# $entry" >> "$target_fq/$type/$repo_map_path/$readme"
-        [ "x$comments" != "x" ] && echo "$comments" >> "$target_fq/$type/$repo_map_path/$readme"
-        commit_set[${#commit_set[@]}]="$target_fq/$type/$repo_map_path/$readme"
+        echo -e "\n##### $entry_description\n###### $entry_ref2$([ -n "$comments" ] && echo "\n"'```'"\n$comments\n"'```')" >> "$f_readme"
+        commit_set[${#commit_set[@]}]="$f_readme"
       fi
 
       # commit
