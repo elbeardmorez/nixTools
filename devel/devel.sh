@@ -336,8 +336,8 @@ fn_commits() {
     for repo in "${repos[@]}"; do
       [ "x$(dirname "$repo")" = "x." ] && repo="$target/$repo"
       [ $DEBUG -ge 1 ] && echo "[debug] initialising repo: $repo" 1>&2
-      vcs_="$(fn_repo_type "$repo")"
       [ ! -d "$repo" ] && { mkdir -p "$repo" || return 1; }
+      vcs_="$(fn_repo_type "$repo")"
       if [ -z "$vcs_" ]; then
         fn_decision "[user] initialise "$vcs" repo at target directory '$repo'?" 1>/dev/null || return 1
         init="${vcs_cmds_init[$vcs]}"
