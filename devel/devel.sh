@@ -447,7 +447,7 @@ fn_commits() {
     fi
   done
   [ $dump -eq 0 ] && \
-    echo "# patches added to repo$([ ${#repos[@]} -eq 1 ] && echo "s") at '$target'"
+    echo "# patches added to $([ ${#repos[@]} -eq 1 ] && echo "repo" || echo "'$(fn_str_join "/" "${repos[@]}")' repos") at '$target'$([ -n "$repo_map_path" ] && echo " under '$repo_map_path' hierarchy")"
 }
 
 fn_changelog() {
