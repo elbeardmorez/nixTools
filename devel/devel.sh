@@ -410,11 +410,11 @@ fn_commits() {
         declare repo_map_; repo_map_="$(fn_escape "sed" "$(fn_str_join " | " "${repo_map[@]}")")"
         if [ -e $target_fq/$type/$readme ]; then
           # search for existing entry
-          if [ -z "$(sed -n '/^### '$repo_map_'$/p' "$target_fq/$type/$readme")" ]; then
+          if [ -z "$(sed -n '/^### '"$repo_map_"'$/p' "$target_fq/$type/$readme")" ]; then
             echo -e "### $repo_map_\n-$entry\n" >> $target_fq/$type/$readme
           else
             # insert entry
-            sed -n -i '/^### '$repo_map_'$/,/^$/{/^### '$repo_map_'$/{h;b};/^$/{x;s/\(.*\)/\1\n-'"$entry"'\n/p;b;}; H;$!b};${x;/^### '$repo_map_'/{s/\(.*\)/\1\n-'"$entry"'/p;b;};x;p;b;};p' "$target_fq/$type/$readme"
+            sed -n -i '/^### '"$repo_map_"'$/,/^$/{/^### '$repo_map_'$/{h;b};/^$/{x;s/\(.*\)/\1\n-'"$entry"'\n/p;b;}; H;$!b};${x;/^### '"$repo_map_"'/{s/\(.*\)/\1\n-'"$entry"'/p;b;};x;p;b;};p' "$target_fq/$type/$readme"
           fi
         else
           echo -e "\n### $repo_map_\n-$entry\n" >> "$target_fq/$type/$readme"
