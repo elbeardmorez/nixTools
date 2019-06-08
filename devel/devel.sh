@@ -407,13 +407,13 @@ fn_commits() {
       fn_repo_pull "$source" "$id|$target_fqn"
       commit_set=("$target_fqn")
 
+      declare repo_map_; repo_map_="$(fn_escape "sed" "$(fn_str_join " | " "${repo_map[@]}")")"
       if [ -n "$readme" ]; then
         # append patch to repo readme
         f_readme="$target_fq/$type/$readme"
         entry_description="$description"
         entry_ref="[git sha:${id:0:9}]"
         entry_ref2="[git sha:$id$([ -n "$readme_status" ] && echo " | $readme_status")]"
-        declare repo_map_; repo_map_="$(fn_escape "sed" "$(fn_str_join " | " "${repo_map[@]}")")"
         [ ! -e "$f_readme" ] && \
           echo -e "### $type" >> "$f_readme"
         # search for existing entry
@@ -448,7 +448,7 @@ fn_commits() {
           git add "$f_" || return 1
         done
         declare commit_message
-        commit_message="[$([ $new -eq 1 ] && echo "add" || echo "mod")] $description"
+        commit_message="[$([ $new -eq 1 ] && echo "add" || echo "mod")] $repo_map_, $(echo $description | sed 's/^\[\([^]]*\)\]/\1,/')"
         GIT_AUTHOR_DATE="$dt" GIT_COMMITTER_DATE="$dt" git commit -m "$commit_message"
         cd - 1>/dev/null
       fi
