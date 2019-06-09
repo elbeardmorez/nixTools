@@ -16,7 +16,7 @@ factorial="define factorial(n) { if (n == 0) return(1); return(n * factorial(n -
 
 # params
 DEBUG=0
-[ $# -gt 0 ] && [ "x$1" == "xdebug" ] && DEBUG=1 && shift
+[ $# -gt 0 ] && [ "x$1" = "xdebug" ] && DEBUG=1 && shift
 [ ! $# -gt 0 ] && echo error: not enough args && exit 1
 funcs=
 
@@ -24,12 +24,12 @@ funcs=
 #echo "16 i 2 o C2 p" | dc
 #echo "ibase=16; obase=2; C2" | bc
 base=
-[ $# -gt 0 ] && [ "x$1" == "xh2b" ] && base="obase=2; ibase=16" && shift && scale="" && bCase=1
-[ $# -gt 0 ] && [ "x$1" == "xb2h" ] && base="obase=16; ibase=2" && shift && scale=""
-[ $# -gt 0 ] && [ "x$1" == "xh2d" ] && base="ibase=16" && shift && scale="" && bCase=1
-[ $# -gt 0 ] && [ "x$1" == "xd2h" ] && base="obase=16" && shift && scale=""
-[ $# -gt 0 ] && [ "x$1" == "xd2b" ] && base="obase=2" && shift && scale=""
-[ $# -gt 0 ] && [ "x$1" == "xb2d" ] && base="ibase=2" && shift && scale=""
+[ $# -gt 0 ] && [ "x$1" = "xh2b" ] && base="obase=2; ibase=16" && shift && scale="" && bCase=1
+[ $# -gt 0 ] && [ "x$1" = "xb2h" ] && base="obase=16; ibase=2" && shift && scale=""
+[ $# -gt 0 ] && [ "x$1" = "xh2d" ] && base="ibase=16" && shift && scale="" && bCase=1
+[ $# -gt 0 ] && [ "x$1" = "xd2h" ] && base="obase=16" && shift && scale=""
+[ $# -gt 0 ] && [ "x$1" = "xd2b" ] && base="obase=2" && shift && scale=""
+[ $# -gt 0 ] && [ "x$1" = "xb2d" ] && base="ibase=2" && shift && scale=""
 
 # parse expression for bash variables. don't attempt global variable
 # replacement, functions yes
@@ -51,7 +51,7 @@ shift
 [ $# -gt 0 ] && scale=$1 && shift
 
 unit=$(echo "$exp" | sed -n 's/.*\(£\|\$\|k\).*/\1/p')
-if [ ! "$unit" == "x" ]; then exp=$(echo "$exp" | sed 's/\(\\£\|\\\$\|\\k\)//g' | sed 's/\(£\|\$\|k\)//g'); fi
+if [ ! "$unit" = "x" ]; then exp=$(echo "$exp" | sed 's/\(\\£\|\\\$\|\\k\)//g' | sed 's/\(£\|\$\|k\)//g'); fi
 [[ -n "$bCase" && $bCase -eq 1 ]] && exp="$(echo "$exp" | awk '{print toupper($0);}')"
 
 # add required function definitions
