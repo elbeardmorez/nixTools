@@ -1,6 +1,7 @@
 #!/bin/sh
 
 SCRIPTNAME=${0##*/}
+DEBUG=${DEBUG:-0}
 
 # constants
 pi=$(echo "scale=10; 4*a(1)" | bc -l)
@@ -15,8 +16,6 @@ min="define min(x,y) { if(x<y) return x else return y}; scale=0"
 factorial="define factorial(n) { if (n == 0) return(1); return(n * factorial(n - 1)); }"
 
 # params
-DEBUG=0
-[ $# -gt 0 ] && [ "x$1" = "xdebug" ] && DEBUG=1 && shift
 [ ! $# -gt 0 ] && echo error: not enough args && exit 1
 funcs=
 
