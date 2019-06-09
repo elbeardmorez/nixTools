@@ -15,6 +15,82 @@ max="define max(x,y) { if(x>y) return x else return y}; scale=0"
 min="define min(x,y) { if(x<y) return x else return y}; scale=0"
 factorial="define factorial(n) { if (n == 0) return(1); return(n * factorial(n - 1)); }"
 
+fn_search() {
+  data="$1" && shift
+  search="$1" && shift
+  direction=${1:-1}
+  echo "$data" | awk -vsearch="$search" -vdirection=$direction '{ idx=index($0, search); if (idx > 0 && direction == -1) idx += length(search) - 1; print idx; }'
+}
+
+fn_next_block() {
+  data="$1" && shift
+  start=$1 && shift
+  direction=$1
+  echo "$data" | awk -vstep=$direction -vstart=$start '
+BEGIN {
+  count=0; mode=-1; idx = -1; idx2 = -1;
+  limit = length($0); if (step == -1) { limit = 0; }
+}
+{
+  l = start;
+  while (l != limit) {
+    c = substr($0, l, 1);
+    if (mode == -1) {
+      if (c == " ") {
+        continue;
+      } else if (c == ")" || c == "(") {
+        mode = 2; count++;
+      } else {
+        mode = 1;
+      }
+    } else {
+      if (mode == 2) {
+        if (c == ")" || c == "(") {
+          if ((c == ")" && step == 1) ||
+              (c == "(" && step == -1))
+               count--;
+          else if ((c == ")" && step == -1) ||
+              (c == "(" && step == 1))
+               count++;
+        }
+        if (count == 0) { idx = l + step; break; }
+      }
+      else if (mode == 1) {
+        if (c ~ /[-+ ]/) { idx = l; break; }
+      }
+    }
+    '"$([ $DEBUG -ge 5 ] && \
+      echo "print(\"[debug] considered: \"c\", nest:\"count) > \"/dev/stderr\";")"'
+    l += step;
+  }
+  print idx;
+}'
+}
+
+fn_wrap() {
+  declare exp; exp="$1" && shift
+  declare target; target="$1" && shift
+  declare replace; replace="$1" && shift
+  declare direction; direction=${1:-1}  # from left or from right, suffix vs prefix
+
+  declare idx; idx="$(fn_search "$exp" "$target" $direction)"
+  declare idx2
+  while [ $idx -gt 0 ]; do
+    idx2=$(fn_next_block "$exp" $((idx + direction * ${#target})) $direction)
+    exp="$(echo "$exp" | awk -vtarget="$target" -vreplace="$replace" -vdirection=$direction -vidx=$idx -vidx2=$idx2 '
+{
+  if (direction == -1) {
+    idx_=idx2; idx2=idx; idx=idx_
+    print(substr($0, 0, idx)"$factorial("substr($0, idx + 1, idx2 - (idx + length(target)))")"substr($0, idx2 + 1));
+  } else {
+    print(substr($0, 0, idx - 1)"$factorial("substr($0, (idx + length(target)), idx2 - (idx + length(target)))")"substr($0, idx2));
+  }
+}')"
+    idx="$(fn_search "$exp" "$target")"
+  done
+  echo "$exp"
+}
+
 # process args
 declare exp
 declare funcs
@@ -42,6 +118,11 @@ exp="$1" && shift
 
 # scale
 [ $# -gt 0 ] && scale=$1 && shift
+
+# operators
+## factorial
+exp="$(fn_wrap "$exp" "!" "\$factorial" -1)"
+[ $DEBUG -ge 1 ] && echo "[debug] post operators | exp: '$exp'"
 
 # parse expression for functions and shell variables
 l=1
