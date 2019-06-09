@@ -52,7 +52,7 @@ shift
 
 unit=$(echo "$exp" | sed -n 's/.*\(£\|\$\|k\).*/\1/p')
 if [ ! "$unit" == "x" ]; then exp=$(echo "$exp" | sed 's/\(\\£\|\\\$\|\\k\)//g' | sed 's/\(£\|\$\|k\)//g'); fi
-[ $bCase ] && exp="$(echo "$exp" | awk '{print toupper($0);}')"
+[[ -n "$bCase" && $bCase -eq 1 ]] && exp="$(echo "$exp" | awk '{print toupper($0);}')"
 
 # add required function definitions
 [ "$funcs" ] && exp="$funcs; $exp"
@@ -72,4 +72,4 @@ scale2="$(echo "$exp" | sed -n 's|^.*scale=\([0-9]\+\).*$|\1|p')"
 # log
 [ $DEBUG -gt 0 ] && echo "[debug] scale: '$scale', exp: '$exp', unit: '$unit'"
 
-[ $scale ] && echo $unit$(echo "scale=${scale:-2};$res/1" | bc) || echo "$res"
+[ -n "$scale" ] && echo $unit$(echo "scale=${scale:-2};$res/1" | bc) || echo "$res"
