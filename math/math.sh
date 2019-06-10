@@ -132,13 +132,14 @@ while [ -n "$(echo "$exp" | sed -n '/[^\]*\$/p')" ]; do
   v="$(eval "echo \"\$$n\"")"
   if [[ ${#v} -ge 6 && "x${v:0:6}" == "xdefine" ]]; then
     # add to function definition string and replace all instances
-    funcs=$(echo -e "$funcs$v\n")
+    funcs=$(echo -e "\n${v}${funcs}")
     exp=$(echo "$exp" | sed 's|'\$$n'|'$n'|g')
   else
     # replace variable
     exp=$(echo "$exp" | sed 's|'\$$n'|'$v'|')
   fi
 done
+[ -n "$funcs" ] && funcs="${funcs:1}"
 
 # units
 unit=$(echo "$exp" | sed -n 's/.*\(£\|\$\|k\).*/\1/p')
