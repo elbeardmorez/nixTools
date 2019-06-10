@@ -26,10 +26,10 @@ fn_next_block() {
   data="$1" && shift
   start=$1 && shift
   direction=$1
-  echo "$data" | awk -vstep=$direction -vstart=$start '
+  echo "$data" | awk -vstep=$direction -vstart=$start \
+                     -vlimit="$([ $direction = -1 ] && echo 0 || echo $((${#data} + 1)))" '
 BEGIN {
   count=0; mode=-1; idx = -1; idx2 = -1;
-  limit = length($0); if (step == -1) { limit = 0; }
 }
 {
   l = start;
@@ -60,9 +60,11 @@ BEGIN {
       }
     }
     '"$([ $DEBUG -ge 5 ] && \
-      echo "print(\"[debug] considered: \"c\", nest:\"count) > \"/dev/stderr\";")"'
+      echo "print(\"[debug] considered: \"c\", nest:\"count\", limit: \"limit) > \"/dev/stderr\";")"'
     l += step;
   }
+  if (idx == -1)
+    idx = limit
   print idx;
 }'
 }
