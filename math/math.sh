@@ -127,7 +127,6 @@ exp="$(fn_wrap "$exp" "!" "\$factorial" -1)"
 [ $DEBUG -ge 1 ] && echo "[debug] post operators | exp: '$exp'"
 
 # parse expression for functions and shell variables
-l=1
 while [ -n "$(echo "$exp" | sed -n '/[^\]*\$/p')" ]; do
   n=$(echo "$exp" | sed -n 's|^[^\]*\$\([a-zA-Z0-9_]\+\).*$|\1|p')
   v="$(eval "echo \"\$$n\"")"
