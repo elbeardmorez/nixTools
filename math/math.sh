@@ -129,15 +129,15 @@ exp="$(fn_wrap "$exp" "!" "\$factorial" -1)"
 # parse expression for functions and shell variables
 l=1
 while [ -n "$(echo "$exp" | sed -n '/[^\]*\$/p')" ]; do
-  var=$(echo "$exp" | sed -n 's|^[^\]*\$\([a-zA-Z0-9_]\+\).*$|\1|p')
-  var2="${!var}"
-  if [[ ${#var2} -ge 6 && "x${var2:0:6}" == "xdefine" ]]; then
+  n=$(echo "$exp" | sed -n 's|^[^\]*\$\([a-zA-Z0-9_]\+\).*$|\1|p')
+  v="$(eval "echo \"\$$n\"")"
+  if [[ ${#v} -ge 6 && "x${v:0:6}" == "xdefine" ]]; then
     # add to function definition string and replace all instances
-    funcs=$(echo -e "$funcs$var2\n")
-    exp=$(echo "$exp" | sed 's|'\$$var'|'$var'|g')
+    funcs=$(echo -e "$funcs$v\n")
+    exp=$(echo "$exp" | sed 's|'\$$n'|'$n'|g')
   else
     # replace variable
-    exp=$(echo "$exp" | sed 's|'\$$var'|'$var2'|')
+    exp=$(echo "$exp" | sed 's|'\$$n'|'$v'|')
   fi
 done
 
