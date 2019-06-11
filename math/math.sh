@@ -14,6 +14,8 @@ le="define le(x,y) { if(x<=y) return 1 else return -1}; scale=0"
 max="define max(x,y) { if(x>y) return x else return y}; scale=0"
 min="define min(x,y) { if(x<y) return x else return y}; scale=0"
 factorial="define factorial(n) { if (n == 0) return(1); return(n * factorial(n - 1)); }"
+npr="define npr(n,r) { return (\$factorial(n) / \$factorial(n-r)); }; scale=0"
+ncr="define ncr(n,r) { return (\$factorial(n) / (\$factorial(n-r) * \$factorial(r))); }; scale=0"
 
 fn_search() {
   data="$1" && shift
@@ -125,6 +127,8 @@ exp="$1" && shift
 ## factorial
 exp="$(fn_wrap "$exp" "!" "\$factorial" -1)"
 [ $DEBUG -ge 1 ] && echo "[debug] post operators | exp: '$exp'"
+## permutaions and combintations
+exp="$(echo "$exp" | sed 's/\([0-9]\+\)\([PpCc]\)\([0-9]\+\)/\$n\2r(\1, \3)/g' | tr 'A-Z' 'a-z')"
 
 # parse expression for functions and shell variables
 while [ -n "$(echo "$exp" | sed -n '/[^\]*\$/p')" ]; do
@@ -139,6 +143,16 @@ while [ -n "$(echo "$exp" | sed -n '/[^\]*\$/p')" ]; do
     exp=$(echo "$exp" | sed 's|'\$$n'|'"$v"'|')
   fi
 done
+# parse function definition string for nested functions
+while [ -n "$(echo "$funcs" | sed -n '/[^\]*\$/p')" ]; do
+  n=$(echo "$funcs" | sed -n 's|^[^\]*\$\([a-zA-Z0-9_]\+\).*$|\1|p')
+  v="$(eval "echo \"\$$n\"")"
+  if [[ ${#v} -ge 6 && "x${v:0:6}" == "xdefine" ]]; then
+    # add to function definition string and replace all instances
+    funcs=$(echo -e "\n${v}${funcs}")
+    funcs=$(echo "$funcs" | sed 's|'\$$n'|'"$n"'|g')
+  fi
+done
 [ -n "$funcs" ] && funcs="${funcs:1}"
 
 # units
@@ -148,10 +162,10 @@ unit=$(echo "$exp" | sed -n 's/.*\(£\|\$\|k\).*/\1/p')
 [[ -n "$case_" && $case_ -eq 1 ]] && \
   exp="$(echo "$exp" | awk '{print toupper($0);}')"
 
-# prefix function definitions
-[ "$funcs" ] && exp="$funcs; $exp"
 # prefix base conversion
 [ "$base" ] &&  exp="$base; $exp"
+# prefix function definitions
+[ "$funcs" ] && exp="$(echo -e "$funcs\n$exp")"
 
 # generic mods
 ## remove superfluous '+'
