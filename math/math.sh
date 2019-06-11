@@ -1,5 +1,11 @@
 #!/bin/sh
 
+# includes
+set -e
+x="$(dirname "$0")/$(basename "$0")"; [ ! -f "$x" ] && x="$(which $0)"; x="$(readlink -e "$x" || echo "$x")"
+. ${x%/*}/../func_common.sh
+set +e
+
 SCRIPTNAME=${0##*/}
 DEBUG=${DEBUG:-0}
 
@@ -126,7 +132,7 @@ exp="$1" && shift
 # operators
 ## factorial
 exp="$(fn_wrap "$exp" "!" "\$factorial" -1)"
-[ $DEBUG -ge 1 ] && echo "[debug] post operators | exp: '$exp'"
+[ $DEBUG -ge 1 ] && echo "[debug] post operators | exp: '$exp'" 1>&2
 ## permutaions and combintations
 exp="$(echo "$exp" | sed 's/\([0-9]\+\)\([PpCc]\)\([0-9]\+\)/\$n\2r(\1, \3)/g' | tr 'A-Z' 'a-z')"
 
@@ -177,7 +183,12 @@ res="$(echo -e "$exp" | bc -l)"
 # override scale?
 scale2="$(echo "$exp" | sed -n 's|^.*scale=\([0-9]\+\).*$|\1|p')"
 [ "x$scale2" != "x" ] && scale=$scale2
-[ $DEBUG -gt 0 ] && echo "[debug] scale: '$scale', exp: '$exp', unit: '$unit'"
+
+[ $DEBUG -ge 1 ] && echo -e "[debug]
+  ${CLR_HL}funcs${CLR_OFF}:\n$(echo -e "$funcs" | sed 's/^/    /')
+  ${CLR_HL}scale${CLR_OFF}: '$scale'
+  ${CLR_HL}unit${CLR_OFF}: '$unit'
+  ${CLR_HL}exp${CLR_OFF}:\n$(echo -e "$exp" | sed 's/^/    /')" 1>&2
 
 # result
 [ -n "$scale" ] && echo "$unit$(echo "scale=${scale:-2};$res/1" | bc)" || echo "$res"
