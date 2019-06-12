@@ -23,6 +23,37 @@ factorial="define factorial(n) { if (n == 0) return(1); return(n * factorial(n -
 npr="define npr(n,r) { return (\$factorial(n) / \$factorial(n-r)); }; scale=0"
 ncr="define ncr(n,r) { return (\$factorial(n) / (\$factorial(n-r) * \$factorial(r))); }; scale=0"
 
+help() {
+  echo -e "SYNTAX: $SCRIPTNAME [BASE] EXPRESSION [SCALE]
+\nwith
+\n  BASE:  base conversion, supporting:
+\n    d2h  : decimal to hex
+    d2b  : decimal to binary
+    h2d  : hex to decimal
+    h2b  : hex to binary
+    b2d  : binary to decimal
+    b2h  : binary to hex
+\n  EXPRESSION  : valid bc expression, with additional supported
+                functions and operators
+\n    functions:
+      \$abs  : absolute
+      \$gt  : greater than
+      \$ge  : greater than or equal to
+      \$lt  : less than
+      \$le  : less than or equal to
+      \$max  : maximum of two values
+      \$min  : minimum of two values
+      \$factorial  : factorials
+      \$npr  : permutations
+      \$ncr  : combinations
+\n    operators:
+      !  : factorials
+      nPr  : permutions
+      nCr  : combinations
+\n  SCALE  : bc's notion of significant digits after the period
+"
+}
+
 fn_search() {
   data="$1" && shift
   search="$1" && shift
@@ -109,7 +140,7 @@ declare scale
 declare case_
 
 [ $# -eq 0 ] && \
-  echo "[error] not enough args" && exit 1
+  help && exit 1
 
 # base convertion
 if [ $# -gt 1 ]; then
