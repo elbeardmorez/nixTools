@@ -43,6 +43,7 @@ where <OPTION> can be:
                              match
   cl|clone <REPO>  : clone repo
   co|checkout      : checkout files / branches
+  c|commit                 : commit
   ca|commit-amend          : commit, amending previous
   can|commit-amend-noedit  : commit, amending previous without editing
                              message
@@ -67,5 +68,5 @@ where <OPTION> can be:
                                         at PATH (default: NAME)
 
 *note: optional binary args are supported for commands:
-       log, rebase, formatpatch, add-no-whitespace
+       log, rebase, formatpatch, add-no-whitespace, commit
 ```

@@ -45,6 +45,7 @@ help() {
                              match
   cl|clone <REPO>  : clone repo
   co|checkout      : checkout files / branches
+  c|commit                 : commit
   ca|commit-amend          : commit, amending previous
   can|commit-amend-noedit  : commit, amending previous without editing
                              message
@@ -66,8 +67,21 @@ help() {
 \n  smr|submodule-remove <NAME> [PATH]  : remove a submodule named NAME
                                         at PATH (default: NAME)
 \n*note: optional binary args are supported for commands:
-       log, rebase, formatpatch, add-no-whitespace
+       log, rebase, formatpatch, add-no-whitespace, commit
 "
+}
+
+fn_commit() {
+  declare message; message=""
+  while [ -n "$1" ]; do
+    arg="$(echo "$1" | sed 's/^[ ]*-*//')"
+    [ -z "$arg" ] && shift && break
+    [ ${#arg} -lt ${#1} ] && \
+      echo "[error] unsupported arg '$1'" 1>&2 && return 1
+    message="$message $1"
+    shift
+  done
+  git commit -m "$message" "$@"
 }
 
 fn_search_commit_by_name() {
@@ -348,6 +362,9 @@ fn_process() {
   case "$command" in
     "help") help ;;
     "diff") git diff "$@" ;;
+    "c"|"commit")
+      fn_commit "$@"
+      ;;
     "log"|"logx"|"log1")
       fn_log $command "$@"
       ;;
