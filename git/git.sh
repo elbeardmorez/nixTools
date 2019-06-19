@@ -70,19 +70,7 @@ help() {
 "
 }
 
-fn_commit() {
-  [ $# -lt 1 ] && echo "[error] id arg missing" 1>&2 && return 1
-  id="$1" && shift
-  commit="$(git rev-list --max-count=1 "$id" 2>/dev/null)"
-  if [ $? -ne 0 ]; then
-    commit="$(fn_commit_by_name "$id" "$@")"
-    res=$?; [ $res -ne 0 ] && return $res
-  fi
-  echo "$commit"
-  return 0
-}
-
-fn_commit_by_name() {
+fn_search_commit_by_name() {
   [ $# -lt 1 ] && echo "[error] search arg missing" 1>&2 && return 1
   declare -a binargs
   declare -a cmdargs
@@ -118,6 +106,18 @@ fn_commit_by_name() {
   return 0
 }
 
+fn_search_commit() {
+  [ $# -lt 1 ] && echo "[error] id arg missing" 1>&2 && return 1
+  id="$1" && shift
+  commit="$(git rev-list --max-count=1 "$id" 2>/dev/null)"
+  if [ $? -ne 0 ]; then
+    commit="$(fn_search_commit_by_name "$id" "$@")"
+    res=$?; [ $res -ne 0 ] && return $res
+  fi
+  echo "$commit"
+  return 0
+}
+
 fn_log() {
   command="$1" && shift
   search=""
@@ -144,7 +144,7 @@ fn_log() {
     shift
   done
   if [ -n "$search" ]; then
-    commits="$(fn_commit "$search" "${count:-nolimit}")"
+    commits="$(fn_search_commit "$search" "${count:-nolimit}")"
     res=$?; [ $res -ne 0 ] && exit $res
     IFS=$'\n'; commits=($(echo "$commits")); IFS="$IFSORG"
   elif [ -n "$path" ]; then
@@ -194,7 +194,7 @@ fn_rebase() {
     shift
   done
   if [ $root -eq 0 ]; then
-    commit=$(fn_commit "${args[@]}")
+    commit=$(fn_search_commit "${args[@]}")
     res=$?; [ $res -ne 0 ] && return $res
     sha="$(echo $commit | sed -n 's/\([^ ]*\).*/\1/p')"
     # ensure parent exists, else assume root
@@ -232,7 +232,7 @@ fn_formatpatch() {
     fi
     shift
   done
-  commit=$(fn_commit "$id")
+  commit=$(fn_search_commit "$id")
   res=$?; [ $res -ne 0 ] && exit $res
   sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
   echo "[info] formatting patch for rebasing from commit '$commit'"
@@ -364,7 +364,7 @@ fn_process() {
         shift
       done
       [ -z $log ] && cmdargs[${#cmdargs[@]}]="colours"
-      commits=$(fn_commit "${cmdargs[@]}")
+      commits=$(fn_search_commit "${cmdargs[@]}")
       res=$?; [ $res -ne 0 ] && exit $res
       if [ -z $log ]; then
         echo -e "$commits"
