@@ -86,18 +86,19 @@ fn_commit() {
 
 fn_search_commit_by_name() {
   [ $# -lt 1 ] && echo "[error] search arg missing" 1>&2 && return 1
-  declare -a binargs
-  declare -a cmdargs
-  cmdargs=("--oneline")
+  declare -a bin_args
+  declare -a cmd_args; cmd_args=("--oneline")
+  declare commits_
+  declare -a commits
   declare search
   limit=1
   while [ -n "$1" ]; do
     case "$1" in
       "nolimit") limit=-1 ;;
-      "colours") binargs=("-c" "color.ui=always") ;;
+      "colours") bin_args=("-c" "color.ui=always") ;;
       *)
         if [ "x$(echo "$1" | sed -n '/^[0-9-]\+$/p')" != "x" ]; then
-          cmdargs=("${cmdargs[@]}" "-n" $1)
+          cmd_args=("${cmd_args[@]}" "-n" $1)
         elif [ -z $search ]; then
           search="$1"
         else
@@ -107,25 +108,27 @@ fn_search_commit_by_name() {
     esac
     shift
   done
-  commits="$(git "${binargs[@]}" log "${cmdargs[@]}" | grep "$search" | sed 's/\\n/\\\\n/g')"
-  IFS=$'\n'; arr_commits=($(echo -e "$commits")); IFS="$IFSORG";
-  [ ${#arr_commits[@]} -eq 0 ] &&
+  commits_="$(git "${bin_args[@]}" log "${cmd_args[@]}" | grep "$search" | sed 's/\\n/\\\\n/g')"
+  IFS=$'\n'; commits=($(echo -e "$commits_")); IFS="$IFSORG";
+  [ ${#commits[@]} -eq 0 ] &&
     echo "[info] no commits found matching search '$search'" 1>&2 && return 1
-  [[ ${#arr_commits[@]} -gt 1 && limit -eq 1 ]] &&
+  [[ ${#commits[@]} -gt 1 && limit -eq 1 ]] &&
     echo "[info] multiple commits matching search '$search'" \
          "found. try a more specific search string, else use" \
          "the [N] argument to limit the commit range" 1>&2 && return 1
-  [ $limit -eq -1 ] && limit=${#arr_commits[@]}
-  echo -e "$commits" | tail -n $limit
+  [ $limit -eq -1 ] && limit=${#commits[@]}
+  echo -e "$commits_" | tail -n $limit
   return 0
 }
 
 fn_search_commit() {
   [ $# -lt 1 ] && echo "[error] id arg missing" 1>&2 && return 1
-  id="$1" && shift
-  commit="$(git rev-list --max-count=1 "$id" 2>/dev/null)"
+  declare res
+  declare search; search="$1" && shift
+  declare commit
+  commit="$(git rev-list --max-count=1 "$search" 2>/dev/null)"
   if [ $? -ne 0 ]; then
-    commit="$(fn_search_commit_by_name "$id" "$@")"
+    commit="$(fn_search_commit_by_name "$search" "$@")"
     res=$?; [ $res -ne 0 ] && return $res
   fi
   echo "$commit"
@@ -133,14 +136,14 @@ fn_search_commit() {
 }
 
 fn_log() {
-  command="$1" && shift
-  search=""
-  declare path
-  path=""
+  declare command; command="$1" && shift
+  declare search; search=""
+  declare path; path=""
   declare count
-  declare -a binargs
-  declare -a cmdargs
-  binargs=("-c" "color.ui=always")
+  declare -a bin_args; bin_args=("-c" "color.ui=always")
+  declare -a cmd_args
+  declare commits_
+  declare -a commits
   while [ -n "$1" ]; do
     [ "x$(echo "$1" | sed -n '/^[0-9]\+$/p')" != "x" ] && count=$1 && shift && continue
     [ "x$(echo "$1" | sed -n '/^[^-]\+/p')" != "x" ] && search=$1 && shift && continue
@@ -149,33 +152,33 @@ fn_log() {
       while [ -n "$1" ]; do
         [ -n "$(git rev-list -n1 HEAD -- "$1" 2>/dev/null)" ] && \
           path="$1" || \
-          cmdargs[${#cmdargs[@]}]="$1"
+          cmd_args[${#cmd_args[@]}]="$1"
         shift
       done
       break
     fi
-    cmdargs[${#cmdargs[@]}]="$1"
+    cmd_args[${#cmd_args[@]}]="$1"
     shift
   done
   if [ -n "$search" ]; then
-    commits="$(fn_search_commit "$search" "${count:-nolimit}")"
+    commits_="$(fn_search_commit "$search" "${count:-nolimit}")"
     res=$?; [ $res -ne 0 ] && exit $res
-    IFS=$'\n'; commits=($(echo "$commits")); IFS="$IFSORG"
+    IFS=$'\n'; commits=($(echo "$commits_")); IFS="$IFSORG"
   elif [ -n "$path" ]; then
     commits=("$path")
   else
     commits=("HEAD")
   fi
   [ ${#commits[@]} -gt 1 ] && count=1
-  [ -n "$count" ] && cmdargs=("-n" $count "${cmdargs[@]}")
+  [ -n "$count" ] && cmd_args=("-n" $count "${cmd_args[@]}")
   commit_last="$(echo "${commits[$((${#commits[@]}-1))]}" | cut -d' ' -f1)"
   for commit in "${commits[@]}"; do
     commit="$(echo "$commit" | cut -d' ' -f1)"
     if [ "x$command" = "xlog" ]; then
-      git "${binargs[@]}" log --format=format:"%at | %ct | version: $(printf $CLR_BWN)%H$(printf $CLR_OFF)%n %s (%an)" "${cmdargs[@]}" $commit | awk '{if ( $0 ~ /[0-9]{10} \| [0-9]{10} | version:/ ) { $1=strftime("%Y%b%d %H:%M:%S",$1); $3=strftime("%Y%b%d %H:%M:%S",$3); }; print $0;}'
+      git "${bin_args[@]}" log --format=format:"%at | %ct | version: $(printf $CLR_BWN)%H$(printf $CLR_OFF)%n %s (%an)" "${cmd_args[@]}" $commit | awk '{if ( $0 ~ /[0-9]{10} \| [0-9]{10} | version:/ ) { $1=strftime("%Y%b%d %H:%M:%S",$1); $3=strftime("%Y%b%d %H:%M:%S",$3); }; print $0;}'
     else
       format="$([ "x$command" = "xlog1" ] && echo "oneline" || echo "fuller")"
-      git "${binargs[@]}" log --format="$format" "${cmdargs[@]}" $commit | cat
+      git "${bin_args[@]}" log --format="$format" "${cmd_args[@]}" $commit | cat
       [[ "x$command" == xlogx && "$commit" != "$commit_last" ]] && echo
     fi
   done
@@ -184,27 +187,20 @@ fn_log() {
 fn_rebase() {
   # process args
   [ $# -lt 1 ] && help && echo "[error] not enough args" && return 1
-  declare root
-  root=0
-  declare -a cmdargs
-  cmdargs[${#cmdargs[@]}]="-i"
-  declare xargs
-  xargs=0
+  declare root; root=0
+  declare -a cmd_args; cmd_args[${#cmd_args[@]}]="-i"
   declare -a args
   while [ -n "$1" ]; do
-    [ "x$1" = "x--" ] && xargs=1 && shift
-    if [ $xargs -eq 1 ]; then
-      # cmdargs only
-      case "$1" in
-        "--root") root=1 ;;
-      esac
+    if [ "x$1" = "x--" ]; then
+      while [ -n "$1" ]; do
+        [ "x$1" = "x--" ] && shift && continue
+        [ "x$1" = "x--root" ] && root=1
+        cmd_args[${#cmd_args[@]}]="$1"
+        shift
+      done
+      break
     fi
-    case "$1" in
-      *)
-        [ $xargs -eq 1 ] && \
-          cmdargs[${#cmdargs[@]}]="$1" || \
-          args[${#args[@]}]="$1"
-    esac
+    args[${#args[@]}]="$1"
     shift
   done
   if [ $root -eq 0 ]; then
@@ -214,14 +210,14 @@ fn_rebase() {
     # ensure parent exists, else assume root
     git rev-parse --verify "$sha^1"
     if [ $? -eq 0 ]; then
-      cmdargs[${#cmdargs[@]}]="$sha~1"
+      cmd_args[${#cmd_args[@]}]="$sha~1"
     else
       root=1
-      cmdargs[${#cmdargs[@]}]="--root"
+      cmd_args[${#cmd_args[@]}]="--root"
     fi
   fi
   echo "[info] rebasing interactively from $([ $root -eq 1 ] && echo "root" || echo "commit '$commit~1'")"
-  git rebase "${cmdargs[@]}"
+  git rebase "${cmd_args[@]}"
 }
 
 fn_formatpatch() {
@@ -229,11 +225,11 @@ fn_formatpatch() {
   id=HEAD
   declare n
   n=1
-  declare -a cmdargs
+  declare -a cmd_args
   while [ -n "$1" ]; do
     if [ "x$1" = "x--" ]; then
-      # cmdargs
-      shift; while [ -n "$1" ]; do cmdargs[${#cmdargs[@]}]="$1"; shift; done
+      # cmd args
+      shift; while [ -n "$1" ]; do cmd_args[${#cmd_args[@]}]="$1"; shift; done
     else
       arg="$(echo "$1" | sed 's/^[ ]*-*//')"
       if [ -n "$(echo "$arg" | sed -n '/^[0-9]\+$/p')" ]; then
@@ -250,7 +246,7 @@ fn_formatpatch() {
   res=$?; [ $res -ne 0 ] && exit $res
   sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
   echo "[info] formatting patch for rebasing from commit '$commit'"
-  git format-patch -k -$n $sha "${cmdargs[@]}"
+  git format-patch -k -$n $sha "${cmd_args[@]}"
 }
 
 fn_dates_order_check() {
@@ -371,18 +367,17 @@ fn_process() {
       ;;
     "sha")
       [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
-      declare -a cmdargs
-      cmdargs=("nolimit")
-      log=""
+      declare -a cmd_args; cmd_args=("nolimit")
+      declare log; log=""
       while [ -n "$1" ]; do
         case "$1" in
           "log"|"log1"|"logx") log="$1" ;;
-          *) cmdargs[${#cmdargs[@]}]="$1" ;;
+          *) cmd_args[${#cmd_args[@]}]="$1" ;;
         esac
         shift
       done
-      [ -z $log ] && cmdargs[${#cmdargs[@]}]="colours"
-      commits=$(fn_search_commit "${cmdargs[@]}")
+      [ -z $log ] && cmd_args[${#cmd_args[@]}]="colours"
+      commits=$(fn_search_commit "${cmd_args[@]}")
       res=$?; [ $res -ne 0 ] && exit $res
       if [ -z $log ]; then
         echo -e "$commits"
