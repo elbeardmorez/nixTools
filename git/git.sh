@@ -182,7 +182,7 @@ fn_rebase() {
     if [ $xargs -eq 1 ]; then
       # cmdargs only
       case "$1" in
-        "--root") root=1
+        "--root") root=1 ;;
       esac
     fi
     case "$1" in
