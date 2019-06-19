@@ -454,72 +454,28 @@ fn_process() {
   case "$option" in
     "help") help ;;
     "diff") git diff "$@" ;;
-    "c"|"commit")
-      fn_commit "$@"
-      ;;
-    "log"|"logx"|"log1")
-      fn_log "$option" "$@"
-      ;;
-    "sha")
-      fn_sha "$@"
-      ;;
-    "st"|"status")
-      fn_status "$@"
-      ;;
-    "sta"|"status-all")
-      git status --col
-      ;;
-    "anws"|"add-no-whitespace")
-      fn_add_no_whitespace
-      ;;
-    "fp"|"formatpatch"|"format-patch")
-      fn_formatpatch "$@"
-      ;;
-    "rb"|"rebase")
-      fn_rebase "$@"
-      ;;
-    "rbs"|"rebase-stash")
-      fn_rebase "$@" -- --autostash
-      ;;
-    "co"|"checkout")
-      git checkout "$@"
-      ;;
-    "cl"|"clone")
-      git clone "$@"
-      ;;
-    "ca"|"commit-amend")
-      git commit --amend "$@"
-      ;;
-    "can"|"commit-amend-noedit")
-      git commit --amend --no-edit "$@"
-      ;;
-    "ac"|"add-commit")
-      git add -u . && git commit
-      ;;
-    "aca"|"add-commit-amend")
-      git add -u . && git commit --amend
-      ;;
-    "acan"|"add-commit-amend-noedit")
-      git add -u . && git commit --amend --no-edit "$@"
-      ;;
-    "ff"|"fast-forward")
-      fn_fast_foward "$@"
-      ;;
-    "rd"|"rescue-dangling")
-      fn_rescue_dangling "$@"
-      ;;
-    "b"|"blame")
-      fn_blame "$@"
-      ;;
-    "doc"|"dates-order-check")
-      fn_dates_order_check "$@"
-      ;;
-    "smr"|"submodule-remove")
-      fn_submodule_remove "$@"
-      ;;
-    *)
-      git "$option" "$@"
-      ;;
+    "c"|"commit") fn_commit "$@" ;;
+    "log"|"logx"|"log1") fn_log "$option" "$@" ;;
+    "sha") fn_sha "$@" ;;
+    "st"|"status") fn_status "$@" ;;
+    "sta"|"status-all") git status --col ;;
+    "anws"|"add-no-whitespace") fn_add_no_whitespace ;;
+    "fp"|"formatpatch"|"format-patch") fn_formatpatch "$@" ;;
+    "rb"|"rebase") fn_rebase "$@" ;;
+    "rbs"|"rebase-stash") fn_rebase "$@" -- --autostash ;;
+    "co"|"checkout") git checkout "$@" ;;
+    "cl"|"clone") git clone "$@" ;;
+    "ca"|"commit-amend") git commit --amend "$@" ;;
+    "can"|"commit-amend-noedit") git commit --amend --no-edit "$@" ;;
+    "ac"|"add-commit") git add -u . && git commit ;;
+    "aca"|"add-commit-amend") git add -u . && git commit --amend ;;
+    "acan"|"add-commit-amend-noedit") git add -u . && git commit --amend --no-edit "$@" ;;
+    "ff"|"fast-forward") fn_fast_foward "$@" ;;
+    "rd"|"rescue-dangling") fn_rescue_dangling "$@" ;;
+    "b"|"blame") fn_blame "$@" ;;
+    "doc"|"dates-order-check") fn_dates_order_check "$@" ;;
+    "smr"|"submodule-remove") fn_submodule_remove "$@" ;;
+    *) git "$option" "$@" ;;
   esac
 }
 
