@@ -429,16 +429,13 @@ fn_process() {
       git commit --amend --no-edit "$@"
       ;;
     "ac"|"add-commit")
-      git add -u .
-      git commit
+      git add -u . && git commit
       ;;
     "aca"|"add-commit-amend")
-      git add -u .
-      git commit --amend
+      git add -u . && git commit --amend
       ;;
     "acan"|"add-commit-amend-noedit")
-      git add -u .
-      git commit --amend --no-edit "$@"
+      git add -u . && git commit --amend --no-edit "$@"
       ;;
     "ff"|"fast-forward")
       num=$1 && shift;
