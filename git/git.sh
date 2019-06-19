@@ -11,61 +11,61 @@ DEBUG=${DEBUG:-0}
 IFSORG="$IFS"
 
 help() {
-  echo -e "SYNTAX: git_ <OPTION> [OPTION-ARGS] [-- [BIN-ARGS]]*
-\nwhere <OPTION> can be:\n
-  help  : print this text
-  diff  : output diff to stdout
-  log<TYPE> [N] [ID]  : print log entries\n
-    <TYPE>
+  echo -e "SYNTAX: $SCRIPTNAME OPTION [OPT_ARGS] [-- [BIN_ARGS]]*
+\nwhere OPTION:
+\n  --help  : print this help information
+  --diff  : output diff to stdout
+  -logTYPE [N] [ID]  : print log entries
+\n    TYPE
       ''  :  simple log format
       1   :  single line log format
       x   :  extended log format
     [N]  : limit the number of results
     [ID]  : return results back starting from an id or partial
             description string. implies N=1 unless N specified\n
-  sha <ID> [N] [LOGTYPE]  : return commit sha / description for an id
-                            or partial description string. use N to
-                            limit the search range to the last N
-                            commits. use LOGTYPE to switch output
-                            format type as per the options above
-  st|status      : show column format status with untracked local
-                   path files only
-  sta|status-all : show column format status
-  anws|add-no-whitespace  : stage non-whitespace-only changes
-  fp|format-patch [ID] [N]  : format N patch(es) back from an id or
-                              partial description string
-                              (default: HEAD)
-  rb|rebase <ID> [N]  : interactively rebase back from id or partial
-                        description string. use N to limit the search
-                        range to the last N commits
-  rbs|rebase-stash <ID> [N]  : same as 'rebase', but uses git's
-                               'autostash' feature
-  b|blame <PATH> <SEARCH>  : filter blame output for PATH on SEARCH
-                             and offer 'show' / 'rebase' options per
-                             match
-  cl|clone <REPO>  : clone repo
-  co|checkout      : checkout files / branches
-  c|commit                 : commit
-  ca|commit-amend          : commit, amending previous
-  can|commit-amend-noedit  : commit, amending previous without editing
-                             message
-  ac|add-commit                 : add updated and commit
-  aca|add-commit-amend          : add updated and commit, amending
-                                  previous commit message
-  acan|add-commit-amend-noedit  : add updated and commit, amending
-                                  previous without editing message
-  ff|fast-forward  : identify current 'branch' and fast-forward to
-                     HEAD of 'linked'
-  rd|rescue-dangling  : dump any orphaned commits still accessable to
-                        a 'commits' directory
-  doc|dates-order-check [OPTIONS] TARGET
+  -sha <ID> [N] [LOGTYPE]  : return commit sha / description for an id
+                             or partial description string. use N to
+                             limit the search range to the last N
+                             commits. use LOGTYPE to switch output
+                             format type as per the options above
+  -st|--status      : show column format status with untracked local
+                      path files only
+  -sta|--status-all : show column format status
+  -anws|--add-no-whitespace  : stage non-whitespace-only changes
+  -fp|--format-patch [ID] [N]  : format N patch(es) back from an id or
+                                 partial description string
+                                 (default: HEAD)
+  -rb|--rebase <ID> [N]  : interactively rebase back from id or partial
+                           description string. use N to limit the search
+                           range to the last N commits
+  -rbs|--rebase-stash <ID> [N]  : same as 'rebase', but uses git's
+                                 'autostash' feature
+  -b|--blame <PATH> <SEARCH>  : filter blame output for PATH on SEARCH
+                                and offer 'show' / 'rebase' options per
+                                match
+  -cl|-clone <REPO>  : clone repo
+  -co|--checkout     : checkout files / branches
+  -c|--commit                 : commit
+  -ca|--commit-amend          : commit, amending previous
+  -can|--commit-amend-noedit  : commit, amending previous without
+                                editing message
+  -ac|--add-commit                : add updated and commit
+  -aca|--add-commit-amend         : add updated and commit, amending
+                                    previous commit message
+  -acan|-add-commit-amend-noedit  : add updated and commit, amending
+                                    previous without editing message
+  -ff|--fast-forward  : identify current 'branch' and fast-forward to
+                        HEAD of 'linked'
+  -rd|--rescue-dangling  : dump any orphaned commits still accessable
+                           to a 'commits' directory
+  -doc|--dates-order-check [OPTIONS] TARGET
     : highlight non-chronological TARGET commit(s)
 \n    where OPTIONS can be:
       -t|--type TYPE  : check on date type TYPE, supporting 'authored'
                         (default) or 'committed'
       -i|--issues  : only output non-chronological commits
-\n  smr|submodule-remove <NAME> [PATH]  : remove a submodule named NAME
-                                        at PATH (default: NAME)
+\n  -smr|--submodule-remove <NAME> [PATH]  : remove a submodule named
+                                           NAME at PATH (default: NAME)
 \n*note: optional binary args are supported for commands:
        log, rebase, formatpatch, add-no-whitespace, commit
 "
@@ -358,15 +358,16 @@ fn_submodule_remove() {
 }
 
 fn_process() {
-  command="help" && [ $# -gt 0 ] && command="$1" && shift
-  case "$command" in
+  option="help"
+  [ $# -gt 0 ] && option="$(echo "$1" | sed 's/[ ]*-*//')" && shift
+  case "$option" in
     "help") help ;;
     "diff") git diff "$@" ;;
     "c"|"commit")
       fn_commit "$@"
       ;;
     "log"|"logx"|"log1")
-      fn_log $command "$@"
+      fn_log "$option" "$@"
       ;;
     "sha")
       [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
@@ -500,7 +501,7 @@ fn_process() {
       fn_submodule_remove "$@"
       ;;
     *)
-      git $command "$@"
+      git "$option" "$@"
       ;;
   esac
 }
