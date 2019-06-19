@@ -323,6 +323,7 @@ BEGIN { last = pcd; }
 }
 
 fn_submodule_remove() {
+  [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
   submodule="$1" && shift
   submodule_path="$submodule"
   [ $# -gt 0 ] && submodule_path="$1" && shift
@@ -353,6 +354,100 @@ fn_submodule_remove() {
   fi
 }
 
+fn_sha() {
+  [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
+  declare -a cmd_args
+  cmd_args=("nolimit")
+  log=""
+  while [ -n "$1" ]; do
+    case "$1" in
+      "log"|"log1"|"logx") log="$1" ;;
+      *) cmd_args[${#cmd_args[@]}]="$1" ;;
+    esac
+    shift
+  done
+  [ -z $log ] && cmd_args[${#cmd_args[@]}]="colours"
+  commits=$(fn_search_commit "${cmd_args[@]}")
+  res=$?; [ $res -ne 0 ] && exit $res
+  if [ -z $log ]; then
+    echo -e "$commits"
+  else
+    IFS=$'\n'; arr_commits=($(echo -e "$commits")); IFS="$IFSORG"
+    for c in "${arr_commits[@]}"; do
+      fn_log $log 1 "$(echo "$c" | cut -d' ' -f1)"
+      [ "x$log" = "xlogx" ] && echo
+    done
+  fi
+}
+
+fn_status() {
+  gitstatus=(git -c color.ui=always status)
+  gitcolumn=(git column --mode=column --indent=$'\t')
+  m="Untracked files:"
+  # pre
+  "${gitstatus[@]}" | sed -n '1,/^'"$m"'/{/^'"$m"'/{s/\(.*\):/\1 [local dir only]:/;N;N;p;b};p;}'
+  # filtered
+  "${gitstatus[@]}" | sed -n '/^'"$m"'/,/^*$/{/'"$m"'/{N;N;d;};/^$/{N;N;d;};/\/[^[:cntrl:]]/d;s/^[ \t]*//g;p;}' | "${gitcolumn[@]}"
+  # post
+  "${gitstatus[@]}" | sed -n '/^'"$m"'/,${/^'"$m"'/{N;N;d;};/^$/,${p;};}'
+}
+
+fn_add_no_whitespace() {
+  echo "[info] git, staging non-whitespace-only changes"
+  git diff --ignore-all-space --no-color --unified=0 "$@" | git apply --cached --ignore-whitespace --unidiff-zero
+}
+
+fn_fast_foward() {
+  num=$1 && shift;
+  target=`git rev-parse --abbrev-ref HEAD`
+  [ "x$target" = "xHEAD" ] && target=`git status | sed -n "s/.* branch '\([^']\{1,\}\)' on '[0-9a-z]\{1,\}'.*/\1/p"`
+  sha_current=`git log --oneline -n1 | cut -d' ' -f1`
+  sha_target=`git log --oneline $target | grep $sha_current -B $num | head -n1 | cut -d' ' -f1`
+  echo -n "[info] fast-forwarding $num commits, '$sha_current' -> '$sha_target' on branch '$target', ok? [y/n]: "
+  fn_decision >/dev/null && git checkout $sha_target
+}
+
+fn_rescue_dangling() {
+  IFS=$'\n'; commits=($(git fsck --no-reflog | awk '/dangling commit/ {print $3}')); IFS="$IFSORG"
+  if [ ${#commits[@]} -eq 0 ]; then
+    echo "[info] no dangling commits found in repo"
+  else
+    echo -n "[info] rescue ${#commits[@]} dangling commit$([ ${#commits[@]} -ne 1 ] && echo "s") found in repo? [y/n]: "
+    fn_decision >/dev/null &&\
+      mkdir commits &&\
+      for c in "${commits[@]}"; do git log -n1 -p $c > commits/$c.diff; done
+  fi
+}
+
+fn_blame() {
+  [ $# -lt 2 ] && help && echo "[error] not enough args" && exit 1
+  file="$1" && shift
+  res="$(git log "$file" >/dev/null 2>&1)"
+  [ $? -ne 0 ] && echo "[error] invalid path '$file'" && exit 1
+  search="$(fn_escape "ere" "$1")"
+  IFS=$'\n'; matches=($(git blame -lt "$file" | grep -E "$search")); IFS="$IFSORG"
+  echo "[info] ${#matches[@]} hit$([ ${#matches[@]} -ne 1 ] && echo "s") for search string '$search' on file '$file'"
+  [ ${#matches[@]} -eq 0 ] && exit
+  for s in "${matches[@]}"; do
+    parts=($(echo "$s"))
+    id="${parts[0]}"
+    x="$(echo "${s:$((${#id}+1))}" | sed 's/^(\([^)]*\)) /\1|/')"
+    xa=(${x%%|*})
+    dt1="${xa[$((${#xa}-2))]}"
+    dt2="${xa[$((${#xa}-1))]}"
+    line="${xa[$((${#xa}-0))]}"
+    auth="$(echo "${xa[@]}" | sed 's/ '$dt1'.*$//')"
+    data="${x#*|}"
+    echo -e "[info] file: $file | ln#: $line | auth: ${CLR_RED}${auth}${CLR_OFF} | date: $(date -d "@$dt1" "+%d %b %Y %H:%M:%S") $dt2"
+    echo -e "\n$data\n"
+    res="$(fn_decision "[user] (s)how, (r)ebase from, or (i)gnore commit '$id'?" "srix")"
+    [ "x$res" = "xs" ] && git show "$id"
+    [ "x$res" = "xr" ] && { fn_rebase "$id" -- --autostash; exit; }
+    [ "x$res" = "xi" ] && continue
+    [ "x$res" = "xx" ] && exit
+  done
+}
+
 fn_process() {
   option="help"
   [ $# -gt 0 ] && option="$(echo "$1" | sed 's/[ ]*-*//')" && shift
@@ -366,46 +461,16 @@ fn_process() {
       fn_log "$option" "$@"
       ;;
     "sha")
-      [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
-      declare -a cmd_args; cmd_args=("nolimit")
-      declare log; log=""
-      while [ -n "$1" ]; do
-        case "$1" in
-          "log"|"log1"|"logx") log="$1" ;;
-          *) cmd_args[${#cmd_args[@]}]="$1" ;;
-        esac
-        shift
-      done
-      [ -z $log ] && cmd_args[${#cmd_args[@]}]="colours"
-      commits=$(fn_search_commit "${cmd_args[@]}")
-      res=$?; [ $res -ne 0 ] && exit $res
-      if [ -z $log ]; then
-        echo -e "$commits"
-      else
-        IFS=$'\n'; arr_commits=($(echo -e "$commits")); IFS="$IFSORG"
-        for c in "${arr_commits[@]}"; do
-          fn_log $log 1 "$(echo "$c" | cut -d' ' -f1)"
-          [ "x$log" = "xlogx" ] && echo
-        done
-      fi
+      fn_sha "$@"
       ;;
     "st"|"status")
-      gitstatus=(git -c color.ui=always status)
-      gitcolumn=(git column --mode=column --indent=$'\t')
-      m="Untracked files:"
-      # pre
-      "${gitstatus[@]}" | sed -n '1,/^'"$m"'/{/^'"$m"'/{s/\(.*\):/\1 [local dir only]:/;N;N;p;b};p;}'
-      # filtered
-      "${gitstatus[@]}" | sed -n '/^'"$m"'/,/^*$/{/'"$m"'/{N;N;d;};/^$/{N;N;d;};/\/[^[:cntrl:]]/d;s/^[ \t]*//g;p;}' | "${gitcolumn[@]}"
-      # post
-      "${gitstatus[@]}" | sed -n '/^'"$m"'/,${/^'"$m"'/{N;N;d;};/^$/,${p;};}'
+      fn_status "$@"
       ;;
     "sta"|"status-all")
       git status --col
       ;;
     "anws"|"add-no-whitespace")
-      echo "[info] git, staging non-whitespace-only changes"
-      git diff --ignore-all-space --no-color --unified=0 "$@" | git apply --cached --ignore-whitespace --unidiff-zero
+      fn_add_no_whitespace
       ;;
     "fp"|"formatpatch"|"format-patch")
       fn_formatpatch "$@"
@@ -438,58 +503,18 @@ fn_process() {
       git add -u . && git commit --amend --no-edit "$@"
       ;;
     "ff"|"fast-forward")
-      num=$1 && shift;
-      target=`git rev-parse --abbrev-ref HEAD`
-      [ "x$target" = "xHEAD" ] && target=`git status | sed -n "s/.* branch '\([^']\{1,\}\)' on '[0-9a-z]\{1,\}'.*/\1/p"`
-      sha_current=`git log --oneline -n1 | cut -d' ' -f1`
-      sha_target=`git log --oneline $target | grep $sha_current -B $num | head -n1 | cut -d' ' -f1`
-      echo -n "[info] fast-forwarding $num commits, '$sha_current' -> '$sha_target' on branch '$target', ok? [y/n]: "
-      fn_decision >/dev/null && git checkout $sha_target
+      fn_fast_foward "$@"
       ;;
     "rd"|"rescue-dangling")
-      IFS=$'\n'; commits=($(git fsck --no-reflog | awk '/dangling commit/ {print $3}')); IFS="$IFSORG"
-      if [ ${#commits[@]} -eq 0 ]; then
-        echo "[info] no dangling commits found in repo"
-      else
-        echo -n "[info] rescue ${#commits[@]} dangling commit$([ ${#commits[@]} -ne 1 ] && echo "s") found in repo? [y/n]: "
-        fn_decision >/dev/null &&\
-          mkdir commits &&\
-          for c in "${commits[@]}"; do git log -n1 -p $c > commits/$c.diff; done
-      fi
+      fn_rescue_dangling "$@"
       ;;
     "b"|"blame")
-      [ $# -lt 2 ] && help && echo "[error] not enough args" && exit 1
-      file="$1" && shift
-      res="$(git log "$file" >/dev/null 2>&1)"
-      [ $? -ne 0 ] && echo "[error] invalid path '$file'" && exit 1
-      search="$(fn_escape "ere" "$1")"
-      IFS=$'\n'; matches=($(git blame -lt "$file" | grep -E "$search")); IFS="$IFSORG"
-      echo "[info] ${#matches[@]} hit$([ ${#matches[@]} -ne 1 ] && echo "s") for search string '$search' on file '$file'"
-      [ ${#matches[@]} -eq 0 ] && exit
-      for s in "${matches[@]}"; do
-        parts=($(echo "$s"))
-        id="${parts[0]}"
-        x="$(echo "${s:$((${#id}+1))}" | sed 's/^(\([^)]*\)) /\1|/')"
-        xa=(${x%%|*})
-        dt1="${xa[$((${#xa}-2))]}"
-        dt2="${xa[$((${#xa}-1))]}"
-        line="${xa[$((${#xa}-0))]}"
-        auth="$(echo "${xa[@]}" | sed 's/ '$dt1'.*$//')"
-        data="${x#*|}"
-        echo -e "[info] file: $file | ln#: $line | auth: ${CLR_RED}${auth}${CLR_OFF} | date: $(date -d "@$dt1" "+%d %b %Y %H:%M:%S") $dt2"
-        echo -e "\n$data\n"
-        res="$(fn_decision "[user] (s)how, (r)ebase from, or (i)gnore commit '$id'?" "srix")"
-        [ "x$res" = "xs" ] && git show "$id"
-        [ "x$res" = "xr" ] && { fn_rebase "$id" -- --autostash; exit; }
-        [ "x$res" = "xi" ] && continue
-        [ "x$res" = "xx" ] && exit
-      done
+      fn_blame "$@"
       ;;
     "doc"|"dates-order-check")
       fn_dates_order_check "$@"
       ;;
     "smr"|"submodule-remove")
-      [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
       fn_submodule_remove "$@"
       ;;
     *)
