@@ -13,8 +13,8 @@ IFSORG="$IFS"
 help() {
   echo -e "SYNTAX: $SCRIPTNAME OPTION [OPT_ARGS] [-- [BIN_ARGS]]*
 \nwhere OPTION:
-\n  --help  : print this help information
-  --diff  : output diff to stdout
+\n  -h|--help  : print this help information
+  -d|--diff  : output diff to stdout
   -logTYPE [N] [ID]  : print log entries
 \n    TYPE
       ''  :  simple log format
@@ -452,8 +452,8 @@ fn_process() {
   option="help"
   [ $# -gt 0 ] && option="$(echo "$1" | sed 's/[ ]*-*//')" && shift
   case "$option" in
-    "help") help ;;
-    "diff") git diff "$@" ;;
+    "h"|"help") help ;;
+    "d"|"diff") git diff "$@" ;;
     "c"|"commit") fn_commit "$@" ;;
     "log"|"logx"|"log1") fn_log "$option" "$@" ;;
     "sha") fn_sha "$@" ;;

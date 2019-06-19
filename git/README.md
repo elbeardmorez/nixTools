@@ -9,8 +9,8 @@ SYNTAX: git_ OPTION [OPT_ARGS] [-- [BIN_ARGS]]*
 
 where OPTION:
 
-  --help  : print this help information
-  --diff  : output diff to stdout
+  -h|--help  : print this help information
+  -d|--diff  : output diff to stdout
   -logTYPE [N] [ID]  : print log entries
 
     TYPE
