@@ -50,7 +50,8 @@ help() {
             'spaces'  : compress and replace with periods ('.')
             'underscores' : compress and replace with periods ('.')
             'dashes' : compress and replace with periods ('.')
-            'X=[Y]'  : custom character replacements
+            'X=Y'  : custom string replacements
+            '[X]=Y'  : custom character(s) replacements
             (default: lower|spaces|underscores|dashes)
   -dp|--dupe [DEST] [SUFFIX]  : duplicate TARGET to TARGET.orig, DEST,
                                 or {TARGET}{DEST} dependent upon
@@ -233,7 +234,7 @@ for target in "${targets[@]}"; do
             search="$(fn_escape "awk" "${transform%=*}")"
             replace="$(fn_escape "awk" "${transform#*=}")"
             [ $DEBUG -gt 0 ] && echo "[debug] rename transform '$search' -> '$replace'" 1>&2
-            target2="$(echo "$target2" | awk -F'\n' '{gsub(/['"$search"']+/,"'$replace'"); print}')"
+            target2="$(echo "$target2" | awk -F'\n' '{gsub(/'"$search"'+/,"'$replace'"); print}')"
             ;;
         esac
       done

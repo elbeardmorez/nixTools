@@ -35,7 +35,8 @@ where OPTION can be:
             'spaces'  : compress and replace with periods ('.')
             'underscores' : compress and replace with periods ('.')
             'dashes' : compress and replace with periods ('.')
-            'X=[Y]'  : custom character replacements
+            'X=Y'  : custom string replacements
+            '[X]=Y'  : custom character(s) replacements
             (default: lower|spaces|underscores|dashes)
   -dp|--dupe [DEST] [SUFFIX]  : duplicate TARGET to TARGET.orig, DEST,
                                 or {TARGET}{DEST} dependent upon
