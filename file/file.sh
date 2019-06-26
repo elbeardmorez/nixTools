@@ -12,6 +12,7 @@ DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
 
 EDITOR="${EDITOR:-vim}"
+RENAME_FILTER="."
 RENAME_TRANSFORMS="lower|upper|spaces|underscores|dashes"
 RENAME_TRANSFORMS_DEFAULT="lower|spaces|underscores|dashes"
 MOVE_ALIASES="$HOME/.nixTools/$SCRIPTNAME"
@@ -39,8 +40,10 @@ help() {
                  (default: bottom)
   -r|--rename [FILTER] [TRANSFORMS]  : rename files using one or more
                                        supported transforms
-    where FILTER  : string to match against target files. no match will
-                    result in skipping
+    where FILTER  : perl regular expression string for filtering out
+                    (negative matching) target files. a match against
+                    this string will result in skipping of a target
+                    (default: '')
           TRANSFORMS  : delimited list comprising:
             'lower'  : convert all alpha characters to lower case
             'upper'  : convert all alpha characters to upper case
@@ -76,7 +79,7 @@ declare -a search_args
 search_args=("--targets" "--interactive" 1)
 declare -a args
 declare target
-while [ -n "$1" ]; do
+while [ $# -gt 0 ]; do
   [ $# -eq 1 ] && target="$1" && shift && break
   if [[ "x$1" == "x-xs" || "x$1" == "x--search-args" ]]; then
     shift
@@ -107,6 +110,9 @@ else
   res=$? && [ $res -ne 0 ] && exit $res
   IFS=$'\n'; targets=($(echo "$targets_")); IFS="$IFSORG"
 fi
+
+[ $DEBUG -ge 5 ] && \
+  { echo "[debug] targets:"; for f in "${targets[@]}"; do echo "$f"; done; }
 
 if [ ${#targets[@]} -gt 0 ]; then
   [ $DEBUG -ge 1 ] && echo "[debug] ${#targets[@]} target$([ ${#targets[@]} -ne 1 ] && echo "s") set for option '$option'"
@@ -187,8 +193,8 @@ for target in "${targets[@]}"; do
       ;;
 
     "r"|"rename")
-      [ ${#args[@]} -gt 0 ] && filter="${args[0]}" && args=("${args[@]:1}")
-      target="$(echo "$target" | grep -vP '(^\.{1,2}$|'"$(fn_escape "perl" "$FILTER")"'\/$)')"
+      [ ${#args[@]} -gt 0 ] && { filter="${args[0]}" && args=("${args[@]:1}"); } || filter=$RENAME_FILTER
+      target="$(echo "$target" | grep -vP '(^\.{1,2}$|'"$(fn_escape "perl" "$filter")"'\/$)')"
       [ -z "$target" ] && continue
       transforms="$RENAME_TRANSFORMS_DEFAULT"
       if [ ${#args[@]} -gt 0 ]; then

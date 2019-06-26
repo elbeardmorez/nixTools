@@ -25,8 +25,10 @@ where OPTION can be:
                  (default: bottom)
   -r|--rename [FILTER] [TRANSFORMS]  : rename files using one or more
                                        supported transforms
-    where FILTER  : string to match against target files. no match will
-                    result in skipping
+    where FILTER  : perl regular expression string for filtering out
+                    (negative matching) target files. a match against
+                    this string will result in skipping of a target
+                    (default: '')
           TRANSFORMS  : delimited list comprising:
             'lower'  : convert all alpha characters to lower case
             'upper'  : convert all alpha characters to upper case
