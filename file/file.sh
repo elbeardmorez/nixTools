@@ -81,7 +81,7 @@ while [ -n "$1" ]; do
   if [[ "x$1" == "x-xs" || "x$1" == "x--search-args" ]]; then
     shift
     while [ $# -gt 1 ]; do
-      [ "x$1" == "x--" ] && break
+      [ "x$1" = "x--" ] && break
       search_args[${#search_args[@]}]="$1"
       shift
     done
@@ -121,14 +121,14 @@ for target in "${targets[@]}"; do
       strip="r1"
       [ ${#args[@]} -gt 0 ] && strip="${args[0]}"
       side=$(echo "$strip" | sed -n 's/^\([lr]\?\)\([0-9]\?\)$/\1/p')
-      [ "x$side" == "x" ] && side="r" && strip="$side$strip"
+      [ "x$side" = "x" ] && side="r" && strip="$side$strip"
       [ ${#strip} -eq 1 ] && strip="${strip}1"
       size=$(echo "$strip" | sed -n 's/^\([lr]\?\)\([0-9]\+\)$/\2/p')
 
-      [ "x${size}" == "x" ] &&
+      [ "x${size}" = "x" ] &&
         echo "[error] args [l|r]x" && exit 1
 
-      if [ "x$side" == "xl" ]; then
+      if [ "x$side" = "xl" ]; then
         target2="${target:$size}"
       else
         target2="${target:0:$((${#target}-$size))}"
@@ -166,7 +166,7 @@ for target in "${targets[@]}"; do
     "t"|"trim")
       lines=1
       [ ${args[@]} -gt 0 ] && lines=${args[0]}
-      [ "x$(echo "$lines" | sed -n '/^[0-9]\+$/p')" == "x" ] &&\
+      [ "x$(echo "$lines" | sed -n '/^[0-9]\+$/p')" = "x" ] &&\
         echo "[error] invalid 'lines' arg '$lines'" && exit 1
       end="top"
       if [ ${#args[@]} -gt 1 ]; then
@@ -176,11 +176,11 @@ for target in "${targets[@]}"; do
         end="$arg"
       fi
       res="$(fn_decision "[user] trim $lines line$([ $lines -ne 1 ] && echo "s") from $end of target '$target'?" "ync")"
-      [ "x$res" == "xc" ] && exit
-      if [ "x$res" == "xy" ]; then
+      [ "x$res" = "xc" ] && exit
+      if [ "x$res" = "xy" ]; then
         tmp="$(fn_temp_file $SCRIPTNAME)"
         rlines=$(($(wc -l "$target" | cut -d' ' -f1)-$lines))
-        cutter="$([ "x$end" == "xtop" ] && echo "tail" || echo "head")"
+        cutter="$([ "x$end" = "xtop" ] && echo "tail" || echo "head")"
         $cutter -n $rlines "$target" 2>/dev/null > "$tmp"
         $CMD_MV "$tmp" "$target"
       fi
@@ -248,11 +248,11 @@ for target in "${targets[@]}"; do
       [ ${#args[@]} -gt 1 ] && [ ${args[1]} -eq 1 ] && target_suffix="$target2" && target2="$target"
 
       # setup
-      [ "x$(dirname "$target")" == "./" ] &&\
+      [ "x$(dirname "$target")" = "./" ] &&\
         target="$(echo "$PWD/$target" | sed 's/\/.\//\//g')"
-      [ "x$(dirname "$target2")" == "./" ] &&\
+      [ "x$(dirname "$target2")" = "./" ] &&\
         target2="$(echo "$PWD/$target2" | sed 's/\/.\//\//g')"
-      [ "x$target" == "x$target2" ] && target2+="$target_suffix"
+      [ "x$target" = "x$target2" ] && target2+="$target_suffix"
       target="$(fn_path_resolve "$target")"
       target2="$(fn_path_resolve "$target2")"
 
@@ -275,14 +275,14 @@ for target in "${targets[@]}"; do
         IFS=$'\n'; lines=($(sed '/[ ]*#/d' "$MOVE_ALIASES")); IFS="$IFSORG"
         for kv in "${lines[@]}"; do
           k="${kv%%=*}"
-          [ "x$k" == "x$target2" ] && target2="${kv#*=}" && break
+          [ "x$k" = "x$target2" ] && target2="${kv#*=}" && break
         done
       fi
 
       # setup
-      [ "x$(dirname "$target")" == "./" ] &&\
+      [ "x$(dirname "$target")" = "./" ] &&\
         target="$(echo "$PWD/$target" | sed 's/\/.\//\//g')"
-      [ "x$(dirname "$target2")" == "./" ] &&\
+      [ "x$(dirname "$target2")" = "./" ] &&\
         target2="$(echo "$PWD/$target2" | sed 's/\/.\//\//g')"
       target="$(fn_path_resolve "$target")"
       target2="$(fn_path_resolve "$target2")"
