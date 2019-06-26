@@ -187,12 +187,12 @@ for target in "${targets[@]}"; do
       ;;
 
     "r"|"rename")
-      [ ${#args[@]} -gt 0 ] && filter="${args[0]}" && shift
+      [ ${#args[@]} -gt 0 ] && filter="${args[0]}" && args=("${args[@]:1}")
       target="$(echo "$target" | grep -vP '(^\.{1,2}$|'"$(fn_escape "perl" "$FILTER")"'\/$)')"
       [ -z "$target" ] && continue
       transforms="$RENAME_TRANSFORMS_DEFAULT"
       if [ ${#args[@]} -gt 0 ]; then
-        transforms="${args[@]}" && shift
+        transforms="${args[@]}"
         for transform in "${transforms[@]}"; do
           [ -z "$(echo "$transform" | sed -n '/\('"$(echo "$RENAME_TRANSFORMS" | sed 's/|/\\|/g')"'\|.\+=.*\)/p')" ] &&\
             echo "[error] unsupported rename transform '$transform'" && exit 1
