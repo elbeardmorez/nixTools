@@ -84,7 +84,7 @@ if [ $custom_targets -eq 1 ]; then
 fi
 
 # run help after option parsing / verification
-[ "x$option" == "xhelp" ] && help && exit
+[ "x$option" = "xhelp" ] && help && exit
 
 declare -a files
 declare -a results
@@ -121,8 +121,8 @@ else
     else
       result=""
       res="$(fn_decision "[user] search match, use file '$f'?" "ync")"
-      [ "x$res" == "xc" ] && exit  # !break, no partial results
-      [ "x$res" == "xn" ] && continue
+      [ "x$res" = "xc" ] && exit  # !break, no partial results
+      [ "x$res" = "xn" ] && continue
       results[${#results[@]}]="$f"
     fi
   done
