@@ -16,9 +16,9 @@ RENAME_FILTER="."
 RENAME_TRANSFORMS="lower|upper|spaces|underscores|dashes"
 RENAME_TRANSFORMS_DEFAULT="lower|spaces|underscores|dashes"
 MOVE_ALIASES="$HOME/.nixTools/$SCRIPTNAME"
-CMD_MV="$([ $TEST -eq 1 ] && echo "echo ")mv"
+CMD_MV=($(echo "$([ $TEST -eq 1 ] && echo "echo ")mv"))
 CMD_MV_ARGS=("-i")
-CMD_CP="$([ $TEST -eq 1 ] && echo "echo ")cp"
+CMD_CP=($(echo "$([ $TEST -eq 1 ] && echo "echo ")cp"))
 CMD_CP_ARGS=("-a")
 
 help() {
@@ -143,7 +143,7 @@ for target in "${targets[@]}"; do
       echo "# stripping target: '$target', side: '$side', size: '$size', target2: '$target2'"
       [[ -e "target2" || "x${target2}" == "x" ]] &&
         echo "skipping mv '$target' -> '$target2'" && continue
-      $CMD_MV ${CMD_MV_ARGS[@]} "$target" "$target2"
+      "${CMD_MV[@]}" "${CMD_MV_ARGS[@]}" "$target" "$target2"
       ;;
 
    "u"|"uniq")
@@ -189,7 +189,7 @@ for target in "${targets[@]}"; do
         rlines=$(($(wc -l "$target" | cut -d' ' -f1)-$lines))
         cutter="$([ "x$end" = "xtop" ] && echo "tail" || echo "head")"
         $cutter -n $rlines "$target" 2>/dev/null > "$tmp"
-        $CMD_MV "$tmp" "$target"
+        "${CMD_MV[@]}" "$tmp" "$target"
       fi
       ;;
 
@@ -240,7 +240,7 @@ for target in "${targets[@]}"; do
       done
       [ $compress_periods -eq 1 ] &&\
         target2="$(echo "$target2" | awk -F'\n' '{gsub(/\.+/,"."); print}')"
-      [ ! -e "$dir$target2" ] && $CMD_MV ${CMD_MV_ARGS[@]} "$dir$target" "$dir$target2" 2>/dev/null
+      [ ! -e "$dir$target2" ] && "${CMD_MV[@]}" "${CMD_MV_ARGS[@]}" "$dir$target" "$dir$target2" 2>/dev/null
       ;;
 
     "dp"|"dupe")
@@ -264,8 +264,8 @@ for target in "${targets[@]}"; do
       target2="$(fn_path_resolve "$target2")"
 
       # duplicate
-      [ $DEBUG -gt 0 ] && echo "[debug] type: '$([ -d "$target" ] && echo "dir" || echo "file")', command: '$CMD_CP ${CMD_CP_ARGS[*]}', targets: '$target' -> '$target2'"
-      $CMD_CP ${CMD_CP_ARGS[@]} "$target" "$target2"
+      [ $DEBUG -gt 0 ] && echo "[debug] type: '$([ -d "$target" ] && echo "dir" || echo "file")', command: '${CMD_CP[@]} ${CMD_CP_ARGS[*]}', targets: '$target' -> '$target2'"
+      "${CMD_CP[@]}" "${CMD_CP_ARGS[@]}" "$target" "$target2"
       ;;
 
     "m"|"move")
@@ -295,8 +295,8 @@ for target in "${targets[@]}"; do
       target2="$(fn_path_resolve "$target2")"
 
       # move
-      [ $DEBUG -gt 0 ] && echo "[debug] type: '$([ -d "$target" ] && echo "dir" || echo "file")', command: '$CMD_MV ${CMD_MV_ARGS[*]}', targets: '$target' -> '$target2'"
-      $CMD_MV ${CMD_MV_ARGS[@]} "$target" "$target2"
+      [ $DEBUG -gt 0 ] && echo "[debug] type: '$([ -d "$target" ] && echo "dir" || echo "file")', command: '${CMD_MV[@]} ${CMD_MV_ARGS[*]}', targets: '$target' -> '$target2'"
+      "${CMD_MV[@]}" "${CMD_MV_ARGS[@]}" "$target" "$target2"
       ;;
   esac
 done
