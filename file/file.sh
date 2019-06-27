@@ -121,6 +121,12 @@ else
   echo "[info] no targets set for '$target'" && exit 0
 fi
 
+# vars
+declare search
+declare replace
+declare target2
+declare target_suffix
+
 # process
 for target in "${targets[@]}"; do
   case "$option" in
@@ -206,14 +212,11 @@ for target in "${targets[@]}"; do
       else
         IFS='|, '; transforms=($(echo "$RENAME_TRANSFORMS_DEFAULT")); IFS=$IFSORG
       fi
-      declare target2
       dir="$(dirname "$target")/"
       target="${target##*/}"
       target2="$target"
       compress_periods=0
       for transform in "${transforms[@]}"; do
-        declare search
-        declare replace
         case "$transform" in
           "lower"|"upper")
             target2="$(echo "$target2" | awk -F'\n' '{print to'$transform'($1)}')"
@@ -244,8 +247,6 @@ for target in "${targets[@]}"; do
       ;;
 
     "dp"|"dupe")
-      declare target2
-      declare target_suffix
 
       # args
       [ ! -e "$target" ] && echo "[error] invalid target '$target'" && exit 1
@@ -269,7 +270,6 @@ for target in "${targets[@]}"; do
       ;;
 
     "m"|"move")
-      declare target2
 
       # args
       [ ! -e "$target" ] && echo "[error] invalid target '$target'" && exit 1
