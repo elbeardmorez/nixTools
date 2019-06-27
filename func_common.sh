@@ -552,7 +552,7 @@ fn_search_set() {
   else
     bin_args[${#bin_args[@]}]="-iregex"
   fi
-  bin_args[${#bin_args[@]}]="$search"
+  bin_args[${#bin_args[@]}]="$(fn_escape "path" "$search")"
   l=0
   bin_args[${#bin_args[@]}]="("
   while [ $l -lt ${#types} ]; do
