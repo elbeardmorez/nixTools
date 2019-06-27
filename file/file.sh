@@ -197,15 +197,15 @@ for target in "${targets[@]}"; do
       [ ${#args[@]} -gt 0 ] && { filter="${args[0]}" && args=("${args[@]:1}"); } || filter=$RENAME_FILTER
       target="$(echo "$target" | grep -vP '(^\.{1,2}$|'"$(fn_escape "perl" "$filter")"'\/$)')"
       [ -z "$target" ] && continue
-      transforms="$RENAME_TRANSFORMS_DEFAULT"
       if [ ${#args[@]} -gt 0 ]; then
-        transforms="${args[@]}"
+        IFS='|, '; transforms=($(echo "${args[*]}")); IFS=$IFSORG
         for transform in "${transforms[@]}"; do
           [ -z "$(echo "$transform" | sed -n '/\('"$(echo "$RENAME_TRANSFORMS" | sed 's/|/\\|/g')"'\|.\+=.*\)/p')" ] &&\
             echo "[error] unsupported rename transform '$transform'" && exit 1
         done
+      else
+        IFS='|, '; transforms=($(echo "$RENAME_TRANSFORMS_DEFAULT")); IFS=$IFSORG
       fi
-      IFS='|, '; transforms=($(echo $transforms)); IFS=$IFSORG
       declare target2
       dir="$(dirname "$target")/"
       target="${target##*/}"
