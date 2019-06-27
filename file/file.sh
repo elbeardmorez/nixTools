@@ -121,6 +121,27 @@ else
   echo "[info] no targets set for '$target'" && exit 0
 fi
 
+# option validation
+declare -a rename_transforms
+declare rename_filter
+
+case "$option" in
+  "r"|"rename")
+    [ ${#args[@]} -ge 2 ] && \
+      { rename_filter="${args[0]}" && args=("${args[@]:1}"); } || \
+      rename_filter=$RENAME_FILTER
+    if [ ${#args[@]} -ge 1 ]; then
+      IFS='|, '; rename_transforms=($(echo "${args[*]}")); IFS=$IFSORG
+      for transform in "${rename_transforms[@]}"; do
+        [ -z "$(echo "$transform" | sed -n '/\('"$(echo "$RENAME_TRANSFORMS" | sed 's/|/\\|/g')"'\|.\+=.*\)/p')" ] &&\
+          echo "[error] unsupported rename transform '$transform'" && exit 1
+      done
+    else
+      IFS='|, '; rename_transforms=($(echo "$RENAME_TRANSFORMS_DEFAULT")); IFS=$IFSORG
+    fi
+    ;;
+esac
+
 # vars
 declare search
 declare replace
@@ -200,23 +221,13 @@ for target in "${targets[@]}"; do
       ;;
 
     "r"|"rename")
-      [ ${#args[@]} -gt 0 ] && { filter="${args[0]}" && args=("${args[@]:1}"); } || filter=$RENAME_FILTER
-      target="$(echo "$target" | grep -vP '(^\.{1,2}$|'"$(fn_escape "perl" "$filter")"'\/$)')"
+      target="$(echo "$target" | grep -vP '(^\.{1,2}$|'"$(fn_escape "perl" "$rename_filter")"'\/$)')"
       [ -z "$target" ] && continue
-      if [ ${#args[@]} -gt 0 ]; then
-        IFS='|, '; transforms=($(echo "${args[*]}")); IFS=$IFSORG
-        for transform in "${transforms[@]}"; do
-          [ -z "$(echo "$transform" | sed -n '/\('"$(echo "$RENAME_TRANSFORMS" | sed 's/|/\\|/g')"'\|.\+=.*\)/p')" ] &&\
-            echo "[error] unsupported rename transform '$transform'" && exit 1
-        done
-      else
-        IFS='|, '; transforms=($(echo "$RENAME_TRANSFORMS_DEFAULT")); IFS=$IFSORG
-      fi
       dir="$(dirname "$target")/"
       target="${target##*/}"
       target2="$target"
       compress_periods=0
-      for transform in "${transforms[@]}"; do
+      for transform in "${rename_transforms[@]}"; do
         case "$transform" in
           "lower"|"upper")
             target2="$(echo "$target2" | awk -F'\n' '{print to'$transform'($1)}')"
