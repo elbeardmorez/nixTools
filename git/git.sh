@@ -430,8 +430,8 @@ fn_blame() {
   [ ${#matches[@]} -eq 0 ] && exit
   for s in "${matches[@]}"; do
     parts=($(echo "$s"))
-    id="${parts[0]}"
-    x="$(echo "${s:$((${#id}+1))}" | sed 's/^(\([^)]*\)) /\1|/')"
+    id="$(echo "${parts[0]}" | sed 's/^\^//')"
+    x="$(echo "${s:$((${#parts[0]}+1))}" | sed 's/^(^\?\([^)]*\)) /\1|/')"
     xa=(${x%%|*})
     dt1="${xa[$((${#xa}-2))]}"
     dt2="${xa[$((${#xa}-1))]}"
