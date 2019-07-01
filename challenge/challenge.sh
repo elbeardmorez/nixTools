@@ -215,9 +215,9 @@ fn_new() {
         s_cmd_edit="$(fn_edit_command "$target")"
 
       [ $edit -eq 1 ] &&\
-        eval "$s_cmd_edit"
+        $s_cmd_edit
       [ $export_edit_command -eq 1 ] &&\
-        eval "export $env_var='$s_cmd_edit'"
+        export $env_var="$s_cmd_edit"
       [ $subshell -eq 1 ] &&\
         exec $(fn_shell)
       [ $dump_edit_command -eq 1 ] &&\
@@ -273,6 +273,7 @@ fn_edit() {
     1) target="${targets[0]}" ;;
     *) echo "[info] multiple matches found, please try a more specific search" && return 0 ;;
   esac
+
   cd "$target" || return 1
   target="$(basename "$target")"
 
@@ -281,9 +282,9 @@ fn_edit() {
 
   # execute
   if [ $subshell -eq 0 ]; then
-    eval "$s_cmd_edit"
+    $s_cmd_edit
   else
-    eval "export $env_var='$s_cmd_edit'"
+    export $env_var="$s_cmd_edit"
     exec $(fn_shell)
   fi
   [ $dump_edit_command -eq 1 ] &&\
