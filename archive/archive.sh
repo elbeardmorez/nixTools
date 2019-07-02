@@ -39,7 +39,7 @@ fi
 ## gzip
 bin="gunzip"; bin_ext="gz"; name="gzip"
 [ -n "$(which $bin 2>/dev/null)" ] && \
-  exts_bin["bin_ext"]="$bin_ext$del$bin" && \
+  exts_bin["$bin_ext"]="$bin_ext$del$bin" && \
   bin_package["$bin"]="$name"
 ## bzip2
 bin="bunzip2"; name="bzip"
