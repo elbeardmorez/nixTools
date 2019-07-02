@@ -439,11 +439,13 @@ fn_extract() {
         [ ${#fps[@]} -eq 1 ] && \
           echo "[info] skipping file '$file', primitive type deduction" \
                "is based on known file extensions" && continue
-        ext="${fps[$((${#fps[@]} - 1))]}"
-        [ $DEBUG -ge 1 ] && echo "[debug] testing ext: '$ext'"
-        valid_ext="${exts_bin["$ext"]}"
-        if [[ -z "$valid_ext" && ${#fps[@]} -gt 2 ]]; then
-          ext="${fps[$((${#fps[@]} - 1))]}.${fps[$((${#fps[@]} - 1))]}"
+        if [ ${#fps[@]} -gt 2 ]; then
+          ext="${fps[$((${#fps[@]} - 2))]}.${fps[$((${#fps[@]} - 1))]}"
+          [ $DEBUG -ge 1 ] && echo "[debug] testing ext: '$ext'"
+          valid_ext="${exts_bin["$ext"]}"
+        fi
+        if [ -z "$valid_ext" ]; then
+          ext="${fps[$((${#fps[@]} - 1))]}"
           [ $DEBUG -ge 1 ] && echo "[debug] testing ext: '$ext'"
           valid_ext="${exts_bin["$ext"]}"
         fi
