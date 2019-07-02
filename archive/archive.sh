@@ -31,7 +31,7 @@ del="|"
 ## tar
 bin="tar"; name="tar (gzip/bzip2/xz)"
 if [ -n "$(which $bin)" ]; then
-  exts=("tar" "tar.xz" "txz" "tar.bz" "tbz" "tar.bz2"
+  exts=("tar" "tar.mv" "tar.xz" "txz" "tar.bz" "tbz" "tar.bz2"
         "tbz2" "tar.gz" "tgz")
   for ext in "${exts[@]}"; do exts_bin["$ext"]="$ext$del$bin"; done
   bin_package["$bin"]="$name"
@@ -136,7 +136,7 @@ help() {
   echo -e "SYNTAX: ${CLR_HL}$SCRIPTNAME [-h] [MODE] [OPTIONS]${CLR_OFF}
 \n  -h, --help  : print this help information
 \n  MODE:
-\n    ${CLR_HL}a, add${CLR_OFF}:  create a tar archive
+\n    ${CLR_HL}a, add${CLR_OFF}:  create a tar.mv archive
 \n      SYNTAX: ${CLR_HL}$SCRIPTNAME --add --name NAME --target TARGET [OPTIONS]${CLR_OFF}
 \n      NAME:  achive name
       TARGET:  path to files for addition
@@ -145,7 +145,7 @@ help() {
         -s, --split  : max size (MB) to use for splitting archive into
                        multiple volumes
 \n      support: tar only
-\n    ${CLR_HL}u, update${CLR_OFF}:  update a tar archive
+\n    ${CLR_HL}u, update${CLR_OFF}:  update a tar.mv archive
 \n      SYNTAX: ${CLR_HL}$SCRIPTNAME --update --name NAME --target TARGET [OPTIONS]${CLR_OFF}
 \n      NAME:  achive name
       TARGET:  path to files for addition / update
@@ -195,7 +195,7 @@ fn_tarmv() {
       "-n"|"--name"|"-f"|"--file")
         l=$((l + 1))
         OPT="${args[l]}"
-        [ "${OPT:$((${#OPT} - 4)):4}" != ".tar" ] && OPT="$OPT.tar"
+        [ "${OPT:$((${#OPT} - 7)):7}" != ".tar.mv" ] && OPT="$OPT.tar.mv"
         NAME="$OPT"
         args2=("${args2[@]}" "--file" "$OPT")
         ;;
@@ -263,7 +263,7 @@ fn_tarmv() {
   cat > $MVTARSCRIPT << EOF
 #!/bin/sh
 TAR_NAME=\${name:-\$TAR_ARCHIVE}
-if [ "\${TAR_NAME:\$[\${#TAR_NAME}-4]:4}" = ".tar" ]; then
+if [ "\${TAR_NAME:\$[\${#TAR_NAME}-4]:4}" = ".tar.mv" ]; then
   TAR_NAME="\${TAR_NAME:0:\$[\${#TAR_NAME}-4]}"
 fi
 TAR_BASE=\$TAR_NAME
@@ -274,10 +274,10 @@ fi
 echo volume \$TAR_VOLUME of archive \'\$TAR_BASE\'
 case \$TAR_SUBCOMMAND in
   -c|-u) ;;
-  -d|-x|-t) test -r \$TAR_BASE-\$TAR_VOLUME".tar" || exit 1 ;;
+  -d|-x|-t) test -r \$TAR_BASE-\$TAR_VOLUME".tar.mv" || exit 1 ;;
   *) exit 1 ;;
 esac
-echo \$TAR_BASE-\$TAR_VOLUME".tar" >&\$TAR_FD
+echo \$TAR_BASE-\$TAR_VOLUME".tar.mv" >&\$TAR_FD
 EOF
   chmod +x "$MVTARSCRIPT"
 
@@ -346,8 +346,8 @@ fn_extract_type() {
   type="$file" && [ -n "$override" ] && type="$override"
   fext="${type##*.}"
   case "$type" in
-    *.tar.xz|*.txz|*.tar.bz|*.tbz|*.tar.bz2|*.tbz2|*.tar.gz|*.tgz|*.tar)
-      [ "" = "tar" ] && \
+    *.tar.xz|*.txz|*.tar.bz|*.tbz|*.tar.bz2|*.tbz2|*.tar.gz|*.tgz|*.tar|*tar.mv)
+      [ "$type" = "tar.mv" ] && \
         fn_tarmv --extract --multi-volume --name "$file" || \
         tar xvf "$file"
       ;;
