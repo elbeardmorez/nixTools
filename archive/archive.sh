@@ -109,7 +109,6 @@ bin="msiextract"; bin_ext="msi"; name="Microsoft installer"
   exts_bin["$bin_ext"]="$bin_ext$del$bin" && \
   bin_package["$bin"]="$name"
 
-
 IFS=$'\n'; res=($(fn_reversed_map_values "$del" "${exts_bin[@]}")); IFS="$IFSORG"
 declare -A bin_exts
 for kvp in "${res[@]}"; do k="${kvp%%${del}*}"; bin_exts["$k"]="$kvp"; done
@@ -274,14 +273,9 @@ if [ "x\$TAR_BASE" = "x" ]; then
 fi
 echo volume \$TAR_VOLUME of archive \'\$TAR_BASE\'
 case \$TAR_SUBCOMMAND in
-  -c|-u)
-    ;;
-  -d|-x|-t)
-    test -r \$TAR_BASE-\$TAR_VOLUME".tar" || exit 1
-    ;;
-  *)
-    exit 1
-    ;;
+  -c|-u) ;;
+  -d|-x|-t) test -r \$TAR_BASE-\$TAR_VOLUME".tar" || exit 1 ;;
+  *) exit 1 ;;
 esac
 echo \$TAR_BASE-\$TAR_VOLUME".tar" >&\$TAR_FD
 EOF
