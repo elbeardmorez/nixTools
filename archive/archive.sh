@@ -114,6 +114,14 @@ IFS=$'\n'; res=($(fn_reversed_map_values "$del" "${exts_bin[@]}")); IFS="$IFSORG
 declare -A bin_exts
 for kvp in "${res[@]}"; do k="${kvp%%${del}*}"; bin_exts["$k"]="$kvp"; done
 
+if [ $DEBUG -ge 5 ]; then
+  echo -e "\n${CLR_HL}[debug] exts_bin:${CLR_OFF}"
+  for s in "${exts_bin[@]}"; do echo "$s"; done
+  echo -e "\n${CLR_HL}[debug] bin_exts:${CLR_OFF}"
+  for s in "${bin_exts[@]}"; do echo "$s"; done
+  echo ""
+fi
+
 fn_supported_extract_formats() {
   declare del="$1";
   declare s="";
@@ -376,6 +384,7 @@ fn_extract() {
   declare path_dest
   declare override
   declare -a files
+  declare ext
   cwd="$(pwd)"
   path_dest=""
   override=""
@@ -430,9 +439,14 @@ fn_extract() {
         [ ${#fps[@]} -eq 1 ] && \
           echo "[info] skipping file '$file', primitive type deduction" \
                "is based on known file extensions" && continue
-        valid_ext="${exts_bin["${fps[$((${#fps[@]} - 1))]}"]}"
-        [[ -z "$valid_ext" && ${#fps[@]} -gt 2 ]] && \
-          valid_ext="${exts_bin["${fps[$((${#fps[@]} - 1))]}.${fps[$((${#fps[@]} - 1))]}"]}"
+        ext="${fps[$((${#fps[@]} - 1))]}"
+        [ $DEBUG -ge 1 ] && echo "[debug] testing ext: '$ext'"
+        valid_ext="${exts_bin["$ext"]}"
+        if [[ -z "$valid_ext" && ${#fps[@]} -gt 2 ]]; then
+          ext="${fps[$((${#fps[@]} - 1))]}.${fps[$((${#fps[@]} - 1))]}"
+          [ $DEBUG -ge 1 ] && echo "[debug] testing ext: '$ext'"
+          valid_ext="${exts_bin["$ext"]}"
+        fi
         [ -z "$valid_ext" ] && \
           echo "[info] skipping file '$file'," \
                "unsupported type / missing binary" && continue
