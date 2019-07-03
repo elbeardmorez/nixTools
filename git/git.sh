@@ -222,9 +222,7 @@ fn_rebase() {
 
 fn_formatpatch() {
   declare id
-  id=HEAD
   declare n
-  n=1
   declare -a cmd_args
   while [ -n "$1" ]; do
     if [ "x$1" = "x--" ]; then
@@ -242,6 +240,8 @@ fn_formatpatch() {
     fi
     shift
   done
+  n=${n:-1}
+  id="${id:-"HEAD"}"
   commit=$(fn_search_commit "$id")
   res=$?; [ $res -ne 0 ] && exit $res
   sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
