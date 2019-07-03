@@ -400,7 +400,7 @@ fn_add_no_whitespace() {
 fn_fast_foward() {
   num=$1 && shift;
   target="$(git rev-parse --abbrev-ref HEAD)"
-  [ "x$target" = "xHEAD" ] && target=$(git status | sed -n "s/.* branch '\([^']\{1,\}\)' on '[0-9a-z]\{1,\}'.*/\1/p")"
+  [ "x$target" = "xHEAD" ] && target="$(git status | sed -n "s/.* branch '\([^']\{1,\}\)'.*/\1/p" | head -n1)"
   sha_current="$(git log --oneline -n1 | cut -d' ' -f1)"
   sha_target="$(git log --oneline $target | grep $sha_current -B $num | head -n1 | cut -d' ' -f1)"
   echo -n "[info] fast-forwarding $num commits, '$sha_current' -> '$sha_target' on branch '$target', ok? [y/n]: "
