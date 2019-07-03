@@ -141,7 +141,7 @@ fn_log() {
   declare path; path=""
   declare count
   declare -a bin_args; bin_args=("-c" "color.ui=always")
-  declare -a cmd_args
+  declare -a cmd_args; cmd_args=("--decorate")
   declare commits_
   declare -a commits
   while [ -n "$1" ]; do
@@ -175,7 +175,7 @@ fn_log() {
   for commit in "${commits[@]}"; do
     commit="$(echo "$commit" | cut -d' ' -f1)"
     if [ "x$command" = "xlog" ]; then
-      git "${bin_args[@]}" log --format=format:"%at | %ct | version: $(printf $CLR_BWN)%H$(printf $CLR_OFF)%n %s (%an)" "${cmd_args[@]}" $commit | awk '{if ( $0 ~ /[0-9]{10} \| [0-9]{10} | version:/ ) { $1=strftime("%Y%b%d %H:%M:%S",$1); $3=strftime("%Y%b%d %H:%M:%S",$3); }; print $0;}'
+      git "${bin_args[@]}" log --format=format:"%at | %ct | version: $(printf $CLR_BWN)%H$(printf $CLR_OFF) $(printf $CLR_YLW)%d$(printf $CLR_OFF)%n %s (%an)" "${cmd_args[@]}" $commit | awk '{if ( $0 ~ /[0-9]{10} \| [0-9]{10} | version:/ ) { $1=strftime("%Y%b%d %H:%M:%S",$1); $3=strftime("%Y%b%d %H:%M:%S",$3); }; print $0;}'
     else
       format="$([ "x$command" = "xlog1" ] && echo "oneline" || echo "fuller")"
       git "${bin_args[@]}" log --format="$format" "${cmd_args[@]}" $commit | cat
