@@ -37,6 +37,7 @@ CLR_OFF='\033[m'  # colour off
 CLR_RED='\033[0;31m'
 CLR_GRN='\033[0;32m'
 CLR_BWN='\033[0;33m'
+CLR_YLW='\033[0;93m'
 CHR_ARR_U=$'\u21e7' #$'\u2191'
 CHR_ARR_D=$'\u21e9' #$'\u2193'
 CHR_ARR_L=$'\u21e6' #$'\u2190'
