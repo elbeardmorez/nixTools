@@ -244,7 +244,7 @@ fn_formatpatch() {
   id="${id:-"HEAD"}"
   commit=$(fn_search_commit "$id")
   res=$?; [ $res -ne 0 ] && exit $res
-  sha="`echo $commit | sed -n 's/\([^ ]*\).*/\1/p'`"
+  sha="$(echo $commit | sed -n 's/\([^ ]*\).*/\1/p')"
   echo "[info] formatting patch for rebasing from commit '$commit'"
   git format-patch -k -$n $sha "${cmd_args[@]}"
 }
@@ -399,10 +399,10 @@ fn_add_no_whitespace() {
 
 fn_fast_foward() {
   num=$1 && shift;
-  target=`git rev-parse --abbrev-ref HEAD`
-  [ "x$target" = "xHEAD" ] && target=`git status | sed -n "s/.* branch '\([^']\{1,\}\)' on '[0-9a-z]\{1,\}'.*/\1/p"`
-  sha_current=`git log --oneline -n1 | cut -d' ' -f1`
-  sha_target=`git log --oneline $target | grep $sha_current -B $num | head -n1 | cut -d' ' -f1`
+  target="$(git rev-parse --abbrev-ref HEAD)"
+  [ "x$target" = "xHEAD" ] && target=$(git status | sed -n "s/.* branch '\([^']\{1,\}\)' on '[0-9a-z]\{1,\}'.*/\1/p")"
+  sha_current="$(git log --oneline -n1 | cut -d' ' -f1)"
+  sha_target="$(git log --oneline $target | grep $sha_current -B $num | head -n1 | cut -d' ' -f1)"
   echo -n "[info] fast-forwarding $num commits, '$sha_current' -> '$sha_target' on branch '$target', ok? [y/n]: "
   fn_decision >/dev/null && git checkout $sha_target
 }
