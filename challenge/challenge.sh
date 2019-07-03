@@ -389,9 +389,10 @@ fn_test() {
       temp_files[${#temp_files[@]}]="$f_tmp_results"
       f_tmp_expected="$(fn_temp_file "$SCRIPTNAME")"
       temp_files[${#temp_files[@]}]="$f_tmp_expected"
-      rm "$res"
+      [ -e "$log" ] && rm "$log"
       for tf in "${test_files[@]}"; do
         s="[info] running test file '$tf'"
+        [ -e "$f_tmp_results" ] && rm "$f_tmp_results"
         echo -e "\n$s\n$(printf "%.0s-" $(seq 1 1 ${#s}))\n" | tee -a "$res"
         case "$source_suffix" in
           "cpp") OUTPUT_PATH="$res" ./bin < "$tf" | tee -a $res | tee "$f_tmp_results" || return 1;;
