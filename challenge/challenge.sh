@@ -387,6 +387,8 @@ fn_test() {
       echo "[info] running ${#test_files[@]} test$([ ${#test_files[@]} -ne 1 ] && echo "s")"
       f_tmp_results="$(fn_temp_file "$SCRIPTNAME")"
       temp_files[${#temp_files[@]}]="$f_tmp_results"
+      f_tmp_results_stdout="$(fn_temp_file "$SCRIPTNAME")"
+      temp_files[${#temp_files[@]}]="$f_tmp_results_stdout"
       f_tmp_expected="$(fn_temp_file "$SCRIPTNAME")"
       temp_files[${#temp_files[@]}]="$f_tmp_expected"
       [ -e "$log" ] && rm "$log"
@@ -395,11 +397,12 @@ fn_test() {
         [ -e "$f_tmp_results" ] && rm "$f_tmp_results"
         echo -e "\n$s\n$(printf "%.0s-" $(seq 1 1 ${#s}))\n" | tee -a "$res"
         case "$source_suffix" in
-          "cpp") OUTPUT_PATH="$res" ./bin < "$tf" | tee -a $res | tee "$f_tmp_results" || return 1;;
-          "cs") OUTPUT_PATH="$res" ./bin.exe < "$tf" | tee -a $res | tee "$f_tmp_results" || return 1 ;;
-          "py") OUTPUT_PATH="$res" python "$source_" < "$tf" | tee -a $res | tee "$f_tmp_results" || return 1 ;;
-          "js") OUTPUT_PATH="$res" node "$source_" < "$tf" | tee -a $res | tee "$f_tmp_results" || return 1 ;;
+          "cpp") OUTPUT_PATH="$f_tmp_results" ./bin < "$tf" | tee -a $res | tee "$f_tmp_results_stdout" || return 1;;
+          "cs") OUTPUT_PATH="$f_tmp_results" ./bin.exe < "$tf" | tee -a $res | tee "$f_tmp_results_stdout" || return 1 ;;
+          "py") OUTPUT_PATH="$f_tmp_results" python "$source_" < "$tf" | tee -a $res | tee "$f_tmp_results_stdout" || return 1 ;;
+          "js") OUTPUT_PATH="$f_tmp_results" node "$source_" < "$tf" | tee -a $res | tee "$f_tmp_results_stdout" || return 1 ;;
         esac
+        [ -z "$(cat "$f_tmp_results")" ] && cp "$f_tmp_results_stdout" "$f_tmp_results"
         if [ $diffs -eq 1 ]; then
           of="$(echo "$tf" | sed 's/in/out/g')"
           [ ! -f "$of" ] && \
