@@ -306,7 +306,7 @@ fn_test() {
   declare -a tests
   declare -a test_files
   declare -a source_
-  declare res="results"
+  declare log="log"
   declare type;
   declare s
 
@@ -395,12 +395,12 @@ fn_test() {
       for tf in "${test_files[@]}"; do
         s="[info] running test file '$tf'"
         [ -e "$f_tmp_results" ] && rm "$f_tmp_results"
-        echo -e "\n$s\n$(printf "%.0s-" $(seq 1 1 ${#s}))\n" | tee -a "$res"
+        echo -e "\n$s\n$(printf "%.0s-" $(seq 1 1 ${#s}))\n" | tee -a "$log"
         case "$source_suffix" in
-          "cpp") OUTPUT_PATH="$f_tmp_results" ./bin < "$tf" | tee -a $res | tee "$f_tmp_results_stdout" || return 1;;
-          "cs") OUTPUT_PATH="$f_tmp_results" ./bin.exe < "$tf" | tee -a $res | tee "$f_tmp_results_stdout" || return 1 ;;
-          "py") OUTPUT_PATH="$f_tmp_results" python "$source_" < "$tf" | tee -a $res | tee "$f_tmp_results_stdout" || return 1 ;;
-          "js") OUTPUT_PATH="$f_tmp_results" node "$source_" < "$tf" | tee -a $res | tee "$f_tmp_results_stdout" || return 1 ;;
+          "cpp") OUTPUT_PATH="$f_tmp_results" ./bin < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1;;
+          "cs") OUTPUT_PATH="$f_tmp_results" ./bin.exe < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
+          "py") OUTPUT_PATH="$f_tmp_results" python "$source_" < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
+          "js") OUTPUT_PATH="$f_tmp_results" node "$source_" < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
         esac
         [ -z "$(cat "$f_tmp_results")" ] && cp "$f_tmp_results_stdout" "$f_tmp_results"
         if [ $diffs -eq 1 ]; then
