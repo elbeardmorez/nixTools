@@ -303,6 +303,7 @@ fn_test() {
     done
   done
   declare diffs; diffs=0
+  declare diff_
   declare -a tests
   declare -a test_files
   declare -a source_
@@ -409,7 +410,10 @@ fn_test() {
             echo "[info] skipping diff for test '$tf', missing corresponding output file"
           # ensure EOF/newline byte
           sed '$a\' "$of" > "$f_tmp_expected"
-          diff -u --color=always "$f_tmp_expected" "$f_tmp_results" | tee -a $log
+          diff_="$(diff -u --color=always "$f_tmp_expected" "$f_tmp_results")"
+          [ -n "$diff_" ] && \
+            echo -e "$diff_" | tee -a $log || \
+            echo "results identical" | tee -a $log
         fi
       done
       ;;
