@@ -221,8 +221,8 @@ for target in "${targets[@]}"; do
       ;;
 
     "r"|"rename")
-      target="$(echo "$target" | grep -vP '(^\.{1,2}$|'"$(fn_escape "perl" "$rename_filter")"'\/$)')"
-      [ -z "$target" ] && continue
+      [[ -n "$rename_filter" && \
+         -n "$(echo "$target" | grep -P '(^\.{1,2}$|'"$rename_filter"')')" ]] && continue
       dir="$(dirname "$target")/"
       target="${target##*/}"
       target2="$target"
