@@ -246,7 +246,7 @@ for target in "${targets[@]}"; do
          *=*)
             compress_periods=1
             search="$(fn_escape "awk" "${transform%=*}")"
-            replace="$(fn_escape "awk" "${transform#*=}")"
+            replace="${transform#*=}"
             [ $DEBUG -gt 0 ] && echo "[debug] rename transform '$search' -> '$replace'" 1>&2
             target2="$(echo "$target2" | awk -F'\n' '{gsub(/'"$search"'+/,"'$replace'"); print}')"
             ;;
