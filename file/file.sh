@@ -248,7 +248,7 @@ for target in "${targets[@]}"; do
             search="$(fn_escape "awk" "${transform%=*}")"
             replace="${transform#*=}"
             [ $DEBUG -gt 0 ] && echo "[debug] rename transform '$search' -> '$replace'" 1>&2
-            target2="$(echo "$target2" | awk -F'\n' '{gsub(/'"$search"'+/,"'$replace'"); print}')"
+            target2="$(echo "$target2" | awk -F'\n' '{gsub(/('"$search"')+/,"'$replace'"); print}')"
             ;;
         esac
       done
