@@ -34,10 +34,15 @@ environment variables:
 
   BACKUP_ROOT  : as detailed above
   RSYNC  : path to the rsync binary to use (default: auto)
-  RSYNC_OPTIONS  : space delimited set of options to pass to rsync.
-                   modifying this is very dangerous and may compromise
-                   your backup set
-                   (default: --archive --relative --delete --verbose)
+  RSYNC_OPTIONS*  : space delimited set of options to pass to rsync.
+                    (default: --verbose --delete --relative --archive)
+  RSYNC_OPTIONS_EXTRA*  : space delimited set of options to append to
+                          RSYNC_OPTIONS
+                          (default: '')
+
+  *note: modifying these can be very dangerous and may compromise your
+         backup set. please read the implementation to help understand
+         the possible side-effects
 ```
 
 **SOURCES**  

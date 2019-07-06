@@ -7,8 +7,10 @@ IFSORG="$IFS"
 BACKUP_ROOT="${BACKUP_ROOT:-"/backup"}"
 
 RSYNC="${RSYNC:-"auto"}"
-RSYNC_OPTIONS=($(echo "${RSYNC_OPTIONS:-"--verbose --delete --relative --archive"}"))
-
+RSYNC_OPTIONS=($(echo "${RSYNC_OPTIONS:-"--verbose --delete --relative --archive"}"
+))
+[ -n "$RSYNC_OPTIONS_EXTRA" ] && \
+  RSYNC_OPTIONS_EXTRA=($(echo "$RSYNC_OPTIONS_EXTRA"))
 VERBOSE=0
 FORCE=0
 TYPE=""
@@ -61,10 +63,14 @@ where [OPTIONS] can be:\n
 \nenvironment variables:\n
   BACKUP_ROOT  : as detailed above
   RSYNC  : path to the rsync binary to use (default: auto)
-  RSYNC_OPTIONS  : space delimited set of options to pass to rsync.
-                   modifying this is very dangerous and may compromise
-                   your backup set
-                   (default: --verbose --delete --relative --archive)
+  RSYNC_OPTIONS*  : space delimited set of options to pass to rsync.
+                    (default: --verbose --delete --relative --archive)
+  RSYNC_OPTIONS_EXTRA*  : space delimited set of options to append to
+                          RSYNC_OPTIONS
+                          (default: '')
+\n  *note: modifying these can be very dangerous and may compromise your
+         backup set. please read the implementation to help understand
+         the possible side-effects
 "
 }
 
@@ -206,11 +212,11 @@ fn_perform_backup() {
     [ -d "$BACKUP_ROOT"/master ] && mv "$BACKUP_ROOT"/master{,.tmp} || mkdir -p "$BACKUP_ROOT"/master.tmp
     [ ! -d "$BACKUP_ROOT"/master ] && mkdir -p "$BACKUP_ROOT"/master
     if [ $DEBUG -gt 0 ]; then
-      echo '[debug] $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest=$BACKUP_ROOT/master.tmp/ "${sources[@]}" $BACKUP_ROOT/master/'
-      echo "[debug] $RSYNC ${RSYNC_OPTIONS[@]} --link-dest=$BACKUP_ROOT/master.tmp/ ${sources[@]} $BACKUP_ROOT/master/"
+      echo '[debug] $RSYNC "${RSYNC_OPTIONS[@]}" "${RSYNC_OPTIONS_EXTRA[@]}" --link-dest=$BACKUP_ROOT/master.tmp/ "${sources[@]}" $BACKUP_ROOT/master/'
+      echo "[debug] $RSYNC ${RSYNC_OPTIONS[@]} ${RSYNC_OPTIONS_EXTRA[@]} --link-dest=$BACKUP_ROOT/master.tmp/ ${sources[@]} $BACKUP_ROOT/master/"
     fi
     echo
-    $RSYNC "${RSYNC_OPTIONS[@]}" --link-dest="$BACKUP_ROOT"/master.tmp/ "${sources[@]}" "$BACKUP_ROOT"/master/
+    $RSYNC "${RSYNC_OPTIONS[@]}" "${RSYNC_OPTIONS_EXTRA[@]}" --link-dest="$BACKUP_ROOT"/master.tmp/ "${sources[@]}" "$BACKUP_ROOT"/master/
     [ $? -eq 0 ] && success=1
     echo
     rm -rf "$BACKUP_ROOT"/master.tmp
