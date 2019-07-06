@@ -133,6 +133,7 @@ miscellaneous, **non-default** options
 -X, --xattrs           : preserve extended attributes
 -n, --dry-run          : don't actually copy/move/delete any files
 --files-from=FILE      : read a list of source-file names from FILE
+--exclude-from=FILE    : read exclude patterns from FILE
 --no-R, --no-relative  : the relative path part of the source directory
 ```
 **note**:
