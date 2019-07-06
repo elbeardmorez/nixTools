@@ -74,9 +74,7 @@ where [OPTIONS] can be:\n
 "
 }
 
-
 fn_set_sources() {
-
   include=$(cat $INCLUDE)
 
   [ $DEBUG -gt 0 ] && echo -e "[debug] raw includes list:\n$include" 1>&2
