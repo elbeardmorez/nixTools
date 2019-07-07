@@ -205,6 +205,46 @@ fn_repo_pull() {
   cd - 1>/dev/null || return 1
 }
 
+fn_patch_info() {
+  declare patch; patch="$1" && shift
+  declare vcs; vcs="$1" && shift
+  declare type; type="$1"
+  [ ! -e "$patch" ] && \
+    { echo "[error] invalid patch file '$patch'" && return 1; }
+  [ -z "$(echo "$type" | sed -n '/^\(date\|id\|description\|comments\|files\)$/p')" ] && \
+    { echo "[error] invalid info type '$type'" && return 1; }
+  [ -z "$(echo "$vcs" | sed -n '/\(git\)/p')" ] && \
+    { echo "[error] unsupported repository type '$vcs'" && return 1; }
+  case "$type" in
+    "date")
+      case "$vcs" in
+        "git") date -d "$(sed -n 's/^Date:[ ]*\(.*\)$/\1/p' "$patch")" '+%s' && return ;;
+      esac
+      ;;
+    "id")
+      case "$vcs" in
+        "git") sed -n 's/^From[ ]*\([0-9a-f]\{40\}\).*/\1/p' "$patch" && return ;;
+      esac
+      ;;
+    "description")
+      case "$vcs" in
+        "git") sed -n 's/^Subject:[ ]*\(.*\)$/\1/p' "$patch" && return ;;
+      esac
+      ;;
+    "comments")
+      case "$vcs" in
+        "git") sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$patch" && return ;;
+      esac
+      ;;
+    "files")
+      case "$vcs" in
+        "git") sed -n '/^diff/{N;/^diff.*\nindex/{n;N;s/^--- \(.*\)[ ]*\n+++ \(.*\)[ ]*$/\1|\2/p;};}' "$patch" && return ;;
+      esac
+      ;;
+  esac
+  return 1
+}
+
 fn_commits() {
 
   declare source
