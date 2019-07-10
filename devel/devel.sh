@@ -404,6 +404,7 @@ fn_commits() {
   declare entry_description
   declare entry_ref
   declare entry_ref2
+  declare entry_comments
   declare f_readme
   declare -a commit_set
   declare new
@@ -470,8 +471,8 @@ fn_commits() {
         f_readme="$target_fq/$type/$repo_map_path/$readme"
         [ ! -e "$f_readme" ] && \
           echo "### $repo_map_" >> "$f_readme"
-        comments="$(sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$target_fq/$type/$repo_map_path/$name")"
-        echo -e "\n##### $entry_description\n###### $entry_ref2$([ -n "$comments" ] && echo "\n"'```'"\n$comments\n"'```')" >> "$f_readme"
+        entry_comments="$(fn_patch_info "$target_fqn" "$vcs" "comments")"
+        echo -e "\n##### $entry_description\n###### $entry_ref2$([ -n "$entry_comments" ] && echo "\n"'```'"\n$entry_comments\n"'```')" >> "$f_readme"
         commit_set[${#commit_set[@]}]="$f_readme"
       fi
 
