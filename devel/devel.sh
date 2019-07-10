@@ -987,12 +987,20 @@ fn_refactor() {
   fi
 }
 
+fn_test() {
+  [ $# -lt 1 ] && \
+    { echo "[error] not enough args" 1>&2 && return 1; }
+  func="$1" && shift
+  echo "[info] testing func: '$func', passing args: '$(fn_str_join "' '" "$@")'"
+  $func "$@"
+}
+
 # args
 option="help"
 if [ $# -gt 0 ]; then
   option="debug"
   arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-  [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|r\|refactor\|d\|debug\|cl\|changelog\|c\|commits\)$/p')" ] && option="$arg" && shift
+  [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|r\|refactor\|d\|debug\|cl\|changelog\|c\|commits\|test\)$/p')" ] && option="$arg" && shift
 fi
 
 case "$option" in
@@ -1010,6 +1018,9 @@ case "$option" in
     ;;
   "r"|"refactor")
     fn_refactor "$@"
+    ;;
+  "test")
+    fn_test "$@"
     ;;
   *)
     help
