@@ -123,6 +123,30 @@ with OPTION:
               (default: '.')
 
     TARGET  : location of repository / directory to push diffs to
+
+  -p|--port  : apply a set of tranforms to a source file
+
+    SYNTAX: devel_ port [OPTIONS] TARGET
+
+    with OPTIONS in:
+      -x|--transforms FILE  : override location of file containing
+                              transforms
+                              (default: ~/.nixTools/devel_*)
+      -xs|--transforms-source TYPE  : apply source transforms of TYPE
+                                      (default: target file suffix)
+      -xt|--transforms-target TYPE  : apply target transforms of TYPE
+                                      (default: target file suffix)
+
+    * transform format:
+
+    FROM|TO [FROM2|TO2 ..]
+    TRANSFORM
+
+    where:
+
+      FROM  : source language type
+      TO  : target language type
+      TRANSFORM  : valid sed expression
 ```
 
 ## examples
@@ -203,3 +227,4 @@ with OPTION:
 - which (which)
 - GNU coreutils (head, tail, tac)
 - GNU indent (indent)
+- diff

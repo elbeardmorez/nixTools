@@ -114,6 +114,23 @@ help() {
 \n    SOURCE  : location of repository to extract/use patch set from
               (default: '.')
 \n    TARGET  : location of repository / directory to push diffs to
+\n  -p|--port  : apply a set of tranforms to a source file
+\n    SYNTAX: $SCRIPTNAME port [OPTIONS] TARGET
+\n    with OPTIONS in:
+      -x|--transforms FILE  : override location of file containing
+                              transforms
+                              (default: ~/.nixTools/$SCRIPTNAME*)
+      -xs|--transforms-source TYPE  : apply source transforms of TYPE
+                                      (default: target file suffix)
+      -xt|--transforms-target TYPE  : apply target transforms of TYPE
+                                      (default: target file suffix)
+\n    * transform format:
+\n    FROM|TO [FROM2|TO2 ..]
+    TRANSFORM
+\n    where:
+\n      FROM  : source language type
+      TO  : target language type
+      TRANSFORM  : valid sed expression
 "
 }
 
@@ -988,6 +1005,103 @@ fn_refactor() {
   fi
 }
 
+fn_port() {
+  declare target
+  declare type
+  declare transforms; transforms="/root/.nixTools/$SCRIPTNAME"
+
+  declare from
+  declare to
+
+  # process args
+  [ $# -lt 1 ] && help && echo "[error] not enough args" && return 1
+  while [ -n "$1" ]; do
+    arg="$(echo "$1" | sed 's/^[ ]*-*//')"
+    if [ ${#arg} -lt ${#1} ]; then
+      case "$arg" in
+        "x"|"transforms") shift && transforms="$1" ;;
+        "xs"|"transforms-source") shift && from="$1" ;;
+        "xt"|"transforms-target") shift && to="$1" ;;
+        *) help && echo "[error] unrecognised arg '$1'" 1>&2 && return 1
+      esac
+    else
+      [ -z "$target" ] && \
+        target="$1" || \
+        { help && echo "[error] unrecognised arg '$1'" 1>&2 && return 1; }
+    fi
+    shift
+  done
+
+  # validate args
+  [ ! -f "$target" ] && \
+    echo "[error] invalid target file '$target'" && return 1
+  [ ! -f "$transforms" ] && \
+    echo "[error] invalid transforms file '$transforms'" && return 1
+  type="${target##*.}"
+  from="${from:-$type}"
+  to="${to:-$type}"
+
+  [ $DEBUG -ge 1 ] && echo "[debug] type: $type, xs|from: $from, xt|to: $to" 1>&2
+
+  f_tmp="$(mktemp)"
+  f_tmp2="$(mktemp)"
+  cp "$target" "$f_tmp"
+
+  declare line
+  declare -a maps
+  declare -a transforms_
+  declare match
+  declare match_
+  declare skip; skip=0
+  declare process; process=1
+  declare l_match; l_match=0
+  declare l_total; l_total=0
+  IFS=$'\n'; transforms_=($(cat "$transforms" | sed '/^$/d;/^[ ]*#/d')); IFS="$IFSORG"
+  for line in "${transforms_[@]}"; do
+    [ $DEBUG -ge 5 ] && echo "[debug] line: '$line', process: $process, skip: $skip" 1>&2
+    [ $skip -eq 1 ] && skip=0 && process=1 && continue
+    if [ $process -eq 1 ]; then
+      l_total=$((l_total + 1))
+      maps=($(echo "$line"))
+      skip=1
+      for m in "${maps[@]}"; do
+        match_=1
+        f="${m%|*}"
+        t="${m#*|}"
+        [[ "x$f" != "x*" && "x$f" != "x$from" ]] && match_=0
+        [[ "x$t" != "x*" && "x$t" != "x$to" ]] && match_=0
+        if [ $match_ -eq 1 ]; then
+          match="$(echo "$line" | sed 's/'"$(fn_escape "sed" "$m")"'/'"$(echo -e "${CLR_HL}$m${CLR_OFF}")"'/')"
+          skip=0
+          l_match=$((l_match + 1))
+          break
+        fi
+      done
+      [ $DEBUG -ge 5 ] && echo "[debug] processed, match: $match_, skip: $skip" 1>&2
+      process=0
+    elif [ $skip -eq 0 ]; then
+      # apply transform
+      process=1  # next
+      [ $DEBUG -ge 1 ] && echo -e "[debug] applying match: $match, transform: '$line'" 1>&2
+      sed "$line" "$f_tmp" > "$f_tmp2"
+      [ $? -ne 0 ] && echo -e "${CLR_RED}[error] processing expression '$line'${CLR_OFF}" && continue
+      cp "$f_tmp2" "$f_tmp"
+    fi
+  done
+
+  mv "$f_tmp" "results"
+  if [ -n "$(which diff 2>/dev/null)" ]; then
+    diff -u --color "$target" "results"
+  else
+    cat "results"
+  fi
+
+  [ $DEBUG -ge 1 ] && \
+    echo "[debug] processed $l_match of $l_total expression$([ $l_total -ne 1 ] && echo "s"), see './results'" 1>&2
+
+  [ -e "$f_tmp2" ] && rm "$f_tmp2"
+}
+
 fn_test() {
   [ $# -lt 1 ] && \
     { echo "[error] not enough args" 1>&2 && return 1; }
@@ -1001,7 +1115,7 @@ option="help"
 if [ $# -gt 0 ]; then
   option="debug"
   arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-  [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|r\|refactor\|d\|debug\|cl\|changelog\|c\|commits\|test\)$/p')" ] && option="$arg" && shift
+  [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|r\|refactor\|d\|debug\|cl\|changelog\|c\|commits\|p\|port\|test\)$/p')" ] && option="$arg" && shift
 fi
 
 case "$option" in
@@ -1019,6 +1133,9 @@ case "$option" in
     ;;
   "r"|"refactor")
     fn_refactor "$@"
+    ;;
+  "p"|"port")
+    fn_port "$@"
     ;;
   "test")
     fn_test "$@"
