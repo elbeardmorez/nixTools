@@ -1084,6 +1084,8 @@ fn_port() {
     [ $skip -eq 1 ] && skip=0 && process=1 && continue
     if [ $process -eq 1 ]; then
       l_total=$((l_total + 1))
+      [ -z "$(echo "$line" | sed -n '/|/p')" ] &&
+        echo "[error] invalid mappings line '$line'" && return 1
       maps=($(echo "$line"))
       skip=1
       for m in "${maps[@]}"; do
