@@ -124,6 +124,7 @@ help() {
                                       (default: target file suffix)
       -xt|--transforms-target TYPE  : apply target transforms of TYPE
                                       (default: target file suffix)
+      -d|--diffs  : show diffs pre-transform
 \n    * transform format:
 \n    FROM|TO [FROM2|TO2 ..]
     TRANSFORM
@@ -1009,9 +1010,13 @@ fn_port() {
   declare target
   declare type
   declare transforms; transforms="/root/.nixTools/$SCRIPTNAME"
+  declare diffs; diffs=0
 
   declare from
   declare to
+
+  declare cmd_diff; cmd_diff="$(which "diff")"
+  declare -a cmd_args_diff; cmd_args_diff=("-u" "--color=always")
 
   # process args
   [ $# -lt 1 ] && help && echo "[error] not enough args" && return 1
@@ -1022,6 +1027,7 @@ fn_port() {
         "x"|"transforms") shift && transforms="$1" ;;
         "xs"|"transforms-source") shift && from="$1" ;;
         "xt"|"transforms-target") shift && to="$1" ;;
+        "d"|"diffs") diffs=1 ;;
         *) help && echo "[error] unrecognised arg '$1'" 1>&2 && return 1
       esac
     else
@@ -1040,6 +1046,8 @@ fn_port() {
   type="${target##*.}"
   from="${from:-$type}"
   to="${to:-$type}"
+  [[ $diffs -eq 1 && ! -x "$cmd_diff" ]] && \
+    echo "[error] no diff binary found'" && return 1
 
   [ $DEBUG -ge 1 ] && echo "[debug] type: $type, xs|from: $from, xt|to: $to" 1>&2
 
@@ -1048,6 +1056,7 @@ fn_port() {
   cp "$target" "$f_tmp"
 
   declare line
+  declare diff
   declare -a maps
   declare -a transforms_
   declare match
@@ -1085,20 +1094,24 @@ fn_port() {
       [ $DEBUG -ge 1 ] && echo -e "[debug] applying match: $match, transform: '$line'" 1>&2
       sed "$line" "$f_tmp" > "$f_tmp2"
       [ $? -ne 0 ] && echo -e "${CLR_RED}[error] processing expression '$line'${CLR_OFF}" && continue
+      if [ $diffs -eq 1 ]; then
+        $cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp2"
+      fi
       cp "$f_tmp2" "$f_tmp"
     fi
   done
 
-  mv "$f_tmp" "results"
-  if [ -n "$(which diff 2>/dev/null)" ]; then
-    diff -u --color "$target" "results"
-  else
-    cat "results"
+  rm "./results" 2>/dev/null
+  diff="$($cmd_diff "${cmd_args_diff[@]}" "$target" "$f_tmp")"
+  if [ -n "$diff" ]; then
+    [ $diffs -eq 1 ] && echo -e "$diff"
+    mv "$f_tmp" "results"
   fi
 
   [ $DEBUG -ge 1 ] && \
-    echo "[debug] processed $l_match of $l_total expression$([ $l_total -ne 1 ] && echo "s"), see './results'" 1>&2
+    echo "[debug] processed $l_match of $l_total expression$([ $l_total -ne 1 ] && echo "s")$([ -e "./results" ] && echo ", see './results'")" 1>&2
 
+  [ -e "$f_tmp" ] && rm "$f_tmp"
   [ -e "$f_tmp2" ] && rm "$f_tmp2"
 }
 
