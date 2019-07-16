@@ -137,6 +137,7 @@ with OPTION:
       -xt|--transforms-target TYPE  : apply target transforms of TYPE
                                       (default: target file suffix)
       -d|--diffs  : show diffs pre-transform
+      -o|--overwrite  : persist changes to target
 
     * transform format:
 

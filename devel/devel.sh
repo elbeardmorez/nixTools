@@ -125,6 +125,7 @@ help() {
       -xt|--transforms-target TYPE  : apply target transforms of TYPE
                                       (default: target file suffix)
       -d|--diffs  : show diffs pre-transform
+      -o|--overwrite  : persist changes to target
 \n    * transform format:
 \n    FROM|TO [FROM2|TO2 ..]
     TRANSFORM
@@ -1011,6 +1012,7 @@ fn_port() {
   declare type
   declare transforms; transforms="/root/.nixTools/$SCRIPTNAME"
   declare diffs; diffs=0
+  declare overwrite; overwrite=0
 
   declare from
   declare to
@@ -1028,6 +1030,7 @@ fn_port() {
         "xs"|"transforms-source") shift && from="$1" ;;
         "xt"|"transforms-target") shift && to="$1" ;;
         "d"|"diffs") diffs=1 ;;
+        "o"|"overwrite") overwrite="1" ;;
         *) help && echo "[error] unrecognised arg '$1'" 1>&2 && return 1
       esac
     else
@@ -1104,12 +1107,19 @@ fn_port() {
   rm "./results" 2>/dev/null
   diff="$($cmd_diff "${cmd_args_diff[@]}" "$target" "$f_tmp")"
   if [ -n "$diff" ]; then
-    [ $diffs -eq 1 ] && echo -e "$diff"
-    mv "$f_tmp" "results"
+    if [ $diffs -eq 1 ]; then
+      echo -e "$diff"
+    elif [ $overwrite -eq 1 ]; then
+      cp "$f_tmp" "$target" && \
+      echo "[info] results modified '$target' target"
+    else
+      cp "$f_tmp" "./results"
+      echo "[info] results modified './results' target"
+    fi
   fi
 
   [ $DEBUG -ge 1 ] && \
-    echo "[debug] processed $l_match of $l_total expression$([ $l_total -ne 1 ] && echo "s")$([ -e "./results" ] && echo ", see './results'")" 1>&2
+    echo "[debug] processed $l_match of $l_total expression$([ $l_total -ne 1 ] && echo "s")" 1>&2
 
   [ -e "$f_tmp" ] && rm "$f_tmp"
   [ -e "$f_tmp2" ] && rm "$f_tmp2"
