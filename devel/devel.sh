@@ -124,6 +124,8 @@ help() {
                                       (default: target file suffix)
       -xt|--transforms-target TYPE  : apply target transforms of TYPE
                                       (default: target file suffix)
+      -l|--lines RANGE  : limit replacements to lines specified by a
+                          delimited RANGE
       -d|--diffs  : show diffs pre-transform
       -o|--overwrite  : persist changes to target
 \n    * transform format:
@@ -1011,6 +1013,7 @@ fn_port() {
   declare target
   declare type
   declare transforms; transforms="/root/.nixTools/$SCRIPTNAME"
+  declare lines; lines=""
   declare diffs; diffs=0
   declare overwrite; overwrite=0
 
@@ -1029,6 +1032,7 @@ fn_port() {
         "x"|"transforms") shift && transforms="$1" ;;
         "xs"|"transforms-source") shift && from="$1" ;;
         "xt"|"transforms-target") shift && to="$1" ;;
+        "l"|"lines") shift && lines="$1" ;;
         "d"|"diffs") diffs=1 ;;
         "o"|"overwrite") overwrite="1" ;;
         *) help && echo "[error] unrecognised arg '$1'" 1>&2 && return 1
@@ -1049,6 +1053,11 @@ fn_port() {
   type="${target##*.}"
   from="${from:-$type}"
   to="${to:-$type}"
+  if [ -n "$lines" ]; then
+    declare lines_; lines_="$lines"
+    lines="$(echo "$lines" | sed -n 's/^\([0-9]\+\)[^0-9]\+\([0-9]*\)$/\1,\2/p')"
+    [ -z "$lines" ] && echo "[error] invalid lines range '$lines_'" 2>&1 && return 1
+  fi
   [[ $diffs -eq 1 && ! -x "$cmd_diff" ]] && \
     echo "[error] no diff binary found'" && return 1
 
@@ -1064,6 +1073,7 @@ fn_port() {
   declare -a transforms_
   declare match
   declare match_
+  declare expr_
   declare skip; skip=0
   declare process; process=1
   declare l_match; l_match=0
@@ -1095,8 +1105,9 @@ fn_port() {
       # apply transform
       process=1  # next
       [ $DEBUG -ge 1 ] && echo -e "[debug] applying match: $match, transform: '$line'" 1>&2
-      sed "$line" "$f_tmp" > "$f_tmp2"
-      [ $? -ne 0 ] && echo -e "${CLR_RED}[error] processing expression '$line'${CLR_OFF}" && continue
+      expr_="$lines{$line;}"
+      sed "$expr_" "$f_tmp" > "$f_tmp2"
+      [ $? -ne 0 ] && echo -e "${CLR_RED}[error] processing expression '$expr_'${CLR_OFF}" && continue
       if [ $diffs -eq 1 ]; then
         $cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp2"
       fi
