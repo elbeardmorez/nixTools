@@ -1085,8 +1085,9 @@ fn_port() {
   declare expr_
   declare skip; skip=0
   declare process; process=1
-  declare l_match; l_match=0
   declare l_total; l_total=0
+  declare l_match; l_match=0
+  declare l_diffs; l_diffs=0
   IFS=$'\n'; transforms_=($(cat "$transforms" | sed '/^$/d;/^[ ]*#/d')); IFS="$IFSORG"
   for line in "${transforms_[@]}"; do
     [ $DEBUG -ge 5 ] && echo "[debug] line: '$line', process: $process, skip: $skip" 1>&2
@@ -1124,9 +1125,11 @@ fn_port() {
         [ $? -ne 0 ] && echo -e "${CLR_RED}[error] processing expression '$expr_'${CLR_OFF}" && continue
         cp "$f_tmp3" "$f_tmp2"
       done
-      if [ $diffs -eq 1 ]; then
-        diff_="$($cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3")"
-        [ -n "$diff_" ] && echo -e "$diff_\n"
+      diff_="$($cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3")"
+      if [ -n "$diff_" ]; then
+        l_diffs=$((l_diffs + 1))
+        [ $diffs -eq 1 ] && \
+          echo -e "$diff_\n"
       fi
       [ $DEBUG -ge 1 ] && echo -e "[debug] post transform line count: $(cat "$f_tmp3" | wc -l)" 1>&2
       cp "$f_tmp3" "$f_tmp"
@@ -1148,7 +1151,7 @@ fn_port() {
   fi
 
   [ $DEBUG -ge 1 ] && \
-    echo "[debug] processed $l_match of $l_total expression$([ $l_total -ne 1 ] && echo "s")" 1>&2
+    echo "[debug] processed $l_match of $l_total expression$([ $l_total -ne 1 ] && echo "s"), with $l_diffs successful diff$([ $l_diffs -ne 1 ] && echo "s")" 1>&2
 
   [ -e "$f_tmp" ] && rm "$f_tmp"
   [ -e "$f_tmp2" ] && rm "$f_tmp2"
