@@ -1128,8 +1128,10 @@ fn_port() {
       diff_="$($cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3")"
       if [ -n "$diff_" ]; then
         l_diffs=$((l_diffs + 1))
-        [ $diffs -eq 1 ] && \
+        if [ $diffs -eq 1 ]; then
+          echo -e "[info] match: $match, transform: '$line' applied" 1>&2
           echo -e "$diff_\n"
+        fi
       fi
       [ $DEBUG -ge 1 ] && echo -e "[debug] post transform line count: $(cat "$f_tmp3" | wc -l)" 1>&2
       cp "$f_tmp3" "$f_tmp"
@@ -1150,8 +1152,7 @@ fn_port() {
     fi
   fi
 
-  [ $DEBUG -ge 1 ] && \
-    echo "[debug] processed $l_match of $l_total expression$([ $l_total -ne 1 ] && echo "s"), with $l_diffs successful diff$([ $l_diffs -ne 1 ] && echo "s")" 1>&2
+  echo "[info] processed $l_match of $l_total expression$([ $l_total -ne 1 ] && echo "s"), with $l_diffs successful diff$([ $l_diffs -ne 1 ] && echo "s")"
 
   [ -e "$f_tmp" ] && rm "$f_tmp"
   [ -e "$f_tmp2" ] && rm "$f_tmp2"
