@@ -125,7 +125,7 @@ help() {
       -xt|--transforms-target TYPE  : apply target transforms of TYPE
                                       (default: target file suffix)
       -l|--lines RANGE  : limit replacements to lines specified by a
-                          delimited RANGE
+                          comma-delimited list of delimited RANGE(S)
       -d|--diffs  : show diffs pre-transform
       -o|--overwrite  : persist changes to target
 \n    * transform format:
@@ -1013,7 +1013,7 @@ fn_port() {
   declare target
   declare type
   declare transforms; transforms="/root/.nixTools/$SCRIPTNAME"
-  declare lines; lines=""
+  declare -a lines; lines=()
   declare diffs; diffs=0
   declare overwrite; overwrite=0
 
@@ -1032,7 +1032,7 @@ fn_port() {
         "x"|"transforms") shift && transforms="$1" ;;
         "xs"|"transforms-source") shift && from="$1" ;;
         "xt"|"transforms-target") shift && to="$1" ;;
-        "l"|"lines") shift && lines="$1" ;;
+        "l"|"lines") shift && lines=("$1") ;;
         "d"|"diffs") diffs=1 ;;
         "o"|"overwrite") overwrite="1" ;;
         *) help && echo "[error] unrecognised arg '$1'" 1>&2 && return 1
@@ -1053,10 +1053,17 @@ fn_port() {
   type="${target##*.}"
   from="${from:-$type}"
   to="${to:-$type}"
-  if [ -n "$lines" ]; then
-    declare lines_; lines_="$lines"
-    lines="$(echo "$lines" | sed -n 's/^\([0-9]\+\)[^0-9]\+\([0-9]*\)$/\1,\2/p')"
-    [ -z "$lines" ] && echo "[error] invalid lines range '$lines_'" 2>&1 && return 1
+  if [ ${#lines[@]} -gt 0 ]; then
+    declare -a ranges; IFS=","; ranges=($(echo "${lines[0]}")); IFS="$IFSORG"
+    declare lines_
+    lines=()
+    for range in "${ranges[@]}"; do
+      lines_="$(echo "$range" | sed -n 's/^\([0-9]\+\)[^0-9]\+\([0-9]*\)$/\1,\2/p')"
+      [ -z "$lines_" ] && echo "[error] invalid lines range '$range'" 1>&2 && return 1
+      lines[${#lines[@]}]="$lines_"
+    done
+  else
+    lines=("")  # stub
   fi
   [[ $diffs -eq 1 && ! -x "$cmd_diff" ]] && \
     echo "[error] no diff binary found'" && return 1
@@ -1065,6 +1072,7 @@ fn_port() {
 
   f_tmp="$(mktemp)"
   f_tmp2="$(mktemp)"
+  f_tmp3="$(mktemp)"
   cp "$target" "$f_tmp"
 
   declare line
@@ -1107,13 +1115,17 @@ fn_port() {
       # apply transform
       process=1  # next
       [ $DEBUG -ge 1 ] && echo -e "[debug] applying match: $match, transform: '$line'" 1>&2
-      expr_="$lines{$line;}"
-      sed "$expr_" "$f_tmp" > "$f_tmp2"
-      [ $? -ne 0 ] && echo -e "${CLR_RED}[error] processing expression '$expr_'${CLR_OFF}" && continue
+      cp "$f_tmp" "$f_tmp2"
+      for range in ${lines[@]}; do
+        expr_="$range{$line;}"
+        sed "$expr_" "$f_tmp2" > "$f_tmp3"
+        [ $? -ne 0 ] && echo -e "${CLR_RED}[error] processing expression '$expr_'${CLR_OFF}" && continue
+        cp "$f_tmp3" "$f_tmp2"
+      done
       if [ $diffs -eq 1 ]; then
-        $cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp2"
+        $cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3"
       fi
-      cp "$f_tmp2" "$f_tmp"
+      cp "$f_tmp3" "$f_tmp"
     fi
   done
 
@@ -1136,6 +1148,7 @@ fn_port() {
 
   [ -e "$f_tmp" ] && rm "$f_tmp"
   [ -e "$f_tmp2" ] && rm "$f_tmp2"
+  [ -e "$f_tmp3" ] && rm "$f_tmp3"
 }
 
 fn_test() {
