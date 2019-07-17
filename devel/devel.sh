@@ -1143,12 +1143,13 @@ fn_port() {
   if [ -n "$diff_" ]; then
     if [ $diffs -eq 1 ]; then
       echo -e "$diff_"
-    elif [ $overwrite -eq 1 ]; then
-      cp "$f_tmp" "$target" && \
-      echo "[info] results modified '$target' target"
-    else
+    elif [ $overwrite -eq 0 ]; then
       cp "$f_tmp" "./results"
       echo "[info] results modified './results' target"
+    fi
+    if [ $overwrite -eq 1 ]; then
+      cp "$f_tmp" "$target" && \
+      echo "[info] results modified '$target' target"
     fi
   fi
 
