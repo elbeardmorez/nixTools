@@ -1059,6 +1059,7 @@ fn_port() {
     lines=()
     for range in "${ranges[@]}"; do
       lines_="$(echo "$range" | sed -n 's/^\([0-9]\+\)[^0-9]\+\([0-9]*\)$/\1,\2/p')"
+      [ -z "$lines_" ] && lines_="$(echo "$range" | sed -n 's/^\([0-9]\+\)$/\1/p')"
       [ -z "$lines_" ] && echo "[error] invalid lines range '$range'" 1>&2 && return 1
       lines[${#lines[@]}]="$lines_"
     done
