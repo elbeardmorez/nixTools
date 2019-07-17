@@ -1117,7 +1117,8 @@ fn_port() {
       process=1  # next
       [ $DEBUG -ge 1 ] && echo -e "[debug] applying match: $match, transform: '$line'" 1>&2
       cp "$f_tmp" "$f_tmp2"
-      for range in ${lines[@]}; do
+      for range in "${lines[@]}"; do
+        [ $DEBUG -ge 3 ] && echo "[debug] line range: '$range'" 1>&2
         expr_="$range{$line;}"
         sed "$expr_" "$f_tmp2" > "$f_tmp3"
         [ $? -ne 0 ] && echo -e "${CLR_RED}[error] processing expression '$expr_'${CLR_OFF}" && continue
@@ -1127,6 +1128,7 @@ fn_port() {
         diff_="$($cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3")"
         [ -n "$diff_" ] && echo -e "$diff_\n"
       fi
+      [ $DEBUG -ge 1 ] && echo -e "[debug] post transform line count: $(cat "$f_tmp3" | wc -l)" 1>&2
       cp "$f_tmp3" "$f_tmp"
     fi
   done
