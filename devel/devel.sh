@@ -1077,7 +1077,7 @@ fn_port() {
   cp "$target" "$f_tmp"
 
   declare line
-  declare diff
+  declare diff_
   declare -a maps
   declare -a transforms_
   declare match
@@ -1124,17 +1124,18 @@ fn_port() {
         cp "$f_tmp3" "$f_tmp2"
       done
       if [ $diffs -eq 1 ]; then
-        $cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3"
+        diff_="$($cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3")"
+        [ -n "$diff_" ] && echo -e "$diff_\n"
       fi
       cp "$f_tmp3" "$f_tmp"
     fi
   done
 
   rm "./results" 2>/dev/null
-  diff="$($cmd_diff "${cmd_args_diff[@]}" "$target" "$f_tmp")"
-  if [ -n "$diff" ]; then
+  diff_="$($cmd_diff "${cmd_args_diff[@]}" "$target" "$f_tmp")"
+  if [ -n "$diff_" ]; then
     if [ $diffs -eq 1 ]; then
-      echo -e "$diff"
+      echo -e "$diff_"
     elif [ $overwrite -eq 1 ]; then
       cp "$f_tmp" "$target" && \
       echo "[info] results modified '$target' target"
