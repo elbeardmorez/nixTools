@@ -361,7 +361,7 @@ fn_test() {
       case "$source_suffix" in
         "cpp")
           echo "[info] compiling c++ source '${source_[0]}'"
-          g++ -o bin-c++ "${source_[0]}" || return 1
+          g++ -O0 -ggdb3 -std=c++11 -o bin-c++ "${source_[0]}" || return 1
           ;;
         "cs")
           echo "[info] compiling c# source '${source_[0]}'"
@@ -369,7 +369,7 @@ fn_test() {
           ;;
         "go")
           echo "[info] compiling go source '${source_[0]}'"
-          go build -o bin-go "${source_[0]}" || return 1
+          go build -gcflags=all="-N -l" -o bin-go "${source_[0]}" || return 1
           ;;
        esac
 
