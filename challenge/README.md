@@ -41,7 +41,7 @@ where MODE can be:
          -l, --language  : language to run tests with, assumes single
                            appropriately suffixed source file.
                            supported languages: c++*, c#*, python,
-                           javascript (node)
+                           javascript (node), go*
                            (default: c++)
                            *compilation of source supported
          -d, --diffs  : take diffs of test output and expected

@@ -14,7 +14,7 @@ trap fn_exit EXIT
 RC_DEFAULT="$HOME/.nixTools/$SCRIPTNAME"
 
 declare -A exts_map
-exts_map["default"]="cpp|cs|py|js"
+exts_map["default"]="cpp|cs|py|js|go"
 
 cwd="$PWD"
 declare -a temp_files
@@ -60,7 +60,7 @@ help() {
          -l, --language  : language to run tests with, assumes single
                            appropriately suffixed source file.
                            supported languages: c++*, c#*, python,
-                           javascript (node)
+                           javascript (node), go*
                            (default: c++)
                            *compilation of source supported
          -d, --diffs  : take diffs of test output and expected
@@ -294,7 +294,7 @@ fn_edit() {
 fn_test() {
   declare language; language="c++"
   declare -A language_suffix_map
-  for kv in "c++,cpp|cpp" "c#,cs|cs" "python,py|py" "javascript,node,js|js"; do
+  for kv in "c++,cpp|cpp" "c#,cs|cs" "python,py|py" "javascript,node,js|js" "go|go"; do
     IFS=","; ks=($(echo "${kv%|*}")); IFS="$IFSORG"
     v="${kv#*|}"
     for k in "${ks[@]}"; do
@@ -351,7 +351,7 @@ fn_test() {
     "hackerrank")
 
       # source
-      IFS=$'\n'; source_=($(find "." -maxdepth 1 -name "*$source_suffix")); IFS="$IFSORG"
+      IFS=$'\n'; source_=($(find "." -maxdepth 1 -name "*\.$source_suffix")); IFS="$IFSORG"
       [ ${#source_[@]} -eq 0 ] && \
         echo "[error] no source file for language '$language' [$source_suffix]" 1>&2 && return 1
       [ ${#source_[@]} -gt 1 ] && \
@@ -367,7 +367,11 @@ fn_test() {
           echo "[info] compiling c# source '${source_[0]}'"
           mcs -debug *.cs -out:bin.exe "${source_[0]}" || return 1
           ;;
-      esac
+        "go")
+          echo "[info] compiling go source '${source_[0]}'"
+          go build -o bin-go "${source_[0]}" || return 1
+          ;;
+       esac
 
       # tests
       for t in ${tests[@]}; do
@@ -402,6 +406,7 @@ fn_test() {
           "cs") OUTPUT_PATH="$f_tmp_results" ./bin.exe < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
           "py") OUTPUT_PATH="$f_tmp_results" python "$source_" < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
           "js") OUTPUT_PATH="$f_tmp_results" node "$source_" < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
+          "go") OUTPUT_PATH="$f_tmp_results" ./bin-go < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
         esac
         [ -z "$(cat "$f_tmp_results")" ] && cp "$f_tmp_results_stdout" "$f_tmp_results"
         if [ $diffs -eq 1 ]; then
