@@ -1088,6 +1088,7 @@ fn_port() {
   declare l_total; l_total=0
   declare l_match; l_match=0
   declare l_diffs; l_diffs=0
+  declare mod_repeat
   IFS=$'\n'; transforms_=($(cat "$transforms" | sed '/^$/d;/^[ ]*#/d')); IFS="$IFSORG"
   for line in "${transforms_[@]}"; do
     [ $DEBUG -ge 5 ] && echo "[debug] line: '$line', process: $process, skip: $skip" 1>&2
@@ -1096,20 +1097,32 @@ fn_port() {
       l_total=$((l_total + 1))
       [ -z "$(echo "$line" | sed -n '/|/p')" ] &&
         echo "[error] invalid mappings line '$line'" && return 1
-      maps=($(echo "$line"))
+      ss=($(echo "$line"))
+      match_=0
       skip=1
-      for m in "${maps[@]}"; do
-        match_=1
-        f="${m%|*}"
-        t="${m#*|}"
-        [[ "x$f" != "x*" && "x$f" != "x$from" ]] && match_=0
-        [[ "x$t" != "x*" && "x$t" != "x$to" ]] && match_=0
-        if [ $match_ -eq 1 ]; then
-          match="$(echo "$line" | sed 's/'"$(fn_escape "sed" "$m")"'/'"$(echo -e "${CLR_HL}$m${CLR_OFF}")"'/')"
-          skip=0
-          l_match=$((l_match + 1))
-          break
-        fi
+      mod_repeat=0
+      for s in "${ss[@]}"; do
+        case "${s%|*}" in
+          "%") # modifiers
+            case "${s#*|}" in
+              "repeat") mod_repeat=1 ;;
+            esac
+            ;;
+          *) # maps
+            [ $match_ -eq 1 ] && continue
+            match_=1
+            f="${s%|*}"
+            t="${s#*|}"
+            [[ "x$f" != "x*" && "x$f" != "x$from" ]] && match_=0
+            [[ "x$t" != "x*" && "x$t" != "x$to" ]] && match_=0
+            [ $match_ -eq 1 ] && process=1
+            if [ $match_ -eq 1 ]; then
+              match="$(echo "$line" | sed 's/'"$(fn_escape "sed" "$s")"'/'"$(echo -e "${CLR_HL}$s${CLR_OFF}")"'/')"
+              skip=0
+              l_match=$((l_match + 1))
+            fi
+            ;;
+        esac
       done
       [ $DEBUG -ge 5 ] && echo "[debug] processed, match: $match_, skip: $skip" 1>&2
       process=0
@@ -1121,8 +1134,15 @@ fn_port() {
       for range in "${lines[@]}"; do
         [ $DEBUG -ge 3 ] && echo "[debug] line range: '$range'" 1>&2
         expr_="$range{$line;}"
-        sed "$expr_" "$f_tmp2" > "$f_tmp3"
-        [ $? -ne 0 ] && echo -e "[error] processing line ${CLR_HL}$(grep -Fn "$line" "$transforms" | cut -d':' -f1)${CLR_OFF}, expression '${CLR_RED}$expr_${CLR_OFF}'" && continue
+        while true; do
+          sed "$expr_" "$f_tmp2" > "$f_tmp3"
+          res=$?
+          [ $res -ne 0 ] && break
+          [[ $mod_repeat -eq 0 || \
+             -z "$(diff "$f_tmp2" "$f_tmp3")" ]] && break
+          mv "$f_tmp3" "$f_tmp2"
+        done
+        [ $res -ne 0 ] && echo -e "[error] processing line ${CLR_HL}$(grep -Fn "$line" "$transforms" | cut -d':' -f1)${CLR_OFF}, expression '${CLR_RED}$expr_${CLR_OFF}'" && continue
         cp "$f_tmp3" "$f_tmp2"
       done
       diff_="$($cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3")"
