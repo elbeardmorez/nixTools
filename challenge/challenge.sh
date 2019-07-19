@@ -361,11 +361,11 @@ fn_test() {
       case "$source_suffix" in
         "cpp")
           echo "[info] compiling c++ source '${source_[0]}'"
-          g++ -std=c++11 -o bin "${source_[0]}" || return 1
+          g++ -o bin-c++ "${source_[0]}" || return 1
           ;;
         "cs")
           echo "[info] compiling c# source '${source_[0]}'"
-          mcs -debug *.cs -out:bin.exe "${source_[0]}" || return 1
+          mcs -debug *.cs -out:bin-cs "${source_[0]}" || return 1
           ;;
         "go")
           echo "[info] compiling go source '${source_[0]}'"
@@ -402,8 +402,8 @@ fn_test() {
         [ -e "$f_tmp_results" ] && rm "$f_tmp_results"
         echo -e "\n$s\n$(printf "%.0s-" $(seq 1 1 ${#s}))\n" | tee -a "$log"
         case "$source_suffix" in
-          "cpp") OUTPUT_PATH="$f_tmp_results" ./bin < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1;;
-          "cs") OUTPUT_PATH="$f_tmp_results" ./bin.exe < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
+          "cpp") OUTPUT_PATH="$f_tmp_results" ./bin-c++ < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1;;
+          "cs") OUTPUT_PATH="$f_tmp_results" ./bin-cs < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
           "py") OUTPUT_PATH="$f_tmp_results" python "$source_" < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
           "js") OUTPUT_PATH="$f_tmp_results" node "$source_" < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
           "go") OUTPUT_PATH="$f_tmp_results" ./bin-go < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
