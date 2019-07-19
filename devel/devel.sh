@@ -1122,7 +1122,7 @@ fn_port() {
         [ $DEBUG -ge 3 ] && echo "[debug] line range: '$range'" 1>&2
         expr_="$range{$line;}"
         sed "$expr_" "$f_tmp2" > "$f_tmp3"
-        [ $? -ne 0 ] && echo -e "${CLR_RED}[error] processing expression '$expr_'${CLR_OFF}" && continue
+        [ $? -ne 0 ] && echo -e "[error] processing line ${CLR_HL}$(grep -Fn "$line" "$transforms" | cut -d':' -f1)${CLR_OFF}, expression '${CLR_RED}$expr_${CLR_OFF}'" && continue
         cp "$f_tmp3" "$f_tmp2"
       done
       diff_="$($cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3")"
