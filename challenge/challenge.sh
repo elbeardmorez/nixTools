@@ -19,7 +19,7 @@ exts_map["default"]="cpp|cs|py|js|go"
 cwd="$PWD"
 declare -a temp_files
 editor="${EDITOR:-vim}"
-dump_types_default="py|js|cs"
+dump_types_default="${exts_map["default"]}"
 declare -a cmd_args_editor
 case $editor in
   "vim") cmd_args_editor[${#cmd_args_editor[@]}]="-p" ;;  # open files in tabs
@@ -67,7 +67,7 @@ help() {
        TESTS  : optional test items (numbers), or delimited list(s) of
   dump [LANGUAGES] TARGET  : search TARGET for files suffixed with
                              items in the delimited LANGUAGES list
-                             (default: 'py|js|cs') and dump matches
+                             (default: '$dump_types_default') and dump matches
                              to TARGET.LANGUAGE files
 "
 }

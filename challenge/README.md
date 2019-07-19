@@ -48,7 +48,7 @@ where MODE can be:
        TESTS  : optional test items (numbers), or delimited list(s) of
   dump [LANGUAGES] TARGET  : search TARGET for files suffixed with
                              items in the delimited LANGUAGES list
-                             (default: 'py|js|cs') and dump matches
+                             (default: 'cpp|cs|py|js|go') and dump matches
                              to TARGET.LANGUAGE files
 ```
 
