@@ -129,6 +129,7 @@ help() {
       -d|--diffs  : show diffs pre-transform
       -o|--overwrite  : persist changes to target
       -v|--verify  : interactive application of transforms
+      -ie|--ignore-errors  : continue processing on error
 \n    * transform format:
 \n    FROM|TO [FROM2|TO2 ..]
     TRANSFORM
@@ -1018,6 +1019,7 @@ fn_port() {
   declare diffs; diffs=0
   declare overwrite; overwrite=0
   declare verify; verify=0
+  declare ignore_error; ignore_error=0
 
   declare from
   declare to
@@ -1038,6 +1040,7 @@ fn_port() {
         "d"|"diffs") diffs=1 ;;
         "o"|"overwrite") overwrite="1" ;;
         "v"|"verify") verify=1 ;;
+        "ie"|"ignore-errors") ignore_error=1 ;;
         *) help && echo "[error] unrecognised arg '$1'" 1>&2 && return 1
       esac
     else
@@ -1147,7 +1150,11 @@ fn_port() {
              -z "$(diff "$f_tmp2" "$f_tmp3")" ]] && break
           mv "$f_tmp3" "$f_tmp2"
         done
-        [ $res -ne 0 ] && echo -e "[error] processing line ${CLR_HL}$(grep -Fn "$line" "$transforms" | cut -d':' -f1)${CLR_OFF}, expression '${CLR_RED}$expr_${CLR_OFF}'" && continue
+        # error
+        if [ $res -ne 0 ]; then
+          echo -e "[error] processing line ${CLR_HL}$(grep -Fn "$line" "$transforms" | cut -d':' -f1)${CLR_OFF}, expression '${CLR_RED}$expr_${CLR_OFF}'"
+          [ $ignore_error -eq 1 ] && continue || return 1
+        fi
         cp "$f_tmp3" "$f_tmp2"
       done
       diff_="$($cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3")"

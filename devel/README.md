@@ -141,6 +141,7 @@ with OPTION:
       -d|--diffs  : show diffs pre-transform
       -o|--overwrite  : persist changes to target
       -v|--verify  : interactive application of transforms
+      -ie|--ignore-errors  : continue processing on error
 
     * transform format:
 
