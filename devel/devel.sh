@@ -128,6 +128,7 @@ help() {
                           comma-delimited list of delimited RANGE(S)
       -d|--diffs  : show diffs pre-transform
       -o|--overwrite  : persist changes to target
+      -v|--verify  : interactive application of transforms
 \n    * transform format:
 \n    FROM|TO [FROM2|TO2 ..]
     TRANSFORM
@@ -1016,6 +1017,7 @@ fn_port() {
   declare -a lines; lines=()
   declare diffs; diffs=0
   declare overwrite; overwrite=0
+  declare verify; verify=0
 
   declare from
   declare to
@@ -1035,6 +1037,7 @@ fn_port() {
         "l"|"lines") shift && lines=("$1") ;;
         "d"|"diffs") diffs=1 ;;
         "o"|"overwrite") overwrite="1" ;;
+        "v"|"verify") verify=1 ;;
         *) help && echo "[error] unrecognised arg '$1'" 1>&2 && return 1
       esac
     else
@@ -1083,10 +1086,12 @@ fn_port() {
   declare match
   declare match_
   declare expr_
+  declare break_
+  declare res
   declare skip; skip=0
   declare process; process=1
   declare l_total; l_total=0
-  declare l_match; l_match=0
+  declare l_processed; l_processed=0
   declare l_diffs; l_diffs=0
   declare mod_repeat
   IFS=$'\n'; transforms_=($(cat "$transforms" | sed '/^$/d;/^[ ]*#/d')); IFS="$IFSORG"
@@ -1119,7 +1124,7 @@ fn_port() {
             if [ $match_ -eq 1 ]; then
               match="$(echo "$line" | sed 's/'"$(fn_escape "sed" "$s")"'/'"$(echo -e "${CLR_HL}$s${CLR_OFF}")"'/')"
               skip=0
-              l_match=$((l_match + 1))
+              l_processed=$((l_processed + 1))
             fi
             ;;
         esac
@@ -1147,6 +1152,21 @@ fn_port() {
       done
       diff_="$($cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3")"
       if [ -n "$diff_" ]; then
+        if [ $verify -eq 1 ]; then
+          s="$(echo -e "[user] apply modifying transform '${CLR_GRN}$line${CLR_OFF}?'")"
+          break_=0
+          while true; do
+            res="$(fn_decision "$s (y)es, (n)o, show (d)iff or e(x)it" "y|n|d|x")"
+            case "$res" in
+              "y") break ;;
+              "n") break_=1; break ;;
+              "x") return 1 ;;
+              "d") $cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3" 1>&$stdout ;;
+            esac
+            echo -en "$CUR_UP$LN_RST" 1>&$stdout
+          done
+          [ $break_ -eq 1 ] && continue
+        fi
         l_diffs=$((l_diffs + 1))
         if [ $diffs -eq 1 ]; then
           echo -e "[info] match: $match, transform: '$line' applied" 1>&2
@@ -1173,7 +1193,7 @@ fn_port() {
     fi
   fi
 
-  echo "[info] processed $l_match of $l_total expression$([ $l_total -ne 1 ] && echo "s"), with $l_diffs successful diff$([ $l_diffs -ne 1 ] && echo "s")"
+  echo "[info] processed $l_processed of $l_total expression$([ $l_total -ne 1 ] && echo "s"), with $l_diffs successful diff$([ $l_diffs -ne 1 ] && echo "s")"
 
   [ -e "$f_tmp" ] && rm "$f_tmp"
   [ -e "$f_tmp2" ] && rm "$f_tmp2"

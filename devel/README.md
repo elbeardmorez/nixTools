@@ -140,6 +140,7 @@ with OPTION:
                           delimited RANGE
       -d|--diffs  : show diffs pre-transform
       -o|--overwrite  : persist changes to target
+      -v|--verify  : interactive application of transforms
 
     * transform format:
 
