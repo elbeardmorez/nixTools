@@ -1105,7 +1105,9 @@ fn_port() {
       l_total=$((l_total + 1))
       [ -z "$(echo "$line" | sed -n '/|/p')" ] &&
         echo "[error] invalid mappings line '$line'" && return 1
-      ss=($(echo "$line"))
+
+      # strip inline comments and tokenise on whitespace
+      ss=($(echo "${line%% #*}"))
       match_=0
       skip=1
       mod_repeat=0
