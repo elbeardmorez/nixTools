@@ -1104,7 +1104,7 @@ fn_port() {
     if [ $process -eq 1 ]; then
       l_total=$((l_total + 1))
       [ -z "$(echo "$line" | sed -n '/|/p')" ] &&
-        echo -e "[error] invalid mappings line ${CLR_HL}$(grep -Fn "$line" "$transforms" | cut -d':' -f1)${CLR_OFF}, '$line'" 1>&2 && return 1
+        echo -e "[error] invalid mappings line ${CLR_HL}$(grep -Fxn "$line" "$transforms" | cut -d':' -f1)${CLR_OFF}, '$line'" 1>&2 && return 1
 
       # strip inline comments and tokenise on whitespace
       ss=($(echo "${line%% #*}"))
@@ -1154,7 +1154,7 @@ fn_port() {
         done
         # error
         if [ $res -ne 0 ]; then
-          echo -e "[error] processing line ${CLR_HL}$(grep -Fn "$line" "$transforms" | cut -d':' -f1)${CLR_OFF}, expression '${CLR_RED}$expr_${CLR_OFF}'"
+          echo -e "[error] processing line ${CLR_HL}$(grep -Fxn "$line" "$transforms" | cut -d':' -f1)${CLR_OFF}, expression '${CLR_RED}$expr_${CLR_OFF}'"
           [ $ignore_error -eq 1 ] && continue || return 1
         fi
         cp "$f_tmp3" "$f_tmp2"
@@ -1170,9 +1170,9 @@ fn_port() {
               "y") break ;;
               "n") break_=1; break ;;
               "x") return 1 ;;
-              "d") $cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3" 1>&$stdout ;;
+              "d") $cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3" ;;
             esac
-            echo -en "$CUR_UP$LN_RST" 1>&$stdout
+            echo -en "$CUR_UP$LN_RST" 1>&2
           done
           [ $break_ -eq 1 ] && continue
         fi
