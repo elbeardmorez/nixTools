@@ -1104,7 +1104,7 @@ fn_port() {
     if [ $process -eq 1 ]; then
       l_total=$((l_total + 1))
       [ -z "$(echo "$line" | sed -n '/|/p')" ] &&
-        echo "[error] invalid mappings line '$line'" && return 1
+        echo -e "[error] invalid mappings line ${CLR_HL}$(grep -Fn "$line" "$transforms" | cut -d':' -f1)${CLR_OFF}, '$line'" 1>&2 && return 1
 
       # strip inline comments and tokenise on whitespace
       ss=($(echo "${line%% #*}"))
