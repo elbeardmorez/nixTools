@@ -1086,6 +1086,8 @@ fn_port() {
   declare diff_
   declare -a maps
   declare -a transforms_
+  declare line
+  declare l_line; l_line=0
   declare match
   declare match_
   declare expr_
@@ -1097,14 +1099,17 @@ fn_port() {
   declare l_processed; l_processed=0
   declare l_diffs; l_diffs=0
   declare mod_repeat
-  IFS=$'\n'; transforms_=($(cat "$transforms" | sed '/^$/d;/^[ ]*#/d')); IFS="$IFSORG"
-  for line in "${transforms_[@]}"; do
-    [ $DEBUG -ge 5 ] && echo "[debug] line: '$line', process: $process, skip: $skip" 1>&2
+  IFS=$'\n'; transforms_=($(sed -n 'p' "$transforms")); IFS="$IFSORG"
+  while read -r line; do
+    l_line=$((l_line + 1))
+    # skip blanks and comments
+    [ -z "$(echo "$line" | sed '/\(^$\|^[ ]*#\)/d')" ] && continue
+    [ $DEBUG -ge 5 ] && echo "[debug] line $l_line: '$line', process: $process, skip: $skip" 1>&2
     [ $skip -eq 1 ] && skip=0 && process=1 && continue
     if [ $process -eq 1 ]; then
       l_total=$((l_total + 1))
       [ -z "$(echo "$line" | sed -n '/|/p')" ] &&
-        echo -e "[error] invalid mappings line ${CLR_HL}$(grep -Fxn "$line" "$transforms" | cut -d':' -f1)${CLR_OFF}, '$line'" 1>&2 && return 1
+        echo -e "[error] invalid mappings line ${CLR_HL}${l_line}${CLR_OFF}, '$line'" 1>&2 && return 1
 
       # strip inline comments and tokenise on whitespace
       ss=($(echo "${line%% #*}"))
@@ -1154,7 +1159,7 @@ fn_port() {
         done
         # error
         if [ $res -ne 0 ]; then
-          echo -e "[error] processing line ${CLR_HL}$(grep -Fxn "$line" "$transforms" | cut -d':' -f1)${CLR_OFF}, expression '${CLR_RED}$expr_${CLR_OFF}'"
+          echo -e "[error] processing line ${CLR_HL}${l_line}${CLR_OFF}, expression '${CLR_RED}$expr_${CLR_OFF}'" 1>&2
           [ $ignore_error -eq 1 ] && continue || return 1
         fi
         cp "$f_tmp3" "$f_tmp2"
@@ -1185,7 +1190,7 @@ fn_port() {
       [ $DEBUG -ge 1 ] && echo -e "[debug] post transform line count: $(cat "$f_tmp3" | wc -l)" 1>&2
       cp "$f_tmp3" "$f_tmp"
     fi
-  done
+  done < $transforms
 
   rm "./results" 2>/dev/null
   diff_="$($cmd_diff "${cmd_args_diff[@]}" "$target" "$f_tmp")"
