@@ -136,6 +136,8 @@ with OPTION:
                                       (default: target file suffix)
       -xt|--transforms-target TYPE  : apply target transforms of TYPE
                                       (default: target file suffix)
+      -xd|--transforms-debug LINE  : trace transforms at LINE(S)
+                                     in a comma-delimited list
       -l|--lines RANGE  : limit replacements to lines specified by a
                           delimited RANGE
       -d|--diffs  : show diffs pre-transform

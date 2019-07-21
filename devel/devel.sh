@@ -124,6 +124,8 @@ help() {
                                       (default: target file suffix)
       -xt|--transforms-target TYPE  : apply target transforms of TYPE
                                       (default: target file suffix)
+      -xd|--transforms-debug LINE  : trace transforms at LINE(S)
+                                     in a comma-delimited list
       -l|--lines RANGE  : limit replacements to lines specified by a
                           comma-delimited list of delimited RANGE(S)
       -d|--diffs  : show diffs pre-transform
@@ -1015,6 +1017,8 @@ fn_port() {
   declare target
   declare type
   declare transforms; transforms="/root/.nixTools/$SCRIPTNAME"
+  declare transforms_debug_
+  declare -A transforms_debug
   declare -a lines; lines=()
   declare diffs; diffs=0
   declare overwrite; overwrite=0
@@ -1036,6 +1040,7 @@ fn_port() {
         "x"|"transforms") shift && transforms="$1" ;;
         "xs"|"transforms-source") shift && from="$1" ;;
         "xt"|"transforms-target") shift && to="$1" ;;
+        "xd"|"transforms-debug") shift && transforms_debug_="$1" ;;
         "l"|"lines") shift && lines=("$1") ;;
         "d"|"diffs") diffs=1 ;;
         "o"|"overwrite") overwrite="1" ;;
@@ -1072,6 +1077,16 @@ fn_port() {
   else
     lines=("")  # stub
   fi
+  if [ -n "$transforms_debug_" ]; then
+    diffs=0
+    declare -a transforms_debug__; IFS=","; transforms_debug__=($(echo "${transforms_debug_}")); IFS="$IFSORG"
+    declare l
+    for l in "${transforms_debug__[@]}"; do
+      [ -z "$(echo "$l" | sed -n '/^\([0-9]\+\)$/p')" ] && \
+        echo "[error] invalid transform debug line number: '$l'" 1>&2 && return 1
+      transforms_debug["$l"]=1
+    done
+  fi
   [[ $diffs -eq 1 && ! -x "$cmd_diff" ]] && \
     echo "[error] no diff binary found'" && return 1
 
@@ -1088,6 +1103,7 @@ fn_port() {
   declare -a transforms_
   declare line
   declare l_line; l_line=0
+  declare debug
   declare match
   declare match_
   declare expr_
@@ -1104,7 +1120,8 @@ fn_port() {
     l_line=$((l_line + 1))
     # skip blanks and comments
     [ -z "$(echo "$line" | sed '/\(^$\|^[ ]*#\)/d')" ] && continue
-    [ $DEBUG -ge 5 ] && echo "[debug] line $l_line: '$line', process: $process, skip: $skip" 1>&2
+    debug=0 && [ -n "${transforms_debug["$l_line"]}" ] && debug=1
+    [ $DEBUG -ge 5 ] && echo "[debug] line $l_line: '$line', process: $process, skip: $skip, debug: $debug" 1>&2
     [ $skip -eq 1 ] && skip=0 && process=1 && continue
     if [ $process -eq 1 ]; then
       l_total=$((l_total + 1))
@@ -1150,8 +1167,17 @@ fn_port() {
         [ $DEBUG -ge 3 ] && echo "[debug] line range: '$range'" 1>&2
         expr_="$range{$line;}"
         while true; do
-          sed "$expr_" "$f_tmp2" > "$f_tmp3"
-          res=$?
+          if [ $debug -eq 1 ]; then
+            echo -e "[debug] ${CLR_HL}source:${CLR_OFF}"
+            echo -e "${CLR_GRN}"
+            sed -n "$range{p;}" "$f_tmp2"
+            echo -e "${CLR_OFF}"
+            set -x && sed "$expr_" "$f_tmp2" > "$f_tmp3" && set +x
+            res=$?
+          else
+            sed "$expr_" "$f_tmp2" > "$f_tmp3"
+            res=$?
+          fi
           [ $res -ne 0 ] && break
           [[ $mod_repeat -eq 0 || \
              -z "$(diff "$f_tmp2" "$f_tmp3")" ]] && break
@@ -1182,8 +1208,10 @@ fn_port() {
           [ $break_ -eq 1 ] && continue
         fi
         l_diffs=$((l_diffs + 1))
-        if [ $diffs -eq 1 ]; then
-          echo -e "[info] match: $match, transform: '$line' applied" 1>&2
+      fi
+      if [[ ( -n "$diff_" && $diffs -eq 1 ) || $debug -eq 1 ]]; then
+        echo "[info] match: $match, transform: '$line' applied" 1>&2
+        if [ -n "$diff_" ]; then
           echo -e "$diff_\n"
         fi
       fi
@@ -1197,7 +1225,7 @@ fn_port() {
   if [ -n "$diff_" ]; then
     if [ $diffs -eq 1 ]; then
       echo -e "$diff_"
-    elif [ $overwrite -eq 0 ]; then
+    elif [[ $overwrite -eq 0 && -z "$transforms_debug_" ]]; then
       cp "$f_tmp" "./results"
       echo "[info] results modified './results' target"
     fi
