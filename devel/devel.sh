@@ -1238,7 +1238,13 @@ fn_port() {
       echo "[info] results modified '$target' target" 1>&$stdout
     fi
   fi
-  [ ! -t 1 ] && cat "$f_tmp"  # i/o redirection
+
+  if [ ! -t 1 ]; then
+    # i/o redirection
+    for range in "${lines[@]}"; do
+      sed -n ${range}'p' "$f_tmp"
+    done
+  fi
 
   echo "[info] processed $l_processed of $l_total expression$([ $l_total -ne 1 ] && echo "s"), with $l_diffs successful diff$([ $l_diffs -ne 1 ] && echo "s")" 1>&$stdout
 
