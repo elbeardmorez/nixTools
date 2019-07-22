@@ -1031,6 +1031,10 @@ fn_port() {
   declare cmd_diff; cmd_diff="$(which "diff")"
   declare -a cmd_args_diff; cmd_args_diff=("-u" "--color=always")
 
+  stdout=1
+  [ ! -t $stdout ] && \
+    echo "[info] pipe detected, redirecting non-result output to stderr" 1>&2 && stdout=2
+
   # process args
   [ $# -lt 1 ] && help && echo "[error] not enough args" && return 1
   while [ -n "$1" ]; do
@@ -1201,7 +1205,7 @@ fn_port() {
               "y") break ;;
               "n") break_=1; break ;;
               "x") return 1 ;;
-              "d") $cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3" ;;
+              "d") $cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3" 1>&$stdout ;;
             esac
             echo -en "$CUR_UP$LN_RST" 1>&2
           done
@@ -1212,7 +1216,7 @@ fn_port() {
       if [[ ( -n "$diff_" && $diffs -eq 1 ) || $debug -eq 1 ]]; then
         echo "[info] match: $match, transform: '$line' applied" 1>&2
         if [ -n "$diff_" ]; then
-          echo -e "$diff_\n"
+          echo -e "$diff_\n" 1>&$stdout
         fi
       fi
       [ $DEBUG -ge 1 ] && echo -e "[debug] post transform line count: $(cat "$f_tmp3" | wc -l)" 1>&2
@@ -1224,18 +1228,19 @@ fn_port() {
   diff_="$($cmd_diff "${cmd_args_diff[@]}" "$target" "$f_tmp")"
   if [ -n "$diff_" ]; then
     if [ $diffs -eq 1 ]; then
-      echo -e "$diff_"
-    elif [[ $overwrite -eq 0 && -z "$transforms_debug_" ]]; then
+      echo -e "$diff_" 1>&$stdout
+    elif [[ $overwrite -eq 0 && -z "$transforms_debug_" && -t 1 ]]; then
       cp "$f_tmp" "./results"
-      echo "[info] results modified './results' target"
+      echo "[info] results modified './results' target" 1>&$stdout
     fi
     if [ $overwrite -eq 1 ]; then
       cp "$f_tmp" "$target" && \
-      echo "[info] results modified '$target' target"
+      echo "[info] results modified '$target' target" 1>&$stdout
     fi
   fi
+  [ ! -t 1 ] && cat "$f_tmp"  # i/o redirection
 
-  echo "[info] processed $l_processed of $l_total expression$([ $l_total -ne 1 ] && echo "s"), with $l_diffs successful diff$([ $l_diffs -ne 1 ] && echo "s")"
+  echo "[info] processed $l_processed of $l_total expression$([ $l_total -ne 1 ] && echo "s"), with $l_diffs successful diff$([ $l_diffs -ne 1 ] && echo "s")" 1>&$stdout
 
   [ -e "$f_tmp" ] && rm "$f_tmp"
   [ -e "$f_tmp2" ] && rm "$f_tmp2"
