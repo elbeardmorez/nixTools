@@ -170,7 +170,7 @@ fn_patch_name() {
   # lower case
   name="$(echo "$name" | awk '{print tolower($0)}').diff"
 
-  [ $DEBUG -ge 5 ] && echo "[debug]  '$description' -> '$name'" 1>&2
+  [ $DEBUG -ge 5 ] && echo "[debug] '$description' -> '$name'" 1>&2
 
   echo "$name"
 }
