@@ -297,6 +297,8 @@ fn_commits() {
   declare name
   declare type
   declare res
+  declare res2
+  declare l
 
   declare -A vcs_cmds_init
   vcs_cmds_init["git"]="git init"
@@ -470,8 +472,49 @@ fn_commits() {
       # pull patch
       target_fqn="$target_fq/$type/$repo_map_path/$name"
       new=1
-      [ -e "$target_fqn" ] && new=0
-      fn_repo_pull "$source" "$id|$target_fqn"
+      declare existing_
+      declare -a existing
+      existing_="$(find "$target_fq/$type/$repo_map_path/" | grep -P '.*\/'"$(fn_escape "perl" "${name%.*}")"'(:?_[0-9]+)?\.diff')"
+      [ -n "$existing_" ] &&
+        { IFS=$'\n'; existing=($(echo -e "$existing_")); IFS="$IFSORG"; }
+      if [ ${#existing[@]} -gt 0 ]; then
+        # name clash or update? find existing
+        declare f_new; f_new="$(fn_temp_file "$SCRIPTNAME")"
+        fn_repo_pull "$source" "$id|$f_new"
+        for f_orig in "${existing[@]}"; do
+          # info
+          info_orig_id="$(fn_patch_info "$f_orig" "$vcs" "id")"
+          info_new_id="$(fn_patch_info "$f_new" "$vcs" "id")"
+          if [ "x$info_new_id" = "x$info_orig_id" ]; then
+            new=0
+            break
+          else
+            # something has changed..
+            info_orig_date="$(fn_patch_info "$f_orig" "$vcs" "date")"
+            info_new_date="$(fn_patch_info "$f_new" "$vcs" "date")"
+            if [ "x$info_new_date" = "x$info_orig_date" ]; then
+              # odds are too small for this to be different
+              new=0
+              break
+            fi
+          fi
+          if [ $new -eq 0 ]; then
+            target_fqn="$f_orig"
+            name="$(basename "$target_fqn")"
+            break
+          fi
+        done
+        if [ $new -eq 0 ]; then
+          mv "$f_new" "$target_fqn"
+        else
+          target_fqn="$(fn_next_file "${existing[$((${#existing[@]} - 1))]}" "_" "diff")"
+          name="$(basename "$target_fqn")"
+          mv "$f_new" "$target_fqn"
+        fi
+      else
+        new=1
+        fn_repo_pull "$source" "$id|$target_fqn"
+      fi
       commit_set=("$target_fqn")
 
       declare repo_map_; repo_map_="$(fn_escape "sed" "$(fn_str_join " | " "${repo_map[@]}")")"
