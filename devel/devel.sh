@@ -170,7 +170,7 @@ fn_patch_name() {
   # lower case
   name="$(echo "$name" | awk '{print tolower($0)}').diff"
 
-  [ $DEBUG -ge 5 ] && echo "[debug] '$description' -> '$name'" 1>&2
+  [ $DEBUG -ge 5 ] && echo "[debug] description: '$description' -> name: '$name'" 1>&2
 
   echo "$name"
 }
@@ -437,6 +437,7 @@ fn_commits() {
   declare -a commit_set
   declare new
   for s in "${commits[@]}"; do
+    [ $DEBUG -ge 1 ] && echo -e "\n[debug] processing commit: '$s'" 1>&2
     IFS="|"; parts=($(echo "$s")); IFS="$IFSORG"
     dt="${parts[0]}"
     id="${parts[1]}"
@@ -477,6 +478,8 @@ fn_commits() {
       existing_="$(find "$target_fq/$type/$repo_map_path/" | grep -P '.*\/'"$(fn_escape "perl" "${name%.*}")"'(:?_[0-9]+)?\.diff')"
       [ -n "$existing_" ] &&
         { IFS=$'\n'; existing=($(echo -e "$existing_")); IFS="$IFSORG"; }
+      [ $DEBUG -ge 5 ] && \
+        echo "[debug] matched ${#existing[@]} existing file$([ ${#existing[@]} -ne 1 ] && echo "s") for patch '$name'"
       if [ ${#existing[@]} -gt 0 ]; then
         # name clash or update? find existing
         declare f_new; f_new="$(fn_temp_file "$SCRIPTNAME")"
@@ -486,6 +489,7 @@ fn_commits() {
           info_orig_id="$(fn_patch_info "$f_orig" "$vcs" "id")"
           info_new_id="$(fn_patch_info "$f_new" "$vcs" "id")"
           if [ "x$info_new_id" = "x$info_orig_id" ]; then
+            [ $DEBUG -ge 5 ] && echo "[debug] matched on id" 1>&2
             new=0
             break
           else
@@ -494,6 +498,7 @@ fn_commits() {
             info_new_date="$(fn_patch_info "$f_new" "$vcs" "date")"
             if [ "x$info_new_date" = "x$info_orig_date" ]; then
               # odds are too small for this to be different
+              [ $DEBUG -ge 5 ] && echo "[debug] matched on date" 1>&2
               new=0
               break
             fi
@@ -505,14 +510,17 @@ fn_commits() {
           fi
         done
         if [ $new -eq 0 ]; then
+          [ $DEBUG -ge 1 ] && echo "[debug] '$name' target exists, updating '$target_fqn'" 1>&2
           mv "$f_new" "$target_fqn"
         else
           target_fqn="$(fn_next_file "${existing[$((${#existing[@]} - 1))]}" "_" "diff")"
           name="$(basename "$target_fqn")"
+          [ $DEBUG -ge 5 ] && echo "[debug] '$name' target exists, pushing to '$target_fqn'"
           mv "$f_new" "$target_fqn"
         fi
       else
         new=1
+        [ $DEBUG -ge 1 ] && echo "[debug] '$name' target is new, pushing to '$target_fqn'" 1>&2
         fn_repo_pull "$source" "$id|$target_fqn"
       fi
       commit_set=("$target_fqn")
