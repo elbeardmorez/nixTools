@@ -487,14 +487,17 @@ fn_commits() {
         { IFS=$'\n'; existing=($(echo -e "$existing_")); IFS="$IFSORG"; }
       [ $DEBUG -ge 5 ] && \
         echo "[debug] matched ${#existing[@]} existing file$([ ${#existing[@]} -ne 1 ] && echo "s") for patch '$name'"
+      declare -A matched_files
       if [ ${#existing[@]} -gt 0 ]; then
         # name clash or update? find existing
         declare f_new; f_new="$(fn_temp_file "$SCRIPTNAME")"
         fn_repo_pull "$source" "$id|$f_new"
         declare info_orig_id
         declare info_orig_date
+        declare info_orig_files
         declare info_new_id
         declare info_new_date
+        declare info_new_files
         for f_orig in "${existing[@]}"; do
           # info
           info_orig_id="$(fn_patch_info "$f_orig" "$vcs" "id")"
@@ -512,6 +515,17 @@ fn_commits() {
               [ $DEBUG -ge 5 ] && echo "[debug] matched on date" 1>&2
               new=0
               break
+            else
+              info_orig_files="$(fn_patch_info "$f_orig" "$vcs" "files")"
+              info_new_files="$(fn_patch_info "$f_new" "$vcs" "files")"
+              if [ ${#info_new_files[@]} -eq ${#info_orig_files[@]} ]; then
+                declare s_; s_=1
+                for l in $(seq 0 1 $((${info_files_orig[@]} - 1))); do
+                  [ "x${info_new_files[$l]}" != "x${info_orig_files[$l]}" ] && \
+                    { s_=0 && break; }
+                done
+                [ $s_ -eq 1 ] && matched_files["$f_orig"]=1
+              fi
             fi
           fi
           if [ $new -eq 0 ]; then
@@ -522,16 +536,23 @@ fn_commits() {
         done
         if [[ $new -eq 1 && $interactive_match -eq 1 ]]; then
           # review interactively
-          echo -e "[info] insufficient certainty to proceed with current commit:\n${CLR_HL}$name${CLR_OFF}\n"
+          echo -e "\n${CLR_HL}target${CLR_OFF}|$target_fq/$type/$repo_map_path\n"
+          declare name_; name_="${name%.*}"
+          declare name__; name__="$(fn_escape "sed" "$name_")"
+          echo -e "[info] name clash for '$(echo "$name" | sed 's/'"$name__"'/'"\\${CLR_HL}$name_\\${CLR_OFF}"'/')', insufficient certainty to proceed:\n"
+##          echo -e "[info] name clash for '$(echo "$name" | sed 's/'"$name__"'/'"pandas"'/')', insufficient certainty to proceed:\n"
           declare files_
           l=1
           for s_ in "${existing[@]}"; do
-            files_="$files_\n[$l] $s_"
+            files_="$files_\n[$l] $(echo -E "$s_" | sed 's/'"$name__"'/'"\\${CLR_HL}$name_\\${CLR_OFF}"'/')"
+            [ -n "${matched_files["$s_"]}" ] && files_="${files_}*"
             l=$((l + 1))
           done
           files_="${files_:2}"
           while true; do
             echo -e "$files_\n"
+            [ ${#matched_files[@]} -gt 0 ] && \
+              echo -e "*contains matching file set\n"
             res="$(fn_decision "[user] take (d)iff, (s)elect, assume (n)ew, or e(x)it" "d|s|n|x")"
             case "$res" in
               "d")
