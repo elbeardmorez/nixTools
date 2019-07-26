@@ -106,6 +106,9 @@ with OPTION:
         override default version control type for unknown targets
         (default: git)
       -d|--dump  : dump patch set only
+      -im|--interactive-match  : interactively match when target diff
+                                 name clashes are unresolvable
+                                 (default: assumes 'new')
       -rn|--readme-name [=]NAME  : override default readme file name
                                    (default: README.md)
       -rs|--readme-status [=STATUS]  : append a commit status string

@@ -100,6 +100,9 @@ help() {
         override default version control type for unknown targets
         (default: git)
       -d|--dump  : dump patch set only
+      -im|--interactive-match  : interactively match when target diff
+                                 name clashes are unresolvable
+                                 (default: assumes 'new')
       -rn|--readme-name [=]NAME  : override default readme file name
                                    (default: README.md)
       -rs|--readme-status [=STATUS]  : append a commit status string
@@ -293,6 +296,7 @@ fn_commits() {
   declare readme_status; readme_status=""
   declare readme_status_default; readme_status_default="pending"
   declare auto_commit
+  declare interactive_match; interactive_match=0
   declare description
   declare name
   declare type
@@ -337,6 +341,9 @@ fn_commits() {
           ;;
         "d"|"dump")
           dump=1
+          ;;
+        "im"|"interactive-match")
+          interactive_match=1
           ;;
         "rn"|"readme-name")
           shift
@@ -484,6 +491,10 @@ fn_commits() {
         # name clash or update? find existing
         declare f_new; f_new="$(fn_temp_file "$SCRIPTNAME")"
         fn_repo_pull "$source" "$id|$f_new"
+        declare info_orig_id
+        declare info_orig_date
+        declare info_new_id
+        declare info_new_date
         for f_orig in "${existing[@]}"; do
           # info
           info_orig_id="$(fn_patch_info "$f_orig" "$vcs" "id")"
@@ -509,6 +520,44 @@ fn_commits() {
             break
           fi
         done
+        if [[ $new -eq 1 && $interactive_match -eq 1 ]]; then
+          # review interactively
+          echo -e "[info] insufficient certainty to proceed with current commit:\n${CLR_HL}$name${CLR_OFF}\n"
+          while true; do
+            l=1
+            for s_ in "${existing[@]}"; do
+              echo "[$l] $s_"
+              l=$((l + 1))
+            done
+            echo ""
+            res="$(fn_decision "[user] take (d)iff, (s)elect, assume (n)ew, or e(x)it" "d|s|n|x")"
+            case "$res" in
+              "d")
+                while true; do
+                  res2="$(fn_edit_line "" "[user] diff against # [1-${#existing[@]}]"): "
+                  res2=$(echo "$res2" | sed -n 's/^[ 0]*\([^0][0-9]*\)[ ]*$/\1/p')
+                  [[ -n "$res2" && $res2 -le ${#existing[@]} ]] && \
+                    { diff -u --color=always "${existing[$l]}" "$f_new" | less; break; }
+                done
+                ;;
+              "s")
+                while true; do
+                  res2="$(fn_edit_line "" "[user] select # [1-${#existing[@]}]"): "
+                  res2=$(echo "$res2" | sed -n 's/^[ 0]*\([^0][0-9]*\)[ ]*$/\1/p')
+                  if [[ -n "$res2" && $res2 -le ${#existing[@]} ]]; then
+                    new=0
+                    target_fqn="${existing[$((res2 - 1))]}"
+                    name="$(basename "$target_fqn")"
+                    break
+                  fi
+                done
+                break
+                ;;
+              "n") break ;;
+              "x") return 1 ;;
+            esac
+          done
+        fi
         if [ $new -eq 0 ]; then
           [ $DEBUG -ge 1 ] && echo "[debug] '$name' target exists, updating '$target_fqn'" 1>&2
           mv "$f_new" "$target_fqn"
