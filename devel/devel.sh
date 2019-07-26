@@ -534,24 +534,31 @@ fn_commits() {
             case "$res" in
               "d")
                 while true; do
-                  res2="$(fn_edit_line "" "[user] diff against # [1-${#existing[@]}]"): "
-                  res2=$(echo "$res2" | sed -n 's/^[ 0]*\([^0][0-9]*\)[ ]*$/\1/p')
-                  [[ -n "$res2" && $res2 -le ${#existing[@]} ]] && \
-                    { diff -u --color=always "${existing[$l]}" "$f_new" | less; break; }
+                  res2="$(fn_edit_line "" "[user] diff against # [1-${#existing[@]}], or e(x)it: ")"
+                  res2=$(echo "$res2" | sed -n 's/^[ 0]*\(x\|[^0][0-9]*\)[ ]*$/\1/p')
+                  if [ "x$res2" = "xx" ]; then
+                    break
+                  elif [ $res2 -le ${#existing[@]} ]; then
+                    echo
+                    diff -u --color=always "${existing[$((res2 - 1))]}" "$f_new" | less -R
+                    break
+                  fi
                 done
                 ;;
               "s")
                 while true; do
-                  res2="$(fn_edit_line "" "[user] select # [1-${#existing[@]}]"): "
-                  res2=$(echo "$res2" | sed -n 's/^[ 0]*\([^0][0-9]*\)[ ]*$/\1/p')
-                  if [[ -n "$res2" && $res2 -le ${#existing[@]} ]]; then
+                  res2="$(fn_edit_line "" "[user] select # [1-${#existing[@]}] or e(x)it: ")"
+                  res2=$(echo "$res2" | sed -n 's/^[ 0]*\(x\|[^0][0-9]*\)[ ]*$/\1/p')
+                  if [ "x$res2" = "xx" ]; then
+                    break
+                  elif [ $res2 -le ${#existing[@]} ]; then
                     new=0
                     target_fqn="${existing[$((res2 - 1))]}"
                     name="$(basename "$target_fqn")"
                     break
                   fi
                 done
-                break
+                [ $new -eq 0 ] && break
                 ;;
               "n") break ;;
               "x") return 1 ;;
