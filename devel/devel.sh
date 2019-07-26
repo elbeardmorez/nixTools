@@ -523,13 +523,15 @@ fn_commits() {
         if [[ $new -eq 1 && $interactive_match -eq 1 ]]; then
           # review interactively
           echo -e "[info] insufficient certainty to proceed with current commit:\n${CLR_HL}$name${CLR_OFF}\n"
+          declare files_
+          l=1
+          for s_ in "${existing[@]}"; do
+            files_="$files_\n[$l] $s_"
+            l=$((l + 1))
+          done
+          files_="${files_:2}"
           while true; do
-            l=1
-            for s_ in "${existing[@]}"; do
-              echo "[$l] $s_"
-              l=$((l + 1))
-            done
-            echo ""
+            echo -e "$files_\n"
             res="$(fn_decision "[user] take (d)iff, (s)elect, assume (n)ew, or e(x)it" "d|s|n|x")"
             case "$res" in
               "d")
