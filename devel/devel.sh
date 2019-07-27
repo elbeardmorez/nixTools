@@ -505,7 +505,6 @@ fn_commits() {
           if [ "x$info_new_id" = "x$info_orig_id" ]; then
             [ $DEBUG -ge 5 ] && echo "[debug] matched on id" 1>&2
             new=0
-            break
           else
             # something has changed..
             info_orig_date="$(fn_patch_info "$f_orig" "$vcs" "date")"
@@ -514,7 +513,6 @@ fn_commits() {
               # odds are too small for this to be different
               [ $DEBUG -ge 5 ] && echo "[debug] matched on date" 1>&2
               new=0
-              break
             else
               info_orig_files="$(fn_patch_info "$f_orig" "$vcs" "files")"
               info_new_files="$(fn_patch_info "$f_new" "$vcs" "files")"
