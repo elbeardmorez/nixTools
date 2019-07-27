@@ -480,8 +480,8 @@ fn_commits() {
       # pull patch
       target_fqn="$target_fq/$type/$repo_map_path/$name"
       new=1
-      declare existing_
-      declare -a existing
+      declare existing_; existing_=""
+      declare -a existing; existing=()
       existing_="$(find "$target_fq/$type/$repo_map_path/" | grep -P '.*\/'"$(fn_escape "perl" "${name%.*}")"'(:?_[0-9]+)?\.diff')"
       [ -n "$existing_" ] &&
         { IFS=$'\n'; existing=($(echo -e "$existing_")); IFS="$IFSORG"; }
