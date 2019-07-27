@@ -541,7 +541,7 @@ fn_commits() {
           declare name__; name__="$(fn_escape "sed" "$name_")"
           echo -e "[info] name clash for '$(echo "$name" | sed 's/'"$name__"'/'"\\${CLR_HL}$name_\\${CLR_OFF}"'/')', insufficient certainty to proceed:\n"
 ##          echo -e "[info] name clash for '$(echo "$name" | sed 's/'"$name__"'/'"pandas"'/')', insufficient certainty to proceed:\n"
-          declare files_
+          declare files_; files_=""
           l=1
           for s_ in "${existing[@]}"; do
             files_="$files_\n[$l] $(echo -E "$s_" | sed 's/'"$name__"'/'"\\${CLR_HL}$name_\\${CLR_OFF}"'/')"
