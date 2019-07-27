@@ -459,7 +459,7 @@ fn_commits() {
       fn_repo_pull "$source" "$id|$target_fqn_"
     else
       # get patch type
-      echo "# categories: ${repo_map[*]} | patch: '$name'"
+      [ $DEBUG -ge 5 ] && echo "[debug] categories: ${repo_map[*]} | patch: '$name'"
       type=""
       if [ ${#repos[@]} -gt 1 ]; then
         declare decision_opts; decision_opts="$(fn_decision_options "${repos[*]} exit" 1 "exit|x")"
