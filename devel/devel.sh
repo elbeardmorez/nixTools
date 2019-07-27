@@ -1345,10 +1345,10 @@ fn_port() {
         l_diffs=$((l_diffs + 1))
       fi
       if [[ ( -n "$diff_" && $diffs -eq 1 ) || $debug -eq 1 ]]; then
-        echo "[info] match: $match, transform: '$line' applied" 1>&2
-        if [ -n "$diff_" ]; then
-          echo -e "$diff_\n" 1>&$stdout
-        fi
+        echo -n "[info] match: $match, transform: '$line' applied, diff:" 1>&2
+        [ -n "$diff_" ] && \
+          echo -e $"\n$diff_" 1>&$stdout || \
+          echo " no difference" 1>&$stdout
       fi
       [ $DEBUG -ge 1 ] && echo -e "[debug] post transform line count: $(cat "$f_tmp3" | wc -l)" 1>&2
       cp "$f_tmp3" "$f_tmp"
