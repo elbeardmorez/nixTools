@@ -1301,10 +1301,10 @@ fn_port() {
         expr_="$range{$line;}"
         while true; do
           if [ $debug -eq 1 ]; then
-            echo -e "[debug] ${CLR_HL}source:${CLR_OFF}"
-            echo -e "${CLR_GRN}"
-            sed -n "$range{p;}" "$f_tmp2"
-            echo -e "${CLR_OFF}"
+            echo -e "[debug] ${CLR_HL}source:${CLR_OFF}" 1>&$stdout
+            echo -e "${CLR_GRN}" 1>&$stdout
+            sed -n "$range{p;}" "$f_tmp2" 1>&$stdout
+            echo -e "${CLR_OFF}" 1>&$stdout
             set -x && sed "$expr_" "$f_tmp2" > "$f_tmp3" && set +x
             res=$?
           else
