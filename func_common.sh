@@ -450,7 +450,7 @@ fn_escape() {
     *) echo "[error] unsupported escape type" 1>&2 && return 1
   esac
   [ $DEBUG -ge 3 ] && echo "[debug] raw expression: '$exp', $type protected chars: '$escape'" 1>&2
-  exp="$(echo "$exp" | sed 's/\(['"$escape"']\)/\\\1/g')"
+  exp="$(echo "$exp" | sed -n '1h;1!H;${x;s/\n/\\n/g;s/\(['"$escape"']\)/\\\1/g;p;}')"
   [ $DEBUG -ge 3 ] && echo "[debug] protected expression: '$exp'" 1>&2
   echo "$exp"
 }
