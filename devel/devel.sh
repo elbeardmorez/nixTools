@@ -262,7 +262,7 @@ fn_patch_info() {
       ;;
     "comments")
       case "$vcs" in
-        "git") sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;p;b;};H;b;}' "$patch" && return ;;
+        "git") sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;s/\n/\\n/g;p;b;};H;b;}' "$patch" && return ;;
       esac
       ;;
     "files")
