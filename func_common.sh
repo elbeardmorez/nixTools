@@ -87,7 +87,7 @@ trap "exec 3<&-" EXIT
 mkfifo '"$observer_socket"'
 # ensure access to socket regardless of write process state via local fd
 exec 3<'"$observer_socket"'
-[ $DEBUG -ge 2 ] && \
+[ $DEBUG -ge 7 ] && \
   ls -al /dev/fd/ > $log
 live=0
 last=$live
@@ -105,7 +105,7 @@ while true; do
       '${action_pause:-"pass=\"\""}' >> $log  # pause
     fi
   fi
-  [ $DEBUG -ge 1 ] && \
+  [ $DEBUG -ge 6 ] && \
     echo "[debug] beat: ${beat:-"dead0"}, state: $last -> $live" >> $log
   last=$live
 done
@@ -118,17 +118,17 @@ done
   # start observer
   setsid "$observer" &
   observer_pid=$!
-  [ $DEBUG -ge 1 ] && echo "[debug] observer running with pid '$observer_pid'" 1>&2
+  [ $DEBUG -ge 6 ] && echo "[debug] observer running with pid '$observer_pid'" 1>&2
   # start heartbeat
   fn_observer_heartbeat "$observer_socket" &
   observer_heartbeat_pid=$!
-  [ $DEBUG -ge 1 ] && echo "[debug] observer heartbeat running with pid '$observer_heartbeat_pid'" 1>&2
+  [ $DEBUG -ge 6 ] && echo "[debug] observer heartbeat running with pid '$observer_heartbeat_pid'" 1>&2
   observers[${#observers[@]}]="$observer_id|$observer_pid|$observer_heartbeat_pid|$observer|$observer_socket"
 }
 
 fn_observer_heartbeat() {
   heart="$1"
-  [ $DEBUG -ge 1 ] && echo "[debug] beating: $heart"
+  [ $DEBUG -ge 6 ] && echo "[debug] beating: $heart"
   secs=0
   sleep 2
   while true; do
@@ -144,7 +144,7 @@ fn_observer_cleanup() {
   exec 6<&- 7>&- 8>&-
   for observer_ in "${observers[@]}"; do
     IFS="|"; observer=($(echo "$observer_")); IFS="$IFSORG"
-    [ $DEBUG -ge 1 ] && echo "[debug] cleaning up '${observer[0]}' observer" 1>&2
+    [ $DEBUG -ge 6 ] && echo "[debug] cleaning up '${observer[0]}' observer" 1>&2
     kill -TERM ${observer[1]} 2>/dev/null  # observer proc
     kill -TERM ${observer[2]} 2>/dev/null  # heartbeat proc
     [ -e "${observer[3]}" ] && rm "${observer[3]}"  # script
@@ -449,9 +449,9 @@ fn_escape() {
     "awk") escape="$ESCAPE_AWK" ;;
     *) echo "[error] unsupported escape type" 1>&2 && return 1
   esac
-  [ $DEBUG -ge 3 ] && echo "[debug] raw expression: '$exp', $type protected chars: '$escape'" 1>&2
+  [ $DEBUG -ge 8 ] && echo "[debug] raw expression: '$exp', $type protected chars: '$escape'" 1>&2
   exp="$(echo "$exp" | sed -n '1h;1!H;${x;s/\n/\\n/g;s/\(['"$escape"']\)/\\\1/g;p;}')"
-  [ $DEBUG -ge 3 ] && echo "[debug] protected expression: '$exp'" 1>&2
+  [ $DEBUG -ge 8 ] && echo "[debug] protected expression: '$exp'" 1>&2
   echo "$exp"
 }
 
@@ -477,7 +477,7 @@ fn_path_safe() {
 }
 
 fn_files_compare() {
-  [ $DEBUG -ge 5 ] && echo "[debug | fn_files_compare]" 1>&2
+  [ $DEBUG -ge 10 ] && echo "[debug | fn_files_compare]" 1>&2
   [ $# -lt 2 ] && echo "[error] not enough args" 1>&2 && return 1
   declare base
   declare md5base
@@ -566,7 +566,7 @@ fn_search_set() {
   bin_args[${#bin_args[@]}]=")"
   while [ -n "$1" ]; do
     t="$(fn_path_resolve "$1")"  # resolve target
-    [ $DEBUG -ge 1 ] && echo "[debug] searching target: '$t'" 1>&2
+    [ $DEBUG -ge 6 ] && echo "[debug] searching target: '$t'" 1>&2
     if [ -e "$t" ]; then
       if [ -f "$t" ]; then
         files2=("$t")
@@ -578,7 +578,7 @@ fn_search_set() {
         map["$f"]=1
         files[${#files[@]}]="$f"
       done
-    elif [ $DEBUG -ge 1 ]; then
+    elif [ $DEBUG -ge 6 ]; then
       echo "[debug] target '$t' invalid / no longer exists, ignoring" 1>&2
     fi
     shift
