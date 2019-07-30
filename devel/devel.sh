@@ -506,7 +506,7 @@ fn_commits() {
           info_new["id"]="$(fn_patch_info "$f_new" "$vcs" "id")"
           if [ "x${info_new["id"]}" = "x${info_orig["id"]}" ]; then
             [ $DEBUG -ge 5 ] && echo "[debug] matched on id" 1>&2
-            new=0
+            new=-1
           else
             # something has changed..
             info_orig["date"]="$(fn_patch_info "$f_orig" "$vcs" "date")"
@@ -528,9 +528,11 @@ fn_commits() {
               fi
             fi
           fi
-          if [ $new -eq 0 ]; then
+          if [ $new -le 0 ]; then
             target_fqn="$f_orig"
             name="$(basename "$target_fqn")"
+            [ $new -eq -1 ] && break
+            commit_set=("$target_fqn")
             break
           fi
         done
@@ -591,18 +593,20 @@ fn_commits() {
         if [ $new -eq 0 ]; then
           [ $DEBUG -ge 1 ] && echo "[debug] '$name' target exists, updating '$target_fqn'" 1>&2
           mv "$f_new" "$target_fqn"
-        else
+          commit_set=("$target_fqn")
+        elif [ $new -eq 1 ]; then
           target_fqn="$(fn_next_file "${existing[$((${#existing[@]} - 1))]}" "_" "diff")"
           name="$(basename "$target_fqn")"
           [ $DEBUG -ge 5 ] && echo "[debug] '$name' target exists, pushing to '$target_fqn'"
           mv "$f_new" "$target_fqn"
+          commit_set=("$target_fqn")
         fi
       else
         new=1
         [ $DEBUG -ge 1 ] && echo "[debug] '$name' target is new, pushing to '$target_fqn'" 1>&2
         fn_repo_pull "$source" "$id|$target_fqn"
+        commit_set=("$target_fqn")
       fi
-      commit_set=("$target_fqn")
 
       declare repo_map_; repo_map_="$(fn_escape "sed" "$(fn_str_join " | " "${repo_map[@]}")")"
       if [ -n "$readme" ]; then
@@ -619,6 +623,7 @@ fn_commits() {
         if [ -z "$(sed -n '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/p' "$f_readme")" ]; then
           # add entry
           echo -e "\n#### [$repo_map_]($repo_map_)\n"'```'"\n$entry_new\n"'```' >> "$f_readme"
+          commit_set[${#commit_set[@]}]="$f_readme"
         else
           # insert entry?
           entry_orig=""
@@ -628,6 +633,7 @@ fn_commits() {
           if [[ -z "$entry_orig" || $new -eq 1 ]]; then
             # insert at end
             sed -n -i '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/,/$^/{/^#### \['"$repo_map_"'\]('"$repo_map_"')$/{N;h;b};/^```$/{x;s/\(.*\)/\1\n'"$entry_new"'\n```/p;b;}; H;$!b};${x;/^#### ['"$repo_map_"'\]('"$repo_map_"')/{s/\(.*\)/\1\n'"$entry_new"'/p;b;};x;p;b;};p' "$f_readme"
+            commit_set[${#commit_set[@]}]="$f_readme"
           elif [ "x$entry_new" != "x$entry_orig" ]; then
             # update
             f_tmp="$(fn_temp_file)"
@@ -644,9 +650,9 @@ fn_commits() {
               echo ""
               rm "$f_tmp" 2>/dev/null
             fi
+            commit_set[${#commit_set[@]}]="$f_readme"
           fi
         fi
-        commit_set[${#commit_set[@]}]="$f_readme"
 
         # append patch details to category specific readme
         f_readme="$target_fq/$type/$repo_map_path/$readme"
@@ -681,6 +687,7 @@ END { fn_test(section); }' "$f_readme")"
         if [[ -z "$entry_orig" || $new -eq 1 ]]; then
           # insert at end
           echo -e "\n$entry_new" >> "$f_readme"
+          commit_set[${#commit_set[@]}]="$f_readme"
         elif [ "x$entry_new" != "x$entry_orig" ]; then
           # update
           f_tmp="$(fn_temp_file)"
@@ -697,11 +704,14 @@ END { fn_test(section); }' "$f_readme")"
             echo ""
             rm "$f_tmp" 2>/dev/null
           fi
+          commit_set[${#commit_set[@]}]="$f_readme"
         fi
-        commit_set[${#commit_set[@]}]="$f_readme"
       fi
 
       # commit
+      [ ${#commit_set[@]} -eq 0 ] && \
+        echo "[info] no changes to commit" && continue
+
       echo "[info] commit set:"
       for f in "${commit_set[@]}"; do echo "$f"; done
       if [ -n "$auto_commit" ]; then
