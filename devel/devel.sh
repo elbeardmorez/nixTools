@@ -437,6 +437,7 @@ fn_commits() {
   declare -a parts
   declare target_fq; target_fq="$(cd "$target" && pwd)"
   declare entry_description
+  declare entry_version
   declare entry_ref
   declare entry_comments
   declare entry_orig
@@ -506,6 +507,7 @@ fn_commits() {
         { IFS=$'\n'; existing=($(echo -e "$existing_")); IFS="$IFSORG"; }
       [ $DEBUG -ge 5 ] && \
         echo "[debug] matched ${#existing[@]} existing file$([ ${#existing[@]} -ne 1 ] && echo "s") for patch '$name'"
+      entry_version=""
       if [ ${#existing[@]} -gt 0 ]; then
         # name clash or update? find existing
         f_new="$(fn_temp_file "$SCRIPTNAME")"
@@ -619,6 +621,7 @@ fn_commits() {
         fn_repo_pull "$source" "$id|$target_fqn"
         commit_set=("$target_fqn")
       fi
+      entry_version="$(echo "$name" | sed -n 's/.*_\([0-9]\+\).diff/ #\1/p')"
 
       repo_map_="$(fn_escape "sed" "$(fn_str_join " | " "${repo_map[@]}")")"
       if [ -n "$readme" ]; then
@@ -628,7 +631,7 @@ fn_commits() {
         id_orig_="${id_orig:0:9}"
         entry_description="$description"
         entry_ref="[git sha:${id:0:9}]"
-        entry_new="$entry_description $entry_ref"
+        entry_new="$entry_description$entry_version $entry_ref"
         [ ! -e "$f_readme" ] && \
           echo -e "### $type" >> "$f_readme"
         # search for existing entry
@@ -670,7 +673,7 @@ fn_commits() {
         f_readme="$target_fq/$type/$repo_map_path/$readme"
         entry_ref="[git sha:$id$([ -n "$readme_status" ] && echo " | $readme_status")]"
         entry_comments="$(fn_patch_info "$target_fqn" "$vcs" "comments")"
-        entry_new="##### $entry_description\n###### $entry_ref$([ -n "$entry_comments" ] && echo "\n"'```'"\n$entry_comments\n"'```')"
+        entry_new="##### $entry_description$entry_version\n###### $entry_ref$([ -n "$entry_comments" ] && echo "\n"'```'"\n$entry_comments\n"'```')"
         [ ! -e "$f_readme" ] && \
           echo "### $repo_map_" >> "$f_readme"
 
@@ -736,7 +739,7 @@ END { fn_test(section); }' "$f_readme")"
           git add "$f_" || return 1
         done
         declare commit_message
-        commit_message="[$([ $new -eq 1 ] && echo "add" || echo "mod")] $repo_map_, $(echo $description | sed 's/^\[\([^]]*\)\]/\1,/')"
+        commit_message="[$([ $new -eq 1 ] && echo "add" || echo "mod")] $repo_map_, $(echo $description$entry_version | sed 's/^\[\([^]]*\)\]/\1,/')"
         GIT_AUTHOR_DATE="$dt" GIT_COMMITTER_DATE="$dt" git commit -m "$commit_message"
         cd - 1>/dev/null
       fi
