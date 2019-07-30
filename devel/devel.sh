@@ -445,8 +445,24 @@ fn_commits() {
   declare id_orig_
   declare f_readme
   declare f_tmp
+  declare f_new
   declare -a commit_set
+  declare decision_opts
+  declare opt_string
+  declare opt_keys
+  declare opt_keys_
+  declare existing_
+  declare -a existing
+  declare -A matched_files
+  declare -A info_orig
+  declare -A info_new
+  declare repo_map_
+  declare name_
+  declare files_
+  declare name__
+  declare idx
   declare new
+  declare s_
   for s in "${commits[@]}"; do
     [ $DEBUG -ge 1 ] && echo -e "\n[debug] processing commit: '$s'" 1>&2
     IFS="|"; parts=($(echo "$s")); IFS="$IFSORG"
@@ -466,13 +482,13 @@ fn_commits() {
       [ $DEBUG -ge 5 ] && echo "[debug] categories: ${repo_map[*]} | patch: '$name'"
       type=""
       if [ ${#repos[@]} -gt 1 ]; then
-        declare decision_opts; decision_opts="$(fn_decision_options "${repos[*]} exit" 1 "exit|x")"
-        declare opt_string; opt_string="${decision_opts%|*}"
-        declare opt_keys; opt_keys=($(echo "${decision_opts#*|}"))
-        declare opt_keys_; opt_keys_="$(fn_str_join "|" "${opt_keys[@]}")"
+        decision_opts="$(fn_decision_options "${repos[*]} exit" 1 "exit|x")"
+        opt_string="${decision_opts%|*}"
+        opt_keys=($(echo "${decision_opts#*|}"))
+        opt_keys_="$(fn_str_join "|" "${opt_keys[@]}")"
         res="$(fn_decision "[user] set patch type. $opt_string" "$opt_keys_")"
         [ "x$res" = "xx" ] && return 1
-        declare idx; idx=0
+        idx=0
         for k in ${opt_keys[@]}; do
           [ "x$res" = "x$k" ] && break
           idx=$(($idx + 1))
@@ -484,19 +500,15 @@ fn_commits() {
       # pull patch
       target_fqn="$target_fq/$type/$repo_map_path/$name"
       new=1
-      declare existing_; existing_=""
-      declare -a existing; existing=()
       existing_="$(find "$target_fq/$type/$repo_map_path/" | grep -P '.*\/'"$(fn_escape "perl" "${name%.*}")"'(:?_[0-9]+)?\.diff')"
+      existing=()
       [ -n "$existing_" ] &&
         { IFS=$'\n'; existing=($(echo -e "$existing_")); IFS="$IFSORG"; }
       [ $DEBUG -ge 5 ] && \
         echo "[debug] matched ${#existing[@]} existing file$([ ${#existing[@]} -ne 1 ] && echo "s") for patch '$name'"
-      declare -A matched_files
-      declare -A info_orig
-      declare -A info_new
       if [ ${#existing[@]} -gt 0 ]; then
         # name clash or update? find existing
-        declare f_new; f_new="$(fn_temp_file "$SCRIPTNAME")"
+        f_new="$(fn_temp_file "$SCRIPTNAME")"
         fn_repo_pull "$source" "$id|$f_new"
         for f_orig in "${existing[@]}"; do
           # info
@@ -519,7 +531,7 @@ fn_commits() {
               info_orig["files"]="$(fn_patch_info "$f_orig" "$vcs" "files")"
               info_new["files"]="$(fn_patch_info "$f_new" "$vcs" "files")"
               if [ ${#info_new_files[@]} -eq ${#info_orig_files[@]} ]; then
-                declare s_; s_=1
+                s_=1
                 for l in $(seq 0 1 $((${info_files_orig[@]} - 1))); do
                   [ "x${info_new_files[$l]}" != "x${info_orig_files[$l]}" ] && \
                     { s_=0 && break; }
@@ -539,11 +551,11 @@ fn_commits() {
         if [[ $new -eq 1 && $interactive_match -eq 1 ]]; then
           # review interactively
           echo -e "\n${CLR_HL}target${CLR_OFF}|$target_fq/$type/$repo_map_path\n"
-          declare name_; name_="${name%.*}"
-          declare name__; name__="$(fn_escape "sed" "$name_")"
+          name_="${name%.*}"
+          name__="$(fn_escape "sed" "$name_")"
           echo -e "[info] name clash for '$(echo "$name" | sed 's/'"$name__"'/'"\\${CLR_HL}$name_\\${CLR_OFF}"'/')', insufficient certainty to proceed:\n"
 ##          echo -e "[info] name clash for '$(echo "$name" | sed 's/'"$name__"'/'"pandas"'/')', insufficient certainty to proceed:\n"
-          declare files_; files_=""
+          files_=""
           l=1
           for s_ in "${existing[@]}"; do
             files_="$files_\n[$l] $(echo -E "$s_" | sed 's/'"$name__"'/'"\\${CLR_HL}$name_\\${CLR_OFF}"'/')"
@@ -608,7 +620,7 @@ fn_commits() {
         commit_set=("$target_fqn")
       fi
 
-      declare repo_map_; repo_map_="$(fn_escape "sed" "$(fn_str_join " | " "${repo_map[@]}")")"
+      repo_map_="$(fn_escape "sed" "$(fn_str_join " | " "${repo_map[@]}")")"
       if [ -n "$readme" ]; then
         # append patch to repo readme
         f_readme="$target_fq/$type/$readme"
