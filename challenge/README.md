@@ -51,6 +51,7 @@ where MODE can be:
                            (default: c++)
                            *compilation of source supported
          -d, --diffs  : take diffs of test output and expected
+         -o, --output-results  : output 'per test' results files
        TESTS  : optional test items (numbers), or delimited list(s) of
 
   dump [LANGUAGES] TARGET  : search TARGET for files suffixed with

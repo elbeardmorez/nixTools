@@ -64,6 +64,7 @@ help() {
                            (default: c++)
                            *compilation of source supported
          -d, --diffs  : take diffs of test output and expected
+         -o, --output-results  : output 'per test' results files
        TESTS  : optional test items (numbers), or delimited list(s) of
 \n  dump [LANGUAGES] TARGET  : search TARGET for files suffixed with
                              items in the delimited LANGUAGES list
@@ -304,6 +305,7 @@ fn_test() {
   done
   declare diffs; diffs=0
   declare diff_
+  declare output_results; output_results=0
   declare -a tests
   declare -a test_files
   declare -a source_
@@ -323,6 +325,7 @@ fn_test() {
     case "$s" in
       "l"|"language") l=$((l + 1)) && language="${args[$l]}" ;;
       "d"|"diffs") diffs=1 ;;
+      "o"|"output-results") output_results=1 ;;
       *)
         if [ -n "$(echo "${args[$l]}" | sed -n '/[0-9]\+/p')" ]; then
           tests[${#tests[@]}]="${args[$l]}"
@@ -398,7 +401,8 @@ fn_test() {
       temp_files[${#temp_files[@]}]="$f_tmp_expected"
       [ -e "$log" ] && rm "$log"
       for tf in "${test_files[@]}"; do
-        s="[info] running test file '$tf'"
+        t="$(echo "$tf" | sed 's/[^0-9]*\([0-9]\+\)\..*/\1/;s/^0*\([0-9]\{1,\}\)/\1/;')"
+        s="[info] running test: $t, file: '$tf'"
         [ -e "$f_tmp_results" ] && rm "$f_tmp_results"
         echo -e "\n$s\n$(printf "%.0s-" $(seq 1 1 ${#s}))\n" | tee -a "$log"
         case "$source_suffix" in
@@ -420,6 +424,7 @@ fn_test() {
             echo -e "$diff_" | tee -a $log || \
             echo "results identical" | tee -a $log
         fi
+        [ $output_results -eq 1 ] && cp "$f_tmp_results" "results_$t"
       done
       ;;
     *)
