@@ -10,6 +10,8 @@ SCRIPTNAME=${0##*/}
 DEBUG=${DEBUG:-0}
 IFSORG="$IFS"
 
+declare term; [ -t 1 ] && term=1 || term=0
+
 help() {
   echo -e "SYNTAX: $SCRIPTNAME OPTION [OPT_ARGS] [-- [BIN_ARGS]]*
 \nwhere OPTION:
@@ -140,7 +142,7 @@ fn_log() {
   declare search; search=""
   declare path; path=""
   declare count
-  declare -a bin_args; bin_args=("-c" "color.ui=always")
+  declare -a bin_args; [ $term -eq 1 ] && bin_args=("-c" "color.ui=always")
   declare -a cmd_args; cmd_args=("--decorate")
   declare commits_
   declare -a commits
@@ -455,7 +457,7 @@ fn_process() {
     "h"|"help") help ;;
     "d"|"diff") git diff "$@" ;;
     "c"|"commit") fn_commit "$@" ;;
-    "log"|"logx"|"log1") fn_log "$option" "$@" ;;
+    "log"|"logx"|"log1") [ $term -eq 1 ] && fn_log "$option" "$@" | less -R || fn_log "$option" "$@" ;;
     "sha") fn_sha "$@" ;;
     "st"|"status") fn_status "$@" ;;
     "sta"|"status-all") git status --col ;;
