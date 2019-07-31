@@ -10,8 +10,10 @@ SYNTAX: challenge_ [MODE [MODE_ARGS]]
 where MODE can be:
 
   h, help  : this help information
+
   new [OPTIONS] TYPE CATEGORY[ CATEGORY2 [CATEGORY3 ..]] NAME
     :  create new challenge structure
+
     with:
       OPTIONS  :
         -ne, --no-edit  : don't invoke the editor by default
@@ -26,14 +28,18 @@ where MODE can be:
                       zip archive files
       CATEGORYx  : target directory name parts
       NAME  : solution name
+
   edit [OPTIONS] SEARCH  : search for and re-edit an existing challenge
+
     with:
       OPTIONS  :
         -rx, --rx-search  : switch from glob to ERE flavour searches
         and as described above:
         -nss | --no-subshell, -dec | --dump-edit-command,
         -eec[=VAR] | --export-edit-command[=VAR]
+
   test TYPE [OPTIONS] [TESTS]  : run challenge tests for a language
+
      with:
        TYPE  : a supported challenge type
          hackerrank  : assumes 'OUTPUT_PATH' env variable
@@ -46,6 +52,7 @@ where MODE can be:
                            *compilation of source supported
          -d, --diffs  : take diffs of test output and expected
        TESTS  : optional test items (numbers), or delimited list(s) of
+
   dump [LANGUAGES] TARGET  : search TARGET for files suffixed with
                              items in the delimited LANGUAGES list
                              (default: 'cpp|cs|py|js|go') and dump matches
