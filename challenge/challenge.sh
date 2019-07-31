@@ -450,6 +450,7 @@ fn_dump() {
 }
 
 # args parse
+[ $# -eq 0 ] && help && exit
 declare -a args
 while [ -n "$1" ]; do
   arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
