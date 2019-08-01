@@ -1,5 +1,8 @@
 # nixTools
 
+### [archive.sh](archive)
+general purpose extractor and multi-volume tar wrapper to ease multi-volume archive creation and updating*
+
 ### [backup.sh](backup)
 creates a 'hardlink-based' backup set comprising an arbitrary number of sets for each of the supported time interval types (hourly/daily/weekly/monthly or custom). the use of hardlinks means the disk space footprint for the incremental sets is kept to a minimum - **there is no duplication of identical** files, which is in essence its sole raison d'être
 
@@ -11,6 +14,9 @@ coding challenge aid to simplify structuring of challenge files, creation of app
 
 ### [dates.sh](dates)
 date related functionality
+
+### [devel.sh](devel)
+miscellaneous development aids, wrappers and workflows
 
 ### [diff.sh](diff)
 diff related functionality
@@ -26,6 +32,9 @@ push a set of (command) strings to a target file. where no (command) strings are
 
 ### [increments.sh](increments)
 given a search set and a target, find all files satisfying the search under/in the target and return a match list ordered by modification date to represent an incremental set, from which a dump of ordered incremental diffs is optionally created
+
+### [math.sh](math)
+bc wrapper adding miscellaneous functionality that is otherwise either painful to remember (e.g. base conversion), or painful to repeatedly implement (e.g. comparitors)
 
 ### [search.sh](search)
 ease location of your (regularly used) files. offers optionally interactive selection prompt for search match verification and for 'local' searches, target files are created where not found. thin wrapper around `find`, aimed for use with other onward scripts
