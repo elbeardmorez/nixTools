@@ -88,6 +88,15 @@ with OPTION:
     SYNTAX: devel_ commits [OPTIONS] [SOURCE] TARGET
 
     with OPTIONS in:
+      -st|--source-type [=TYPE]  : set source type
+
+        with TYPE:
+          vcs  : a version control repository
+          dir  : a directory of patch files
+          patch  : a single patch file
+          auto  : automatically determined based on the above order
+                  of precedence (default)
+
       -l|--limit [=LIMIT]  : limit number of patches to process to
                              LIMIT (default: 1)
       -f|--filter [=]FILTER  : only use commits matching the (regex)

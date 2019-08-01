@@ -82,7 +82,14 @@ help() {
 \n  -c|--commits  : process source diffs into a target repo
 \n    SYNTAX: $SCRIPTNAME commits [OPTIONS] [SOURCE] TARGET
 \n    with OPTIONS in:
-      -l|--limit [=LIMIT]  : limit number of patches to process to
+      -st|--source-type [=TYPE]  : set source type
+\n        with TYPE:
+          vcs  : a version control repository
+          dir  : a directory of patch files
+          patch  : a single patch file
+          auto  : automatically determined based on the above order
+                  of precedence (default)
+\n      -l|--limit [=LIMIT]  : limit number of patches to process to
                              LIMIT (default: 1)
       -f|--filter [=]FILTER  : only use commits matching the (regex)
                                expression FILTER. repeated filter args
@@ -277,7 +284,10 @@ fn_patch_info() {
 fn_commits() {
 
   declare source
+  declare src_type
+  declare src_type_default; src_type_default="auto"
   declare target
+  declare target_fq
   declare limit; limit=0  # unlimited
   declare filter; filter=0
   declare -a filters
@@ -290,7 +300,10 @@ fn_commits() {
   declare repos
   declare vcs
   declare vcs_default; vcs_default="git"
+  declare -a patch_set
   declare -a commits
+  declare l_commits
+  declare -a files
   declare dump; dump=0
   declare readme; readme="README.md"
   declare readme_status; readme_status=""
@@ -303,6 +316,8 @@ fn_commits() {
   declare res
   declare res2
   declare l
+  declare v
+  declare f
 
   declare -A vcs_cmds_init
   vcs_cmds_init["git"]="git init"
@@ -313,6 +328,11 @@ fn_commits() {
     arg="$(echo "$1" | sed 's/^\ *-*//')"
     if [ ${#1} -gt ${#arg} ]; then
       case "$arg" in
+        "st"|"source-type")
+          shift && s="$(echo "$1" | sed -n '/^[^-]/{s/=\?//p;}')"
+          [ -z "$s" ] && continue  # no shift
+          src_type="$s"
+          ;;
         "l"|"limit")
           shift && s="$(echo "$1" | sed -n '/^[^-]/{s/=\?\([0-9]\+\)$/\1/p;}')"
           limit="${s:-1}"
@@ -378,15 +398,44 @@ fn_commits() {
   done
 
   # validate args
+
+  s="$(echo "${src_type:-$src_type_default}" | sed -n 's/^\(auto\|vcs\|dir\|patch\|diff\)$/\1/p')"
+  [ -z "$s" ] && \
+    { echo "[error] unknown source type '$src_type', aborting" && return 1; }
+  src_type="$s"
   source="${source:="."}"
-  if [ ! -d "$source" ]; then
+  v=0
+
+  if [[ $v -eq 0 && -f "$source" ]]; then
+    [ -z "$(echo "$src_type" | sed -n '/\(patch\|diff\|auto\)/p')" ]
+      { echo "[error] invalid source, found file, required '$src_type', aborting" && return 1; }
+    src_type="diff"
+    v=1
+  elif [ -d "$source" ]; then
+    [ -z "$(echo "$src_type" | sed -n '/^\(vcs\|dir\|auto\)$/p')" ] && \
+      { echo "[error] invalid source, found directory, required '$src_type', aborting" && return 1; }
+    if [[ "x$src_type" == "xvcs" || "x$src_type" == "xauto" ]]; then
+      fn_repo_type "$source" 1>/dev/null 2>&1
+      res=$?
+      if [ $res -eq 0 ]; then
+        src_type="vcs"
+        v=1
+      elif [[ $res -eq 1 && "x$src_type" == "xvcs" ]]; then
+        echo "[error] unknown vcs type for source directory '$source', aborting" && return 1
+      fi
+    fi
+    if [ $v -eq 0 ]; then
+      src_type="dir"
+      v=1
+    fi
+  fi
+  if [ $v -eq 0 ]; then
     [ -z "$source" ] && \
-      echo "[error] missing '$source' directory, aborting" || \
-      echo "[error] invalid source directory '$source', aborting"
+      echo "[error] missing '$source', aborting" || \
+      echo "[error] invalid source '$source', aborting"
     return 1
   fi
-  fn_repo_type "$source" 1>/dev/null || \
-    { echo "[error] unknown vcs type for source directory '$source', aborting" && return 1; }
+
   target="${target:="."}"
   if [ ! -d "$target" ]; then
     if [ -z "$target" ]; then
@@ -396,6 +445,7 @@ fn_commits() {
       mkdir -p "$target" || return 1
     fi
   fi
+  target_fq="$(cd "$target" && pwd)"
 
   [[ $repo_maps -eq 1 && ${#repo_map[@]} -eq 0 ]] && \
     repo_map=("$(basename "$(cd "$source" && pwd)")")
@@ -427,15 +477,51 @@ fn_commits() {
       repo_map_path="$(fn_str_join "/" "${repo_map[@]}")"
   fi
 
-  # identify commits
-  IFS=$'\n'; commits=($(fn_repo_search "$source" $limit "${filters[@]}")) || return 1; IFS="$IFSORG"
-  [ $DEBUG -ge 1 ] && echo "[debug] commits:" && { for c in "${commits[@]}"; do echo "$c"; done; }
-  echo "[info] ${#commits[@]} commit$([ ${#commits[@]} -ne 1 ] && echo "s") identified"
-  [ ${#commits[@]} -eq 0 ] && return 1
+  # identify patch set
+  declare target_fqn
+  declare target_fqn_
+  declare dt
+  declare id
+  declare d_tmp_source
+  case "$src_type" in
+    "vcs")
+      IFS=$'\n'; commits=($(fn_repo_search "$source" $limit "${filters[@]}")) || return 1; IFS="$IFSORG"
+      l_commits=${#commits[@]}
+      d_tmp_source="$(fn_temp_dir "$SCRIPTNAME")"
+      l=0
+      for s in "${commits[@]}"; do
+        IFS="|"; parts=($(echo "$s")); IFS="$IFSORG"
+        id="${parts[1]}"
+        description="${parts[2]}"
+        name="$(fn_patch_name "$(printf "%0${#l_commits}d" $l)_$id_$description")"
+        target_fqn="$d_tmp_source/$name"
+        fn_repo_pull "$source" "$id|$target_fqn"
+        patch_set[$l]="$target_fqn"
+        l=$((l + 1))
+      done
+      ;;
+    "dir")
+      IFS=$'\n'; files=($(find "$source" -maxdepth 5 -type "f" | grep -P ".*\.(diff|patch)\$")); IFS="$IFSORG"
+      for f in "${files[@]}"; do
+        v=1
+        for s in "${filters[@]}"; do
+          [ -z "$(echo "f" | grep "$s")" ] && v=0 && break
+        done
+        if [ $v -eq 1 ]; then
+          patch_set[${#patch_set[@]}]="$f"
+          [ ${#patch_set[@]} -eq $limit ] && break
+        fi
+      done
+      ;;
+    "patch"|"diff")
+      patch_set=("$source")
+      ;;
+  esac
+  echo "[info] identified ${#patch_set[@]} patch$([ ${#patch_set[@]} -ne 1 ] && echo "es")"
+  [ $DEBUG -ge 1 ] && { for f in "${patch_set[@]}"; do echo "$f"; done; }
 
-  # process commits
+  # process patch set
   declare -a parts
-  declare target_fq; target_fq="$(cd "$target" && pwd)"
   declare entry_description
   declare entry_version
   declare entry_ref
@@ -464,12 +550,13 @@ fn_commits() {
   declare idx
   declare new
   declare s_
-  for s in "${commits[@]}"; do
-    [ $DEBUG -ge 1 ] && echo -e "\n[debug] processing commit: '$s'" 1>&2
-    IFS="|"; parts=($(echo "$s")); IFS="$IFSORG"
-    dt="${parts[0]}"
-    id="${parts[1]}"
-    description="${parts[2]}"
+
+  for f in "${patch_set[@]}"; do
+    [ $DEBUG -ge 1 ] && echo -e "\n[debug] processing patch: '$f'" 1>&2
+
+    id="$(fn_patch_info "$f" "$vcs" "id")"
+    dt="$(fn_patch_info "$f" "$vcs" "date")"
+    description="$(fn_patch_info "$f" "$vcs" "description")"
     name="$(fn_patch_name "$description")"
 
     if [ $dump -eq 1 ]; then
@@ -477,7 +564,7 @@ fn_commits() {
       target_fqn_="$(fn_next_file "$target_fqn" "_" "diff")"
       [ "x$target_fqn_" != "x$target_fqn" ] && \
         echo "[info] name clash for: '$target_fqn'"
-      fn_repo_pull "$source" "$id|$target_fqn_"
+      mv "$f" "$target_fqn_"
     else
       # get patch type
       [ $DEBUG -ge 5 ] && echo "[debug] categories: ${repo_map[*]} | patch: '$name'"
@@ -498,7 +585,7 @@ fn_commits() {
       fi
       mkdir -p "$target_fq/$type/$repo_map_path"
 
-      # pull patch
+      # push patch
       target_fqn="$target_fq/$type/$repo_map_path/$name"
       new=1
       existing_="$(find "$target_fq/$type/$repo_map_path/" | grep -P '.*\/'"$(fn_escape "perl" "${name%.*}")"'(:?_[0-9]+)?\.diff')"
@@ -511,7 +598,7 @@ fn_commits() {
       if [ ${#existing[@]} -gt 0 ]; then
         # name clash or update? find existing
         f_new="$(fn_temp_file "$SCRIPTNAME")"
-        fn_repo_pull "$source" "$id|$f_new"
+        mv "$f" "$f_new"
         for f_orig in "${existing[@]}"; do
           # info
           info_orig=()
@@ -618,7 +705,7 @@ fn_commits() {
       else
         new=1
         [ $DEBUG -ge 1 ] && echo "[debug] '$name' target is new, pushing to '$target_fqn'" 1>&2
-        fn_repo_pull "$source" "$id|$target_fqn"
+        mv "$f" "$target_fqn"
         commit_set=("$target_fqn")
       fi
       entry_version="$(echo "$name" | sed -n 's/.*_\([0-9]\+\).diff/ #\1/p')"
