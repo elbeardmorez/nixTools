@@ -455,7 +455,7 @@ fn_commits() {
     # repo(s) structure
     declare vcs_
     [ $multi_repo_maps -eq 0 ] && \
-      repos=("$target") || \
+      repos=("") || \
       repos=("${multi_repo_map[@]}")
 
     for repo in "${repos[@]}"; do
