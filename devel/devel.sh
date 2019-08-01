@@ -398,7 +398,7 @@ fn_commits() {
   fi
 
   [[ $repo_maps -eq 1 && ${#repo_map[@]} -eq 0 ]] && \
-    repo_map=("$(basename "$(cd "$target" && pwd)")")
+    repo_map=("$(basename "$(cd "$source" && pwd)")")
 
   vcs="${vcs:="$vcs_default"}"
   if [ $dump -eq 0 ]; then
