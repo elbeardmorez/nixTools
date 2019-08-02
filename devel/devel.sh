@@ -749,7 +749,7 @@ fn_commits() {
           entry_ref="[git sha:${id:0:9}]"
           entry_new="$entry_description$entry_version $entry_ref"
           [ ! -e "$f_readme" ] && \
-            echo -e "### $type" >> "$f_readme"
+            echo -e "### ${type:-$(basename "$target_fq")}" >> "$f_readme"
           # search for existing entry
           if [ -z "$(sed -n '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/p' "$f_readme")" ]; then
             # add entry
@@ -792,7 +792,7 @@ fn_commits() {
         entry_comments="$(fn_patch_info "$target_fqn" "$vcs" "comments")"
         entry_new="##### $entry_description$entry_version\n###### $entry_ref$([ -n "$entry_comments" ] && echo "\n"'```'"\n$entry_comments\n"'```')"
         [ ! -e "$f_readme" ] && \
-          echo "### $repo_map_" >> "$f_readme"
+          echo "### ${repo_map_:-$(basename "$target_fq")}" >> "$f_readme"
 
         # search for existing entry
         entry_orig=""
