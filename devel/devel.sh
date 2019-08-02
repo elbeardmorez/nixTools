@@ -10,6 +10,9 @@ SCRIPTNAME="${0##*/}"
 IFSORG=$IFS
 DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
+trap fn_exit EXIT
+
+declare -a temp_data
 
 declare -A changelog_profile_rx_file
 changelog_profile_file["default"]='CHANGELOG.md'
@@ -150,6 +153,19 @@ help() {
       TO  : target language type
       TRANSFORM  : valid sed expression
 "
+}
+
+fn_exit() {
+  code=$?
+  [ $# -gt 0 ] && code=$1 && shift
+  fn_cleanup
+  exit $code
+}
+
+fn_cleanup() {
+  for s in "${temp_data[@]}"; do
+    [[ -e "$s" && "x$s" != "x/" ]] && rm -rf "$s" >/dev/null 2>&1
+  done
 }
 
 fn_repo_type() {
@@ -481,6 +497,7 @@ fn_commits() {
       IFS=$'\n'; commits=($(fn_repo_search "$source" $limit "${filters[@]}")) || return 1; IFS="$IFSORG"
       l_commits=${#commits[@]}
       d_tmp_source="$(fn_temp_dir "$SCRIPTNAME")"
+      temp_data[${#temp_data[@]}]="$d_tmp_source"
       l=0
       for s in "${commits[@]}"; do
         IFS="|"; parts=($(echo "$s")); IFS="$IFSORG"
@@ -559,7 +576,7 @@ fn_commits() {
       target_fqn_="$(fn_next_file "$target_fqn" "_" "diff")"
       [ "x$target_fqn_" != "x$target_fqn" ] && \
         echo "[info] name clash for: '$target_fqn'"
-      mv "$f" "$target_fqn_"
+      cp "$f" "$target_fqn_"
     else
 
       # set patch target
@@ -608,7 +625,7 @@ fn_commits() {
       if [ ${#existing[@]} -gt 0 ]; then
         # name clash or update? find existing
         f_new="$(fn_temp_file "$SCRIPTNAME")"
-        mv "$f" "$f_new"
+        cp "$f" "$f_new"
         for f_orig in "${existing[@]}"; do
           # info
           info_orig=()
@@ -703,19 +720,19 @@ fn_commits() {
         fi
         if [ $new -eq 0 ]; then
           [ $DEBUG -ge 1 ] && echo "[debug] '$name' target exists, updating '$target_fqn'" 1>&2
-          mv "$f_new" "$target_fqn"
+          cp "$f_new" "$target_fqn"
           commit_set=("$target_fqn")
         elif [ $new -eq 1 ]; then
           target_fqn="$(fn_next_file "${existing[$((${#existing[@]} - 1))]}" "_" "diff")"
           name="$(basename "$target_fqn")"
           [ $DEBUG -ge 5 ] && echo "[debug] '$name' target exists, pushing to '$target_fqn'"
-          mv "$f_new" "$target_fqn"
+          cp "$f_new" "$target_fqn"
           commit_set=("$target_fqn")
         fi
       else
         new=1
         [ $DEBUG -ge 1 ] && echo "[debug] '$name' target is new, pushing to '$target_fqn'" 1>&2
-        mv "$f" "$target_fqn"
+        cp "$f" "$target_fqn"
         commit_set=("$target_fqn")
       fi
       entry_version="$(echo "$name" | sed -n 's/.*_\([0-9]\+\).diff/ #\1/p')"
