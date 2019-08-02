@@ -570,6 +570,7 @@ fn_commits() {
     dt="$(fn_patch_info "$f" "$vcs" "date")"
     description="$(fn_patch_info "$f" "$vcs" "description")"
     name="$(fn_patch_name "$description")"
+    commit_set=()
 
     if [ $dump -eq 1 ]; then
       target_fqn="$target_fq/$name"
