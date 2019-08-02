@@ -613,9 +613,9 @@ fn_commits() {
       mkdir -p "$target_fq/$type/$repo_map_path"
 
       # push patch
-      target_fqn="$target_fq/$type/$repo_map_path/$name"
+      target_fqn="$(echo "$target_fq/$type/$repo_map_path/$name" | sed 's/\(\/\)\/\+/\1/g')"
       new=1
-      existing_="$(find "$target_fq/$type/$repo_map_path/" | grep -P '.*\/'"$(fn_escape "perl" "${name%.*}")"'(:?_[0-9]+)?\.diff')"
+      existing_="$(find "$(echo "$target_fq/$type/$repo_map_path/" | sed 's/\(\/\)\/\+/\1/g')" | grep -P '.*\/'"$(fn_escape "perl" "${name%.*}")"'(:?_[0-9]+)?\.diff')"
       existing=()
       [ -n "$existing_" ] &&
         { IFS=$'\n'; existing=($(echo -e "$existing_")); IFS="$IFSORG"; }
@@ -739,7 +739,7 @@ fn_commits() {
 
       if [ -n "$readme" ]; then
         # append patch to repo readme
-        f_readme="$target_fq/$type/$readme"
+        f_readme="$(echo "$target_fq/$type/$readme" | sed 's/\(\/\)\/\+/\1/g')"
         id_orig="${info_orig["id"]}"
         id_orig_="${id_orig:0:9}"
         entry_description="$description"
@@ -783,7 +783,7 @@ fn_commits() {
         fi
 
         # append patch details to category specific readme
-        f_readme="$target_fq/$type/$repo_map_path/$readme"
+        f_readme="$(echo "$target_fq/$type/$repo_map_path/$readme" | sed 's/\(\/\)\/\+/\1/g')"
         entry_ref="[git sha:$id$([ -n "$readme_status" ] && echo " | $readme_status")]"
         entry_comments="$(fn_patch_info "$target_fqn" "$vcs" "comments")"
         entry_new="##### $entry_description$entry_version\n###### $entry_ref$([ -n "$entry_comments" ] && echo "\n"'```'"\n$entry_comments\n"'```')"
