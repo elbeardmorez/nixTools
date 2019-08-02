@@ -447,9 +447,6 @@ fn_commits() {
   fi
   target_fq="$(cd "$target" && pwd)"
 
-  [[ $repo_maps -eq 1 && ${#repo_map[@]} -eq 0 ]] && \
-    repo_map=("$(basename "$(cd "$source" && pwd)")")
-
   vcs="${vcs:="$vcs_default"}"
   if [ $dump -eq 0 ]; then
     # repo(s) structure
@@ -471,10 +468,6 @@ fn_commits() {
         (cd "$repo" && $init)
       fi
     done
-
-    # repo map path
-    [ ${#repo_map[@]} -gt 0 ] && \
-      repo_map_path="$(fn_str_join "/" "${repo_map[@]}")"
   fi
 
   # identify patch set
@@ -499,6 +492,8 @@ fn_commits() {
         patch_set[$l]="$target_fqn"
         l=$((l + 1))
       done
+      [[ $repo_maps -eq 1 && ${#repo_map[@]} -eq 0 ]] && \
+        repo_map=("$(basename "$(cd "$source" && pwd)")")
       ;;
     "dir")
       IFS=$'\n'; files=($(find "$source" -maxdepth 5 -type "f" | grep -P ".*\.(diff|patch)\$")); IFS="$IFSORG"
@@ -566,8 +561,9 @@ fn_commits() {
         echo "[info] name clash for: '$target_fqn'"
       mv "$f" "$target_fqn_"
     else
-      # get patch type
-      [ $DEBUG -ge 5 ] && echo "[debug] categories: ${repo_map[*]} | patch: '$name'"
+
+      # set patch target
+      ## multi-map / type
       type=""
       if [ ${#repos[@]} -gt 1 ]; then
         decision_opts="$(fn_decision_options "${repos[*]} exit" 1 "exit|x")"
@@ -583,6 +579,20 @@ fn_commits() {
         done
         type="${repos[$idx]}"
       fi
+      ## repo map path / categories
+      repo_map_path=""
+      repo_map_=""
+      if [ $repo_maps -eq 1 ]; then
+        if [ ${#repo_map[@]} -eq 0 ]; then
+          repo_map_="$(basename "$(cd "$(dirname "$f")" && pwd)")"
+          repo_map_path="$(fn_escape "path" "$repo_map_")"
+        else
+          repo_map_path="$(fn_escape "path" "$(fn_str_join "/" "${repo_map[@]}")")"
+          repo_map_="$(fn_escape "sed" "$(fn_str_join "|" "${repo_map[@]}")")"
+        fi
+      fi
+
+      [ $DEBUG -ge 5 ] && echo "[debug] type: $type, categories: ${repo_map[*]}"
       mkdir -p "$target_fq/$type/$repo_map_path"
 
       # push patch
@@ -710,7 +720,6 @@ fn_commits() {
       fi
       entry_version="$(echo "$name" | sed -n 's/.*_\([0-9]\+\).diff/ #\1/p')"
 
-      repo_map_="$(fn_escape "sed" "$(fn_str_join " | " "${repo_map[@]}")")"
       if [ -n "$readme" ]; then
         # append patch to repo readme
         f_readme="$target_fq/$type/$readme"
