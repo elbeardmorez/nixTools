@@ -857,7 +857,7 @@ END { fn_test(section); }' "$f_readme")"
           git add "$f_" || return 1
         done
         declare commit_message
-        commit_message="[$([ $new -eq 1 ] && echo "add" || echo "mod")] $repo_map_, $(echo $description$entry_version | sed 's/^\[\([^]]*\)\]/\1,/')"
+        commit_message="[$([ $new -eq 1 ] && echo "add" || echo "mod")]$([ -n "$repo_map_" ] && echo " $repo_map_,") $(echo $description$entry_version | sed 's/^\[\([^]]*\)\]/\1,/')"
         GIT_AUTHOR_DATE="$dt" GIT_COMMITTER_DATE="$dt" git commit -m "$commit_message"
         cd - 1>/dev/null
       fi
