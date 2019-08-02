@@ -739,7 +739,8 @@ fn_commits() {
       entry_version="$(echo "$name" | sed -n 's/.*_\([0-9]\+\).diff/ #\1/p')"
 
       if [ -n "$readme" ]; then
-        # append patch to repo readme
+        if [ -n "$repo_map_" ]; then
+          # append patch info to readme at base of repo
         f_readme="$(echo "$target_fq/$type/$readme" | sed 's/\(\/\)\/\+/\1/g')"
         id_orig="${info_orig["id"]}"
         id_orig_="${id_orig:0:9}"
@@ -781,6 +782,7 @@ fn_commits() {
             fi
             commit_set[${#commit_set[@]}]="$f_readme"
           fi
+        fi
         fi
 
         # append patch details to category specific readme
