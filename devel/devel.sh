@@ -556,6 +556,7 @@ fn_commits() {
   declare -A info_orig
   declare -A info_new
   declare repo_map_
+  declare repo_root
   declare name_
   declare files_
   declare name__
@@ -846,12 +847,13 @@ END { fn_test(section); }' "$f_readme")"
       echo "[info] commit set:"
       for f in "${commit_set[@]}"; do echo "$f"; done
       if [ -n "$auto_commit" ]; then
-        cd "$target_fq/$type" 1>/dev/null
+        repo_root="$(echo "$target_fq/$type/" | sed 's/\(\/\)\/\+/\1/g')"
+        cd "$repo_root" 1>/dev/null
         if [ "x$auto_commit" = "xverify" ]; then
           fn_decision "[user] authored: $(date -d "@$dt" "+%d %b %Y %T %Z"), commit set?" 1>/dev/null || return 1
         fi
         for f in "${commit_set[@]}"; do
-          f_=".$(echo "$f" | sed 's|^'"$target_fq/$type"'||')"
+          f_="./$(echo "$f" | sed 's|^'"$repo_root"'||')"
           git add "$f_" || return 1
         done
         declare commit_message
