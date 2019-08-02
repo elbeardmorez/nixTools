@@ -741,48 +741,48 @@ fn_commits() {
       if [ -n "$readme" ]; then
         if [ -n "$repo_map_" ]; then
           # append patch info to readme at base of repo
-        f_readme="$(echo "$target_fq/$type/$readme" | sed 's/\(\/\)\/\+/\1/g')"
-        id_orig="${info_orig["id"]}"
-        id_orig_="${id_orig:0:9}"
-        entry_description="$description"
-        entry_ref="[git sha:${id:0:9}]"
-        entry_new="$entry_description$entry_version $entry_ref"
-        [ ! -e "$f_readme" ] && \
-          echo -e "### $type" >> "$f_readme"
-        # search for existing entry
-        if [ -z "$(sed -n '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/p' "$f_readme")" ]; then
-          # add entry
-          echo -e "\n#### [$repo_map_]($repo_map_)\n"'```'"\n$entry_new\n"'```' >> "$f_readme"
-          commit_set[${#commit_set[@]}]="$f_readme"
-        else
-          # insert entry?
-          entry_orig=""
-          if [ -n "$id_orig_" ]; then
-            entry_orig="$(sed -n '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/,/\(^$|$\)/{/'"$(fn_escape "sed" "$id_orig_")"'/{p;};}' "$f_readme")"
-          fi
-          if [[ -z "$entry_orig" || $new -eq 1 ]]; then
-            # insert at end
-            sed -n -i '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/,/$^/{/^#### \['"$repo_map_"'\]('"$repo_map_"')$/{N;h;b};/^```$/{x;s/\(.*\)/\1\n'"$entry_new"'\n```/p;b;}; H;$!b};${x;/^#### ['"$repo_map_"'\]('"$repo_map_"')/{s/\(.*\)/\1\n'"$entry_new"'/p;b;};x;p;b;};p' "$f_readme"
+          f_readme="$(echo "$target_fq/$type/$readme" | sed 's/\(\/\)\/\+/\1/g')"
+          id_orig="${info_orig["id"]}"
+          id_orig_="${id_orig:0:9}"
+          entry_description="$description"
+          entry_ref="[git sha:${id:0:9}]"
+          entry_new="$entry_description$entry_version $entry_ref"
+          [ ! -e "$f_readme" ] && \
+            echo -e "### $type" >> "$f_readme"
+          # search for existing entry
+          if [ -z "$(sed -n '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/p' "$f_readme")" ]; then
+            # add entry
+            echo -e "\n#### [$repo_map_]($repo_map_)\n"'```'"\n$entry_new\n"'```' >> "$f_readme"
             commit_set[${#commit_set[@]}]="$f_readme"
-          elif [ "x$entry_new" != "x$entry_orig" ]; then
-            # update
-            f_tmp="$(fn_temp_file)"
-            if [ $DEBUG -ge 5 ]; then
-              cp "$f_readme" "$f_tmp"
-              echo -e "[debug] root readme comparison:" \
-                      "\n-- original --\n$entry_orig" \
-                      "\n-- new --\n$entry_new\n--"
+          else
+            # insert entry?
+            entry_orig=""
+            if [ -n "$id_orig_" ]; then
+              entry_orig="$(sed -n '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/,/\(^$|$\)/{/'"$(fn_escape "sed" "$id_orig_")"'/{p;};}' "$f_readme")"
             fi
-            sed -i '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/,/^$/{s/'"$(fn_escape "sed" "$entry_orig")"'/'"$entry_new"'/;}' "$f_readme"
-            if [ $DEBUG -ge 5 ]; then
-              echo -e "\n readme diff:"
-              diff -u --color=always "$f_readme.orig" "$f_tmp"
-              echo ""
-              rm "$f_tmp" 2>/dev/null
+            if [[ -z "$entry_orig" ]]; then
+              # insert at end
+              sed -n -i '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/,/$^/{/^#### \['"$repo_map_"'\]('"$repo_map_"')$/{N;h;b};/^```$/{x;s/\(.*\)/\1\n'"$entry_new"'\n```/p;b;}; H;$!b};${x;/^#### ['"$repo_map_"'\]('"$repo_map_"')/{s/\(.*\)/\1\n'"$entry_new"'/p;b;};x;p;b;};p' "$f_readme"
+              commit_set[${#commit_set[@]}]="$f_readme"
+            elif [ "x$entry_new" != "x$entry_orig" ]; then
+              # update
+              f_tmp="$(fn_temp_file)"
+              if [ $DEBUG -ge 5 ]; then
+                cp "$f_readme" "$f_tmp"
+                echo -e "[debug] root readme comparison:" \
+                        "\n-- original --\n$entry_orig" \
+                        "\n-- new --\n$entry_new\n--"
+              fi
+              sed -i '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/,/^$/{s/'"$(fn_escape "sed" "$entry_orig")"'/'"$entry_new"'/;}' "$f_readme"
+              if [ $DEBUG -ge 5 ]; then
+                echo -e "\n readme diff:"
+                diff -u --color=always "$f_readme.orig" "$f_tmp"
+                echo ""
+                rm "$f_tmp" 2>/dev/null
+              fi
+              commit_set[${#commit_set[@]}]="$f_readme"
             fi
-            commit_set[${#commit_set[@]}]="$f_readme"
           fi
-        fi
         fi
 
         # append patch details to category specific readme
