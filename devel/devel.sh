@@ -1105,18 +1105,12 @@ fn_debug() {
           IFS=$'\n'; proc=($(pgrep -x -a "$name")); IFS="$IFSORG"
           if [ ${#proc[@]} -eq 0 ]; then
             IFS=$'\n'; proc=($(pgrep -f -a "$name")); IFS="$IFSORG"
-            if [ ${#proc[@]} -gt 0 ]; then
-              echo "[info] no exact process matched '$name'. " \
-                   "full command line search found ${#proc[@]} " \
-                   "possibilit$([ ${#proc[@]} -eq 1 ] && echo "y" \
-                                                      || echo "ies")"
-              select=1  # force
-            fi
+            [ ${#proc[@]} -gt 0 ] && select=1  # force
           fi
         else
           pidof="$(which pidof)"
           if [ -z "$pidof" ]; then
-            echo "[info] missing pgrep / pidof binaries, cannot " \
+            echo "[info] missing pgrep / pidof binaries, cannot" \
                  "identify target process for debugging"
           else
             IFS=$'\n'; proc=($(pidof "$name")); IFS="$IFSORG"
@@ -1131,20 +1125,27 @@ fn_debug() {
           lp_max="${#p_max}"
           l=0
           for ps in "${proc[@]}"; do
+            ps_="${ps%% *}"
+            [ "x$ps_" = "x$$" ] && continue
             l=$((l + 1))
             opts+="|$l"
-            ps_="${ps%% *}"
             printf "%$((llmax - ${#l}))s[%d] %$((lp_max - ${#ps_}))s%s\n" "" $l "" "$ps_ | ${ps#* }"
           done
-          opts="${opts:1}|x"
-          prompt="select item # or e(${CLR_HL}x${CLR_OFF})it "
-          prompt+="[${CLR_HL}1${CLR_OFF}"
-          [ $l -gt 1 ] && prompt+="-${CLR_HL}$l${CLR_OFF}"
-          prompt+="|${CLR_HL}x${CLR_OFF}]"
-          res="$(fn_decision "$(echo -e "$prompt")" "$opts" 0 0 1)"
-          if [ "x$res" != "xx" ]; then
-            ps="${proc[$((res - 1))]}"
-            v="${ps%% *}"
+          if [ $l -gt 0 ]; then
+            echo "[info] no exact process matched '$name'" \
+                 "full command line search found $l" \
+                 "possibilit$([ ${#proc[@]} -eq 1 ] && echo "y" \
+                                                    || echo "ies")"
+            opts="${opts:1}|x"
+            prompt="select item # or e(${CLR_HL}x${CLR_OFF})it "
+            prompt+="[${CLR_HL}1${CLR_OFF}"
+            [ $l -gt 1 ] && prompt+="-${CLR_HL}$l${CLR_OFF}"
+            prompt+="|${CLR_HL}x${CLR_OFF}]"
+            res="$(fn_decision "$(echo -e "$prompt")" "$opts" 0 0 1)"
+            if [ "x$res" != "xx" ]; then
+              ps="${proc[$((res - 1))]}"
+              v="${ps%% *}"
+            fi
           fi
         fi
         ;;
