@@ -1138,7 +1138,8 @@ fn_debug() {
           done
           opts="${opts:1}|x"
           prompt="select item # or e(${CLR_HL}x${CLR_OFF})it "
-          prompt+="[${CLR_HL}1${CLR_OFF}-${CLR_HL}$l${CLR_OFF}"
+          prompt+="[${CLR_HL}1${CLR_OFF}"
+          [ $l -gt 1 ] && prompt+="-${CLR_HL}$l${CLR_OFF}"
           prompt+="|${CLR_HL}x${CLR_OFF}]"
           res="$(fn_decision "$(echo -e "$prompt")" "$opts" 0 0 1)"
           if [ "x$res" != "xx" ]; then
