@@ -110,7 +110,13 @@ help() {
         override default version control type for unknown targets
         (default: git)
       -d|--dump  : dump patch set only
-      -im|--interactive-match  : interactively match when target diff
+      -o|order [=]TYPE  : process patchset in a specific order, which
+                          in turn governs target output / commit order
+                          (default: 'default')
+\n        with TYPE:
+          date  : patchset is processed in date order
+          default  : patchset is processed in source order
+\n      -im|--interactive-match  : interactively match when target diff
                                  name clashes are unresolvable
                                  (default: assumes 'new')
       -rn|--readme-name [=]NAME  : override default readme file name
@@ -318,8 +324,10 @@ fn_commits() {
   declare vcs_default; vcs_default="git"
   declare -a patch_set
   declare -a commits
+  declare commits_
   declare l_commits
   declare -a files
+  declare order; order="default"
   declare dump; dump=0
   declare readme; readme="README.md"
   declare readme_status; readme_status=""
@@ -377,6 +385,10 @@ fn_commits() {
           ;;
         "d"|"dump")
           dump=1
+          ;;
+        "o"|"order")
+          shift
+          order="$(echo "$1" | sed -n '/^[^-]/{s/=\?//p;}')"
           ;;
         "im"|"interactive-match")
           interactive_match=1
@@ -486,6 +498,9 @@ fn_commits() {
     done
   fi
 
+  [ -z "$(echo "$order" | sed -n '/^\(default\|date\)$/p')" ] && \
+    { help; echo "[error] invalid order '$order'" 1>&2; exit 1; }
+
   # identify patch set
   declare target_fqn
   declare target_fqn_
@@ -494,6 +509,8 @@ fn_commits() {
   declare d_tmp_source
   case "$src_type" in
     "vcs")
+      commits_="$(fn_repo_search "$source" $limit "${filters[@]}")" || return 1
+      [ "x$order" = "xdate" ] && echo -e "$commits_" | sort
       IFS=$'\n'; commits=($(fn_repo_search "$source" $limit "${filters[@]}")) || return 1; IFS="$IFSORG"
       l_commits=${#commits[@]}
       d_tmp_source="$(fn_temp_dir "$SCRIPTNAME")"
@@ -514,6 +531,14 @@ fn_commits() {
       ;;
     "dir")
       IFS=$'\n'; files=($(find "$source" -maxdepth 5 -type "f" | grep -P ".*\.(diff|patch)\$")); IFS="$IFSORG"
+      if [ "x$order" = "xdate" ]; then
+        s=""
+        for f in "${files[@]}"; do
+          dt="$(fn_patch_info "$f" "$vcs" "date")"
+          s="$s\n$dt|$f"
+        done
+        IFS=$'\n'; files=($(echo -e "${s:2}" | sort | sed 's/^[^|]\+|//')); IFS="$IFSORG"
+      fi
       for f in "${files[@]}"; do
         v=1
         for s in "${filters[@]}"; do

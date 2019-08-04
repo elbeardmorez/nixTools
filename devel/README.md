@@ -115,6 +115,13 @@ with OPTION:
         override default version control type for unknown targets
         (default: git)
       -d|--dump  : dump patch set only
+      -o|order [=]TYPE  : process patchset in a specific order, which
+                          in turn governs target output / commit order
+
+        with TYPE:
+          date  : patchset is processed in date order
+          default  : patchset is processed in source order
+
       -im|--interactive-match  : interactively match when target diff
                                  name clashes are unresolvable
                                  (default: assumes 'new')
