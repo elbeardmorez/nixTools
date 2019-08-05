@@ -25,9 +25,9 @@ changelog_profile_anchor_entry["default"]=1
 changelog_profile_anchor_entry["update"]=3
 
 help() {
-  echo -e "SYNTAX: $SCRIPTNAME [OPTION] [OPTION-ARG1 [OPTION-ARG2 .. ]]
-\nwith OPTION:
-\n  -r|--refactor  : perform code refactoring
+  declare -A sections
+  sections["refactor"]="
+  -r|--refactor  : perform code refactoring
 \n    SYNTAX: $SCRIPTNAME refactor [ARGS] TARGETS
 \n    ARGS:
       -f|--filter FILTER  : regexp filter to limit files to work on
@@ -50,8 +50,9 @@ help() {
                                          (default: standard*)
                                          (support: c)
 \n      *note: see README.md for PROFILE types
-\n    TARGETS  : target file(s) / dir(s) to work on
-\n  -d|--debug  : call supported debugger
+\n    TARGETS  : target file(s) / dir(s) to work on"
+  sections["debug"]="
+  -d|--debug  : call supported debugger
 \n    SYNTAX: $SCRIPTNAME debug [-l LANGUAGE] [-d DEBUGGER]
                                 [ARGS] [-- BIN_ARGS]
 \n    -l|--language LANGUAGE  : specify target language (default: c)
@@ -62,8 +63,9 @@ help() {
 \n      note: the above args are overriden by default by environment
             variables of the same name, and where not, are consumed
             in a position dependent manner
-\n    support: c/c++|gdb, javascript|node inspect
-\n  -cl|--changelog
+\n    support: c/c++|gdb, javascript|node inspect"
+  sections["changelog"]="
+  -cl|--changelog
 \n    SYNTAX: $SCRIPTNAME changelog [ARGS] [TARGET]
 \n    ARGS:
       -as|--anchor-start NUMBER  : start processing entries at line
@@ -81,8 +83,9 @@ help() {
       -ae|--anchor-entry NUMBER  : override each entry's anchor line
                                    (line containing %id)
                                    (default: '${changelog_profile_anchor_entry["default"]}')
-\n    TARGET:  location of repository to query for changes
-\n  -c|--commits  : process source diffs into a target repo
+\n    TARGET:  location of repository to query for changes"
+  sections["commits"]="
+  -c|--commits  : process source diffs into a target repo
 \n    SYNTAX: $SCRIPTNAME commits [OPTIONS] [SOURCE] TARGET
 \n    with OPTIONS in:
       -st|--source-type [=TYPE]  : set source type
@@ -132,8 +135,9 @@ help() {
           verify  : require user verification prior to execution
 \n    SOURCE  : location of repository to extract/use patch set from
               (default: '.')
-\n    TARGET  : location of repository / directory to push diffs to
-\n  -p|--port  : apply a set of tranforms to a source file
+\n    TARGET  : location of repository / directory to push diffs to"
+  sections["port"]="
+  -p|--port  : apply a set of tranforms to a source file
 \n    SYNTAX: $SCRIPTNAME port [OPTIONS] TARGET
 \n    with OPTIONS in:
       -x|--transforms FILE  : override location of file containing
@@ -157,8 +161,23 @@ help() {
 \n    where:
 \n      FROM  : source language type
       TO  : target language type
-      TRANSFORM  : valid sed expression
-"
+      TRANSFORM  : valid sed expression"
+
+  declare section; section="${1:-all}"
+  declare -a sections_=("refactor" "debug" "changelog" "commits" "port")
+  declare s
+  if [ "x$section" = "xall" ]; then
+    echo -e "SYNTAX: $SCRIPTNAME [OPTION] [OPTION-ARG1 [OPTION-ARG2 .. ]]
+\nwith OPTION:
+  -h|--help [=OPTION]  : this information"
+    for s in "${sections_[@]}"; do echo -e "${sections["$s"]}"; done
+  else
+    s="${sections["$section"]}"
+    [ -z "$s" ] && \
+      { echo "[error] invalid help option '$section' [supports: $(fn_str_join "|" "${sections_[@]}")]" && return 1; }
+    echo -e "${CLR_HL}$(echo -e "$s" | sed -n '1,/^[ ]*SYNTAX/{1{N;s/^[^:]*:[ ]*//;};/^[ ]*SYNTAX/{x;s/\n[ ]*/\n/g;p;};H;}')${CLR_OFF}\n"
+    echo -e "$s\n" | sed -n '1,/^[ ]*SYNTAX/{/^[ ]*SYNTAX/{s/^[ ]*//;p;};b;};s/^  //;p'
+  fi
 }
 
 fn_exit() {
@@ -304,6 +323,7 @@ fn_patch_info() {
 }
 
 fn_commits() {
+  declare option; option="commits"
 
   declare source
   declare src_type
@@ -419,7 +439,7 @@ fn_commits() {
         source="$target"
         target="$1"
       else
-        help && echo "[error] unknown arg '$1'" && return 1
+        help "$option" && echo "[error] unknown arg '$1'" && return 1
       fi
     fi
     shift
@@ -499,7 +519,7 @@ fn_commits() {
   fi
 
   [ -z "$(echo "$order" | sed -n '/^\(default\|date\)$/p')" ] && \
-    { help; echo "[error] invalid order '$order'" 1>&2; exit 1; }
+    { help "$option"; echo "[error] invalid order '$order'" 1>&2; exit 1; }
 
   # identify patch set
   declare target_fqn
@@ -893,6 +913,7 @@ END { fn_test(section); }' "$f_readme")"
 }
 
 fn_changelog() {
+  declare option; option="changelog"
 
   declare target
   declare target_default="."
@@ -919,12 +940,12 @@ fn_changelog() {
         "f"|"file") shift && file="$1" ;;
         "rxid"|"rx-id") shift && rx_id="$1" ;;
         "ae"|"anchor_entry") shift && anchor_entry="$1" ;;
-        *) help && echo "[error] unrecognised arg '$1'" && return 1 ;;
+        *) help "$option" && echo "[error] unrecognised arg '$1'" && return 1 ;;
       esac
     else
       [ -z "$target" ] && \
         target="$1" || \
-        help && echo "[error] unrecognised arg '$1'" && return 1
+        help "$option" && echo "[error] unrecognised arg '$1'" && return 1
     fi
     shift
   done
@@ -932,11 +953,11 @@ fn_changelog() {
   # validate args
   [ -z "$target" ] && target="$target_default"
   [ -d "$target" ] || \
-    { help && echo "[error] invalid target '$target'" && return 1; }
+    { help "$option" && echo "[error] invalid target '$target'" && return 1; }
   vcs="$(fn_repo_type "$target")"
   [ -z "$vcs" ] && echo "[error] unsupported repository type" && return 1
   [ -z "${changelog_profiles["$profile"]}" ] && \
-    { help && echo "[error] invalid profile '$profile'" && return 1; }
+    { help "$option" && echo "[error] invalid profile '$profile'" && return 1; }
   [ -z "$file" ] && file="${changelog_profile_file["$profile"]}"
   [ -z "$rx_id" ] && rx_id="${changelog_profile_rx_id["$profile"]}"
   [ -z "$anchor_entry" ] && anchor_entry="${changelog_profile_anchor_entry["$profile"]}"
@@ -1029,6 +1050,7 @@ fn_changelog() {
 }
 
 fn_debug() {
+  declare option; option="debug"
 
   declare supported_languages
   supported_languages="c c++ javascript"
@@ -1070,7 +1092,7 @@ fn_debug() {
           args_pt="${s:1}"
           continue;
           ;;
-        *) help && echo "[error] unrecognised arg '$1'" && return 1
+        *) help "$option" && echo "[error] unrecognised arg '$1'" && return 1
       esac
     else
       args[${#args[@]}]="$1"
@@ -1083,7 +1105,7 @@ fn_debug() {
      -z "$(echo "$language" | \
        sed -n '/^\('"$(echo "$supported_languages" | \
          sed 's/ /\\|/g')"'\)$/p')" ]] && \
-    help && echo "[error] unsupported language '$language'" && return 1
+    help "$option" && echo "[error] unsupported language '$language'" && return 1
 
   language=${language:-$language_default}
 
@@ -1200,6 +1222,7 @@ fn_refactor_header() {
 }
 
 fn_refactor() {
+  declare option; option="refactor"
 
   declare -a targets
   declare targets_default
@@ -1384,6 +1407,8 @@ fn_refactor() {
 }
 
 fn_port() {
+  declare option; option="port"
+
   declare target
   declare type
   declare transforms; transforms="/root/.nixTools/$SCRIPTNAME"
@@ -1406,7 +1431,7 @@ fn_port() {
     echo "[info] pipe detected, redirecting non-result output to stderr" 1>&2 && stdout=2
 
   # process args
-  [ $# -lt 1 ] && help && echo "[error] not enough args" && return 1
+  [ $# -lt 1 ] && help "$option" && echo "[error] not enough args" && return 1
   while [ -n "$1" ]; do
     arg="$(echo "$1" | sed 's/^[ ]*-*//')"
     if [ ${#arg} -lt ${#1} ]; then
@@ -1420,12 +1445,12 @@ fn_port() {
         "o"|"overwrite") overwrite="1" ;;
         "v"|"verify") verify=1 ;;
         "ie"|"ignore-errors") ignore_error=1 ;;
-        *) help && echo "[error] unrecognised arg '$1'" 1>&2 && return 1
+        *) help "$option" && echo "[error] unrecognised arg '$1'" 1>&2 && return 1
       esac
     else
       [ -z "$target" ] && \
         target="$1" || \
-        { help && echo "[error] unrecognised arg '$1'" 1>&2 && return 1; }
+        { help "$option" && echo "[error] unrecognised arg '$1'" 1>&2 && return 1; }
     fi
     shift
   done
@@ -1641,7 +1666,7 @@ fi
 
 case "$option" in
   "h"|"help")
-    help
+    help "$@"
     ;;
   "c"|"commits")
     fn_commits "$@"
