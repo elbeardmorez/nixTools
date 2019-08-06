@@ -412,7 +412,7 @@ fn_test() {
           "js") OUTPUT_PATH="$f_tmp_results" node "$source_" < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
           "go") OUTPUT_PATH="$f_tmp_results" ./bin-go < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
         esac
-        [ -z "$(cat "$f_tmp_results")" ] && cp "$f_tmp_results_stdout" "$f_tmp_results"
+        [ -z "$(cat "$f_tmp_results" 2>/dev/null)" ] && cp "$f_tmp_results_stdout" "$f_tmp_results"
         if [ $diffs -eq 1 ]; then
           of="$(echo "$tf" | sed 's/in/out/g')"
           [ ! -f "$of" ] && \
