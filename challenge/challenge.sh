@@ -377,18 +377,19 @@ fn_test() {
        esac
 
       # tests
-      for t in ${tests[@]}; do
-        test_file="input/input$t.txt"
-        [ ! -f "$test_file" ] && \
-          test_file="input/input0$t.txt"
-        [ ! -f "$test_file" ] && \
-          echo "[info] skipping test '$t', missing file" && continue
-        test_files[${#test_files[@]}]="$test_file"
-      done
-
-      [ ${#test_files[@]} -eq 0 ] && \
-        { IFS=$'\n'; test_files=($(find ./input -type f -name "*.txt" | sort)); IFS="$IFSORG"; }
-
+      if [ ${#tests[@]} -gt 0 ]; then
+        for t in ${tests[@]}; do
+          test_file="input/input$t.txt"
+          [ ! -f "$test_file" ] && \
+            test_file="input/input0$t.txt"
+          [ ! -f "$test_file" ] && \
+            echo "[info] skipping test '$t', missing file" && continue
+          test_files[${#test_files[@]}]="$test_file"
+        done
+      else
+        [ ${#test_files[@]} -eq 0 ] && \
+          { IFS=$'\n'; test_files=($(find ./input -type f -name "*.txt" | sort)); IFS="$IFSORG"; }
+      fi
       [ ${#test_files[@]} -eq 0 ] && \
         echo "[error] no test files found" 1>&2 && return 1
 
