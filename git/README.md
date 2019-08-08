@@ -66,6 +66,7 @@ where OPTION:
 
   -smr|--submodule-remove <NAME> [PATH]  : remove a submodule named
                                            NAME at PATH (default: NAME)
+  -fb|--find-binary  : find all binary files in the current HEAD
 
 *note: optional binary args are supported for commands:
        log, rebase, formatpatch, add-no-whitespace, commit

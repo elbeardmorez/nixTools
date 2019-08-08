@@ -68,6 +68,7 @@ help() {
       -i|--issues  : only output non-chronological commits
 \n  -smr|--submodule-remove <NAME> [PATH]  : remove a submodule named
                                            NAME at PATH (default: NAME)
+  -fb|--find-binary  : find all binary files in the current HEAD
 \n*note: optional binary args are supported for commands:
        log, rebase, formatpatch, add-no-whitespace, commit
 "
@@ -450,6 +451,10 @@ fn_blame() {
   done
 }
 
+fn_find_binary() {
+  git log --numstat "$@" | sed -n 's/^-[\t -]*//p'| sort -u
+}
+
 fn_process() {
   option="help"
   [ $# -gt 0 ] && option="$(echo "$1" | sed 's/[ ]*-*//')" && shift
@@ -477,6 +482,7 @@ fn_process() {
     "b"|"blame") fn_blame "$@" ;;
     "doc"|"dates-order-check") fn_dates_order_check "$@" ;;
     "smr"|"submodule-remove") fn_submodule_remove "$@" ;;
+    "fb"|"find-binary") fn_find_binary "$@" ;;
     *) git "$option" "$@" ;;
   esac
 }
