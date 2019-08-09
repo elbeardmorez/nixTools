@@ -114,9 +114,9 @@ declare -A bin_exts
 for kvp in "${res[@]}"; do k="${kvp%%${del}*}"; bin_exts["$k"]="$kvp"; done
 
 if [ $DEBUG -ge 5 ]; then
-  echo -e "\n${CLR_HL}[debug] exts_bin:${CLR_OFF}"
+  echo -e "\n${clr["hl"]}[debug] exts_bin:${clr["off"]}"
   for s in "${exts_bin[@]}"; do echo "$s"; done
-  echo -e "\n${CLR_HL}[debug] bin_exts:${CLR_OFF}"
+  echo -e "\n${clr["hl"]}[debug] bin_exts:${clr["off"]}"
   for s in "${bin_exts[@]}"; do echo "$s"; done
   echo ""
 fi
@@ -133,11 +133,11 @@ fn_supported_extract_formats() {
 }
 
 help() {
-  echo -e "SYNTAX: ${CLR_HL}$SCRIPTNAME [-h] [MODE] [OPTIONS]${CLR_OFF}
+  echo -e "SYNTAX: ${clr["hl"]}$SCRIPTNAME [-h] [MODE] [OPTIONS]${clr["off"]}
 \n  -h, --help  : print this help information
 \n  MODE:
-\n    ${CLR_HL}a, add${CLR_OFF}:  create a tar.mv archive
-\n      SYNTAX: ${CLR_HL}$SCRIPTNAME --add --name NAME --target TARGET [OPTIONS]${CLR_OFF}
+\n    ${clr["hl"]}a, add${clr["off"]}:  create a tar.mv archive
+\n      SYNTAX: ${clr["hl"]}$SCRIPTNAME --add --name NAME --target TARGET [OPTIONS]${clr["off"]}
 \n      NAME:  achive name
       TARGET:  path to files for addition
       OPTIONS:
@@ -145,15 +145,15 @@ help() {
         -s, --split  : max size (MB) to use for splitting archive into
                        multiple volumes
 \n      support: tar only
-\n    ${CLR_HL}u, update${CLR_OFF}:  update a tar.mv archive
-\n      SYNTAX: ${CLR_HL}$SCRIPTNAME --update --name NAME --target TARGET [OPTIONS]${CLR_OFF}
+\n    ${clr["hl"]}u, update${clr["off"]}:  update a tar.mv archive
+\n      SYNTAX: ${clr["hl"]}$SCRIPTNAME --update --name NAME --target TARGET [OPTIONS]${clr["off"]}
 \n      NAME:  achive name
       TARGET:  path to files for addition / update
       OPTIONS:
         -mv, --multi-volume  : assume multi-volume archive
 \n      support: tar only
-\n    ${CLR_HL}x, extract${CLR_OFF}:  extract [multiple] archive files
-\n      SYNTAX: ${CLR_HL}$SCRIPTNAME --extract [OPTIONS] TARGETS${CLR_OFF}
+\n    ${clr["hl"]}x, extract${clr["off"]}:  extract [multiple] archive files
+\n      SYNTAX: ${clr["hl"]}$SCRIPTNAME --extract [OPTIONS] TARGETS${clr["off"]}
 \n      OPTIONS:
         -d, --dest PATH  : extract to PATH
         -a, --as TYPE  : override extention based deduction of archive

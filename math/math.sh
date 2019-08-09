@@ -216,10 +216,10 @@ scale2="$(echo "$exp" | sed -n 's|^.*scale=\([0-9]\+\).*$|\1|p')"
 [ "x$scale2" != "x" ] && scale=$scale2
 
 [ $DEBUG -ge 1 ] && echo -e "[debug]
-  ${CLR_HL}funcs${CLR_OFF}:\n$(echo -e "$funcs" | sed 's/^/    /')
-  ${CLR_HL}scale${CLR_OFF}: '$scale'
-  ${CLR_HL}unit${CLR_OFF}: '$unit'
-  ${CLR_HL}exp${CLR_OFF}:\n$(echo -e "$exp" | sed 's/^/    /')" 1>&2
+  ${clr["hl"]}funcs${clr["off"]}:\n$(echo -e "$funcs" | sed 's/^/    /')
+  ${clr["hl"]}scale${clr["off"]}: '$scale'
+  ${clr["hl"]}unit${clr["off"]}: '$unit'
+  ${clr["hl"]}exp${clr["off"]}:\n$(echo -e "$exp" | sed 's/^/    /')" 1>&2
 
 # result
 [ -n "$scale" ] && echo "$unit$(echo "scale=${scale:-2};$res/1" | bc)" || echo "$res"

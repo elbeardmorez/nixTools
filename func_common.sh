@@ -21,6 +21,13 @@ ESCAPE_ERE='])(.*?+^$|['
 ESCAPE_PERL=']}{.*?+^$['
 ESCAPE_SED='].*/^$[-'
 ESCAPE_AWK='.*\|(^$['
+declare -A clr
+clr["red"]="$(echo -e '\033[0;31m')"
+clr["grn"]="$(echo -e '\033[0;32m')"
+clr["bwn"]="$(echo -e '\033[0;33m')"
+clr["ylw"]="$(echo -e '\033[0;93m')"
+clr["hl"]="$(echo -e '\033[0001m')"  # colour highlight
+clr["off"]="$(echo -e '\033[m')"  # colour off
 TERM_RST='\033[2J\033[1;1H'  # reset terminal
 TERM_CLR='\033[H\033[J\033[H'  # clear lines
 LN_RHD='\033[1K'  # reset line head
@@ -32,12 +39,6 @@ CUR_INV='\033[?25l'  # cursor invisible
 CUR_VIS='\033[?25h'  # cursor visible
 CUR_UP='\033[A'
 CUR_DWN='\033[B'
-CLR_HL='\033[0001m'  # colour highlight
-CLR_OFF='\033[m'  # colour off
-CLR_RED='\033[0;31m'
-CLR_GRN='\033[0;32m'
-CLR_BWN='\033[0;33m'
-CLR_YLW='\033[0;93m'
 CHR_ARR_U=$'\u21e7' #$'\u2191'
 CHR_ARR_D=$'\u21e9' #$'\u2193'
 CHR_ARR_L=$'\u21e6' #$'\u2190'
@@ -237,10 +238,10 @@ fn_decision() {
       key=""
       keychr="${keychr_maps["$option"]}"
       [ -n "$keychr" ] && key="${keychr%|*}"
-      soptions+="$optdelim${CLR_HL}${key:-"$option"}${CLR_OFF}"
+      soptions+="$optdelim${clr["hl"]}${key:-"$option"}${clr["off"]}"
     done
     soptions="${soptions:${#optdelim}}"
-    echo -en " [$soptions]" 1>&2
+    echo -n " [$soptions]" 1>&2
   fi
   [ $optecho -eq 1 ] &&\
      echo -n ": " 1>&2 ||\

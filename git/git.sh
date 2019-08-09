@@ -178,7 +178,7 @@ fn_log() {
   for commit in "${commits[@]}"; do
     commit="$(echo "$commit" | cut -d' ' -f1)"
     if [ "x$command" = "xlog" ]; then
-      git "${bin_args[@]}" log --format=format:"%at | %ct | version: $(printf $CLR_BWN)%H$(printf $CLR_OFF) $(printf $CLR_YLW)%d$(printf $CLR_OFF)%n %s (%an)" "${cmd_args[@]}" $commit | awk '{if ( $0 ~ /[0-9]{10} \| [0-9]{10} | version:/ ) { $1=strftime("%Y%b%d %H:%M:%S",$1); $3=strftime("%Y%b%d %H:%M:%S",$3); }; print $0;}'
+      git "${bin_args[@]}" log --format=format:"%at | %ct | version: $(printf ${clr["bwn"]})%H$(printf ${clr["off"]}) $(printf ${clr["ylw"]})%d$(printf ${clr["off"]})%n %s (%an)" "${cmd_args[@]}" $commit | awk '{if ( $0 ~ /[0-9]{10} \| [0-9]{10} | version:/ ) { $1=strftime("%Y%b%d %H:%M:%S",$1); $3=strftime("%Y%b%d %H:%M:%S",$3); }; print $0;}'
     else
       format="$([ "x$command" = "xlog1" ] && echo "oneline" || echo "fuller")"
       git "${bin_args[@]}" log --format="$format" "${cmd_args[@]}" $commit | cat
@@ -441,7 +441,7 @@ fn_blame() {
     line="${xa[$((${#xa}-0))]}"
     auth="$(echo "${xa[@]}" | sed 's/ '$dt1'.*$//')"
     data="${x#*|}"
-    echo -e "[info] file: $file | ln#: $line | auth: ${CLR_RED}${auth}${CLR_OFF} | date: $(date -d "@$dt1" "+%d %b %Y %H:%M:%S") $dt2"
+    echo -e "[info] file: $file | ln#: $line | auth: ${clr["red"]}${auth}${clr["off"]} | date: $(date -d "@$dt1" "+%d %b %Y %H:%M:%S") $dt2"
     echo -e "\n$data\n"
     res="$(fn_decision "[user] (s)how, (r)ebase from, or (i)gnore commit '$id'?" "srix")"
     [ "x$res" = "xs" ] && git show "$id"

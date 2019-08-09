@@ -175,7 +175,7 @@ help() {
     s="${sections["$section"]}"
     [ -z "$s" ] && \
       { echo "[error] invalid help option '$section' [supports: $(fn_str_join "|" "${sections_[@]}")]" && return 1; }
-    echo -e "${CLR_HL}$(echo -e "$s" | sed -n '1,/^[ ]*SYNTAX/{1{N;s/^[^:]*:[ ]*//;};/^[ ]*SYNTAX/{x;s/\n[ ]*/\n/g;p;};H;}')${CLR_OFF}\n"
+    echo -e "${clr["hl"]}$(echo -e "$s" | sed -n '1,/^[ ]*SYNTAX/{1{N;s/^[^:]*:[ ]*//;};/^[ ]*SYNTAX/{x;s/\n[ ]*/\n/g;p;};H;}')${clr["off"]}\n"
     echo -e "$s\n" | sed -n '1,/^[ ]*SYNTAX/{/^[ ]*SYNTAX/{s/^[ ]*//;p;};b;};s/^  //;p'
   fi
 }
@@ -713,15 +713,15 @@ fn_commits() {
         done
         if [[ $new -eq 1 && $interactive_match -eq 1 ]]; then
           # review interactively
-          echo -e "\n${CLR_HL}target${CLR_OFF}|$target_fq/$type/$repo_map_path\n"
+          echo -e "\n${clr["hl"]}target${clr["off"]}|$target_fq/$type/$repo_map_path\n"
           name_="${name%.*}"
           name__="$(fn_escape "sed" "$name_")"
-          echo -e "[info] name clash for '$(echo "$name" | sed 's/'"$name__"'/'"\\${CLR_HL}$name_\\${CLR_OFF}"'/')', insufficient certainty to proceed:\n"
+          echo -e "[info] name clash for '$(echo "$name" | sed 's/'"$name__"'/'"\\${clr["hl"]}$name_\\${clr["off"]}"'/')', insufficient certainty to proceed:\n"
 ##          echo -e "[info] name clash for '$(echo "$name" | sed 's/'"$name__"'/'"pandas"'/')', insufficient certainty to proceed:\n"
           files_=""
           l=1
           for s_ in "${existing[@]}"; do
-            files_="$files_\n[$l] $(echo -E "$s_" | sed 's/'"$name__"'/'"\\${CLR_HL}$name_\\${CLR_OFF}"'/')"
+            files_="$files_\n[$l] $(echo -E "$s_" | sed 's/'"$name__"'/'"\\${clr["hl"]}$name_\\${clr["off"]}"'/')"
             [ -n "${matched_files["$s_"]}" ] && files_="${files_}*"
             l=$((l + 1))
           done
@@ -1007,7 +1007,7 @@ fn_changelog() {
               fi
             done
             if [ -n "$commit" ]; then
-              echo -e "[info] matched: [${CLR_BWN}$id${CLR_OFF}] $description\n\n'$(echo "$match" | sed 's/'"$id"'/'"$(echo -e "${CLR_HL}$id${CLR_OFF}")"'/')'\n"
+              echo -e "[info] matched: [${clr["bwn"]}$id${clr["off"]}] $description\n\n'$(echo "$match" | sed 's/'"$id"'/'"$(echo -e "${clr["hl"]}$id${clr["off"]}")"'/')'\n"
               fn_decision "[user] merge with existing changelog at this point?" 1>/dev/null || return 1
               commit_range="$commit..HEAD"
             else
@@ -1184,11 +1184,11 @@ fn_debug() {
                  "possibilit$([ ${#proc[@]} -eq 1 ] && echo "y" \
                                                     || echo "ies")"
             opts="${opts:1}|x"
-            prompt="select item # or e(${CLR_HL}x${CLR_OFF})it "
-            prompt+="[${CLR_HL}1${CLR_OFF}"
-            [ $l -gt 1 ] && prompt+="-${CLR_HL}$l${CLR_OFF}"
-            prompt+="|${CLR_HL}x${CLR_OFF}]"
-            res="$(fn_decision "$(echo -e "$prompt")" "$opts" 0 0 1)"
+            prompt="select item # or e(${clr["hl"]}x${clr["off"]})it "
+            prompt+="[${clr["hl"]}1${clr["off"]}"
+            [ $l -gt 1 ] && prompt+="-${clr["hl"]}$l${clr["off"]}"
+            prompt+="|${clr["hl"]}x${clr["off"]}]"
+            res="$(fn_decision "$prompt" "$opts" 0 0 1)"
             if [ "x$res" != "xx" ]; then
               ps="${proc[$((res - 1))]}"
               v="${ps%% *}"
@@ -1217,7 +1217,7 @@ fn_refactor_header() {
   declare info
   info="$1" && shift
   printf "%s\n%s\n%s\n" $(printf "%.s-" $(seq 1 1 ${#info})) \
-                        "$(printf ${CLR_HL}"$info"${CLR_OFF})" \
+                        "${clr["hl"]}"$info"${clr["off"]}" \
                         $(printf "%.s-" $(seq 1 1 ${#info}))
 }
 
@@ -1347,23 +1347,23 @@ fn_refactor() {
             "braces")
               # search for new line character preceding brace
               fn_refactor_header "> searching for 'new line characters preceding braces' in file '$f'"
-              sed -n 'H;x;/.*)\s*\n\+\s*{.*/{s/\n/'"$(printf "${CLR_RED}%s${CLR_OFF}" "\\\n")"'\n/;p}' "$f"
+              sed -n 'H;x;/.*)\s*\n\+\s*{.*/{s/\n/'"$(printf "${clr["red"]}%s${clr["off"]}" "\\\n")"'\n/;p}' "$f"
               ;;
             "tabs")
               # search for tabs characters
               fn_refactor_header "> searching for 'tab characters' in file '$f'"
-              sed -n 's/\t/'"$(printf ${CLR_RED})"'[ ]'"$(printf ${CLR_OFF})"'/gp' "$f"
+              sed -n 's/\t/'"${clr["red"]}"'[ ]'"${clr["off"]}"'/gp' "$f"
               ;;
             "whitespace")
               # search for trailing whitespace
               fn_refactor_header "> searching for 'trailing whitespace' in file '$f'"
               IFS=$'\n'; lines=($(sed -n '/\s$/p' "$f")); IFS=$IFSORG
               for line in "${lines[@]}"; do
-                echo "$line" | sed -n ':1;s/^\(.*\S\)\s\(\s*$\)/\1\'"$(printf ${CLR_RED})"'·\2/;t1;s/$/\'"$(printf ${CLR_OFF})"'/;p'
+                echo "$line" | sed -n ':1;s/^\(.*\S\)\s\(\s*$\)/\1\'"$(printf ${clr["red"]})"'·\2/;t1;s/$/\'"$(printf ${clr["off"]})"'/;p'
               done
               ;;
             *)
-              printf "${CLR_RED}[error] missing transform '$t'${CLR_OFF}\n"
+              printf "${clr["red"]}[error] missing transform '$t'${clr["off"]}\n"
               ;;
           esac
           l=$((l + 1))
@@ -1393,7 +1393,7 @@ fn_refactor() {
               $sedcmd -i 's/\s*$//g' "$f"
               ;;
             *)
-              printf "${CLR_RED}[error] missing transform '$t'${CLR_OFF}\n"
+              printf "${clr["red"]}[error] missing transform '$t'${clr["off"]}\n"
               ;;
           esac
           l=$((l + 1))
@@ -1525,7 +1525,7 @@ fn_port() {
     if [ $process -eq 1 ]; then
       l_total=$((l_total + 1))
       [ -z "$(echo "$line" | sed -n '/|/p')" ] &&
-        echo -e "[error] invalid mappings line ${CLR_HL}${l_line}${CLR_OFF}, '$line'" 1>&2 && return 1
+        echo "[error] invalid mappings line ${clr["hl"]}${l_line}${clr["off"]}, '$line'" 1>&2 && return 1
 
       # strip inline comments and tokenise on whitespace
       ss=($(echo "${line%% #*}"))
@@ -1548,7 +1548,7 @@ fn_port() {
             [[ "x$t" != "x*" && "x$t" != "x$to" ]] && match_=0
             [ $match_ -eq 1 ] && process=1
             if [ $match_ -eq 1 ]; then
-              match="$(echo "$line" | sed 's/'"$(fn_escape "sed" "$s")"'/'"$(echo -e "${CLR_HL}$s${CLR_OFF}")"'/')"
+              match="$(echo "$line" | sed 's/'"$(fn_escape "sed" "$s")"'/'"${clr["hl"]}$s${clr["off"]}"'/')"
               skip=0
               l_processed=$((l_processed + 1))
             fi
@@ -1567,10 +1567,10 @@ fn_port() {
         expr_="$range{$line;}"
         while true; do
           if [ $debug -eq 1 ]; then
-            echo -e "[debug] ${CLR_HL}source:${CLR_OFF}" 1>&$stdout
-            echo -e "${CLR_GRN}" 1>&$stdout
+            echo "[debug] ${clr["hl"]}source:${clr["off"]}" 1>&$stdout
+            echo "${clr["grn"]}" 1>&$stdout
             sed -n "$range{p;}" "$f_tmp2" 1>&$stdout
-            echo -e "${CLR_OFF}" 1>&$stdout
+            echo "${clr["off"]}" 1>&$stdout
             set -x && sed "$expr_" "$f_tmp2" > "$f_tmp3" && set +x
             res=$?
           else
@@ -1584,7 +1584,7 @@ fn_port() {
         done
         # error
         if [ $res -ne 0 ]; then
-          echo -e "[error] processing line ${CLR_HL}${l_line}${CLR_OFF}, expression '${CLR_RED}$expr_${CLR_OFF}'" 1>&2
+          echo "[error] processing line ${clr["hl"]}${l_line}${clr["off"]}, expression '${clr["red"]}$expr_${clr["off"]}'" 1>&2
           [ $ignore_error -eq 1 ] && continue || return 1
         fi
         cp "$f_tmp3" "$f_tmp2"
@@ -1592,7 +1592,7 @@ fn_port() {
       diff_="$($cmd_diff "${cmd_args_diff[@]}" "$f_tmp" "$f_tmp3")"
       if [ -n "$diff_" ]; then
         if [ $verify -eq 1 ]; then
-          s="$(echo -e "[user] apply modifying transform '${CLR_GRN}$line${CLR_OFF}?'")"
+          s="[user] apply modifying transform '${clr["grn"]}$line${clr["off"]}?'"
           break_=0
           while true; do
             res="$(fn_decision "$s (y)es, (n)o, show (d)iff or e(x)it" "y|n|d|x")"

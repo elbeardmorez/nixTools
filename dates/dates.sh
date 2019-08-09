@@ -24,7 +24,7 @@ fn_dateformat() {
   fmt="$2"
   part="$3"
   IFS="%"; parts=(`echo $fmt`); IFS="$IFSORG"
-  fmt="`echo $fmt | sed 's/\('%$part'\)/\'$CLR_HL'\'$CLR_RED'\1\'$CLR_OFF'/'`"
+  fmt="`echo $fmt | sed 's/\('%$part'\)/\'${clr["hl"]}'\'${clr["red"]}'\1\'${clr["off"]}'/'`"
   dt="`date -d @$dt +"$fmt"`"
   echo "$dt"
 }
@@ -66,7 +66,7 @@ case "$option" in
     aborted=0
     while [ 1 ]; do
       dtf="`fn_dateformat $dt "$dt_format" ${editable[$hl]}`"
-      prompt="$(echo -e "$dtf [modify ($CLR_HL$CHR_ARR_U$CLR_OFF|$CLR_HL$CHR_ARR_D$CLR_OFF) / select part ($CLR_HL$CHR_ARR_L$CLR_OFF|$CLR_HL$CHR_ARR_R$CLR_OFF) / (${CLR_HL}c${CLR_OFF})ancel / e(${CLR_HL}x${CLR_OFF})it] [ $CLR_HL$last$CLR_OFF ]${CUR_INV}")"
+      prompt="$(echo -e "$dtf [modify (${clr["hl"]}$CHR_ARR_U${clr["off"]}|${clr["hl"]}$CHR_ARR_D${clr["off"]}) / select part (${clr["hl"]}$CHR_ARR_L${clr["off"]}|${clr["hl"]}$CHR_ARR_R${clr["off"]}) / (${clr["hl"]}c${clr["off"]})ancel / e(${clr["hl"]}x${clr["off"]})it] [ ${clr["hl"]}$last${clr["off"]} ]${CUR_INV}")"
       echo -e "${TERM_CLR}" 1>&2
       if [ $cont -ne 1 ]; then
         echo -e "$prompt\n"

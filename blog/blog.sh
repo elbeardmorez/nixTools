@@ -82,7 +82,7 @@ fn_input_data() {
   fn_restore_cursor
   case "$type" in
     "single_line")
-      fn_edit_line "$data" "$prompt [$(echo -e "${CLR_HL}enter${CLR_OFF}")]: "
+      fn_edit_line "$data" "$prompt [${clr["hl"]}enter${clr["off"]}]: "
       ;;
     "multi_line")
       echo -n "$prompt: " 1>&2
@@ -320,11 +320,11 @@ fn_list() {
   for h in "${column_headers[@]}"; do
     h_mod="$h"
     if [ $idx -eq $sort_idx ]; then
-      h_mod="${CLR_HL}$h_mod $([ $sort_order -eq 0 ] && echo "$CHR_ARR_U" || echo "$CHR_ARR_D")${CLR_OFF}"
+      h_mod="${clr["hl"]}$h_mod $([ $sort_order -eq 0 ] && echo "$CHR_ARR_U" || echo "$CHR_ARR_D")${clr["off"]}"
     elif [ $idx -eq ${column_idxs["title"]} ]; then
-      h_mod="${CLR_RED}${CLR_OFF}$h_mod"
+      h_mod="${clr["red"]}${clr["off"]}$h_mod"
     elif [ $idx -eq ${column_idxs["date modified"]} ]; then
-      h_mod="${CLR_HL}${CLR_OFF}$h_mod"
+      h_mod="${clr["hl"]}${clr["off"]}$h_mod"
     fi
     header+="\t$h_mod"
     idx=$((idx+1))
@@ -370,16 +370,16 @@ fn_list() {
       v="["v"]"
     } else if (idx == column_idx_title) {
       if (sel == 1)
-        v="'${CLR_GRN}'"v"'${CLR_OFF}'"
+        v="'${clr["grn"]}'"v"'${clr["off"]}'"
       else
-        v="'${CLR_RED}'"v"'${CLR_OFF}'"
+        v="'${clr["red"]}'"v"'${clr["off"]}'"
     } else if (idx == column_idx_date_modified) {
       if (mod == 1)
-        v="'${CLR_HL}'"v"'${CLR_OFF}'"
+        v="'${clr["hl"]}'"v"'${clr["off"]}'"
       else
-        v="'${CLR_HL}${CLR_OFF}'"v
+        v="'${clr["hl"]}${clr["off"]}'"v
     } else if (idx == sort_idx)
-      v="'${CLR_HL}${CLR_OFF}'"v
+      v="'${clr["hl"]}${clr["off"]}'"v
     r=r"\t"v
   }
   gsub(/^\t/,"",r)
@@ -466,7 +466,7 @@ fn_menu() {
       if [ $no_op -eq 0 ]; then
         # reset
         echo -en "$CUR_UP$LN_RST" 1>&2
-        echo -en "| (${CLR_HL}t${CLR_OFF})arget:${CLR_GRN}$target${CLR_OFF} (${CLR_HL}i${CLR_OFF})d:$([ -n "$id" ] && echo "${CLR_GRN}$id${CLR_OFF}" || echo "-") (${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}) select | (${CLR_HL}s${CLR_OFF})ort | (${CLR_HL}n${CLR_OFF})ew | (${CLR_HL}e${CLR_OFF})dit | (${CLR_HL}p${CLR_OFF})ublish | (${CLR_HL}d${CLR_OFF})elete | e(${CLR_HL}x${CLR_OFF})it [${CLR_HL}t${CLR_OFF}/${CLR_HL}i${CLR_OFF}/${CLR_HL}${CHR_ARR_U}${CLR_OFF}|${CLR_HL}${CHR_ARR_D}${CLR_OFF}/${CLR_HL}s${CLR_OFF}/${CLR_HL}n${CLR_OFF}/${CLR_HL}e${CLR_OFF}/${CLR_HL}p${CLR_OFF}/${CLR_HL}d${CLR_OFF}/${CLR_HL}x${CLR_OFF}]${CUR_SV}${CUR_INV}"
+        echo -en "| (${clr["hl"]}t${clr["off"]})arget:${clr["grn"]}$target${clr["off"]} (${clr["hl"]}i${clr["off"]})d:$([ -n "$id" ] && echo "${clr["grn"]}$id${clr["off"]}" || echo "-") (${clr["hl"]}${CHR_ARR_U}${clr["off"]}|${clr["hl"]}${CHR_ARR_D}${clr["off"]}) select | (${clr["hl"]}s${clr["off"]})ort | (${clr["hl"]}n${clr["off"]})ew | (${clr["hl"]}e${clr["off"]})dit | (${clr["hl"]}p${clr["off"]})ublish | (${clr["hl"]}d${clr["off"]})elete | e(${clr["hl"]}x${clr["off"]})it [${clr["hl"]}t${clr["off"]}/${clr["hl"]}i${clr["off"]}/${clr["hl"]}${CHR_ARR_U}${clr["off"]}|${clr["hl"]}${CHR_ARR_D}${clr["off"]}/${clr["hl"]}s${clr["off"]}/${clr["hl"]}n${clr["off"]}/${clr["hl"]}e${clr["off"]}/${clr["hl"]}p${clr["off"]}/${clr["hl"]}d${clr["off"]}/${clr["hl"]}x${clr["off"]}]${CUR_SV}${CUR_INV}"
 
         res="$(fn_decision "" "t/i/$KEY_ARR_U/$KEY_ARR_D/s/n/e/p/d/x" 0 $optecho)"
       else
@@ -483,7 +483,7 @@ fn_menu() {
           while true; do
             echo -en "$CUR_UP$LN_RST" 1>&2
             stty echo
-            res2="$(fn_decision "$(echo -e "| (${CLR_HL}p${CLR_OFF})ublished | (${CLR_HL}u${CLR_OFF})npublished | (${CLR_HL}c${CLR_OFF})ustom | e(${CLR_HL}x${CLR_OFF})it${CUR_INV}")" "pucx")"
+            res2="$(fn_decision "$(echo -e "| (${clr["hl"]}p${clr["off"]})ublished | (${clr["hl"]}u${clr["off"]})npublished | (${clr["hl"]}c${clr["off"]})ustom | e(${clr["hl"]}x${clr["off"]})it${CUR_INV}")" "pucx")"
             stty -echo
             case "$res2" in
               "x") break ;;
@@ -498,7 +498,7 @@ fn_menu() {
                 [ "x$target_" = "x$target" ] && break
                 path_=$(fn_target_resolve "$target_")
                 [ -z "$path_" ] &&\
-                  fn_menu_alert "${CLR_RED}[error]${CLR_OFF} invalid target, ignoring!" && continue
+                  fn_menu_alert "${clr["red"]}[error]${clr["off"]} invalid target, ignoring!" && continue
                 target="$target_"
                 id=""
                 reset=1;
@@ -512,7 +512,7 @@ fn_menu() {
           while true; do
             echo -en "$CUR_UP$LN_RST" 1>&2
             stty echo
-            res2="$(fn_input_line "$(echo -en "| set target id, or e(${CLR_HL}x${CLR_OFF})it${CUR_VIS}")")"
+            res2="$(fn_input_line "$(echo -en "| set target id, or e(${clr["hl"]}x${clr["off"]})it${CUR_VIS}")")"
             stty -echo
             echo -en "$CUR_INV" 1>&2
             case "$res2" in
@@ -549,21 +549,21 @@ fn_menu() {
           ;;
         "e")
           [ -z "$id" ] &&\
-            fn_menu_alert "${CLR_RED}[error]${CLR_OFF} invalid target, ignoring!" && continue
+            fn_menu_alert "${clr["red"]}[error]${clr["off"]} invalid target, ignoring!" && continue
           fn_mod ${files[$((id-1))]}
           idx=""
           reset=1
           ;;
         "p")
           [ -z "$id" ] &&\
-            fn_menu_alert "${CLR_RED}[error]${CLR_OFF} invalid target, ignoring!" && continue
+            fn_menu_alert "${clr["red"]}[error]${clr["off"]} invalid target, ignoring!" && continue
           fn_publish ${files[$((id-1))]}
           idx=""
           reset=1
           ;;
         "d")
           [ -z "$id" ] &&\
-            fn_menu_alert "${CLR_RED}[error]${CLR_OFF} invalid target, ignoring!" && continue
+            fn_menu_alert "${clr["red"]}[error]${clr["off"]} invalid target, ignoring!" && continue
           reset=0
           f="${files[$((id-1))]}"
           title="$(fn_read_data "title" "$f")"
