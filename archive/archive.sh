@@ -346,7 +346,7 @@ fn_extract_type() {
   type="$file" && [ -n "$override" ] && type="$override"
   fext="${type##*.}"
   case "$type" in
-    *.tar.xz|*.txz|*.tar.bz|*.tbz|*.tar.bz2|*.tbz2|*.tar.gz|*.tgz|*.tar|*tar.mv)
+    *tar.xz|*txz|*tar.bz|*tbz|*tar.bz2|*tbz2|*tar.gz|*tgz|*tar|*tar.mv)
       [ "$type" = "tar.mv" ] && \
         fn_tarmv --extract --multi-volume --name "$file" || \
         tar xvf "$file"
