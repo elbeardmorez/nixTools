@@ -289,6 +289,7 @@ fn_decision() {
       if [[ -n "$map" && "x$option" == "x$map" ]]; then
         keychr="${keychr_maps["$map"]}"
         [ -n "$keychr" ] && match="${keychr#*|}"
+        submatch_=1
         break
       elif [[ -z "$map" && (-n "$submatch" && \
                             (${#option} -gt ${#submatch} && \
