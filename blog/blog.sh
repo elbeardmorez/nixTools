@@ -44,7 +44,7 @@ help() {
 "
 }
 
-cmd_restore_cursor='exec 0<&6 1>&7 2>&8; stty echo; echo -en "\'${CUR_VIS}'"; stty -echo'
+cmd_restore_cursor='if { <&6; } 2>/dev/null; then exec 0<&6 1>&7 2>&8; fi; stty echo; echo -en "\'${CUR_VIS}'"; stty -echo'
 
 fn_restore_cursor() {
   eval "$cmd_restore_cursor"
