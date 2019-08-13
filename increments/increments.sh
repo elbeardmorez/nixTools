@@ -246,10 +246,11 @@ fn_process() {
   group=0
   declare -a matches
   for l in $(seq $l 1 $((${#names[@]}-1))); do
-    n="${names[$l]}"
-    g=${groups[$l]}
+    # construct match idx|type pairs
     matches=()
     matches_=$l
+    n="${names[$l]}"
+    g=${groups[$l]}
     for l2 in $(seq $((l+1)) 1 $((${#names[@]}-1))); do
       n2="${names[$l2]}"
       g2=${groups[$l2]}
@@ -277,7 +278,9 @@ fn_process() {
           done
         fi
         if [ $match -gt 0 ]; then
+          matches_=$((matches_+1))
           if [ -z "$g" ]; then
+            # matched to (outer) existing group
             matches[${#matches[@]}]="$l|0"
             [ -n "$g2" ] && g=$g2
           fi
@@ -286,6 +289,8 @@ fn_process() {
       fi
     done
     # allocate gid
+    [ $DEBUG -ge 4 ] &&\
+      echo "[debug] names: ${#names[@]}, iteration $l, matches: ${#matches[@]}\n${matches[@]}"
     new=0
     [ -z "$g" ] && group=$((group+1)) && new=1
     for match in "${matches[@]}"; do
@@ -297,7 +302,6 @@ fn_process() {
       [ -z ${groups[$idx]} ] && groups[$idx]=${g:-$group}
     done
     groups[$l]=${g:-$group}
-    matches_=$((matches_+${#matches[@]}-1))
     [ $matches_ -eq ${#names[@]} ] && break
   done
   grouped=""
