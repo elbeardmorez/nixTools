@@ -171,7 +171,7 @@ fn_process() {
   for target in "${targets[@]}"; do
     if [ ! -d "$target" ]; then
       # archive extraction
-      globs=(); for s in "${search[@]}"; do globs=("${globs[@]}" "--wildcards" "*$s*"); done
+      globs=(); for s in "${search[@]}"; do globs=("${globs[@]}" "--wildcards" "*$(echo "$s" | sed 's/^\(\.\*\)*//;s/\(\.\*\)*$//;s/\.\*/*/g')*"); done
       tmp=$(fn_temp_dir "$SCRIPTNAME")
       tar -C "$tmp" -x "${globs[@]}" -f "$target" 2>/dev/null
       res=$?
