@@ -237,77 +237,77 @@ fn_process() {
   IFS=$'\n'; sorted=($(echo -e "$sorted")); IFS="$IFSORG"
   declare -a groups
   if [ $group_by_basename -eq 1 ]; then
-  # basename / variant based grouping
-  declare -a names
-  l=0
-  for r in "${sorted[@]}"; do
-    names[$l]="$(basename "$(echo "${sorted[$l]}" | cut -d$'\t' -f$column_idx_file)")"
-    l=$((l+1))
-  done
-  match_types=("" "base" "variant" "reverse variant")
-  l=0
-  l2=0
-  group=0
-  declare -a matches
-  for l in $(seq $l 1 $((${#names[@]}-1))); do
-    # construct match idx|type pairs
-    matches=()
-    matches_=$l
-    n="${names[$l]}"
-    g=${groups[$l]}
-    for l2 in $(seq $((l+1)) 1 $((${#names[@]}-1))); do
-      n2="${names[$l2]}"
-      g2=${groups[$l2]}
-      if [[ -n "$g" && -n "$g2" ]]; then
-        matches_=$((matches_+1))
-      else
-        # test for variant basename match
-        match=0
-        if [ "$n2" = "$n" ]; then
-          match=1
-        elif [ ${#transforms[@]} -gt 0 ]; then
-          for transform in "${transforms[@]}"; do
-            t=$(echo "$n2" | sed 's'"$transform")
-            [ -z "$t" ] && continue
-            v=$(echo "$n" | sed -n '/'"$(fn_escape "sed" "$t")"'/p')
-            if [ -n "$v" ]; then
-              match=2
-            else
-              # reverse variant
-              t=$(echo "$n" | sed 's'"$transform")
-              [ -z "$t" ] && continue
-              v=$(echo "$n2" | sed -n '/'"$(fn_escape "sed" "$t")"'/p')
-              [ -n "$v" ] && match=3
-            fi
-          done
-        fi
-        if [ $match -gt 0 ]; then
+    # basename / variant based grouping
+    declare -a names
+    l=0
+    for r in "${sorted[@]}"; do
+      names[$l]="$(basename "$(echo "${sorted[$l]}" | cut -d$'\t' -f$column_idx_file)")"
+      l=$((l+1))
+    done
+    match_types=("" "base" "variant" "reverse variant")
+    l=0
+    l2=0
+    group=0
+    declare -a matches
+    for l in $(seq $l 1 $((${#names[@]}-1))); do
+      # construct match idx|type pairs
+      matches=()
+      matches_=$l
+      n="${names[$l]}"
+      g=${groups[$l]}
+      for l2 in $(seq $((l+1)) 1 $((${#names[@]}-1))); do
+        n2="${names[$l2]}"
+        g2=${groups[$l2]}
+        if [[ -n "$g" && -n "$g2" ]]; then
           matches_=$((matches_+1))
-          if [ -z "$g" ]; then
-            # matched to (outer) existing group
-            matches[${#matches[@]}]="$l|0"
-            [ -n "$g2" ] && g=$g2
+        else
+          # test for variant basename match
+          match=0
+          if [ "$n2" = "$n" ]; then
+            match=1
+          elif [ ${#transforms[@]} -gt 0 ]; then
+            for transform in "${transforms[@]}"; do
+              t=$(echo "$n2" | sed 's'"$transform")
+              [ -z "$t" ] && continue
+              v=$(echo "$n" | sed -n '/'"$(fn_escape "sed" "$t")"'/p')
+              if [ -n "$v" ]; then
+                match=2
+              else
+                # reverse variant
+                t=$(echo "$n" | sed 's'"$transform")
+                [ -z "$t" ] && continue
+                v=$(echo "$n2" | sed -n '/'"$(fn_escape "sed" "$t")"'/p')
+                [ -n "$v" ] && match=3
+              fi
+            done
           fi
-          [ -z "$g2" ] && matches[${#matches[@]}]="$l2|$match"
+          if [ $match -gt 0 ]; then
+            matches_=$((matches_+1))
+            if [ -z "$g" ]; then
+              # matched to (outer) existing group
+              matches[${#matches[@]}]="$l|0"
+              [ -n "$g2" ] && g=$g2
+            fi
+            [ -z "$g2" ] && matches[${#matches[@]}]="$l2|$match"
+          fi
         fi
-      fi
+      done
+      # allocate gid
+      [ $DEBUG -ge 4 ] &&\
+        echo "[debug] names: ${#names[@]}, iteration $l, matches: ${#matches[@]}\n${matches[@]}"
+      new=0
+      [ -z "$g" ] && group=$((group+1)) && new=1
+      for match in "${matches[@]}"; do
+        idx="${match%|*}"
+        type="${match#*|}"
+        [ $DEBUG -ge 2 ] &&\
+          echo -e "[debug] $([ $type -gt 0 ] && echo "${match_types[$type]} match, ")allocating to $([ $new -eq 1 ] && echo "new" || echo "existing") group id ${g:-$group}\n [$([ -n "${groups[$l]}" ] && echo ${groups[$l]} || printf "-")] $n$([ $idx -ne $l ] && echo -e "\n [$([ -n "${groups[$idx]}" ] && echo "${groups[$idx]}" || printf "-")] ${names[$idx]}")"
+        [ -z ${groups[$l]} ] && groups[$l]=${g:-$group}
+        [ -z ${groups[$idx]} ] && groups[$idx]=${g:-$group}
+      done
+      groups[$l]=${g:-$group}
+      [ $matches_ -eq ${#names[@]} ] && break
     done
-    # allocate gid
-    [ $DEBUG -ge 4 ] &&\
-      echo "[debug] names: ${#names[@]}, iteration $l, matches: ${#matches[@]}\n${matches[@]}"
-    new=0
-    [ -z "$g" ] && group=$((group+1)) && new=1
-    for match in "${matches[@]}"; do
-      idx="${match%|*}"
-      type="${match#*|}"
-      [ $DEBUG -ge 2 ] &&\
-        echo -e "[debug] $([ $type -gt 0 ] && echo "${match_types[$type]} match, ")allocating to $([ $new -eq 1 ] && echo "new" || echo "existing") group id ${g:-$group}\n [$([ -n "${groups[$l]}" ] && echo ${groups[$l]} || printf "-")] $n$([ $idx -ne $l ] && echo -e "\n [$([ -n "${groups[$idx]}" ] && echo "${groups[$idx]}" || printf "-")] ${names[$idx]}")"
-      [ -z ${groups[$l]} ] && groups[$l]=${g:-$group}
-      [ -z ${groups[$idx]} ] && groups[$idx]=${g:-$group}
-    done
-    groups[$l]=${g:-$group}
-    [ $matches_ -eq ${#names[@]} ] && break
-  done
   else
     groups=($(printf "%.s 1" $(seq 1 1 ${#sorted[@]})))
   fi
