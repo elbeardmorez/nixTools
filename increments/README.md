@@ -25,6 +25,7 @@ where OPTIONS can be:
                                 to rx match against search results
                                 with any matched files removed from
                                 the ultimate set
+  -g, --group  : group matched files by basename for diffs
   -d, --diffs  : output incremental diffs of search matches
   -dd, --dump-diffs PATH  : write diffs to PATH (default: increments)
   -dm, --dump-matches PATH  : copy search matches to PATH

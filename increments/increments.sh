@@ -20,6 +20,7 @@ declare target_matches
 remove_dupes=0
 remove_zeros=0
 declare blacklist
+declare group_by_basename; group_by_basename=0
 interactive_cleaning=1
 declare -a targets
 target=${INCREMENTS_TARGET:-}
@@ -69,6 +70,7 @@ SYNTAX: $SCRIPTNAME [OPTIONS] search [search2 ..]
                                 to rx match against search results
                                 with any matched files removed from
                                 the ultimate set
+  -g, --group  : group matched files by basename for diffs
   -d, --diffs  : output incremental diffs of search matches
   -dd, --dump-diffs PATH  : write diffs to PATH (default: increments)
   -dm, --dump-matches PATH  : copy search matches to PATH
@@ -231,15 +233,17 @@ fn_process() {
   sorted="$(echo -e "$s" | sort -n -t$'\t' -k$column_idx_date)"
   [ $DEBUG -ge 2 ] && echo "[debug] timestamp sorted table" 1>&2 && echo -e "$sorted" | column -t -s $'\t' 1>&2 && echo 1>&2
 
-  # basename / variant based grouping
+  # grouping
   IFS=$'\n'; sorted=($(echo -e "$sorted")); IFS="$IFSORG"
+  declare -a groups
+  if [ $group_by_basename -eq 1 ]; then
+  # basename / variant based grouping
   declare -a names
   l=0
   for r in "${sorted[@]}"; do
     names[$l]="$(basename "$(echo "${sorted[$l]}" | cut -d$'\t' -f$column_idx_file)")"
     l=$((l+1))
   done
-  declare -a groups
   match_types=("" "base" "variant" "reverse variant")
   l=0
   l2=0
@@ -304,6 +308,9 @@ fn_process() {
     groups[$l]=${g:-$group}
     [ $matches_ -eq ${#names[@]} ] && break
   done
+  else
+    groups=($(printf "%.s 1" $(seq 1 1 ${#sorted[@]})))
+  fi
   grouped=""
   l=0
   for r in "${sorted[@]}"; do
@@ -537,6 +544,7 @@ while [ -n "$1" ]; do
     "nd"|"no-duplicates") remove_dupes=1 ;;
     "nz"|"no-zeros") remove_zeros=1 ;;
     "bl"|"blacklist") shift && blacklist="$1" ;;
+    "g"|"group") group_by_basename=1 ;;
     "d"|"diffs") diffs=1 ;;
     "dd") target_diffs="$TARGET_DIFFS_DEFAULT" ;;
     "dump-diffs") shift; target_diffs="$1" ;;
