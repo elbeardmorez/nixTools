@@ -174,7 +174,7 @@ help() {
   else
     s="${sections["$section"]}"
     [ -z "$s" ] && \
-      { echo "[error] invalid help option '$section' [supports: $(fn_str_join "|" "${sections_[@]}")]" && return 1; }
+      { echo "[error] invalid help option '$section' [supports: $(fn_str_join "|" "${sections_[@]}")]" 1>&2 && return 1; }
     echo -e "${clr["hl"]}$(echo -e "$s" | sed -n '1,/^[ ]*SYNTAX/{1{N;s/^[^:]*:[ ]*//;};/^[ ]*SYNTAX/{x;s/\n[ ]*/\n/g;p;};H;}')${clr["off"]}\n"
     echo -e "$s\n" | sed -n '1,/^[ ]*SYNTAX/{/^[ ]*SYNTAX/{s/^[ ]*//;p;};b;};s/^  //;p'
   fi
@@ -253,7 +253,7 @@ fn_repo_search() {
       echo -e "$res" | tac
       ;;
     *)
-      echo "[user] vcs type: '$vcs' not implemented" && exit 1
+      echo "[error] vcs type: '$vcs' not implemented" 1>&2 && return 1
       ;;
   esac
   cd - 1>/dev/null || return 1
@@ -275,7 +275,7 @@ fn_repo_pull() {
         git format-patch -k --stdout -1 "$id" > "$out"
         ;;
       *)
-        echo "[user] vcs type: '$vcs' not implemented" && exit 1
+        echo "[error] vcs type: '$vcs' not implemented" 1>&2 && return 1
         ;;
     esac
   done
@@ -287,11 +287,11 @@ fn_patch_info() {
   declare vcs; vcs="$1" && shift
   declare type; type="$1"
   [ ! -e "$patch" ] && \
-    { echo "[error] invalid patch file '$patch'" && return 1; }
+    { echo "[error] invalid patch file '$patch'" 1>&2 && return 1; }
   [ -z "$(echo "$type" | sed -n '/^\(date\|id\|description\|comments\|files\)$/p')" ] && \
-    { echo "[error] invalid info type '$type'" && return 1; }
+    { echo "[error] invalid info type '$type'" 1>&2 && return 1; }
   [ -z "$(echo "$vcs" | sed -n '/\(git\)/p')" ] && \
-    { echo "[error] unsupported repository type '$vcs'" && return 1; }
+    { echo "[error] unsupported repository type '$vcs'" 1>&2 && return 1; }
   case "$type" in
     "date")
       case "$vcs" in
@@ -439,7 +439,7 @@ fn_commits() {
         source="$target"
         target="$1"
       else
-        help "$option" && echo "[error] unknown arg '$1'" && return 1
+        help "$option" && echo "[error] unknown arg '$1'" 1>&2 && return 1
       fi
     fi
     shift
@@ -449,19 +449,19 @@ fn_commits() {
 
   s="$(echo "${src_type:-$src_type_default}" | sed -n 's/^\(auto\|vcs\|dir\|patch\|diff\)$/\1/p')"
   [ -z "$s" ] && \
-    { echo "[error] unknown source type '$src_type', aborting" && return 1; }
+    { echo "[error] unknown source type '$src_type', aborting" 1>&2 && return 1; }
   src_type="$s"
   source="${source:="."}"
   v=0
 
   if [[ $v -eq 0 && -f "$source" ]]; then
     [ -z "$(echo "$src_type" | sed -n '/\(patch\|diff\|auto\)/p')" ]
-      { echo "[error] invalid source, found file, required '$src_type', aborting" && return 1; }
+      { echo "[error] invalid source, found file, required '$src_type', aborting" 1>&2 && return 1; }
     src_type="diff"
     v=1
   elif [ -d "$source" ]; then
     [ -z "$(echo "$src_type" | sed -n '/^\(vcs\|dir\|auto\)$/p')" ] && \
-      { echo "[error] invalid source, found directory, required '$src_type', aborting" && return 1; }
+      { echo "[error] invalid source, found directory, required '$src_type', aborting" 1>&2 && return 1; }
     if [[ "x$src_type" == "xvcs" || "x$src_type" == "xauto" ]]; then
       fn_repo_type "$source" 1>/dev/null 2>&1
       res=$?
@@ -469,7 +469,7 @@ fn_commits() {
         src_type="vcs"
         v=1
       elif [[ $res -eq 1 && "x$src_type" == "xvcs" ]]; then
-        echo "[error] unknown vcs type for source directory '$source', aborting" && return 1
+        echo "[error] unknown vcs type for source directory '$source', aborting" 1>&2 && return 1
       fi
     fi
     if [ $v -eq 0 ]; then
@@ -479,15 +479,15 @@ fn_commits() {
   fi
   if [ $v -eq 0 ]; then
     [ -z "$source" ] && \
-      echo "[error] missing '$source', aborting" || \
-      echo "[error] invalid source '$source', aborting"
+      echo "[error] missing '$source', aborting" 1>&2 || \
+      echo "[error] invalid source '$source', aborting" 1>&2
     return 1
   fi
 
   target="${target:="."}"
   if [ ! -d "$target" ]; then
     if [ -z "$target" ]; then
-      echo "[error] missing '$target' directory, aborting" && return 1
+      echo "[error] missing '$target' directory, aborting" 1>&2 && return 1
     else
       fn_decision "[user] create target '$target'?" 1>/dev/null || return 1
       mkdir -p "$target" || return 1
@@ -512,14 +512,14 @@ fn_commits() {
         fn_decision "[user] initialise "$vcs" repo at target directory '$repo'?" 1>/dev/null || return 1
         init="${vcs_cmds_init[$vcs]}"
         [ -z "$init" ] && \
-          echo "[error] unsupported repository type, missing 'init' command" && return 1
+          echo "[error] unsupported repository type, missing 'init' command" 1>&2 && return 1
         (cd "$repo" && $init)
       fi
     done
   fi
 
   [ -z "$(echo "$order" | sed -n '/^\(default\|date\)$/p')" ] && \
-    { help "$option"; echo "[error] invalid order '$order'" 1>&2; exit 1; }
+    { help "$option"; echo "[error] invalid order '$order'" 1>&2; return 1; }
 
   # identify patch set
   declare target_fqn
@@ -529,7 +529,7 @@ fn_commits() {
   declare d_tmp_source
   case "$src_type" in
     "vcs")
-      commits_="$(fn_repo_search "$source" $limit "${filters[@]}")" || return 1
+      commits_="$(fn_repo_search "$source" $limit "${filters[@]}")" 1>&2 || return 1
       [ "x$order" = "xdate" ] && echo -e "$commits_" | sort
       IFS=$'\n'; commits=($(fn_repo_search "$source" $limit "${filters[@]}")) || return 1; IFS="$IFSORG"
       l_commits=${#commits[@]}
@@ -940,12 +940,12 @@ fn_changelog() {
         "f"|"file") shift && file="$1" ;;
         "rxid"|"rx-id") shift && rx_id="$1" ;;
         "ae"|"anchor_entry") shift && anchor_entry="$1" ;;
-        *) help "$option" && echo "[error] unrecognised arg '$1'" && return 1 ;;
+        *) help "$option" && echo "[error] unrecognised arg '$1'" 1>&2 && return 1 ;;
       esac
     else
       [ -z "$target" ] && \
         target="$1" || \
-        help "$option" && echo "[error] unrecognised arg '$1'" && return 1
+        help "$option" && echo "[error] unrecognised arg '$1'" 1>&2 && return 1
     fi
     shift
   done
@@ -953,11 +953,11 @@ fn_changelog() {
   # validate args
   [ -z "$target" ] && target="$target_default"
   [ -d "$target" ] || \
-    { help "$option" && echo "[error] invalid target '$target'" && return 1; }
+    { help "$option" && echo "[error] invalid target '$target'" 1>&2 && return 1; }
   vcs="$(fn_repo_type "$target")"
-  [ -z "$vcs" ] && echo "[error] unsupported repository type" && return 1
+  [ -z "$vcs" ] && echo "[error] unsupported repository type" 1>&2 && return 1
   [ -z "${changelog_profiles["$profile"]}" ] && \
-    { help "$option" && echo "[error] invalid profile '$profile'" && return 1; }
+    { help "$option" && echo "[error] invalid profile '$profile'" 1>&2 && return 1; }
   [ -z "$file" ] && file="${changelog_profile_file["$profile"]}"
   [ -z "$rx_id" ] && rx_id="${changelog_profile_rx_id["$profile"]}"
   [ -z "$anchor_entry" ] && anchor_entry="${changelog_profile_anchor_entry["$profile"]}"
@@ -1044,7 +1044,7 @@ fn_changelog() {
       mv "$f_tmp" "$file"
       ;;
     *)
-      echo "[info] vcs type: '$vcs' not implemented" && return 1
+      echo "[error] vcs type: '$vcs' not implemented" 1>&2 && return 1
       ;;
   esac
 }
@@ -1092,7 +1092,7 @@ fn_debug() {
           args_pt="${s:1}"
           continue;
           ;;
-        *) help "$option" && echo "[error] unrecognised arg '$1'" && return 1
+        *) help "$option" && echo "[error] unrecognised arg '$1'" 1>2 && return 1
       esac
     else
       args[${#args[@]}]="$1"
@@ -1105,7 +1105,7 @@ fn_debug() {
      -z "$(echo "$language" | \
        sed -n '/^\('"$(echo "$supported_languages" | \
          sed 's/ /\\|/g')"'\)$/p')" ]] && \
-    help "$option" && echo "[error] unsupported language '$language'" && return 1
+    help "$option" && echo "[error] unsupported language '$language'" 1>&2 && return 1
 
   language=${language:-$language_default}
 
@@ -1296,7 +1296,7 @@ fn_refactor() {
     # 'GNU indent' wrapper
 
     [ -z "$(which indent)" ] && \
-      echo "[error] no binary 'indent' found on this system" && return 1
+      echo "[error] no binary 'indent' found on this system" 1>&2 && return 1
 
     # ensure args
     [ -z "$xi_profile" ] && xi_profile="$xi_profile_default"
@@ -1431,7 +1431,7 @@ fn_port() {
     echo "[info] pipe detected, redirecting non-result output to stderr" 1>&2 && stdout=2
 
   # process args
-  [ $# -lt 1 ] && help "$option" && echo "[error] not enough args" && return 1
+  [ $# -lt 1 ] && help "$option" && echo "[error] not enough args" 1>&2 && return 1
   while [ -n "$1" ]; do
     arg="$(echo "$1" | sed 's/^[ ]*-*//')"
     if [ ${#arg} -lt ${#1} ]; then
@@ -1457,9 +1457,9 @@ fn_port() {
 
   # validate args
   [ ! -f "$target" ] && \
-    echo "[error] invalid target file '$target'" && return 1
+    echo "[error] invalid target file '$target'" 1>&2 && return 1
   [ ! -f "$transforms" ] && \
-    echo "[error] invalid transforms file '$transforms'" && return 1
+    echo "[error] invalid transforms file '$transforms'" 1>&2 && return 1
   type="${target##*.}"
   from="${from:-$type}"
   to="${to:-$type}"
@@ -1487,7 +1487,7 @@ fn_port() {
     done
   fi
   [[ $diffs -eq 1 && ! -x "$cmd_diff" ]] && \
-    echo "[error] no diff binary found'" && return 1
+    echo "[error] no diff binary found'" 1>&2 && return 1
 
   [ $DEBUG -ge 1 ] && echo "[debug] type: $type, xs|from: $from, xt|to: $to" 1>&2
 
