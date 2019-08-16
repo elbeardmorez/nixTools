@@ -42,7 +42,7 @@ help() {
 "
 }
 
-function fnLog() {
+fn_log() {
   # validate arg(s)
   rev1=-1 && [ $# -gt 0 ] && rev1="$1" && shift
   [ "x$(echo $rev1 | sed -n '/^[-+r]\?[0-9]\+$/p')" = "x" ] &&
@@ -52,18 +52,18 @@ function fnLog() {
     rev2="$1" && shift
 
   # tokenise
-  IFS=$'\n' && tokens=(`echo " $rev1 " | sed -n 's/\(\s*[-+r]\?\|\s*\)\([0-9]\+\)\(.*\)$/\1\n\2\n\3/p'`) && IFS="$IFSORG"
-  rev1prefix=`echo ${tokens[0]} | tr -d ' '`
-  rev1=`echo ${tokens[1]} | tr -d ' '`
-  rev1suffix=`echo ${tokens[2]} | tr -d ' '`
+  IFS=$'\n' && tokens=($(echo " $rev1 " | sed -n 's/\(\s*[-+r]\?\|\s*\)\([0-9]\+\)\(.*\)$/\1\n\2\n\3/p')) && IFS="$IFSORG"
+  rev1prefix="$(echo ${tokens[0]} | tr -d ' ')"
+  rev1="$(echo ${tokens[1]} | tr -d ' ')"
+  rev1suffix="$(echo ${tokens[2]} | tr -d ' ')"
   tokens=("" "" "")
-  [ "x$rev2" != "x" ] &&
-    IFS=$'\n' && tokens=(`echo " $rev2 " | sed -n 's/\(\s*[-+r]\?\|\s*\)\([0-9]\+\)\(.*\)$/\1\n\2\n\3/p'`) && IFS="$IFSORG"
-  rev2prefix=`echo ${tokens[0]} | tr -d ' '`
-  rev2=`echo ${tokens[1]} | tr -d ' '`
-  rev2suffix=`echo ${tokens[2]} | tr -d ' '`
+  [ "x$rev2" != "x" ] && \
+    { IFS=$'\n' && tokens=($(echo " $rev2 " | sed -n 's/\(\s*[-+r]\?\|\s*\)\([0-9]\+\)\(.*\)$/\1\n\2\n\3/p')) && IFS="$IFSORG"; }
+  rev2prefix="$(echo ${tokens[0]} | tr -d ' ')"
+  rev2="$(echo ${tokens[1]} | tr -d ' ')"
+  rev2suffix="$(echo ${tokens[2]} | tr -d ' ')"
   [ $DEBUG -gt 0 ] &&
-    echo "[debug|fnLog] rev1: '$rev1prefix|$rev1|$rev1suffix' `[ "x$rev2" != "x" ] && echo "rev2: '$rev2prefix|$rev2|$rev2suffix'"`" 1>&2
+    echo "[debug|fn_log] rev1: '$rev1prefix|$rev1|$rev1suffix' $([ "x$rev2" != "x" ] && echo "rev2: '$rev2prefix|$rev2|$rev2suffix'")" 1>&2
   # mod
   if [ "x$rev1prefix" = "x" ]; then
     [ $rev1 -gt 25 ] && rev1prefix="-r " || rev1prefix="-"
@@ -82,51 +82,51 @@ function fnLog() {
   else
     if [ "x$rev1prefix" = "x-" ]; then
       # convert to revision numbers
-      base=`fnRevision`
+      base=$(fn_revision)
       [ "x$base" = "x" ] && base=0
       rev2prefix=""
-      rev1=$[$base-$rev1+1]
-      rev2=$[$base-$rev2+1]
+      rev1=$((base - rev1 + 1))
+      rev2=$((base - rev2 + 1))
     fi
     rev1prefix="-r "
   fi
   [ $DEBUG -gt 0 ] &&
-    echo "[debug|fnLog] rev1: '$rev1prefix|$rev1|$rev1suffix' `[ "x$rev2" != "x" ] && echo "rev2: '$rev2prefix|$rev2|$rev2suffix'"`" 1>&2
+    echo "[debug|fn_log] rev1: '$rev1prefix|$rev1|$rev1suffix' $([ "x$rev2" != "x" ] && echo "rev2: '$rev2prefix|$rev2|$rev2suffix'")" 1>&2
   [ $DEBUG -gt 0 ] &&
-    echo "[debug|fnLog] svn log $rev1prefix$rev1$rev1suffix$rev2prefix$rev2$rev2suffix" "$@" 1>&2
+    echo "[debug|fn_log] svn log $rev1prefix$rev1$rev1suffix$rev2prefix$rev2$rev2suffix" "$@" 1>&2
   [ $TEST -eq 0 ] && svn log $rev1prefix$rev1$rev1suffix$rev2prefix$rev2$rev2suffix "$@"
 }
 
-function fnRevision() {
-  echo `svn info 2>/dev/null | sed -n 's/^\s*Revision:\s*\([0-9]\+\)\s*/\1/p'`
+fn_revision() {
+  echo "$(svn info 2>/dev/null)" | sed -n 's/^\s*Revision:\s*\([0-9]\+\)\s*/\1/p'
 }
 
-function fnPatch() {
+fn_patch() {
   revision=-1 && [ $# -gt 0 ] && revision="$1" && shift
   target="" && [ $# -gt 0 ] && target="$1" && shift
   l=1;
   loglines=()
 
   while read -r line; do loglines[${#loglines[@]}]="$line"; done << EOF
-`fnLog $revision 2>/dev/null`
+"$(fn_log $revision 2>/dev/null)"
 EOF
-  [ $DEBUG -gt 0 ] && echo "[debug|fnPatch] dumping commit message:" &&
-    for l in `seq 0 1 ${#loglines[@]}`; do echo "idx$l: ${loglines[$l]}"; done
+  [ $DEBUG -gt 0 ] && echo "[debug|fn_patch] dumping commit message:" &&
+    for l in $(seq 0 1 ${#loglines[@]}); do echo "idx$l: ${loglines[$l]}"; done
 
-  revision=`echo "${loglines[1]}" | cut -d'|' -f1 | sed 's/\s*r\([0-9]*\)\s*/\1/'`
-  author=`echo "${loglines[1]}" | cut -d'|' -f2 | sed 's/\(^\s*\|\s*$\)//g' | sed "$RX_AUTHOR"`
-  date_=`echo "${loglines[1]}" | cut -d'|' -f3 | sed 's/\(^\s*\|\s*$\)//g' | cut -d' ' -f1-3`
+  revision="$(echo "${loglines[1]}" | cut -d'|' -f1 | sed 's/\s*r\([0-9]*\)\s*/\1/')"
+  author="$(echo "${loglines[1]}" | cut -d'|' -f2 | sed 's/\(^\s*\|\s*$\)//g' | sed "$RX_AUTHOR")"
+  date_="$(echo "${loglines[1]}" | cut -d'|' -f3 | sed 's/\(^\s*\|\s*$\)//g' | cut -d' ' -f1-3)"
   if [ "x$target" = "x" ]; then
-    target="`echo "${loglines[3]}" | sed 's/\s*\([0-9]\+|\)\s*\(.*\)/\1\2/;s/ /./g;s/^\.//g' | sed 's/^[-.*]*\.//g' | sed 's/[/\`]/./g' | sed 's/\.\././g' | awk '{print tolower($0)}' `"
-    target="`[ $revision -eq -1 ] && echo "0001" || echo "$revision"`.$target.diff"
+    target="$(echo "${loglines[3]}" | sed 's/\s*\([0-9]\+|\)\s*\(.*\)/\1\2/;s/ /./g;s/^\.//g' | sed 's/^[-.*]*\.//g' | sed 's/[/\`]/./g' | sed 's/\.\././g' | awk '{print tolower($0)}')"
+    target="$([ $revision -eq -1 ] && echo "0001" || echo "$revision").$target.diff"
   fi
   message="author: $author\ndate: $date_\nrevision: $revision\nsubject: "
-  for l in `seq 3 1 $[${#loglines[@]}-2]`; do message+="${loglines[$l]}\n"; done
+  for l in $(seq 3 1 $[${#loglines[@]} - 2]); do message+="${loglines[$l]}\n"; done
   echo -e "$message\n" > "$target"
-  fnDiff $revision >> $target
+  fn_diff $revision >> "$target"
 }
 
-function fnDiff() {
+fn_diff() {
   svn diff -c${1:-"-1"}
 }
 
@@ -141,7 +141,7 @@ case "$option" in
     ;;
 
   "log")
-    [ $# -eq 0 ] && fnLog 1 || fnLog "$@"
+    [ $# -eq 0 ] && fn_log 1 || fn_log "$@"
     ;;
 
   "amend")
@@ -159,7 +159,7 @@ case "$option" in
 
     repo=$(echo "$target" | sed 's/.*\/\(.*\)/\1/')
 
-    if ! [ -d $target ]; then
+    if [ ! -d $target ]; then
       mkdir -p $target
       if [ $? -ne 0 ]; then
         echo cannot create $target
@@ -200,7 +200,7 @@ case "$option" in
 
   "clean-repo")
     target=$1
-    if ! [ -d $target ]; then
+    if [ ! -d $target ]; then
       echo "'$target' is not a directory"
       exit 1
     fi
@@ -236,7 +236,7 @@ case "$option" in
     fi
 
     declare list
-    for arg in $@; do
+    for arg in "$@"; do
       if [ ${#list} -eq 0 ]; then
         list="$arg"
       else
@@ -251,7 +251,7 @@ case "$option" in
     ;;
 
   "revision")
-    fnRevision
+    fn_revision
     ;;
 
   "status")
@@ -259,12 +259,12 @@ case "$option" in
     ;;
 
   "diff")
-    fnDiff "$@"
+    fn_diff "$@"
     ;;
 
   "patch")
     [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
-    fnPatch "$@"
+    fn_patch "$@"
     ;;
 
   "clone")
@@ -272,7 +272,7 @@ case "$option" in
     source="$1" && shift
     target="$1" && shift
     [ ! -d "$target" ] && mkdir -p "$target"
-    target=`cd $target; pwd;`
+    target="$(cd $target; pwd)"
     svnadmin create "$target"
     echo -e '#!/bin/sh\nexit 0' > "${target}/hooks/pre-revprop-change"
     chmod 755 "${target}/hooks/pre-revprop-change"
@@ -285,19 +285,19 @@ case "$option" in
     case "$type" in
       "log")
         TEST=1
-        echo ">log r12 r15" && fnLog r12 r15
-        echo ">log r15 r12" && fnLog r15 r12
-        echo ">log 12 15" && fnLog 12 15
-        echo ">log -12 -15" && fnLog -12 -15
-        echo ">log -15 -12" && fnLog -15 -12
-        echo ">log -10" && fnLog -10
-        echo ">log 10" && fnLog 10
-        echo ">log 30" && fnLog 30
-        echo ">log -30" && fnLog -30
-        echo ">log +10" && fnLog +10
-        echo ">log r10" && fnLog r10
-        echo ">log r10 /path" && fnLog r10 /path
-        echo ">log r10 r15 /path" && fnLog r10 r15 /path
+        echo ">log r12 r15" && fn_log r12 r15
+        echo ">log r15 r12" && fn_log r15 r12
+        echo ">log 12 15" && fn_log 12 15
+        echo ">log -12 -15" && fn_log -12 -15
+        echo ">log -15 -12" && fn_log -15 -12
+        echo ">log -10" && fn_log -10
+        echo ">log 10" && fn_log 10
+        echo ">log 30" && fn_log 30
+        echo ">log -30" && fn_log -30
+        echo ">log +10" && fn_log +10
+        echo ">log r10" && fn_log r10
+        echo ">log r10 /path" && fn_log r10 /path
+        echo ">log r10 r15 /path" && fn_log r10 r15 /path
         ;;
     esac
     ;;
