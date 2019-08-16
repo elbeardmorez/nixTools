@@ -145,11 +145,13 @@ case "$option" in
     ;;
 
   "amend")
+    [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
     revision=$1 && shift
     svn propedit --revprop -r $revision svn:log
     ;;
 
   "add-repo")
+    [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
     target=$1
     if [ "$(echo "$target" | awk '{print substr($0, length($0))}')" = "/" ]; then
       target=$(echo "$target" | awk '{print substr($0, 1, length($0) - 1)}')
@@ -226,6 +228,8 @@ case "$option" in
     ;;
 
   "ignore")
+    [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
+
     if [ ! -d $(pwd)/.svn ]; then
       echo $(pwd) is not under source control
       exit 1
@@ -259,10 +263,12 @@ case "$option" in
     ;;
 
   "patch")
+    [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
     fnPatch "$@"
     ;;
 
   "clone")
+    [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
     source="$1" && shift
     target="$1" && shift
     [ ! -d "$target" ] && mkdir -p "$target"
