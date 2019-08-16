@@ -45,7 +45,7 @@ help() {
 function fnLog() {
   # validate arg(s)
   rev1=-1 && [ $# -gt 0 ] && rev1="$1" && shift
-  [ "x$(echo $rev1 | sed -n '/^[-+r]\?[0-9]\+$/p')" == "x" ] &&
+  [ "x$(echo $rev1 | sed -n '/^[-+r]\?[0-9]\+$/p')" = "x" ] &&
     echo "[error] invalid revision arg '$rev1'" && exit 1
   rev2="" && [ $# -gt 0 ] &&
     [ "x$(echo "$1" | sed -n '/^[-+r]\?[0-9]\+$/p')" != "x" ] &&
@@ -65,25 +65,25 @@ function fnLog() {
   [ $DEBUG -gt 0 ] &&
     echo "[debug|fnLog] rev1: '$rev1prefix|$rev1|$rev1suffix' `[ "x$rev2" != "x" ] && echo "rev2: '$rev2prefix|$rev2|$rev2suffix'"`" 1>&2
   # mod
-  if [ "x$rev1prefix" == "x" ]; then
+  if [ "x$rev1prefix" = "x" ]; then
     [ $rev1 -gt 25 ] && rev1prefix="-r " || rev1prefix="-"
   fi
   [[ "x$rev1prefix" == "x" && $rev1 -gt 25 ]] && rev1prefix="-"
-  [ "x$rev1prefix" == "x+" ] && rev1prefix="-r "
-  [ "x$rev1prefix" == "xr" ] && rev1prefix="-r "
+  [ "x$rev1prefix" = "x+" ] && rev1prefix="-r "
+  [ "x$rev1prefix" = "xr" ] && rev1prefix="-r "
   if [ "x$rev2" != "x" ]; then
     rev1suffix=":"
     [[ "x$rev1prefix" != "x-" && $rev1 -gt $rev2 ]] && revX=$rev1 && rev1=$rev2 && rev2=$revX
     [[ "x$rev1prefix" == "x-" && $rev2 -gt $rev1 ]] && revX=$rev1 && rev1=$rev2 && rev2=$revX
     rev2prefix=""
   fi
-  if [ "x$rev2" == "x" ]; then
+  if [ "x$rev2" = "x" ]; then
     [[ "x$rev1prefix" == "x-" || "x$rev1prefix" == "x" ]] && rev1prefix="-l "
   else
-    if [ "x$rev1prefix" == "x-" ]; then
+    if [ "x$rev1prefix" = "x-" ]; then
       # convert to revision numbers
       base=`fnRevision`
-      [ "x$base" == "x" ] && base=0
+      [ "x$base" = "x" ] && base=0
       rev2prefix=""
       rev1=$[$base-$rev1+1]
       rev2=$[$base-$rev2+1]
@@ -116,7 +116,7 @@ EOF
   revision=`echo "${loglines[1]}" | cut -d'|' -f1 | sed 's/\s*r\([0-9]*\)\s*/\1/'`
   author=`echo "${loglines[1]}" | cut -d'|' -f2 | sed 's/\(^\s*\|\s*$\)//g' | sed "$RX_AUTHOR"`
   date_=`echo "${loglines[1]}" | cut -d'|' -f3 | sed 's/\(^\s*\|\s*$\)//g' | cut -d' ' -f1-3`
-  if [ "x$target" == "x" ]; then
+  if [ "x$target" = "x" ]; then
     target="`echo "${loglines[3]}" | sed 's/\s*\([0-9]\+|\)\s*\(.*\)/\1\2/;s/ /./g;s/^\.//g' | sed 's/^[-.*]*\.//g' | sed 's/[/\`]/./g' | sed 's/\.\././g' | awk '{print tolower($0)}' `"
     target="`[ $revision -eq -1 ] && echo "0001" || echo "$revision"`.$target.diff"
   fi
