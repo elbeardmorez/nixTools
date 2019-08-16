@@ -1,4 +1,6 @@
 #!/bin/sh
+SCRIPTNAME=${0##*/}
+
 DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
 IFSORG="$IFS"
@@ -6,6 +8,39 @@ IFSORG="$IFS"
 SERVER=http://localhost/svn/
 REPO_OWNER_ID=80
 RX_AUTHOR="${RX_AUTHOR:-""}"
+
+help() {
+  echo -e "SYNTAX: $SCRIPTNAME OPTION [OPT_ARGS]
+\nwhere OPTION:
+  log [r]X [[r]X2]  : output commit log info for items / revision
+                      described, with X a revision number, or the
+                      limit of commits to output
+\n    supported X:
+      X  [1 <= X <= 25]  : last x commits (-l X)
+      X  [X > 25]         : revision X (-c X)
+      +X  [1 <= X <= ..]  : revision X (-c X)
+      rX  [1 <= X <= ..]  : revision X (-c X)
+      -X  [X <= -1]       : last X commits (-l X)
+      rX _1 rX_2  [1 <= X_1/X_2 <= ..]
+        : commits between revision X_1 and revision X_2
+          inclusive (-r'min(X_1,X_2)'..'max(X_1,X_2)')
+      -X_1 -X_2  [1 <= X_1/X_2 <= ..]
+        : commits between revision 'HEAD - X_1' and revision
+          'HEAD - X_2' inclusive (-r'-min(X_1,X_2)'..-'max(X_1,X_2)')
+\n  amend ID  : amend log entry for commit ID
+  add-repo  : add a new repository to the server using an existing
+              template named 'temp'
+  clean-repo TARGET : remove all '.svn' under TARGET
+  ignore PATH [PATH ..] : add a list of paths to svn:ignore
+  revision  : output current revision
+  status  : display an improved status of updated and new files
+  diff [ID]  : take diff of ID (default PREV) against HEAD
+  patch ID TARGET  : format a patch for revision ID and written to
+                     TARGET
+  clone SOURCE_URL TARGET  : clone remote repository at SOURCE_URL to
+                             local TARGET directory
+"
+}
 
 function fnLog() {
   # validate arg(s)
@@ -95,15 +130,16 @@ function fnDiff() {
   svn diff -c${1:-"-1"}
 }
 
-if [ $# -eq 0 ]; then
-  echo no params!
-  exit 1
-fi
+[ $# -eq 0 ] && help && echo "[error] insufficient args" && exit 1
 
 option=log
-[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(log\|add-repo\|clean-repo\|amend\|ignore\|revision\|diff\|patch\|status\|clone\|test\)/p')" != "x" ] && option="$1" && shift
+[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(help\|log\|add-repo\|clean-repo\|amend\|ignore\|revision\|diff\|patch\|status\|clone\|test\)/p')" != "x" ] && option="$1" && shift
 
 case "$option" in
+  "help")
+    help
+    ;;
+
   "log")
     [ $# -eq 0 ] && fnLog 1 || fnLog "$@"
     ;;
