@@ -144,6 +144,11 @@ case "$option" in
     [ $# -eq 0 ] && fnLog 1 || fnLog "$@"
     ;;
 
+  "amend")
+    revision=$1 && shift
+    svn propedit --revprop -r $revision svn:log
+    ;;
+
   "add-repo")
     target=$1
     if [ "$(echo "$target" | awk '{print substr($0, length($0))}')" = "/" ]; then
@@ -218,11 +223,6 @@ case "$option" in
         done
       fi
     fi
-    ;;
-
-  "amend")
-    revision=$1 && shift
-    svn propedit --revprop -r $revision svn:log
     ;;
 
   "ignore")
