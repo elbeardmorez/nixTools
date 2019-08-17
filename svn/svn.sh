@@ -132,148 +132,148 @@ fn_diff() {
 }
 
 fn_amend() {
-    [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
-    revision=$1 && shift
-    svn propedit --revprop -r $revision svn:log
+  [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
+  revision=$1 && shift
+  svn propedit --revprop -r $revision svn:log
 }
 
 fn_add_repo() {
-    [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
-    target=$1
-    if [ "$(echo "$target" | awk '{print substr($0, length($0))}')" = "/" ]; then
-      target=$(echo "$target" | awk '{print substr($0, 1, length($0) - 1)}')
+  [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
+  target=$1
+  if [ "$(echo "$target" | awk '{print substr($0, length($0))}')" = "/" ]; then
+    target=$(echo "$target" | awk '{print substr($0, 1, length($0) - 1)}')
+  fi
+
+  repo=$(echo "$target" | sed 's/.*\/\(.*\)/\1/')
+
+  if [ ! -d $target ]; then
+    mkdir -p $target
+    if [ $? -ne 0 ]; then
+      echo cannot create $target
+      exit 1
     fi
+  fi
 
-    repo=$(echo "$target" | sed 's/.*\/\(.*\)/\1/')
-
-    if [ ! -d $target ]; then
-      mkdir -p $target
-      if [ $? -ne 0 ]; then
-        echo cannot create $target
-        exit 1
-      fi
-    fi
-
-    if [ "$(ls -A $target)" ]; then
-      echo -n "repo path is not empty, delete contents of $target? [y/n]"
-      declare result
-      while read -es -n 1 result ; do
-        if [ "$result" = "y" ]; then
-          break
-        elif [ "$result" = "n" ]; then
-          exit 1
-        fi
-      done
+  if [ "$(ls -A $target)" ]; then
+    echo -n "repo path is not empty, delete contents of $target? [y/n]"
+    declare result
+    while read -es -n 1 result ; do
       if [ "$result" = "y" ]; then
-        rm -R $target/*
-      else
+        break
+      elif [ "$result" = "n" ]; then
         exit 1
       fi
+    done
+    if [ "$result" = "y" ]; then
+      rm -R $target/*
+    else
+      exit 1
     fi
+  fi
 
-    # cd necessary as svnadmin doesn't handle relative paths
-    cwd=$(pwd)
-    cd $target
-    svnadmin create --fs-type fsfs $target
-    chown -R $REPO_OWNER_ID:$REPO_OWNER_ID $target
-    chmod -R ug+rw $target
+  # cd necessary as svnadmin doesn't handle relative paths
+  cwd=$(pwd)
+  cd $target
+  svnadmin create --fs-type fsfs $target
+  chown -R $REPO_OWNER_ID:$REPO_OWNER_ID $target
+  chmod -R ug+rw $target
 
-    rm -rf temp
-    svn co $SERVER$repo temp
-    svn mkdir temp/branches temp/tags temp/trunk
-    svn ci -m "[add] repository structure" ./temp
-    rm -rf temp
+  rm -rf temp
+  svn co $SERVER$repo temp
+  svn mkdir temp/branches temp/tags temp/trunk
+  svn ci -m "[add] repository structure" ./temp
+  rm -rf temp
 }
 
 fn_clean_repo() {
-    target=$1
-    if [ ! -d $target ]; then
-      echo "'$target' is not a directory"
-      exit 1
-    fi
-    matches=($(find $target -name *.svn))
-    if [ ${#matches[@]} -eq 0 ]; then
-      echo "no '.svn' directories found under specified workspace"
-    else
+  target=$1
+  if [ ! -d $target ]; then
+    echo "'$target' is not a directory"
+    exit 1
+  fi
+  matches=($(find $target -name *.svn))
+  if [ ${#matches[@]} -eq 0 ]; then
+    echo "no '.svn' directories found under specified workspace"
+  else
+    for d in ${matches[@]}; do
+      echo "found a '.svn' directory at '$d'"
+    done
+    echo -n "remove all? [y/n]"
+    read -es -n1 result
+    if [ "$result" = "y" ]; then
       for d in ${matches[@]}; do
-        echo "found a '.svn' directory at '$d'"
+        rm -rf $d
+        if [[ $? -eq 0 && ! -d $d ]]; then
+          echo "removed '$d'"
+        else
+          echo "failed to remove '$d'"
+          exit 1
+        fi
       done
-      echo -n "remove all? [y/n]"
-      read -es -n1 result
-      if [ "$result" = "y" ]; then
-        for d in ${matches[@]}; do
-          rm -rf $d
-          if [[ $? -eq 0 && ! -d $d ]]; then
-            echo "removed '$d'"
-          else
-            echo "failed to remove '$d'"
-            exit 1
-          fi
-        done
-      fi
     fi
+  fi
 }
 
 fn_ignore() {
-    [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
+  [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
 
-    if [ ! -d $(pwd)/.svn ]; then
-      echo $(pwd) is not under source control
-      exit 1
+  if [ ! -d $(pwd)/.svn ]; then
+    echo $(pwd) is not under source control
+    exit 1
+  fi
+
+  declare list
+  for arg in "$@"; do
+    if [ ${#list} -eq 0 ]; then
+      list="$arg"
+    else
+      list=$list\$\'\\n\'$arg
     fi
+  done
+  eval "svn propset svn:ignore $list ."
 
-    declare list
-    for arg in "$@"; do
-      if [ ${#list} -eq 0 ]; then
-        list="$arg"
-      else
-        list=$list\$\'\\n\'$arg
-      fi
-    done
-    eval "svn propset svn:ignore $list ."
-
-    sleep 1
-    echo "svn:ignore set:"
-    svn propget svn:ignore
+  sleep 1
+  echo "svn:ignore set:"
+  svn propget svn:ignore
 }
 
 fn_status() {
-    svn status --show-updates "$@" | grep -vP "\s*\?"
+  svn status --show-updates "$@" | grep -vP "\s*\?"
 }
 
 fn_clone() {
-    [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
-    source="$1" && shift
-    target="$1" && shift
-    [ ! -d "$target" ] && mkdir -p "$target"
-    target="$(cd $target; pwd)"
-    svnadmin create "$target"
-    echo -e '#!/bin/sh\nexit 0' > "${target}/hooks/pre-revprop-change"
-    chmod 755 "${target}/hooks/pre-revprop-change"
-    svnsync init "file://$target" "$source" || exit 1
-    svnsync sync "file://$target" || exit 1
+  [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
+  source="$1" && shift
+  target="$1" && shift
+  [ ! -d "$target" ] && mkdir -p "$target"
+  target="$(cd $target; pwd)"
+  svnadmin create "$target"
+  echo -e '#!/bin/sh\nexit 0' > "${target}/hooks/pre-revprop-change"
+  chmod 755 "${target}/hooks/pre-revprop-change"
+  svnsync init "file://$target" "$source" || exit 1
+  svnsync sync "file://$target" || exit 1
 }
 
 fn_test() {
-    type=${1:-log}
-    case "$type" in
-      "log")
-        TEST=1
-        echo ">log r12 r15" && fn_log r12 r15
-        echo ">log r15 r12" && fn_log r15 r12
-        echo ">log 12 15" && fn_log 12 15
-        echo ">log -12 -15" && fn_log -12 -15
-        echo ">log -15 -12" && fn_log -15 -12
-        echo ">log -10" && fn_log -10
-        echo ">log 10" && fn_log 10
-        echo ">log 30" && fn_log 30
-        echo ">log -30" && fn_log -30
-        echo ">log +10" && fn_log +10
-        echo ">log r10" && fn_log r10
-        echo ">log r10 /path" && fn_log r10 /path
-        echo ">log r10 r15 /path" && fn_log r10 r15 /path
-        ;;
-    esac
+  type=${1:-log}
+  case "$type" in
+    "log")
+      TEST=1
+      echo ">log r12 r15" && fn_log r12 r15
+      echo ">log r15 r12" && fn_log r15 r12
+      echo ">log 12 15" && fn_log 12 15
+      echo ">log -12 -15" && fn_log -12 -15
+      echo ">log -15 -12" && fn_log -15 -12
+      echo ">log -10" && fn_log -10
+      echo ">log 10" && fn_log 10
+      echo ">log 30" && fn_log 30
+      echo ">log -30" && fn_log -30
+      echo ">log +10" && fn_log +10
+      echo ">log r10" && fn_log r10
+      echo ">log r10 /path" && fn_log r10 /path
+      echo ">log r10 r15 /path" && fn_log r10 r15 /path
+      ;;
+  esac
 }
 
 fn_process() {
@@ -293,7 +293,7 @@ fn_process() {
     "clone") fn_clone "$@" ;;
     "test") fn_test "$@" ;;
     *) echo "unsupported option '$option'" ;;
-esac
+  esac
 }
 
 process "$@"
