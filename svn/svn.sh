@@ -102,6 +102,7 @@ fn_revision() {
 }
 
 fn_patch() {
+  [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
   revision=-1 && [ $# -gt 0 ] && revision="$1" && shift
   target="" && [ $# -gt 0 ] && target="$1" && shift
   l=1;
@@ -130,27 +131,13 @@ fn_diff() {
   svn diff -c${1:-"-1"}
 }
 
-[ $# -eq 0 ] && help && echo "[error] insufficient args" && exit 1
-
-option=log
-[ $# -gt 0 ] && [ "x$(echo "$1" | sed -n '/\(help\|log\|add-repo\|clean-repo\|amend\|ignore\|revision\|diff\|patch\|status\|clone\|test\)/p')" != "x" ] && option="$1" && shift
-
-case "$option" in
-  "help")
-    help
-    ;;
-
-  "log")
-    [ $# -eq 0 ] && fn_log 1 || fn_log "$@"
-    ;;
-
-  "amend")
+fn_amend() {
     [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
     revision=$1 && shift
     svn propedit --revprop -r $revision svn:log
-    ;;
+}
 
-  "add-repo")
+fn_add_repo() {
     [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
     target=$1
     if [ "$(echo "$target" | awk '{print substr($0, length($0))}')" = "/" ]; then
@@ -196,9 +183,9 @@ case "$option" in
     svn mkdir temp/branches temp/tags temp/trunk
     svn ci -m "[add] repository structure" ./temp
     rm -rf temp
-    ;;
+}
 
-  "clean-repo")
+fn_clean_repo() {
     target=$1
     if [ ! -d $target ]; then
       echo "'$target' is not a directory"
@@ -225,9 +212,9 @@ case "$option" in
         done
       fi
     fi
-    ;;
+}
 
-  "ignore")
+fn_ignore() {
     [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
 
     if [ ! -d $(pwd)/.svn ]; then
@@ -248,26 +235,13 @@ case "$option" in
     sleep 1
     echo "svn:ignore set:"
     svn propget svn:ignore
-    ;;
+}
 
-  "revision")
-    fn_revision
-    ;;
-
-  "status")
+fn_status() {
     svn status --show-updates "$@" | grep -vP "\s*\?"
-    ;;
+}
 
-  "diff")
-    fn_diff "$@"
-    ;;
-
-  "patch")
-    [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
-    fn_patch "$@"
-    ;;
-
-  "clone")
+fn_clone() {
     [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
     source="$1" && shift
     target="$1" && shift
@@ -278,9 +252,9 @@ case "$option" in
     chmod 755 "${target}/hooks/pre-revprop-change"
     svnsync init "file://$target" "$source" || exit 1
     svnsync sync "file://$target" || exit 1
-    ;;
+}
 
-  "test")
+fn_test() {
     type=${1:-log}
     case "$type" in
       "log")
@@ -300,10 +274,26 @@ case "$option" in
         echo ">log r10 r15 /path" && fn_log r10 r15 /path
         ;;
     esac
-    ;;
+}
 
-  *)
-    echo "unsupported option '$option'"
-    ;;
-
+fn_process() {
+  option="help"
+  [ $# -gt 0 ] && [ "x$(echo "$option" | sed -n '/\(help\|log\|add-repo\|clean-repo\|amend\|ignore\|revision\|diff\|patch\|status\|clone\|test\)/p')" != "x" ] && option="$1" && shift
+  case "$option" in
+    "help") help ;;
+    "log") fn_log "$@" ;;
+    "amend") fn_amend "$@" ;;
+    "add-repo") fn_add_repo "$@" ;;
+    "clean-repo") fn_clean_repo "$@" ;;
+    "ignore") fn_ignore "$@" ;;
+    "revision") fn_revision ;;
+    "status") fn_status "$@" ;;
+    "diff") fn_diff "$@" ;;
+    "patch") fn_patch "$@" ;;
+    "clone") fn_clone "$@" ;;
+    "test") fn_test "$@" ;;
+    *) echo "unsupported option '$option'" ;;
 esac
+}
+
+process "$@"
