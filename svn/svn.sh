@@ -12,33 +12,34 @@ RX_AUTHOR="${RX_AUTHOR:-""}"
 help() {
   echo -e "SYNTAX: $SCRIPTNAME OPTION [OPT_ARGS]
 \nwhere OPTION:
-  log [r]X [[r]X2]  : output commit log info for items / revision
-                      described, with X a revision number, or the
-                      limit of commits to output
-\n    supported X:
-      X  [1 <= X <= 25]  : last x commits (-l X)
-      X  [X > 25]         : revision X (-c X)
-      +X  [1 <= X <= ..]  : revision X (-c X)
-      rX  [1 <= X <= ..]  : revision X (-c X)
-      -X  [X <= -1]       : last X commits (-l X)
-      rX _1 rX_2  [1 <= X_1/X_2 <= ..]
-        : commits between revision X_1 and revision X_2
-          inclusive (-r'min(X_1,X_2)'..'max(X_1,X_2)')
-      -X_1 -X_2  [1 <= X_1/X_2 <= ..]
+  -l|--log [r]X [[r]X2]  : output commit log info for items / revision
+                           described, with X a revision number, or the
+                           limit of commits to output
+\n    with supported X:
+      [X : 1 <= X <= 25]   : last x commits (-l X)
+      [X : X > 25]         : revision X (-c X)
+      [+X : 1 <= X <= ..]  : revision X (-c X)
+      [rX : 1 <= X <= ..]  : revision X (-c X)
+      [-X : X <= -1]       : last X commits (-l X)
+      [rX_1 rX_2 : 1 <= X_1/X_2 <= ..]
+        : commits between revision X_1 and revision X_2 inclusive
+          (-r'min(X_1,X_2)'..'max(X_1,X_2)')
+      [-X_1 -X_2 : 1 <= X_1/X_2 <= ..]
         : commits between revision 'HEAD - X_1' and revision
           'HEAD - X_2' inclusive (-r'-min(X_1,X_2)'..-'max(X_1,X_2)')
-\n  amend ID  : amend log entry for commit ID
-  add-repo  : add a new repository to the server using an existing
-              template named 'temp'
-  clean-repo TARGET : remove all '.svn' under TARGET
-  ignore PATH [PATH ..] : add a list of paths to svn:ignore
-  revision  : output current revision
-  status  : display an improved status of updated and new files
-  diff [ID]  : take diff of ID (default PREV) against HEAD
-  patch ID TARGET  : format a patch for revision ID and written to
-                     TARGET
-  clone SOURCE_URL TARGET  : clone remote repository at SOURCE_URL to
-                             local TARGET directory
+\n  -am|--amend ID  : amend log entry for commit ID
+  -cl|--clean TARGET  : remove all '.svn' under TARGET
+  -ign|--ignore PATH [PATH ..]  : add a list of paths to svn:ignore
+  -rev|--revision  : output current revision
+  -st|--status  : display an improved status of updated and new files
+  -d|--diff [ID]  : take diff of ID (default PREV) against HEAD
+  -fp|--format-patch ID TARGET  : format a patch for revision ID and
+                                  written to TARGET
+  -ra|--repo-add  : add a new repository to the server using an
+                    existing template named 'temp'
+  -rc|--repo-clone SOURCE_URL TARGET  : clone remote repository at
+                                        SOURCE_URL to local TARGET
+                                        directory
 "
 }
 
@@ -137,7 +138,7 @@ fn_amend() {
   svn propedit --revprop -r $revision svn:log
 }
 
-fn_add_repo() {
+fn_repo_add() {
   [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
   target=$1
   if [ "$(echo "$target" | awk '{print substr($0, length($0))}')" = "/" ]; then
@@ -185,7 +186,7 @@ fn_add_repo() {
   rm -rf temp
 }
 
-fn_clean_repo() {
+fn_clean() {
   target=$1
   if [ ! -d $target ]; then
     echo "'$target' is not a directory"
@@ -241,7 +242,7 @@ fn_status() {
   svn status --show-updates "$@" | grep -vP "\s*\?"
 }
 
-fn_clone() {
+fn_repo_clone() {
   [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
   source="$1" && shift
   target="$1" && shift
@@ -278,22 +279,23 @@ fn_test() {
 
 fn_process() {
   option="help"
-  [ $# -gt 0 ] && [ "x$(echo "$option" | sed -n '/\(help\|log\|add-repo\|clean-repo\|amend\|ignore\|revision\|diff\|patch\|status\|clone\|test\)/p')" != "x" ] && option="$1" && shift
+  [ $# -gt 0 ] && s="$(echo "$1" | sed 's/[ ]*-*//')" && shift
+  [ -n "$(echo "$s" | sed -n '/\(h\|help\|l\|log\|am\|amend\|cl\|clean\|ign\|ignore\|rev\|revision\|d\|diff\|st\|status\|fp\|patch\|formatpatch\|format-patch\|ra\|repo-add\|rc\|repo-clone\|test\)/p')" ] && option="$s"
   case "$option" in
-    "help") help ;;
-    "log") fn_log "$@" ;;
-    "amend") fn_amend "$@" ;;
-    "add-repo") fn_add_repo "$@" ;;
-    "clean-repo") fn_clean_repo "$@" ;;
-    "ignore") fn_ignore "$@" ;;
-    "revision") fn_revision ;;
-    "status") fn_status "$@" ;;
-    "diff") fn_diff "$@" ;;
-    "patch") fn_patch "$@" ;;
-    "clone") fn_clone "$@" ;;
+    "h"|"help") help ;;
+    "l"|"log") fn_log "$@" ;;
+    "am"|"amend") fn_amend "$@" ;;
+    "cl"|"clean") fn_clean "$@" ;;
+    "ign"|"ignore") fn_ignore "$@" ;;
+    "rev"|"revision") fn_revision ;;
+    "st"|"status") fn_status "$@" ;;
+    "d"|"diff") fn_diff "$@" ;;
+    "fp"|"patch"|"formatpatch"|"format-patch") fn_patch "$@" ;;
+    "ra"|"repo-add") fn_repo_add "$@" ;;
+    "rc"|"repo-clone") fn_repo_clone "$@" ;;
     "test") fn_test "$@" ;;
     *) echo "unsupported option '$option'" ;;
   esac
 }
 
-process "$@"
+fn_process "$@"
