@@ -98,93 +98,12 @@ fn_log() {
   [ $TEST -eq 0 ] && svn log $rev1prefix$rev1$rev1suffix$rev2prefix$rev2$rev2suffix "$@"
 }
 
-fn_revision() {
-  echo "$(svn info 2>/dev/null)" | sed -n 's/^\s*Revision:\s*\([0-9]\+\)\s*/\1/p'
-}
-
-fn_patch() {
-  [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
-  revision=-1 && [ $# -gt 0 ] && revision="$1" && shift
-  target="" && [ $# -gt 0 ] && target="$1" && shift
-  l=1;
-  loglines=()
-
-  while read -r line; do loglines[${#loglines[@]}]="$line"; done << EOF
-"$(fn_log $revision 2>/dev/null)"
-EOF
-  [ $DEBUG -gt 0 ] && echo "[debug|fn_patch] dumping commit message:" &&
-    for l in $(seq 0 1 ${#loglines[@]}); do echo "idx$l: ${loglines[$l]}"; done
-
-  revision="$(echo "${loglines[1]}" | cut -d'|' -f1 | sed 's/\s*r\([0-9]*\)\s*/\1/')"
-  author="$(echo "${loglines[1]}" | cut -d'|' -f2 | sed 's/\(^\s*\|\s*$\)//g' | sed "$RX_AUTHOR")"
-  date_="$(echo "${loglines[1]}" | cut -d'|' -f3 | sed 's/\(^\s*\|\s*$\)//g' | cut -d' ' -f1-3)"
-  if [ "x$target" = "x" ]; then
-    target="$(echo "${loglines[3]}" | sed 's/\s*\([0-9]\+|\)\s*\(.*\)/\1\2/;s/ /./g;s/^\.//g' | sed 's/^[-.*]*\.//g' | sed 's/[/\`]/./g' | sed 's/\.\././g' | awk '{print tolower($0)}')"
-    target="$([ $revision -eq -1 ] && echo "0001" || echo "$revision").$target.diff"
-  fi
-  message="author: $author\ndate: $date_\nrevision: $revision\nsubject: "
-  for l in $(seq 3 1 $[${#loglines[@]} - 2]); do message+="${loglines[$l]}\n"; done
-  echo -e "$message\n" > "$target"
-  fn_diff $revision >> "$target"
-}
-
-fn_diff() {
-  svn diff -c${1:-"-1"}
-}
-
 fn_amend() {
   [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
   revision=$1 && shift
   svn propedit --revprop -r $revision svn:log
 }
 
-fn_repo_add() {
-  [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
-  target=$1
-  if [ "$(echo "$target" | awk '{print substr($0, length($0))}')" = "/" ]; then
-    target=$(echo "$target" | awk '{print substr($0, 1, length($0) - 1)}')
-  fi
-
-  repo=$(echo "$target" | sed 's/.*\/\(.*\)/\1/')
-
-  if [ ! -d $target ]; then
-    mkdir -p $target
-    if [ $? -ne 0 ]; then
-      echo cannot create $target
-      exit 1
-    fi
-  fi
-
-  if [ "$(ls -A $target)" ]; then
-    echo -n "repo path is not empty, delete contents of $target? [y/n]"
-    declare result
-    while read -es -n 1 result ; do
-      if [ "$result" = "y" ]; then
-        break
-      elif [ "$result" = "n" ]; then
-        exit 1
-      fi
-    done
-    if [ "$result" = "y" ]; then
-      rm -R $target/*
-    else
-      exit 1
-    fi
-  fi
-
-  # cd necessary as svnadmin doesn't handle relative paths
-  cwd=$(pwd)
-  cd $target
-  svnadmin create --fs-type fsfs $target
-  chown -R $REPO_OWNER_ID:$REPO_OWNER_ID $target
-  chmod -R ug+rw $target
-
-  rm -rf temp
-  svn co $SERVER$repo temp
-  svn mkdir temp/branches temp/tags temp/trunk
-  svn ci -m "[add] repository structure" ./temp
-  rm -rf temp
-}
 
 fn_clean() {
   target=$1
@@ -238,8 +157,90 @@ fn_ignore() {
   svn propget svn:ignore
 }
 
+fn_revision() {
+  echo "$(svn info 2>/dev/null)" | sed -n 's/^\s*Revision:\s*\([0-9]\+\)\s*/\1/p'
+}
+
 fn_status() {
   svn status --show-updates "$@" | grep -vP "\s*\?"
+}
+
+fn_diff() {
+  svn diff -c${1:-"-1"}
+}
+
+fn_patch() {
+  [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
+  revision=-1 && [ $# -gt 0 ] && revision="$1" && shift
+  target="" && [ $# -gt 0 ] && target="$1" && shift
+  l=1;
+  loglines=()
+
+  while read -r line; do loglines[${#loglines[@]}]="$line"; done << EOF
+"$(fn_log $revision 2>/dev/null)"
+EOF
+  [ $DEBUG -gt 0 ] && echo "[debug|fn_patch] dumping commit message:" &&
+    for l in $(seq 0 1 ${#loglines[@]}); do echo "idx$l: ${loglines[$l]}"; done
+
+  revision="$(echo "${loglines[1]}" | cut -d'|' -f1 | sed 's/\s*r\([0-9]*\)\s*/\1/')"
+  author="$(echo "${loglines[1]}" | cut -d'|' -f2 | sed 's/\(^\s*\|\s*$\)//g' | sed "$RX_AUTHOR")"
+  date_="$(echo "${loglines[1]}" | cut -d'|' -f3 | sed 's/\(^\s*\|\s*$\)//g' | cut -d' ' -f1-3)"
+  if [ "x$target" = "x" ]; then
+    target="$(echo "${loglines[3]}" | sed 's/\s*\([0-9]\+|\)\s*\(.*\)/\1\2/;s/ /./g;s/^\.//g' | sed 's/^[-.*]*\.//g' | sed 's/[/\`]/./g' | sed 's/\.\././g' | awk '{print tolower($0)}')"
+    target="$([ $revision -eq -1 ] && echo "0001" || echo "$revision").$target.diff"
+  fi
+  message="author: $author\ndate: $date_\nrevision: $revision\nsubject: "
+  for l in $(seq 3 1 $[${#loglines[@]} - 2]); do message+="${loglines[$l]}\n"; done
+  echo -e "$message\n" > "$target"
+  fn_diff $revision >> "$target"
+}
+
+fn_repo_add() {
+  [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
+  target=$1
+  if [ "$(echo "$target" | awk '{print substr($0, length($0))}')" = "/" ]; then
+    target=$(echo "$target" | awk '{print substr($0, 1, length($0) - 1)}')
+  fi
+
+  repo=$(echo "$target" | sed 's/.*\/\(.*\)/\1/')
+
+  if [ ! -d $target ]; then
+    mkdir -p $target
+    if [ $? -ne 0 ]; then
+      echo cannot create $target
+      exit 1
+    fi
+  fi
+
+  if [ "$(ls -A $target)" ]; then
+    echo -n "repo path is not empty, delete contents of $target? [y/n]"
+    declare result
+    while read -es -n 1 result ; do
+      if [ "$result" = "y" ]; then
+        break
+      elif [ "$result" = "n" ]; then
+        exit 1
+      fi
+    done
+    if [ "$result" = "y" ]; then
+      rm -R $target/*
+    else
+      exit 1
+    fi
+  fi
+
+  # cd necessary as svnadmin doesn't handle relative paths
+  cwd=$(pwd)
+  cd $target
+  svnadmin create --fs-type fsfs $target
+  chown -R $REPO_OWNER_ID:$REPO_OWNER_ID $target
+  chmod -R ug+rw $target
+
+  rm -rf temp
+  svn co $SERVER$repo temp
+  svn mkdir temp/branches temp/tags temp/trunk
+  svn ci -m "[add] repository structure" ./temp
+  rm -rf temp
 }
 
 fn_repo_clone() {
