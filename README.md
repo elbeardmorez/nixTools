@@ -44,3 +44,6 @@ script to aid in the building and installation of source and package based softw
 
 ### [socket.sh](socket)
 netcat wrapper to simplify several use cases
+
+### [svn.sh](svn)
+subversion wrapper for adding additional work-flow helpers and simplification of various built-in calls
