@@ -1,9 +1,15 @@
 #!/bin/sh
-SCRIPTNAME=${0##*/}
 
+# includes
+set -e
+x="$(dirname "$0")/$(basename "$0")"; [ ! -f "$x" ] && x="$(which $0)"; x="$(readlink -e "$x" || echo "$x")"
+. ${x%/*}/../func_common.sh
+set +e
+
+SCRIPTNAME=${0##*/}
+IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
-IFSORG="$IFS"
 
 SERVER=http://localhost/svn/
 REPO_OWNER_ID=80
@@ -47,7 +53,7 @@ fn_log() {
   # validate arg(s)
   rev1=-1 && [ $# -gt 0 ] && rev1="$1" && shift
   [ "x$(echo $rev1 | sed -n '/^[-+r]\?[0-9]\+$/p')" = "x" ] &&
-    echo "[error] invalid revision arg '$rev1'" && exit 1
+    echo "[error] invalid revision arg '$rev1'" && return 1
   rev2="" && [ $# -gt 0 ] &&
     [ "x$(echo "$1" | sed -n '/^[-+r]\?[0-9]\+$/p')" != "x" ] &&
     rev2="$1" && shift
@@ -99,37 +105,33 @@ fn_log() {
 }
 
 fn_amend() {
-  [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
+  [ $# -lt 1 ] && help && echo "[error] insufficient args" 1>&2 && return 1
   revision=$1 && shift
   svn propedit --revprop -r $revision svn:log
 }
 
 
 fn_clean() {
-  target=$1
-  if [ ! -d $target ]; then
-    echo "'$target' is not a directory"
-    exit 1
-  fi
-  matches=($(find $target -name *.svn))
+  target="$1"
+  [ ! -d "$target" ] && \
+    echo "[error] target '$target' is not a writable directory" 1>&2 && return 1
+
+  IFS=$'\n'; matches=($(find $target -name *.svn)); IFS="$IFSORG"
   if [ ${#matches[@]} -eq 0 ]; then
-    echo "no '.svn' directories found under specified workspace"
+    echo "[info] no '.svn' directories found under specified target"
   else
-    for d in ${matches[@]}; do
-      echo "found a '.svn' directory at '$d'"
-    done
-    echo -n "remove all? [y/n]"
-    read -es -n1 result
-    if [ "$result" = "y" ]; then
+    echo "[info] ${#matches[@]} '.svn' director$([ ${matches[@]} -eq 1 ] && echo "y" || echo "ies") found under specified target"
+    [ $DEBUG -gt 0 ] && \
+      for d in ${matches[@]}; do echo "$d"; done
+    if [ $(fn_decision "[user] remove all?" 1>/dev/null) ]; then
+      removed=0
       for d in ${matches[@]}; do
-        rm -rf $d
-        if [[ $? -eq 0 && ! -d $d ]]; then
-          echo "removed '$d'"
-        else
-          echo "failed to remove '$d'"
-          exit 1
-        fi
+        rm -rf "$d"
+        [[ $? -eq 0 && ! -d $d ]] && \
+          count=$((removed + 1)) || \
+          echo "[info] failed to remove '$d'"
       done
+      echo "[info] removed $removed '.svn' director$([ ${matches[@]} -eq 1 ] && echo "y" || echo "ies")"
     fi
   fi
 }
@@ -137,10 +139,8 @@ fn_clean() {
 fn_ignore() {
   [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
 
-  if [ ! -d $(pwd)/.svn ]; then
-    echo $(pwd) is not under source control
-    exit 1
-  fi
+  [ ! -d $(pwd)/.svn ] && \
+    echo "[error] target '$(pwd)' is not under source control" 1>&2 && return 1
 
   declare list
   for arg in "$@"; do
@@ -153,7 +153,7 @@ fn_ignore() {
   eval "svn propset svn:ignore $list ."
 
   sleep 1
-  echo "svn:ignore set:"
+  echo "[info] svn:ignore set:"
   svn propget svn:ignore
 }
 
@@ -170,7 +170,7 @@ fn_diff() {
 }
 
 fn_patch() {
-  [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
+  [ $# -lt 1 ] && help && echo "[error] insufficient args" 1>&2 && return 1
   revision=-1 && [ $# -gt 0 ] && revision="$1" && shift
   target="" && [ $# -gt 0 ] && target="$1" && shift
   l=1;
@@ -190,51 +190,33 @@ EOF
     target="$([ $revision -eq -1 ] && echo "0001" || echo "$revision").$target.diff"
   fi
   message="author: $author\ndate: $date_\nrevision: $revision\nsubject: "
-  for l in $(seq 3 1 $[${#loglines[@]} - 2]); do message+="${loglines[$l]}\n"; done
+  for l in $(seq 3 1 $[${#loglines[@]} - 2]); do
+     message+="${loglines[$l]}\n"
+  done
   echo -e "$message\n" > "$target"
   fn_diff $revision >> "$target"
 }
 
 fn_repo_add() {
-  [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
-  target=$1
+  [ $# -lt 1 ] && help && echo "[error] insufficient args" 1>&2 && return 1
+  target="$1"
   if [ "$(echo "$target" | awk '{print substr($0, length($0))}')" = "/" ]; then
     target=$(echo "$target" | awk '{print substr($0, 1, length($0) - 1)}')
   fi
 
+  [ -e "$target" ] || mkdir -p "$target"
+  [ ! -d "$target" ] && \
+    echo "[error] target '$target' is not a writable directory" 1>&2 && return 1
+  [ -n "$(ls -1 "$target")" ] &&
+    { fn_decision "[user] target path for repo is not empty, delete contents?" 1>/dev/null || return 1; }
   repo=$(echo "$target" | sed 's/.*\/\(.*\)/\1/')
 
-  if [ ! -d $target ]; then
-    mkdir -p $target
-    if [ $? -ne 0 ]; then
-      echo cannot create $target
-      exit 1
-    fi
-  fi
-
-  if [ "$(ls -A $target)" ]; then
-    echo -n "repo path is not empty, delete contents of $target? [y/n]"
-    declare result
-    while read -es -n 1 result ; do
-      if [ "$result" = "y" ]; then
-        break
-      elif [ "$result" = "n" ]; then
-        exit 1
-      fi
-    done
-    if [ "$result" = "y" ]; then
-      rm -R $target/*
-    else
-      exit 1
-    fi
-  fi
-
   # cd necessary as svnadmin doesn't handle relative paths
-  cwd=$(pwd)
-  cd $target
-  svnadmin create --fs-type fsfs $target
-  chown -R $REPO_OWNER_ID:$REPO_OWNER_ID $target
-  chmod -R ug+rw $target
+  cwd="$(pwd)"
+  cd "$target"
+  svnadmin create --fs-type fsfs "$target"
+  chown -R $REPO_OWNER_ID:$REPO_OWNER_ID "$target"
+  chmod -R ug+rw "$target"
 
   rm -rf temp
   svn co $SERVER$repo temp
@@ -244,7 +226,7 @@ fn_repo_add() {
 }
 
 fn_repo_clone() {
-  [ $# -lt 1 ] && help && echo "[error] insufficient args" && exit 1
+  [ $# -lt 1 ] && help && echo "[error] insufficient args" 1>&2 && return 1
   source="$1" && shift
   target="$1" && shift
   [ ! -d "$target" ] && mkdir -p "$target"
@@ -275,6 +257,10 @@ fn_test() {
       echo ">log r10 /path" && fn_log r10 /path
       echo ">log r10 r15 /path" && fn_log r10 r15 /path
       ;;
+    *)
+      help && echo "[error] unsupported test name '$type'" 1>&2
+      return 1
+      ;;
   esac
 }
 
@@ -295,7 +281,7 @@ fn_process() {
     "ra"|"repo-add") fn_repo_add "$@" ;;
     "rc"|"repo-clone") fn_repo_clone "$@" ;;
     "test") fn_test "$@" ;;
-    *) echo "unsupported option '$option'" ;;
+    *) help && echo "[error] unsupported option '$option'" 1>&2 && exit ;;
   esac
 }
 
