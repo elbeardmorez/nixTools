@@ -110,7 +110,6 @@ fn_amend() {
   svn propedit --revprop -r $revision svn:log
 }
 
-
 fn_clean() {
   target="$1"
   [ ! -d "$target" ] && \
