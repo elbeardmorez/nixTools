@@ -557,7 +557,7 @@ fn_commits() {
         description="${parts[2]}"
         name="$(fn_patch_name "$(printf "%0${#l_commits}d" $l)_$id_$description")"
         target_fqn="$d_tmp_source/$name"
-        fn_repo_pull "$source" "$id|$target_fqn"
+        fn_repo_pull "$source" "$id|$target_fqn" || return 1
         patch_set[$l]="$target_fqn"
         l=$((l + 1))
       done
@@ -569,7 +569,7 @@ fn_commits() {
       if [ "x$order" = "xdate" ]; then
         s=""
         for f in "${files[@]}"; do
-          dt="$(fn_patch_info "$f" "$vcs" "date")"
+          dt="$(fn_patch_info "$f" "$vcs" "date")" || return 1
           s="$s\n$dt|$f"
         done
         IFS=$'\n'; files=($(echo -e "${s:2}" | sort | sed 's/^[^|]\+|//')); IFS="$IFSORG"
@@ -627,10 +627,10 @@ fn_commits() {
   for f in "${patch_set[@]}"; do
     [ $DEBUG -ge 1 ] && echo -e "\n[debug] processing patch: '$f'" 1>&2
 
-    id="$(fn_patch_info "$f" "$vcs" "id")"
-    dt="$(fn_patch_info "$f" "$vcs" "date")"
-    description="$(fn_patch_info "$f" "$vcs" "description")"
-    name="$(fn_patch_name "$description")"
+    id="$(fn_patch_info "$f" "$vcs" "id")" || return 1
+    dt="$(fn_patch_info "$f" "$vcs" "date")" || return 1
+    description="$(fn_patch_info "$f" "$vcs" "description")" || return 1
+    name="$(fn_patch_name "$description")" || return 1
     commit_set=()
 
     if [ $dump -eq 1 ]; then
@@ -692,22 +692,22 @@ fn_commits() {
           # info
           info_orig=()
           info_new=()
-          info_orig["id"]="$(fn_patch_info "$f_orig" "$vcs" "id")"
-          info_new["id"]="$(fn_patch_info "$f_new" "$vcs" "id")"
+          info_orig["id"]="$(fn_patch_info "$f_orig" "$vcs" "id")" || return 1
+          info_new["id"]="$(fn_patch_info "$f_new" "$vcs" "id")" || return 1
           if [ "x${info_new["id"]}" = "x${info_orig["id"]}" ]; then
             [ $DEBUG -ge 5 ] && echo "[debug] matched on id" 1>&2
             new=-1
           else
             # something has changed..
-            info_orig["date"]="$(fn_patch_info "$f_orig" "$vcs" "date")"
-            info_new["date"]="$(fn_patch_info "$f_new" "$vcs" "date")"
+            info_orig["date"]="$(fn_patch_info "$f_orig" "$vcs" "date")" || return 1
+            info_new["date"]="$(fn_patch_info "$f_new" "$vcs" "date")" || return 1
             if [ "x${info_new["date"]}" = "x${info_orig["date"]}" ]; then
               # odds are too small for this to be different
               [ $DEBUG -ge 5 ] && echo "[debug] matched on date" 1>&2
               new=0
             else
-              info_orig["files"]="$(fn_patch_info "$f_orig" "$vcs" "files")"
-              info_new["files"]="$(fn_patch_info "$f_new" "$vcs" "files")"
+              info_orig["files"]="$(fn_patch_info "$f_orig" "$vcs" "files")" || return 1
+              info_new["files"]="$(fn_patch_info "$f_new" "$vcs" "files")" || return 1
               if [ ${#info_new_files[@]} -eq ${#info_orig_files[@]} ]; then
                 s_=1
                 for l in $(seq 0 1 $((${info_files_orig[@]} - 1))); do
@@ -849,7 +849,7 @@ fn_commits() {
         # append patch details to category specific readme
         f_readme="$(echo "$target_fq/$type/$repo_map_path/$readme" | sed 's/\(\/\)\/\+/\1/g')"
         entry_ref="[git sha:$id$([ -n "$readme_status" ] && echo " | $readme_status")]"
-        entry_comments="$(fn_patch_info "$target_fqn" "$vcs" "comments")"
+        entry_comments="$(fn_patch_info "$target_fqn" "$vcs" "comments")" || return 1
         entry_new="##### $entry_description$entry_version\n###### $entry_ref$([ -n "$entry_comments" ] && echo "\n"'```'"\n$entry_comments\n"'```')"
         [ ! -e "$f_readme" ] && \
           echo "### ${repo_map_:-$(basename "$target_fq")}" >> "$f_readme"
@@ -1006,7 +1006,7 @@ fn_changelog() {
             merge="$(grep -n "$commit" $file | cut -d':' -f1)"
           elif fn_decision "[user] last changelog commit '${commit:0:8}..' unrecognised, search for merge point?" 1>/dev/null; then
             # search
-            IFS=$'\n'; commits=($(fn_repo_search "." 0)); IFS="$IFSORG"
+            IFS=$'\n'; commits=($(fn_repo_search "." 0)) || return 1; IFS="$IFSORG"
             declare match
             declare id
             declare description
