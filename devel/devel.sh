@@ -567,7 +567,7 @@ fn_commits() {
     "vcs")
       commits_="$(fn_repo_search "$source" $limit "${filters[@]}")" 1>&2 || return 1
       [ "x$order" = "xdate" ] && echo -e "$commits_" | sort
-      IFS=$'\n'; commits=($(fn_repo_search "$source" $limit "${filters[@]}")) || return 1; IFS="$IFSORG"
+      IFS=$'\n'; commits=($(echo "${commits_[@]}")); IFS="$IFSORG"
       l_commits=${#commits[@]}
       d_tmp_source="$(fn_temp_dir "$SCRIPTNAME")"
       temp_data[${#temp_data[@]}]="$d_tmp_source"
