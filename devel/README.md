@@ -111,8 +111,9 @@ with OPTION:
         map diffs to repositories selected from the comma delimited
         REPOS list
         (default: fix,mod,hack)
-      -vcs|--version-control-system =VCS  :
-        override default version control type for unknown targets
+      -vcs|--version-control-system [=][SOURCE|]TARGET  :
+        pipe-delimited override of default version control system
+        types. support for source: git, subversion | target: git
         (default: git)
       -d|--dump  : dump patch set only
       -o|order [=]TYPE  : process patchset in a specific order, which

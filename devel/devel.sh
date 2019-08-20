@@ -109,8 +109,9 @@ help() {
         map diffs to repositories selected from the comma delimited
         REPOS list
         (default: fix,mod,hack)
-      -vcs|--version-control-system =VCS  :
-        override default version control type for unknown targets
+      -vcs|--version-control-system [=][SOURCE|]TARGET  :
+        pipe-delimited override of default version control system
+        types. support for source: git, subversion | target: git
         (default: git)
       -d|--dump  : dump patch set only
       -o|order [=]TYPE  : process patchset in a specific order, which
@@ -356,7 +357,10 @@ fn_commits() {
   declare multi_repo_map_default; multi_repo_map_default="fix,mod,hack"
   declare repos
   declare vcs
+  declare vcs_source
+  declare vcs_target
   declare vcs_default; vcs_default="git"
+  declare -a vcs_supported; vcs_supported=("git" "subversion")
   declare -a patch_set
   declare -a commits
   declare commits_
@@ -462,6 +466,16 @@ fn_commits() {
 
   # validate args
 
+  if [ -n "$vcs" ]; then
+    vcs_source="${vcs%|*}"
+    vcs_target="${vcs#*|}"
+    s="$(fn_str_join "\|" "${vcs_supported[@]}")"
+    [ -z "$(echo "$vcs_source" | sed -n '/\('"$s"'\)/p')" ] && \
+      echo "[error] unsupported vcs source type: '$vcs_source'" 1>&2 && return 1
+    [ -z "$(echo "$vcs_target" | sed -n '/\('"$s"'\)/p')" ] && \
+      echo "[error] unsupported vcs target type: '$vcs_target'" 1>&2 && return 1
+  fi
+
   s="$(echo "${src_type:-$src_type_default}" | sed -n 's/^\(auto\|vcs\|dir\|patch\|diff\)$/\1/p')"
   [ -z "$s" ] && \
     { echo "[error] unknown source type '$src_type', aborting" 1>&2 && return 1; }
@@ -478,10 +492,13 @@ fn_commits() {
     [ -z "$(echo "$src_type" | sed -n '/^\(vcs\|dir\|auto\)$/p')" ] && \
       { echo "[error] invalid source, found directory, required '$src_type', aborting" 1>&2 && return 1; }
     if [[ "x$src_type" == "xvcs" || "x$src_type" == "xauto" ]]; then
-      fn_repo_type "$source" 1>/dev/null 2>&1
+      vcs_source_="$(fn_repo_type "$source")"
       res=$?
       if [ $res -eq 0 ]; then
         src_type="vcs"
+        [[ -n "$vcs_source" && "x$vcs_source" != "x$vcs_source_" ]] && \
+          echo "[error] expected source vcs type '$vcs_source' but found '$vcs_source_', aborting" 1>&2 && return 1
+        vcs_source="$vcs_source_"
         v=1
       elif [[ $res -eq 1 && "x$src_type" == "xvcs" ]]; then
         echo "[error] unknown vcs type for source directory '$source', aborting" 1>&2 && return 1
@@ -510,7 +527,8 @@ fn_commits() {
   fi
   target_fq="$(cd "$target" && pwd)"
 
-  vcs="${vcs:="$vcs_default"}"
+  vcs_source="${vcs_source:-"$vcs_default"}"
+  vcs_target="${vcs_target:-"$vcs_default"}"
   if [ $dump -eq 0 ]; then
     # repo(s) structure
     declare vcs_
@@ -522,10 +540,13 @@ fn_commits() {
       [ "x$(dirname "$repo")" = "x." ] && repo="$target/$repo"
       [ $DEBUG -ge 1 ] && echo "[debug] initialising repo: $repo" 1>&2
       [ ! -d "$repo" ] && { mkdir -p "$repo" || return 1; }
-      vcs_="$(fn_repo_type "$repo")"
-      if [ -z "$vcs_" ]; then
-        fn_decision "[user] initialise "$vcs" repo at target directory '$repo'?" 1>/dev/null || return 1
-        init="${vcs_cmds_init[$vcs]}"
+      vcs_target_="$(fn_repo_type "$repo")"
+      if [ -n "$vcs_target_" ]; then
+        [[ -n "$vcs_target" && "x$vcs_target" != "x$vcs_target_" ]] && \
+          echo "[error] expected target vcs type '$vcs_target' but found '$vcs_target_', aborting" 1>&2 && return 1
+      else
+        fn_decision "[user] initialise "$vcs_target" repo at target directory '$repo'?" 1>/dev/null || return 1
+        init="${vcs_cmds_init[$vcs_target]}"
         [ -z "$init" ] && \
           echo "[error] unsupported repository type, missing 'init' command" 1>&2 && return 1
         (cd "$repo" && $init)
@@ -569,7 +590,7 @@ fn_commits() {
       if [ "x$order" = "xdate" ]; then
         s=""
         for f in "${files[@]}"; do
-          dt="$(fn_patch_info "$f" "$vcs" "date")" || return 1
+          dt="$(fn_patch_info "$f" "$vcs_source" "date")" || return 1
           s="$s\n$dt|$f"
         done
         IFS=$'\n'; files=($(echo -e "${s:2}" | sort | sed 's/^[^|]\+|//')); IFS="$IFSORG"
@@ -627,9 +648,9 @@ fn_commits() {
   for f in "${patch_set[@]}"; do
     [ $DEBUG -ge 1 ] && echo -e "\n[debug] processing patch: '$f'" 1>&2
 
-    id="$(fn_patch_info "$f" "$vcs" "id")" || return 1
-    dt="$(fn_patch_info "$f" "$vcs" "date")" || return 1
-    description="$(fn_patch_info "$f" "$vcs" "description")" || return 1
+    id="$(fn_patch_info "$f" "$vcs_source" "id")" || return 1
+    dt="$(fn_patch_info "$f" "$vcs_source" "date")" || return 1
+    description="$(fn_patch_info "$f" "$vcs_source" "description")" || return 1
     name="$(fn_patch_name "$description")" || return 1
     commit_set=()
 
@@ -695,19 +716,19 @@ fn_commits() {
         info_orig=()
         for f_orig in "${existing[@]}"; do
           # info
-          info_orig["id"]="$(fn_patch_info "$f_orig" "$vcs" "id")" || return 1
+          info_orig["id"]="$(fn_patch_info "$f_orig" "$vcs_source" "id")" || return 1
           if [ "x${info_new["id"]}" = "x${info_orig["id"]}" ]; then
             [ $DEBUG -ge 5 ] && echo "[debug] matched on id" 1>&2
             new=-1
           else
             # something has changed..
-            info_orig["date"]="$(fn_patch_info "$f_orig" "$vcs" "date")" || return 1
+            info_orig["date"]="$(fn_patch_info "$f_orig" "$vcs_source" "date")" || return 1
             if [ "x${info_new["date"]}" = "x${info_orig["date"]}" ]; then
               # odds are too small for this to be different
               [ $DEBUG -ge 5 ] && echo "[debug] matched on date" 1>&2
               new=0
             else
-              info_orig["files"]="$(fn_patch_info "$f_orig" "$vcs" "files")" || return 1
+              info_orig["files"]="$(fn_patch_info "$f_orig" "$vcs_source" "files")" || return 1
               if [ ${#info_new_files[@]} -eq ${#info_orig_files[@]} ]; then
                 s_=1
                 for l in $(seq 0 1 $((${info_files_orig[@]} - 1))); do
@@ -849,7 +870,7 @@ fn_commits() {
         # append patch details to category specific readme
         f_readme="$(echo "$target_fq/$type/$repo_map_path/$readme" | sed 's/\(\/\)\/\+/\1/g')"
         entry_ref="[git sha:$id$([ -n "$readme_status" ] && echo " | $readme_status")]"
-        entry_comments="$(fn_patch_info "$target_fqn" "$vcs" "comments")" || return 1
+        entry_comments="$(fn_patch_info "$target_fqn" "$vcs_source" "comments")" || return 1
         entry_new="##### $entry_description$entry_version\n###### $entry_ref$([ -n "$entry_comments" ] && echo "\n"'```'"\n$entry_comments\n"'```')"
         [ ! -e "$f_readme" ] && \
           echo "### ${repo_map_:-$(basename "$target_fq")}" >> "$f_readme"
