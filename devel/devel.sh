@@ -231,6 +231,8 @@ fn_repo_search() {
   declare limit; limit=$1 && shift
   declare res
   declare search
+  declare commit
+  declare processed
   declare vcs
   vcs="$(fn_repo_type "$target")" || \
     { echo "[error] unknown vcs type for source directory '$target'" 1>&2 && return 1; }
@@ -239,16 +241,29 @@ fn_repo_search() {
     "git")
       declare -a cmd_args
       cmd_args=("--format=format:%at|%H|%s")
-      [ $limit -gt 0 ] && cmd_args[${#cmd_args[@]}]="-n$limit"
       if [ $# -eq 0 ]; then
+        [ $limit -gt 0 ] && cmd_args[${#cmd_args[@]}]="-n$limit"
         res="$(git log "${cmd_args[@]}")"
       else
         cmd_args[${#cmd_args[@]}]="-P"
-        while [ -n "$1" ]; do
-          search="$1" && shift
-          res="$res\n$(git log "${cmd_args[@]}" --grep="$search")"
+        cmd_args[${#cmd_args[@]}]="--grep='$1'"
+        res=""
+        declare match
+        declare -a matches
+        IFS=$'\n'; matches=($(git log "${cmd_args[@]}")); IFS="$IFSORG"
+        for commit in "${matches[@]}"; do
+          match=1
+          for search in "$@"; do
+            [ -z "$(echo "$commit" | grep -P "$search")" ] && \
+              { match=0 && break; }
+          done
+          if [ $match -eq 1 ]; then
+            res="$res\n$commit"
+            processed=$((processed + 1))
+            [[ $limit -gt 0 && $processed -eq $limit ]] && break
+          fi
         done
-        res="${res:2}"
+        [ ${#res} -gt 0 ] && res="${res:2}"
       fi
       echo -e "$res" | tac
       ;;
