@@ -688,26 +688,26 @@ fn_commits() {
         # name clash or update? find existing
         f_new="$(fn_temp_file "$SCRIPTNAME")"
         cp "$f" "$f_new"
+        info_new=()
+        info_new["id"]="$(fn_patch_info "$f_new" "$vcs_source" "id")" || return 1
+        info_new["date"]="$(fn_patch_info "$f_new" "$vcs_source" "date")" || return 1
+        info_new["files"]="$(fn_patch_info "$f_new" "$vcs_source" "files")" || return 1
+        info_orig=()
         for f_orig in "${existing[@]}"; do
           # info
-          info_orig=()
-          info_new=()
           info_orig["id"]="$(fn_patch_info "$f_orig" "$vcs" "id")" || return 1
-          info_new["id"]="$(fn_patch_info "$f_new" "$vcs" "id")" || return 1
           if [ "x${info_new["id"]}" = "x${info_orig["id"]}" ]; then
             [ $DEBUG -ge 5 ] && echo "[debug] matched on id" 1>&2
             new=-1
           else
             # something has changed..
             info_orig["date"]="$(fn_patch_info "$f_orig" "$vcs" "date")" || return 1
-            info_new["date"]="$(fn_patch_info "$f_new" "$vcs" "date")" || return 1
             if [ "x${info_new["date"]}" = "x${info_orig["date"]}" ]; then
               # odds are too small for this to be different
               [ $DEBUG -ge 5 ] && echo "[debug] matched on date" 1>&2
               new=0
             else
               info_orig["files"]="$(fn_patch_info "$f_orig" "$vcs" "files")" || return 1
-              info_new["files"]="$(fn_patch_info "$f_new" "$vcs" "files")" || return 1
               if [ ${#info_new_files[@]} -eq ${#info_orig_files[@]} ]; then
                 s_=1
                 for l in $(seq 0 1 $((${info_files_orig[@]} - 1))); do
