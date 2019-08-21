@@ -24,6 +24,8 @@ declare -A changelog_profile_anchor_entry
 changelog_profile_anchor_entry["default"]=1
 changelog_profile_anchor_entry["update"]=3
 
+declare -A commits_info
+
 help() {
   declare -A sections
   sections["refactor"]="
@@ -575,6 +577,7 @@ fn_commits() {
   # identify patch set
   declare target_fqn
   declare target_fqn_
+  declare commit
   declare dt
   declare id
   declare d_tmp_source
@@ -587,9 +590,11 @@ fn_commits() {
       d_tmp_source="$(fn_temp_dir "$SCRIPTNAME")"
       temp_data[${#temp_data[@]}]="$d_tmp_source"
       l=0
-      for s in "${commits[@]}"; do
-        IFS="|"; parts=($(echo "$s")); IFS="$IFSORG"
+      for commit in "${commits[@]}"; do
+        IFS="|"; parts=($(echo "$commit")); IFS="$IFSORG"
         id="${parts[1]}"
+        [ $DEBUG -ge 2 ] && echo "[debug] adding commit '$id' to info cache" 1>&2
+        commits_info["$id"]="$commit"
         description="${parts[3]}"
         name="$(fn_patch_name "$(printf "%0${#l_commits}d" $l)_$id_$description")"
         target_fqn="$d_tmp_source/$name"
