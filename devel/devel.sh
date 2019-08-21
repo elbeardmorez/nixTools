@@ -621,8 +621,8 @@ fn_commits() {
   declare entry_comments
   declare entry_orig
   declare entry_new
-  declare id_orig
-  declare id_orig_
+  declare readme_search_base
+  declare readme_search_category
   declare f_readme
   declare f_tmp
   declare f_new
@@ -821,8 +821,8 @@ fn_commits() {
       entry_version="$(echo "$name" | sed -n 's/.*_\([0-9]\+\).diff/ #\1/p')"
 
       if [ -n "$readme" ]; then
-        id_orig="${info_orig["id"]}"
-        id_orig_="${id_orig:0:9}"
+        readme_search_category="${info_orig["id"]}"
+        readme_search_base="${readme_search_category:0:9}"
         entry_description="$description"
         if [ -n "$repo_map_" ]; then
           # append patch info to readme at base of repo
@@ -839,8 +839,8 @@ fn_commits() {
           else
             # insert entry?
             entry_orig=""
-            if [ -n "$id_orig_" ]; then
-              entry_orig="$(sed -n '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/,/\(^$|$\)/{/'"$(fn_escape "sed" "$id_orig_")"'/{p;};}' "$f_readme")"
+            if [ -n "$readme_search_base" ]; then
+              entry_orig="$(sed -n '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/,/\(^$|$\)/{/'"$(fn_escape "sed" "$readme_search_base")"'/{p;};}' "$f_readme")"
             fi
             if [[ -z "$entry_orig" ]]; then
               # insert at end
@@ -877,10 +877,10 @@ fn_commits() {
 
         # search for existing entry
         entry_orig=""
-        if [ -n "$id_orig" ]; then
-          entry_orig="$(awk '
+        if [ -n "$readme_search_category" ]; then
+          entry_orig="$(awk -v "id=$(fn_escape "awk" "$readme_search_category")" '
 function fn_test(data) {
-  if (section ~ ".*'"$(fn_escape "awk" "$id_orig")"'.*") {
+  if (section ~ ".*"id".*") {
     gsub(/\n/, "\\n", data);
     gsub(/\\n$/, "", data);
     print data;
