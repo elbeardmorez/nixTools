@@ -841,13 +841,24 @@ fn_commits() {
       entry_version="$(echo "$name" | sed -n 's/.*_\([0-9]\+\).diff/ #\1/p')"
 
       if [ -n "$readme" ]; then
-        readme_search_category="${info_orig["id"]}"
-        readme_search_base="${readme_search_category:0:9}"
+        case "$vcs_source" in
+          "git")
+            readme_search_category="${info_orig["id"]}"
+            readme_search_base="${readme_search_category:0:9}"
+            ;;
+          *)
+            echo "[error] unsupported repository type" 1>&2 && return 1
+            ;;
+        esac
         entry_description="$description"
         if [ -n "$repo_map_" ]; then
           # append patch info to readme at base of repo
           f_readme="$(echo "$target_fq/$type/$readme" | sed 's/\(\/\)\/\+/\1/g')"
-          entry_ref="[git sha:${id:0:9}]"
+          entry_ref=""
+          case "$vcs_source" in
+            "git") entry_ref="[git sha:${id:0:9}]" ;;
+            *) echo "[error] unsupported repository type" 1>&2 && return 1 ;;
+          esac
           entry_new="$entry_description$entry_version $entry_ref"
           [ ! -e "$f_readme" ] && \
             echo -e "### ${type:-$(basename "$target_fq")}" >> "$f_readme"
@@ -886,10 +897,13 @@ fn_commits() {
             fi
           fi
         fi
-
         # append patch details to category specific readme
         f_readme="$(echo "$target_fq/$type/$repo_map_path/$readme" | sed 's/\(\/\)\/\+/\1/g')"
-        entry_ref="[git sha:$id$([ -n "$readme_status" ] && echo " | $readme_status")]"
+        entry_ref=""
+        case "$vcs_source" in
+          "git") entry_ref="[git sha:$id$([ -n "$readme_status" ] && echo " | $readme_status")]" ;;
+          *) echo "[error] unsupported repository type" 1>&2 && return 1 ;;
+        esac
         entry_comments="$(fn_patch_info "$target_fqn" "$vcs_source" "comments")" || return 1
         entry_new="##### $entry_description$entry_version\n###### $entry_ref$([ -n "$entry_comments" ] && echo "\n"'```'"\n$entry_comments\n"'```')"
         [ ! -e "$f_readme" ] && \
