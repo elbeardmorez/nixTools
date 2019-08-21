@@ -965,7 +965,7 @@ END { fn_test(section); }' "$f_readme")"
         repo_root="$(echo "$target_fq/$type/" | sed 's/\(\/\)\/\+/\1/g')"
         cd "$repo_root" 1>/dev/null
         if [ "x$auto_commit" = "xverify" ]; then
-          fn_decision "[user] authored: $(date -d "@$dt" "+%d %b %Y %T %Z"), commit set?" 1>/dev/null || return 1
+          fn_decision "[user] authored: $(date -d "@$dt" "+%d %b %Y %T %z"), commit set?" 1>/dev/null || return 1
         fi
         for f in "${commit_set[@]}"; do
           f_="./$(echo "$f" | sed 's|^'"$repo_root"'||')"
