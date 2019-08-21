@@ -231,20 +231,24 @@ fn_repo_search() {
   declare target; target="$1" && shift
   declare limit; limit=$1 && shift
   declare res
+  declare -a commits; commits=()
   declare search
   declare commit
   declare processed
+  declare parts
+  declare id
   declare vcs
+  declare s
   vcs="$(fn_repo_type "$target")" || \
     { echo "[error] unknown vcs type for source directory '$target'" 1>&2 && return 1; }
   cd "$target" 1>/dev/null
   case "$vcs" in
     "git")
       declare -a cmd_args
-      cmd_args=("--format=format:%at|%H|%s")
+      cmd_args=("--format=format:%at|%H|%an <%ae>|%s")
       if [ $# -eq 0 ]; then
         [ $limit -gt 0 ] && cmd_args[${#cmd_args[@]}]="-n$limit"
-        res="$(git log "${cmd_args[@]}")"
+        IFS=$'\n'; commits=($(git log "${cmd_args[@]}")); IFS="$IFSORG"
       else
         cmd_args[${#cmd_args[@]}]="-P"
         cmd_args[${#cmd_args[@]}]="--grep='$1'"
@@ -264,7 +268,18 @@ fn_repo_search() {
             [[ $limit -gt 0 && $processed -eq $limit ]] && break
           fi
         done
-        [ ${#res} -gt 0 ] && res="${res:2}"
+        [ ${#res} -gt 0 ] && \
+          { IFS=$'\n'; commits=($(echo "${res:2}")); IFS="$IFSORG"; }
+      fi
+      res=""
+      if [ ${#commits[@]} -gt 0 ]; then
+        for commit in "${commits[@]}"; do
+          IFS="|"; parts=($(echo "$commit")); IFS="$IFSORG"
+          id="${parts[1]}"
+          s="$commit|$(git log --format="format:%b" "$id" | sed 's/\n/\\\\n/g;s/\(\n\)*$//;')"
+          res="$res\n$s"
+        done
+        res="${res:2}"
       fi
       echo -e "$res" | tac
       ;;
@@ -575,7 +590,7 @@ fn_commits() {
       for s in "${commits[@]}"; do
         IFS="|"; parts=($(echo "$s")); IFS="$IFSORG"
         id="${parts[1]}"
-        description="${parts[2]}"
+        description="${parts[3]}"
         name="$(fn_patch_name "$(printf "%0${#l_commits}d" $l)_$id_$description")"
         target_fqn="$d_tmp_source/$name"
         fn_repo_pull "$source" "$id|$target_fqn" || return 1
