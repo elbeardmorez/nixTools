@@ -25,6 +25,9 @@ changelog_profile_anchor_entry["default"]=1
 changelog_profile_anchor_entry["update"]=3
 
 declare -A commits_info
+RX_COMMITS_AUTHOR="${RX_COMMITS_AUTHOR:-""}"
+RX_COMMITS_DESCRIPTION_DEFAULT='s/^[ ]*\(.\{20\}[^.]*\).*$/\1/'
+RX_COMMITS_DESCRIPTION="${RX_COMMITS_DESCRIPTION:-"$RX_COMMITS_DESCRIPTION_DEFAULT"}"
 
 help() {
   declare -A sections
@@ -285,6 +288,51 @@ fn_repo_search() {
       fi
       echo -e "$res" | tac
       ;;
+
+    "subversion")
+      declare head_; head_=$(svn info | sed -n 's/Revision: //p')
+      declare match
+      declare -a matches
+      declare -a cmd_args
+      declare filter; filter=0
+      cmd_args[${#cmd_args[@]}]="--xml"
+      if [ $# -gt 0 ]; then
+        filter=1
+        cmd_args[${#cmd_args[@]}]="--search"
+        cmd_args[${#cmd_args[@]}]="$1"
+        shift
+        while [ -n "$1" ]; do
+          cmd_args[${#cmd_args[@]}]="--search-and"
+          cmd_args[${#cmd_args[@]}]="$1"
+          shift
+        done
+      fi
+      declare batch; batch=$limit
+      [ $batch -lt 1 ] && batch=100
+      declare r1
+      declare r2; r2=$head_
+      processed=0
+      while true; do
+        cmd_args_=("${cmd_args[@]}")
+        if [ $filter -eq 0 ]; then
+          # buffer
+          r1=$((r2 - batch + 1))
+          [ $r1 -lt 1 ] && r1=1
+          cmd_args_[${#cmd_args_[@]}]="-r$r1:$r2"
+        fi
+        IFS=$'\n'; matches=($(svn log "${cmd_args_[@]}" | sed -n '/<logentry/,/<\/logentry>/{/<\/logentry>/{x;s/\n/\\\\n/g;s/^.*revision="\([^"]*\).*<author>\([^<]*\).*<date>\([^<]\+\).*<msg>\(.*\)<\/msg.*$/\3\|r\1|\2|\4/;s/\(\\\\n\)*$//;p;b;};H;}')); IFS="$IFSORG"
+        [ ${#matches[@]} -eq 0 ] && break
+        for commit in "${matches[@]}"; do
+          res="$res\n$(date -d "${commit%%|*}" "+%s")|${commit#*|}"
+          processed=$((processed + 1))
+          [[ $limit -gt 0 && $processed -eq $limit ]] && break
+        done
+        [ $filter -eq 1 ] && break  # one shot
+        r2=$((r2 - batch))
+        [[ $processed -eq $limit || $r2 -lt 1 ]] && break
+      done
+      echo -e "${res:2}" | tac
+      ;;
     *)
       echo "[error] vcs type: '$vcs' not implemented" 1>&2 && return 1
       ;;
@@ -303,16 +351,49 @@ fn_repo_pull() {
     id_out="$1" && shift
     id="${id_out%|*}"
     out="${id_out#*|}"
-    case "$vcs" in
-      "git")
-        git format-patch -k --stdout -1 "$id" > "$out"
-        ;;
-      *)
-        echo "[error] vcs type: '$vcs' not implemented" 1>&2 && return 1
-        ;;
-    esac
+    fn_patch_format "$vcs" "$id" "$out" || return 1
   done
   cd - 1>/dev/null || return 1
+}
+
+fn_patch_format() {
+  declare vcs; vcs="$1" && shift
+  declare id; id="$1" && shift
+  declare out; out="$1" && shift
+  case "$vcs" in
+    "git")
+      git format-patch -k --stdout -1 "$id" > "$out"
+      ;;
+
+    "subversion")
+      info="${commits_info["$id"]}"
+      [ -z "$info" ] && \
+        { echo "[error] missing cached commit info for id: '$id'" 1>&2 && return 1; }
+      IFS="|"; parts=($(echo "$info")); IFS="$IFSORG"
+      dt="$(date -d "@${parts[0]}" "+%a %d %b %Y %T %z")"
+      id="${parts[1]}"
+      author="$(echo "${parts[2]}" | sed "$RX_COMMITS_AUTHOR")"
+      message="${parts[3]}"
+      echo -e "Author: $author\nDate: $dt\nRevision: $id\nSubject: $message\n" > "$out"
+      svn diff --git -c${id#r} >> "$out"
+      ;;
+
+    *)
+      echo "[error] vcs source type: '$vcs' not implemented" 1>&2 && return 1
+      ;;
+  esac
+}
+
+fn_patch_transform() {
+  declare vcs_source; vcs_source="$1" && shift
+  declare vcs_target; vcs_target="$1" && shift
+  declare target; target="$1" && shift
+
+  if [[ "x$vcs_source" == "xsvn" && "x$vcs_target" == "xgit" ]]; then
+    sed -i '/^Revision/{d;b;};s/^Author/From/'
+  else
+    echo "[error] unsupported vcs source / target pair '$vcs_source -> $vcs_target'" 1>&2 && return 1
+  fi
 }
 
 fn_patch_info() {
@@ -323,32 +404,38 @@ fn_patch_info() {
     { echo "[error] invalid patch file '$patch'" 1>&2 && return 1; }
   [ -z "$(echo "$type" | sed -n '/^\(date\|id\|description\|comments\|files\)$/p')" ] && \
     { echo "[error] invalid info type '$type'" 1>&2 && return 1; }
-  [ -z "$(echo "$vcs" | sed -n '/\(git\)/p')" ] && \
+  [ -z "$(echo "$vcs" | sed -n '/\(git\|subversion\)/p')" ] && \
     { echo "[error] unsupported repository type '$vcs'" 1>&2 && return 1; }
   case "$type" in
     "date")
       case "$vcs" in
-        "git") date -d "$(sed -n 's/^Date:[ ]*\(.*\)$/\1/p' "$patch")" '+%s' && return ;;
+        "git"|"subversion") date -d "$(sed -n 's/^Date:[ ]*\(.*\)$/\1/p' "$patch")" '+%s' && return ;;
       esac
       ;;
     "id")
       case "$vcs" in
         "git") sed -n 's/^From[ ]*\([0-9a-f]\{40\}\).*/\1/p' "$patch" && return ;;
+        "subversion") sed -n 's/^Revision[: ]*\([r0-9]\+\)$/\1/p' "$patch" && return ;;
       esac
       ;;
     "description")
       case "$vcs" in
         "git") sed -n 's/^Subject:[ ]*\(.*\)$/\1/p' "$patch" && return ;;
+        "subversion") sed -n 's/^Subject:[ ]*\(.*\)$/\1/p' "$patch" | sed -n "$RX_COMMITS_DESCRIPTION"'p' && return ;;
       esac
       ;;
     "comments")
       case "$vcs" in
         "git") sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;s/\n/\\n/g;p;b;};H;b;}' "$patch" && return ;;
+        "subversion")
+          description="$(fn_patch_info "$patch" "$vcs" "description")"
+          comments_="$(sed -n '/^Subject/,/^Index: /{/^Index: /{x;s/Subject: //;s/^\n*//;s/\n/\\n/g;p;b;};H;b;}' "$patch")"
+          echo -E "${comments_:${#description}}" | sed 's/^[. ]*\(\\n\)*//;s/\(\\n\)*$//' && return ;;
       esac
       ;;
     "files")
       case "$vcs" in
-        "git") sed -n '/^diff/{N;/^diff.*\nindex/{n;N;s/^--- \(.*\)[ ]*\n+++ \(.*\)[ ]*$/\1|\2/p;};}' "$patch" && return ;;
+        "git"|"subversion") sed -n '/^diff/{N;/^diff.*\nindex/{n;N;s/^--- \(.*\)[ ]*\n+++ \(.*\)[ ]*$/\1|\2/p;};}' "$patch" && return ;;
       esac
       ;;
   esac
@@ -595,7 +682,7 @@ fn_commits() {
         id="${parts[1]}"
         [ $DEBUG -ge 2 ] && echo "[debug] adding commit '$id' to info cache" 1>&2
         commits_info["$id"]="$commit"
-        description="${parts[3]}"
+        description="$(echo "${parts[3]}" | sed -n "1${RX_COMMITS_DESCRIPTION}p")"
         name="$(fn_patch_name "$(printf "%0${#l_commits}d" $l)_$id_$description")"
         target_fqn="$d_tmp_source/$name"
         fn_repo_pull "$source" "$id|$target_fqn" || return 1
@@ -846,6 +933,10 @@ fn_commits() {
             readme_search_category="${info_orig["id"]}"
             readme_search_base="${readme_search_category:0:9}"
             ;;
+          "subversion")
+            readme_search_category="$(echo "${info_orig["id"]}" | sed 's/^r//')"
+            readme_search_base="$readme_search_category"
+            ;;
           *)
             echo "[error] unsupported repository type" 1>&2 && return 1
             ;;
@@ -857,6 +948,7 @@ fn_commits() {
           entry_ref=""
           case "$vcs_source" in
             "git") entry_ref="[git sha:${id:0:9}]" ;;
+            "subversion") entry_ref="[svn rev:${id#r}]" ;;
             *) echo "[error] unsupported repository type" 1>&2 && return 1 ;;
           esac
           entry_new="$entry_description$entry_version $entry_ref"
@@ -902,6 +994,7 @@ fn_commits() {
         entry_ref=""
         case "$vcs_source" in
           "git") entry_ref="[git sha:$id$([ -n "$readme_status" ] && echo " | $readme_status")]" ;;
+          "subversion") entry_ref="[svn rev:${id#r}$([ -n "$readme_status" ] && echo " | $readme_status")]" ;;
           *) echo "[error] unsupported repository type" 1>&2 && return 1 ;;
         esac
         entry_comments="$(fn_patch_info "$target_fqn" "$vcs_source" "comments")" || return 1
