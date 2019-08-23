@@ -228,7 +228,6 @@ fn_patch_name() {
   name="$(echo "$name" | awk '{print tolower($0)}').diff"
 
   [ $DEBUG -ge 5 ] && echo "[debug] description: '$description' -> name: '$name'" 1>&2
-
   echo "$name"
 }
 
@@ -801,7 +800,6 @@ fn_commits() {
 
       [ $DEBUG -ge 5 ] && echo "[debug] type: $type, categories: ${repo_map[*]}"
       mkdir -p "$target_fq/$type/$repo_map_path"
-
       # push patch
       target_fqn="$(echo "$target_fq/$type/$repo_map_path/$name" | sed 's/\(\/\)\/\+/\1/g')"
       new=1
