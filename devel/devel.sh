@@ -967,7 +967,7 @@ fn_commits() {
             fi
             if [[ -z "$entry_orig" ]]; then
               # insert at end
-              sed -n -i '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/,/$^/{/^#### \['"$repo_map_"'\]('"$repo_map_"')$/{N;h;b};/^```$/{x;s/\(.*\)/\1\n'"$entry_new"'\n```/p;b;}; H;$!b};${x;/^#### ['"$repo_map_"'\]('"$repo_map_"')/{s/\(.*\)/\1\n'"$entry_new"'/p;b;};x;p;b;};p' "$f_readme"
+              sed -n -i '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/,/$^/{/^#### \['"$repo_map_"'\]('"$repo_map_"')$/{N;h;b};/^```$/{x;s/\(.*\)/\1\n'"$(fn_escape "sed" "$entry_new")"'\n```/p;b;}; H;$!b};${x;/^#### ['"$repo_map_"'\]('"$repo_map_"')/{s/\(.*\)/\1\n'"$(fn_escape "sed" "$entry_new")"'/p;b;};x;p;b;};p' "$f_readme"
               commit_set[${#commit_set[@]}]="$f_readme"
             elif [ "x$entry_new" != "x$entry_orig" ]; then
               # update
