@@ -956,6 +956,7 @@ fn_commits() {
             echo -e "### ${type:-$(basename "$target_fq")}" >> "$f_readme"
           # search for existing entry
           if [ -z "$(sed -n '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/p' "$f_readme")" ]; then
+            [ $DEBUG -ge 5 ] && echo "[debug] appending commit type '$repo_map_' / id '$id' to base $readme" 1>&2
             # add entry
             echo -e "\n#### [$repo_map_]($repo_map_)\n"'```'"\n$entry_new\n"'```' >> "$f_readme"
             commit_set[${#commit_set[@]}]="$f_readme"
@@ -967,10 +968,12 @@ fn_commits() {
             fi
             if [[ -z "$entry_orig" ]]; then
               # insert at end
+              [ $DEBUG -ge 5 ] && echo "[debug] inserting commit type '$repo_map_' / id '$id' at end of base $readme" 1>&2
               sed -n -i '/^#### \['"$repo_map_"'\]('"$repo_map_"')$/,/$^/{/^#### \['"$repo_map_"'\]('"$repo_map_"')$/{N;h;b};/^```$/{x;s/\(.*\)/\1\n'"$(fn_escape "sed" "$entry_new")"'\n```/p;b;}; H;$!b};${x;/^#### ['"$repo_map_"'\]('"$repo_map_"')/{s/\(.*\)/\1\n'"$(fn_escape "sed" "$entry_new")"'/p;b;};x;p;b;};p' "$f_readme"
               commit_set[${#commit_set[@]}]="$f_readme"
             elif [ "x$entry_new" != "x$entry_orig" ]; then
               # update
+              [ $DEBUG -ge 5 ] && echo "[debug] overwriting existing commit type '$repo_map_' / id '$id' in base $readme" 1>&2
               f_tmp="$(fn_temp_file)"
               if [ $DEBUG -ge 5 ]; then
                 cp "$f_readme" "$f_tmp"
@@ -1005,15 +1008,23 @@ fn_commits() {
         # search for existing entry
         entry_orig=""
         if [ -n "$readme_search_category" ]; then
-          entry_orig="$(awk -v "id=$(fn_escape "awk" "$readme_search_category")" '
+          entry_orig="$(awk -v "debug=$DEBUG" -v "id=$(fn_escape "awk" "$readme_search_category")" '
 function fn_test(data) {
+  if (debug >= 5)
+    print("[debug] test data: "data) > "/dev/stderr"
   if (section ~ ".*"id".*") {
+    if (debug >= 5)
+      print("[debug] match!") > "/dev/stderr"
     gsub(/\n/, "\\n", data);
     gsub(/\\n$/, "", data);
     print data;
   }
 }
-BEGIN { section="" }
+BEGIN {
+  if (debug >= 5)
+    print("[debug] searching for id: "id) > "/dev/stderr"
+  section=""
+}
 {
   if ($0 ~ "^##### .*") {
     if (section != "")
@@ -1026,10 +1037,12 @@ END { fn_test(section); }' "$f_readme")"
         fi
         if [[ -z "$entry_orig" || $new -eq 1 ]]; then
           # insert at end
+          [ $DEBUG -ge 5 ] && echo "[debug] appending commit type '$repo_map_' / id '$id' to category $readme" 1>&2
           echo -e "\n$entry_new" >> "$f_readme"
           commit_set[${#commit_set[@]}]="$f_readme"
         elif [ "x$entry_new" != "x$entry_orig" ]; then
           # update
+          [ $DEBUG -ge 5 ] && echo "[debug] overwriting existing commit type '$repo_map_' / id '$id' in categry $readme" 1>&2
           f_tmp="$(fn_temp_file)"
           if [ $DEBUG -ge 5 ]; then
             cp "$f_readme" "$f_tmp"
