@@ -45,10 +45,10 @@ help() {
 fn_log() {
   # validate arg(s)
   rev1=-1 && [ $# -gt 0 ] && rev1="$1" && shift
-  [ "x$(echo $rev1 | sed -n '/^[-+r]\?[0-9]\+$/p')" == "x" ] &&
+  [ "x$(echo $rev1 | sed -n '/^[-+r]\?[0-9]\+$/p')" = "x" ] &&
     echo "[error] invalid revision arg '$rev1'" && exit 1
   rev2="" && [ $# -gt 0 ] && rev2="$1" && shift
-  [ "x$rev2" != "x" ] && [ "x$(echo $rev2 | sed -n '/^[-+r]\?[0-9]\+$/p')" == "x" ] &&
+  [ "x$rev2" != "x" ] && [ "x$(echo $rev2 | sed -n '/^[-+r]\?[0-9]\+$/p')" = "x" ] &&
     echo "[error] invalid revision arg '$rev2'" && exit 1
 
   # tokenise
@@ -66,8 +66,8 @@ fn_log() {
     echo "[debug|fn_log] rev1: '$rev1prefix|$rev1|$rev1suffix' $([ "x$rev2" != "x" ] && echo "rev2: '$rev2prefix|$rev2|$rev2suffix'")" 1>&2
   # mod
   [[ "x$rev1prefix" == "x" && $rev -le 25 ]] && rev1prefix="-"
-  [ "x$rev1prefix" == "x+" ] && rev1prefix=""
-  [ "x$rev1prefix" == "xr" ] && rev1prefix=""
+  [ "x$rev1prefix" = "x+" ] && rev1prefix=""
+  [ "x$rev1prefix" = "xr" ] && rev1prefix=""
   if [ "x$rev2" != "x" ]; then
     rev1suffix=".."
     [[ "x$rev1prefix" == "x" && $rev1 -gt $rev2 ]] && revX=$rev1 && rev1=$rev2 && rev2=$revX
