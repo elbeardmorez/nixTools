@@ -14,6 +14,8 @@ TEST=${TEST:-0}
 SERVER=http://localhost/svn/
 REPO_OWNER_ID=80
 RX_AUTHOR="${RX_AUTHOR:-""}"
+RX_DESCRIPTION_DEFAULT='s/^[ ]*\(.\{20\}[^.]*\).*$/\1/'
+RX_DESCRIPTION="${RX_DESCRIPTION:-"$RX_DESCRIPTION_DEFAULT"}"
 
 help() {
   echo -e "SYNTAX: $SCRIPTNAME OPTION [OPT_ARGS]
@@ -104,6 +106,13 @@ fn_log() {
   [ $TEST -eq 0 ] && svn log $rev1prefix$rev1$rev1suffix$rev2prefix$rev2$rev2suffix "$@"
 }
 
+fn_info() {
+  [ $# -lt 1 ] && help && echo "[error] insufficient args" 1>&2 && return 1
+  revision="$1"
+  commit="$(svn log --xml -r${revision#r*} | sed -n '/<logentry/,/<\/logentry>/{/<\/logentry>/{x;s/\n/\\n/g;s/^.*revision="\([^"]*\).*<author>\([^<]*\).*<date>\([^<]\+\).*<msg>\(.*\)<\/msg.*$/\3\|r\1|\2|\4/;s/\(\\n\)*$//;p;b;};H;}')"
+  echo -E "$(date -d "${commit%%|*}" "+%s")|${commit#*|}"
+}
+
 fn_amend() {
   [ $# -lt 1 ] && help && echo "[error] insufficient args" 1>&2 && return 1
   revision=$1 && shift
@@ -165,34 +174,43 @@ fn_status() {
 }
 
 fn_diff() {
-  svn diff -c${1:-"-1"}
+  declare revision; revision="${1:-"-1"}"
+  svn diff --git -c${revision#r}
+}
+
+fn_patch_name() {
+  declare description; description="$1" && shift
+  declare name
+
+  # construct name
+  name="$description"
+  # replace whitespace and special characters
+  name="$(echo "$name" | sed 's/[ ]/./g;s/[\/:]/_/g')"
+  # strip any prefix garbage
+  name="$(echo "$name" | sed 's/^\[PATCH[^]]*\][. ]*//;s/\n//;')"
+  # lower case
+  name="$(echo "$name" | awk '{print tolower($0)}').diff"
+
+  [ $DEBUG -ge 5 ] && echo "[debug] description: '$description' -> name: '$name'" 1>&2
+  echo "$name"
 }
 
 fn_patch() {
   [ $# -lt 1 ] && help && echo "[error] insufficient args" 1>&2 && return 1
-  revision=-1 && [ $# -gt 0 ] && revision="$1" && shift
-  target="" && [ $# -gt 0 ] && target="$1" && shift
-  l=1;
-  loglines=()
+  declare revision; revision=-1 && [ $# -gt 0 ] && revision="$1" && shift
+  declare target; target="" && [ $# -gt 0 ] && target="$1" && shift
+  declare info; info="$(fn_info $revision)"
+  declare parts; IFS="|"; parts=($(echo "$info")); IFS="$IFSORG"; IFS="$IFSORG"
+  declare dt; dt="$(date -d"@${parts[0]}" "+%a %d %b %Y %T %z")"
+  revision="${parts[1]}"
+  declare author; author="$(echo "${parts[2]}" | sed "$RX_AUTHOR")"
+  declare message; message="${parts[3]}"
+  declare description; description="$(echo "$message" | sed "$RX_DESCRIPTION")"
+  declare comments; comments="$(echo -E "${message:${#description}}" | sed 's/^[. ]*\(\\n\)*//;s/\(\\n\)*$//')"
+  declare header; header="Author: $author\nDate: $dt\nRevision: $revision\nSubject: $description$([ -n "$comments" ] && echo "\n\n$comments")"
 
-  while read -r line; do loglines[${#loglines[@]}]="$line"; done << EOF
-"$(fn_log $revision 2>/dev/null)"
-EOF
-  [ $DEBUG -gt 0 ] && echo "[debug|fn_patch] dumping commit message:" &&
-    for l in $(seq 0 1 ${#loglines[@]}); do echo "idx$l: ${loglines[$l]}"; done
-
-  revision="$(echo "${loglines[1]}" | cut -d'|' -f1 | sed 's/\s*r\([0-9]*\)\s*/\1/')"
-  author="$(echo "${loglines[1]}" | cut -d'|' -f2 | sed 's/\(^\s*\|\s*$\)//g' | sed "$RX_AUTHOR")"
-  date_="$(echo "${loglines[1]}" | cut -d'|' -f3 | sed 's/\(^\s*\|\s*$\)//g' | cut -d' ' -f1-3)"
-  if [ "x$target" = "x" ]; then
-    target="$(echo "${loglines[3]}" | sed 's/\s*\([0-9]\+|\)\s*\(.*\)/\1\2/;s/ /./g;s/^\.//g' | sed 's/^[-.*]*\.//g' | sed 's/[/\`]/./g' | sed 's/\.\././g' | awk '{print tolower($0)}')"
-    target="$([ $revision -eq -1 ] && echo "0001" || echo "$revision").$target.diff"
-  fi
-  message="author: $author\ndate: $date_\nrevision: $revision\nsubject: "
-  for l in $(seq 3 1 $[${#loglines[@]} - 2]); do
-     message+="${loglines[$l]}\n"
-  done
-  echo -e "$message\n" > "$target"
+  [ -z "$target" ] && target="$(fn_patch_name "$description")"
+  echo -e "$header\n" > "$target"
   fn_diff $revision >> "$target"
 }
 
