@@ -256,7 +256,8 @@ fn_repo_clone() {
 }
 
 fn_test() {
-  type=${1:-log}
+  [ $# -lt 1 ] && help && echo "[error] insufficient args" 1>&2 && return 1
+  type="$1" && shift
   case "$type" in
     "log")
       TEST=1
@@ -273,6 +274,9 @@ fn_test() {
       echo ">log r10" && fn_log r10
       echo ">log r10 /path" && fn_log r10 /path
       echo ">log r10 r15 /path" && fn_log r10 r15 /path
+      ;;
+    "revision"|"info"|"patch_name"|"patch")
+      fn_$type "$@"
       ;;
     *)
       help && echo "[error] unsupported test name '$type'" 1>&2
