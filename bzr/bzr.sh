@@ -10,7 +10,7 @@ declare max_message; max_message=150
 help() {
   echo -e "SYNTAX: $SCRIPTNAME [OPTION]
 \nwith OPTION:
-\n  log [r]X [[r]X2]  : output log information for commit(s) X:
+\n  -l|--log [r]X [[r]X2]  : output log information for commit(s) X:
 \n    with supported X:
       [X : 1 <= X <= 25]  : last x commits (-r-X..)
       [X : X > 25]        : revision X (-rX)
@@ -23,20 +23,21 @@ help() {
       [-X_1 -X_2 : 1 <= X_1/X_2 <= ..]
         : commits between revision 'HEAD - X_1' and revision
           'HEAD - X_2' inclusive (-r'-min(X_1,X_2)'..-'max(X_1,X_2)')
-\n  diff [REVISION]  : show diff of REVISION again previous
-                     (default: HEAD)
-  patch [REVISION] [TARGET]  : format REVISION (default: HEAD) as a
-                               diff patch file with additional
-                               context information inserted as a
-                               header to TARGET (default: auto-
-                               generated from commit message)
-  commits [SEARCH] [TYPE]  : search log for commits containing SEARCH
-                             in TYPE field
+\n  -d|--diff [REVISION]  : show diff of REVISION again previous
+                          (default: HEAD)
+  -p|--patch [REVISION] [TARGET]  : format REVISION (default: HEAD)
+                                    as a diff patch file with
+                                    additional context information
+                                    inserted as a header to TARGET
+                                    (default: auto-generated from
+                                    commit message)
+  -c|--commits [SEARCH] [TYPE]  : search log for commits containing
+                                  SEARCH. in TYPE field
 \n    with support TYPE:
       message  : search the message content (default)
       author  : search the author field
       committer  : search the commiter field
-\n  commits-dump TARGET [SEARCH] [TYPE]
+\n  -dc|--dump-commits TARGET [SEARCH] [TYPE]
     : wrapper for 'commits' which also dumps any matched commits
       to TARGET
 "
@@ -104,7 +105,7 @@ fn_commits() {
   bzr log --match-$search_type=".*$search.*" | sed -n '/^revno:.*/,/^-\+$/{/^revno:.*/{s/^revno: \([0-9]\+\)/\1|/;H;b};/^message:.*/,/^-\+$/{/^message:.*/b;/^-\+$/{x;s/\(\s\+\|\n\)/ /g;p;s/.*//;x;b};H}};${x;s/\(\s\+\|\n\)/ /g;p}' | sed 's/\s*\([0-9]\+|\)\s*\(.*\)/r\1\2/;s/ /./g' | awk '{print tolower($0)}'
 }
 
-fn_commits_dump() {
+fn_dump_commits() {
   declare target; target="$1" && shift
   declare -a commits
   declare commit
@@ -141,13 +142,14 @@ fn_test() {
   esac
 }
 
-command=help && [ $# -gt 0 ] && command="$1" && shift
-case "$command" in
-  "help") help ;;
-  "diff") fn_diff "$@" ;;
-  "log") fn_log "$@" ;;
-  "patch"|"formatpatch"|"format-patch") fn_patch "$@" ;;
-  "commits") fn_commits "$@" ;;
-  "commits-dump") fn_commits_dump "$@" ;;
+declare option; option=help
+[ $# -gt 0 ] && option="(echo "$1" | sed 's/^[ -]*//')" && shift
+case "$option" in
+  "h"|"help") help ;;
+  "d"|"diff") fn_diff "$@" ;;
+  "l"|"log") fn_log "$@" ;;
+  "p"|"patch"|"formatpatch"|"format-patch") fn_patch "$@" ;;
+  "c"|"commits") fn_commits "$@" ;;
+  "dc"|"dump-commits") fn_dump_commits "$@" ;;
   "test") fn_test "$@" ;;
 esac
