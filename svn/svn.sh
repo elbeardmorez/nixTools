@@ -286,9 +286,8 @@ fn_test() {
 }
 
 fn_process() {
-  option="help"
-  [ $# -gt 0 ] && s="$(echo "$1" | sed 's/[ ]*-*//')" && shift
-  [ -n "$(echo "$s" | sed -n '/\(h\|help\|l\|log\|am\|amend\|cl\|clean\|ign\|ignore\|rev\|revision\|d\|diff\|st\|status\|fp\|patch\|formatpatch\|format-patch\|ra\|repo-add\|rc\|repo-clone\|test\)/p')" ] && option="$s"
+  declare option; option="help"
+  [ $# -gt 0 ] && option="$(echo "$1" | sed 's/[ ]*-*//')" && shift
   case "$option" in
     "h"|"help") help ;;
     "l"|"log") fn_log "$@" ;;
