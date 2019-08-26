@@ -161,7 +161,8 @@ fn_dump_commits() {
 }
 
 fn_test() {
-  type=${1:-log}
+  [ $# -lt 1 ] && help && echo "[error] insufficient args" 1>&2 && return 1
+  type="$1" && shift
   case "$type" in
     "log")
       TEST=1
@@ -174,6 +175,13 @@ fn_test() {
       echo ">log 10" && fn_log 10
       echo ">log +10" && fn_log +10
       echo ">log r10" && fn_log r10
+      ;;
+    "info"|"patch_name"|"patch")
+      fn_$type "$@"
+      ;;
+    *)
+      help && echo "[error] unsupported test name '$type'" 1>&2
+      return 1
       ;;
   esac
 }
