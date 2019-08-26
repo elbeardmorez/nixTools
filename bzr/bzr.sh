@@ -9,8 +9,6 @@ RX_AUTHOR="${RX_AUTHOR:-""}"
 RX_DESCRIPTION_DEFAULT='s/^[ ]*\(.\{20\}[^.]*\).*$/\1/'
 RX_DESCRIPTION="${RX_DESCRIPTION:-"$RX_DESCRIPTION_DEFAULT"}"
 
-declare max_message; max_message=150
-
 help() {
   echo -e "SYNTAX: $SCRIPTNAME [OPTION]
 \nwith OPTION:
@@ -129,7 +127,12 @@ fn_patch() {
   declare comments; comments="$(echo -E "${message:${#description}}" | sed 's/^[. ]*\(\\n\)*//;s/\(\\n\)*$//')"
   declare header; header="Author: $author\nDate: $dt\nRevision: $revision\nBranch: $branch\nSubject: $description$([ -n "$comments" ] && echo "\n\n$comments")"
 
-  [ -z "$target" ] && target="$(fn_patch_name "$description")"
+  if [ -d "$target" ]; then
+    target="$(echo "$target" | sed 's/\/*$/\//')$(fn_patch_name "$description")"
+  elif [ -z "$target" ]; then
+    target="$(fn_patch_name "$description")"
+  fi
+
   echo -e "$header\n" > "$target"
   fn_diff $revision >> "$target"
 }
@@ -149,14 +152,11 @@ fn_dump_commits() {
   declare message
   declare file
   [ ! -d "$target" ] && mkdir -p "$target" 2>/dev/null
-  echo "target: '$target'"
-  commits=($(fn_commits "$@"))
+  IFS=$'\n'; commits=($(fn_commits "$@")); IFS="$IFSORG"
+  echo "[info] dumping ${#commits[@]} commit$([ ${#commits[@]} -ne 1 ] && echo "s") to target '$target'"
   for commit in "${commits[@]}"; do
     revision="${commit%%|*}"
-    message="${commit:$((${#revision} + 1)):max_message}"
-    file=${revision}.${message}.diff
-    echo "revision: '$revision', file: '$file'"
-    fn_patch "${revision#r}" "$target/$file"
+    fn_patch "${revision#r}" "$target"
   done
 }
 
