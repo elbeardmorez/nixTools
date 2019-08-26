@@ -5,6 +5,10 @@ IFSORG="$IFS"
 DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
 
+RX_AUTHOR="${RX_AUTHOR:-""}"
+RX_DESCRIPTION_DEFAULT='s/^[ ]*\(.\{20\}[^.]*\).*$/\1/'
+RX_DESCRIPTION="${RX_DESCRIPTION:-"$RX_DESCRIPTION_DEFAULT"}"
+
 declare max_message; max_message=150
 
 help() {
@@ -81,20 +85,52 @@ fn_log() {
   [ $TEST -eq 0 ] && bzr log -r$rev1prefix$rev1$rev1suffix$rev2prefix$rev2$rev2suffix
 }
 
+fn_info() {
+  [ $# -lt 1 ] && help && echo "[error] insufficient args" 1>&2 && return 1
+  revision="$1"
+  commit="$(bzr log -r$revision | sed -n '${x;s/\n/\\n/g;s/\(\\n  \)/\\n/g;s/^.*\\nrevno: \(.\+\)\\nauthor: \(.\+\)\\n.*\\nbranch[^:]*: \(.\+\)\\ntimestamp: \(.\+\)\\nmessage:\(\\n\)*[\t ]*\(.*\)$/\4|r\1|\2|\3|\6/;s/\(\\n\)*$//;p;b;};H;')"
+  echo -E "$(date -d "${commit%%|*}" "+%s")|${commit#*|}"
+}
+
 fn_diff() {
-  bzr diff -c${1:-"-1"}
+  declare revision; revision="${1:-"-1"}"
+  bzr diff -c${revision#r}
+}
+
+fn_patch_name() {
+  declare description; description="$1" && shift
+  declare name
+
+  # construct name
+  name="$description"
+  # replace whitespace and special characters
+  name="$(echo "$name" | sed 's/[ ]/./g;s/[\/:]/_/g')"
+  # strip any prefix garbage
+  name="$(echo "$name" | sed 's/^\[PATCH[^]]*\][. ]*//;s/\n//;')"
+  # lower case
+  name="$(echo "$name" | awk '{print tolower($0)}').diff"
+
+  [ $DEBUG -ge 5 ] && echo "[debug] description: '$description' -> name: '$name'" 1>&2
+  echo "$name"
 }
 
 fn_patch() {
-  revision=-1 && [ $# -gt 0 ] && revision="$1" && shift
-  target=""
-  if [ $# -gt 0 ]; then
-    target="$1" && shift
-  else
-    target=$(fn_log $revision | sed -n '/^message:.*/,/^-\+$/{/^message:.*/b;/^-\+$/{x;s/\(\s\+\|\n\)/ /g;p;s/.*//;x;b};H};${x;s/\(\s\+\|\n\)/ /g;p}' | sed 's/\s*\([0-9]\+|\)\s*\(.*\)/\1\2/;s/ /./g;s/^\.//g' | sed 's/^[-.*]*\.//g' | sed 's/[/`]/./g' | sed 's/\.\././g' | awk '{print tolower($0)}')
-    target="$([ $revision -eq -1 ] && echo "0001" || echo "$revision").${target:0:maxmessagelength}.diff"
-  fi
-  bzr log -c$revision | sed 's/^/#/' > "$target"
+  [ $# -lt 1 ] && help && echo "[error] insufficient args" 1>&2 && return 1
+  declare revision; revision=-1 && [ $# -gt 0 ] && revision="$1" && shift
+  declare target; target="" && [ $# -gt 0 ] && target="$1" && shift
+  declare info; info="$(fn_info $revision)"
+  declare parts; IFS="|"; parts=($(echo "$info")); IFS="$IFSORG"; IFS="$IFSORG"
+  declare dt; dt="$(date -d"@${parts[0]}" "+%a %d %b %Y %T %z")"
+  revision="${parts[1]}"
+  declare author; author="$(echo "${parts[2]}" | sed "$RX_AUTHOR")"
+  declare branch; branch="$(echo "${parts[3]}" | sed "$RX_AUTHOR")"
+  declare message; message="${parts[4]}"
+  declare description; description="$(echo "$message" | sed "$RX_DESCRIPTION")"
+  declare comments; comments="$(echo -E "${message:${#description}}" | sed 's/^[. ]*\(\\n\)*//;s/\(\\n\)*$//')"
+  declare header; header="Author: $author\nDate: $dt\nRevision: $revision\nBranch: $branch\nSubject: $description$([ -n "$comments" ] && echo "\n\n$comments")"
+
+  [ -z "$target" ] && target="$(fn_patch_name "$description")"
+  echo -e "$header\n" > "$target"
   fn_diff $revision >> "$target"
 }
 
