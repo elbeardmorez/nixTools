@@ -145,16 +145,16 @@ fn_test() {
 fn_process() {
   declare option; option="help"
   [ $# -gt 0 ] && option="$(echo "$1" | sed 's/[ ]*-*//')" && shift
-case "$option" in
-  "h"|"help") help ;;
-  "l"|"log") fn_log "$@" ;;
+  case "$option" in
+    "h"|"help") help ;;
+    "l"|"log") fn_log "$@" ;;
     "d"|"diff") fn_diff "$@" ;;
-  "p"|"patch"|"formatpatch"|"format-patch") fn_patch "$@" ;;
-  "c"|"commits") fn_commits "$@" ;;
-  "dc"|"dump-commits") fn_dump_commits "$@" ;;
-  "test") fn_test "$@" ;;
+    "p"|"patch"|"formatpatch"|"format-patch") fn_patch "$@" ;;
+    "c"|"commits") fn_commits "$@" ;;
+    "dc"|"dump-commits") fn_dump_commits "$@" ;;
+    "test") fn_test "$@" ;;
     *) help && echo "[error] unsupported option '$option'" 1>&2 && exit ;;
-esac
+  esac
 }
 
 fn_process "$@"
