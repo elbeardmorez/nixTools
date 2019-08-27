@@ -6,7 +6,7 @@ DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
 
 RX_AUTHOR="${RX_AUTHOR:-""}"
-RX_DESCRIPTION_DEFAULT='s/^[ ]*\(.\{20\}[^.]*\).*$/\1/'
+RX_DESCRIPTION_DEFAULT='1s/^[ ]*\(.\{20\}[^.]*\).*$/\1/p'
 RX_DESCRIPTION="${RX_DESCRIPTION:-"$RX_DESCRIPTION_DEFAULT"}"
 
 help() {
@@ -123,7 +123,7 @@ fn_patch() {
   declare author; author="$(echo "${parts[2]}" | sed "$RX_AUTHOR")"
   declare branch; branch="$(echo "${parts[3]}" | sed "$RX_AUTHOR")"
   declare message; message="${parts[4]}"
-  declare description; description="$(echo "$message" | sed "$RX_DESCRIPTION")"
+  declare description; description="$(echo -e "$message" | sed -n "$RX_DESCRIPTION")"
   declare comments; comments="$(echo -E "${message:${#description}}" | sed 's/^[. ]*\(\\n\)*//;s/\(\\n\)*$//')"
   declare header; header="Author: $author\nDate: $dt\nRevision: $revision\nBranch: $branch\nSubject: $description$([ -n "$comments" ] && echo "\n\n$comments")"
 
