@@ -86,7 +86,7 @@ fn_log() {
 fn_info() {
   [ $# -lt 1 ] && help && echo "[error] insufficient args" 1>&2 && return 1
   revision="$1"
-  commit="$(bzr log -r$revision | sed -n '${x;s/\n/\\n/g;s/\(\\n  \)/\\n/g;s/^.*\\nrevno: \([0-9]\+\)\\n\(author\|committer\): \([^>]\+>\)\\n.*branch[^:]*: \(.\+\)\\ntimestamp: \(.\+\)\\nmessage:\(\\n\)*[\t ]*\(.*\)$/\5|r\1|\3|\4|\7/;s/\(\\n\)*$//;p;b;};H;')"
+  commit="$(bzr log --long -r$revision | sed -n '${H;x;s/\n/\\n/g;s/\(\\n  \)/\\n/g;s/^.*\\nrevno: \([0-9]\+\)\\n\(author\|committer\): \([^>]\+>\)\\n.*branch[^:]*: \(.\+\)\\ntimestamp: \(.\+\)\\nmessage:\(\\n\)*[\t ]*\(.*\)$/\5|r\1|\3|\4|\7/;s/\(\\n\)*$//;p;b;};H;')"
   echo -E "$(date -d "${commit%%|*}" "+%s")|${commit#*|}"
 }
 
