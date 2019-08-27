@@ -102,9 +102,13 @@ fn_patch_name() {
   # construct name
   name="$description"
   # replace whitespace and special characters
-  name="$(echo "$name" | sed 's/[ ]/./g;s/[\/:]/_/g')"
-  # strip any prefix garbage
-  name="$(echo "$name" | sed 's/^\[PATCH[^]]*\][. ]*//;s/\n//;')"
+  name="$(echo "$name" | sed 's/[ ]/./g;s/[*\/:]/_/g;')"
+  # strip any prefix / suffix garbage
+  name="$(echo "$name" | sed 's/^\[PATCH[^]]*\][. ]*//;s/\n//;s/^[._]*//;s/[._]*$//;')"
+  # clean up repeated characters
+  while [ -n "$(echo "$name" | sed -n '/\.\./p')" ]; do
+    name="$(echo "$name" | sed 's/\.\././g')"
+  done
   # lower case
   name="$(echo "$name" | awk '{print tolower($0)}').diff"
 
