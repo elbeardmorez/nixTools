@@ -426,17 +426,13 @@ fn_patch_info() {
       ;;
     "description")
       case "$vcs" in
-        "git") sed -n 's/^Subject:[ ]*\(.*\)$/\1/p' "$patch" && return ;;
-        "subversion") sed -n 's/^Subject:[ ]*\(.*\)$/\1/p' "$patch" | sed -n "$RX_COMMITS_DESCRIPTION" && return ;;
+        "git"|"subversion") sed -n 's/^Subject:[ ]*\(.*\)$/\1/p' "$patch" && return ;;
       esac
       ;;
     "comments")
       case "$vcs" in
         "git") sed -n '/^Subject/,/^\-\-\-/{/^\-\-\-/{x;s/Subject[^\n]*//;s/^\n*//;s/\n/\\n/g;p;b;};H;b;}' "$patch" && return ;;
-        "subversion")
-          description="$(fn_patch_info "$patch" "$vcs" "description")"
-          comments_="$(sed -n '/^Subject/,/^Index: /{/^Index: /{x;s/Subject: //;s/^\n*//;s/\n/\\n/g;p;b;};H;b;}' "$patch")"
-          echo -E "${comments_:${#description}}" | sed 's/^[. ]*\(\\n\)*//;s/\(\\n\)*$//' && return ;;
+        "subversion") sed -n '/^Subject/,/^Index: /{/^Index: /{x;s/Subject: //;s/^\n*//;s/\n/\\n/g;p;b;};H;b;}' "$patch" && return ;;
       esac
       ;;
     "files")
