@@ -26,7 +26,7 @@ changelog_profile_anchor_entry["update"]=3
 
 declare -A commits_info
 RX_COMMITS_AUTHOR="${RX_COMMITS_AUTHOR:-""}"
-RX_COMMITS_DESCRIPTION_DEFAULT='s/^[ ]*\(.\{20\}[^.]*\).*$/\1/'
+RX_COMMITS_DESCRIPTION_DEFAULT='1{s/^[ ]*//;s/\(\. \).*$//;p;}'
 RX_COMMITS_DESCRIPTION="${RX_COMMITS_DESCRIPTION:-"$RX_COMMITS_DESCRIPTION_DEFAULT"}"
 
 help() {
@@ -215,15 +215,19 @@ fn_repo_type() {
 }
 
 fn_patch_name() {
-  declare description="$1" && shift
+  declare description; description="$1" && shift
   declare name
 
   # construct name
   name="$description"
   # replace whitespace and special characters
-  name="$(echo "$name" | sed 's/[ ]/./g;s/[\/:]/_/g')"
-  # strip any prefix garbage
-  name="$(echo "$name" | sed 's/^\[PATCH[^]]*\][. ]*//;s/\n//;')"
+  name="$(echo "$name" | sed 's/[ ]/./g;s/[*\/:]/_/g;')"
+  # strip any prefix / suffix garbage
+  name="$(echo "$name" | sed 's/^\[PATCH[^]]*\][. ]*//;s/\n//;s/^[._]*//;s/[._]*$//;')"
+  # clean up repeated characters
+  while [ -n "$(echo "$name" | sed -n '/\.\./p')" ]; do
+    name="$(echo "$name" | sed 's/\.\././g')"
+  done
   # lower case
   name="$(echo "$name" | awk '{print tolower($0)}').diff"
 
@@ -369,11 +373,14 @@ fn_patch_format() {
       [ -z "$info" ] && \
         { echo "[error] missing cached commit info for id: '$id'" 1>&2 && return 1; }
       IFS="|"; parts=($(echo "$info")); IFS="$IFSORG"
-      dt="$(date -d "@${parts[0]}" "+%a %d %b %Y %T %z")"
-      id="${parts[1]}"
-      author="$(echo "${parts[2]}" | sed "$RX_COMMITS_AUTHOR")"
-      message="${parts[3]}"
-      echo -e "Author: $author\nDate: $dt\nRevision: $id\nSubject: $message\n" > "$out"
+      declare dt; dt="$(date -d "@${parts[0]}" "+%a %d %b %Y %T %z")"
+      declare author; author="$(echo "${parts[2]}" | sed "$RX_COMMITS_AUTHOR")"
+      declare message; message="${parts[3]}"
+      declare description; description="$(echo -e "$message" | sed -n "$RX_COMMITS_DESCRIPTION")"
+      declare comments; comments="$(echo -E "${message:${#description}}" | sed 's/^[. ]*\(\\n\)*//;s/\(\\n\)*$//')"
+      declare header; header="Author: $author\nDate: $dt\nRevision: $id\nSubject: $description$([ -n "$comments" ] && echo "\n\n$comments")"
+
+      echo -e "$header\n" > "$out"
       svn diff --git -c${id#r} >> "$out"
       ;;
 
@@ -420,7 +427,7 @@ fn_patch_info() {
     "description")
       case "$vcs" in
         "git") sed -n 's/^Subject:[ ]*\(.*\)$/\1/p' "$patch" && return ;;
-        "subversion") sed -n 's/^Subject:[ ]*\(.*\)$/\1/p' "$patch" | sed -n "$RX_COMMITS_DESCRIPTION"'p' && return ;;
+        "subversion") sed -n 's/^Subject:[ ]*\(.*\)$/\1/p' "$patch" | sed -n "$RX_COMMITS_DESCRIPTION" && return ;;
       esac
       ;;
     "comments")
@@ -681,7 +688,7 @@ fn_commits() {
         id="${parts[1]}"
         [ $DEBUG -ge 2 ] && echo "[debug] adding commit '$id' to info cache" 1>&2
         commits_info["$id"]="$commit"
-        description="$(echo "${parts[3]}" | sed -n "1${RX_COMMITS_DESCRIPTION}p")"
+        description="$(echo "${parts[3]}" | sed -n "$RX_COMMITS_DESCRIPTION")"
         name="$(fn_patch_name "$(printf "%0${#l_commits}d" $l)_$id_$description")"
         target_fqn="$d_tmp_source/$name"
         fn_repo_pull "$source" "$id|$target_fqn" || return 1
