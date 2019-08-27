@@ -14,7 +14,7 @@ TEST=${TEST:-0}
 SERVER=http://localhost/svn/
 REPO_OWNER_ID=80
 RX_AUTHOR="${RX_AUTHOR:-""}"
-RX_DESCRIPTION_DEFAULT='s/^[ ]*\(.\{20\}[^.]*\).*$/\1/'
+RX_DESCRIPTION_DEFAULT='1{s/^[ ]*//;s/\(\. \).*$//;p;}'
 RX_DESCRIPTION="${RX_DESCRIPTION:-"$RX_DESCRIPTION_DEFAULT"}"
 
 help() {
@@ -185,9 +185,13 @@ fn_patch_name() {
   # construct name
   name="$description"
   # replace whitespace and special characters
-  name="$(echo "$name" | sed 's/[ ]/./g;s/[\/:]/_/g')"
-  # strip any prefix garbage
-  name="$(echo "$name" | sed 's/^\[PATCH[^]]*\][. ]*//;s/\n//;')"
+  name="$(echo "$name" | sed 's/[ ]/./g;s/[*\/:]/_/g;')"
+  # strip any prefix / suffix garbage
+  name="$(echo "$name" | sed 's/^\[PATCH[^]]*\][. ]*//;s/\n//;s/^[._]*//;s/[._]*$//;')"
+  # clean up repeated characters
+  while [ -n "$(echo "$name" | sed -n '/\.\./p')" ]; do
+    name="$(echo "$name" | sed 's/\.\././g')"
+  done
   # lower case
   name="$(echo "$name" | awk '{print tolower($0)}').diff"
 
@@ -205,11 +209,16 @@ fn_patch() {
   revision="${parts[1]}"
   declare author; author="$(echo "${parts[2]}" | sed "$RX_AUTHOR")"
   declare message; message="${parts[3]}"
-  declare description; description="$(echo "$message" | sed "$RX_DESCRIPTION")"
+  declare description; description="$(echo -e "$message" | sed -n "$RX_DESCRIPTION")"
   declare comments; comments="$(echo -E "${message:${#description}}" | sed 's/^[. ]*\(\\n\)*//;s/\(\\n\)*$//')"
   declare header; header="Author: $author\nDate: $dt\nRevision: $revision\nSubject: $description$([ -n "$comments" ] && echo "\n\n$comments")"
 
-  [ -z "$target" ] && target="$(fn_patch_name "$description")"
+  if [ -d "$target" ]; then
+    target="$(echo "$target" | sed 's/\/*$/\//')$(fn_patch_name "$description")"
+  elif [ -z "$target" ]; then
+    target="$(fn_patch_name "$description")"
+  fi
+
   echo -e "$header\n" > "$target"
   fn_diff $revision >> "$target"
 }
