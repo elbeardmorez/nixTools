@@ -6,7 +6,7 @@ DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
 
 RX_AUTHOR="${RX_AUTHOR:-""}"
-RX_DESCRIPTION_DEFAULT='1s/^[ ]*\(.\{20\}[^.]*\).*$/\1/p'
+RX_DESCRIPTION_DEFAULT='1{s/^[ ]*//;s/\(\. \).*$//;p;}'
 RX_DESCRIPTION="${RX_DESCRIPTION:-"$RX_DESCRIPTION_DEFAULT"}"
 
 help() {
