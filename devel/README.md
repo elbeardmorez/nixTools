@@ -99,9 +99,12 @@ with OPTION:
 
       -l|--limit [=LIMIT]  : limit number of patches to process to
                              LIMIT (default: 1)
-      -f|--filter [=]FILTER  : only use commits matching the (regex)
-                               expression FILTER. repeated filter args
-                               are supported
+      -f|--filter [=]FILTER  : only use commits matching the FILTER
+                               which has form REGEXP[|TYPE] where
+                               TYPE represents a vcs field (supports:
+                               message, author). repeated filter args
+                               are also supported, with duplicate type
+                               searches narrowing any previous search
       -rm|--repo-map [=CATEGORY]  : push diffs to sub-directory based
                                     upon the comma delimited CATEGORY
                                     list, with each item corresponding

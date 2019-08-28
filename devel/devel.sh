@@ -25,6 +25,8 @@ changelog_profile_anchor_entry["default"]=1
 changelog_profile_anchor_entry["update"]=3
 
 declare -A commits_info
+declare -A commits_filters
+declare -a commits_filters_
 RX_COMMITS_AUTHOR="${RX_COMMITS_AUTHOR:-""}"
 RX_COMMITS_DESCRIPTION_DEFAULT='1{s/^[ ]*//;s/\(\. \).*$//;s/\.*$//;p;}'
 RX_COMMITS_DESCRIPTION="${RX_COMMITS_DESCRIPTION:-"$RX_COMMITS_DESCRIPTION_DEFAULT"}"
@@ -102,9 +104,12 @@ help() {
                   of precedence (default)
 \n      -l|--limit [=LIMIT]  : limit number of patches to process to
                              LIMIT (default: 1)
-      -f|--filter [=]FILTER  : only use commits matching the (regex)
-                               expression FILTER. repeated filter args
-                               are supported
+      -f|--filter [=]FILTER  : only use commits matching the FILTER
+                               which has form REGEXP[|TYPE] where
+                               TYPE represents a vcs field (supports:
+                               message, author). repeated filter args
+                               are also supported, with duplicate type
+                               searches narrowing any previous search
       -rm|--repo-map [=CATEGORY]  : push diffs to sub-directory based
                                     upon the comma delimited CATEGORY
                                     list, with each item corresponding
@@ -235,12 +240,41 @@ fn_patch_name() {
   echo "$name"
 }
 
+fn_patch_filter_match() {
+  declare vcs; vcs="$1" && shift
+  declare commit; commit="$1" && shift
+  declare search
+  declare -a parts
+  IFS=$'|'; parts=($(echo "$commit")); IFS="$IFSORG"
+
+  for type in "${commits_filters_[@]}"; do
+    IFS=$'\n'; searches=($(echo "${commits_filters["$type"]}")); IFS="$IFSORG"
+    for search in "${searches[@]}"; do
+      case "$type" in
+        "message")
+          case "$vcs" in
+            "git"|"subversion"|"bazaar")
+              [ -z "$(echo "${parts[${#parts[@]}]}" | sed -n '/'"$search"'/p')" ] && return 1
+              ;;
+          esac
+          ;;
+        "author")
+          case "$vcs" in
+            "git"|"subversion"|"bazaar")
+              [ -z "$(echo "${parts[3]}" | sed -n '/'"$search"'/p')" ] && return 1
+              ;;
+          esac
+          ;;
+      esac
+    done
+  done
+}
+
 fn_repo_search() {
   declare target; target="$1" && shift
   declare limit; limit=$1 && shift
   declare res
   declare -a commits; commits=()
-  declare search
   declare commit
   declare processed
   declare parts
@@ -249,32 +283,56 @@ fn_repo_search() {
   declare s
   vcs="$(fn_repo_type "$target")" || \
     { echo "[error] unknown vcs type for source directory '$target'" 1>&2 && return 1; }
+
+  # process filters
+  commits_filters=()
+  declare search
+  declare type
+  declare l_filters; l_filters=$#
+  while [ -n "$1" ]; do
+    type="$(echo "$1" | sed -n 's/.*|\(message\|author\)$/\1/p')"
+    if [ -z "$type" ]; then
+      search="$1"
+      type="message"
+    else
+      search="${1%|*}"
+    fi
+    if [ -z "${commits_filters["$type"]}" ]; then
+      commits_filters["$type"]="$search"
+      commits_filters_[${#commits_filters_[@]}]="$type"
+    else
+      commits_filters["$type"]="${commits_filters["$type"]}\n$search"
+    fi
+    shift
+  done
+  [ $DEBUG -ge 2 ] && echo "[debug] added $l_filters filter$([ $l_filters -ne 1 ] && echo "s")" 1>&2
+
+  declare match
+  declare -a matches
+  declare -a cmd_args
+  res=""
+
   cd "$target" 1>/dev/null
   case "$vcs" in
     "git")
-      declare -a cmd_args
       cmd_args=("--format=format:%at|%H|%an <%ae>|%s")
-      if [ $# -eq 0 ]; then
+      if [ $l_filters -eq 0 ]; then
         [ $limit -gt 0 ] && cmd_args[${#cmd_args[@]}]="-n$limit"
         IFS=$'\n'; commits=($(git log "${cmd_args[@]}")); IFS="$IFSORG"
       else
+        # narrow initially
         cmd_args[${#cmd_args[@]}]="-P"
-        cmd_args[${#cmd_args[@]}]="--grep='$1'"
-        res=""
-        declare match
-        declare -a matches
+        if [ -n "${commits_filters["message"]}" ]; then
+          cmd_args[${#cmd_args[@]}]="--grep='.*$(echo "${commits_filters["message"]}" | sed 's/\n.*$//').*'"
+        elif [ -n "${commits_filters["author"]}" ]; then
+          cmd_args[${#cmd_args[@]}]="--author='.*$(echo "${commits_filters["author"]}" | sed 's/\n.*$//').*'"
+        fi
         IFS=$'\n'; matches=($(git log "${cmd_args[@]}")); IFS="$IFSORG"
         for commit in "${matches[@]}"; do
-          match=1
-          for search in "$@"; do
-            [ -z "$(echo "$commit" | grep -P "$search")" ] && \
-              { match=0 && break; }
-          done
-          if [ $match -eq 1 ]; then
+          fn_patch_filter_match "$vcs" "$commit" || continue
             res="$res\n$commit"
             processed=$((processed + 1))
             [[ $limit -gt 0 && $processed -eq $limit ]] && break
-          fi
         done
         [ ${#res} -gt 0 ] && \
           { IFS=$'\n'; commits=($(echo "${res:2}")); IFS="$IFSORG"; }
@@ -294,20 +352,18 @@ fn_repo_search() {
 
     "subversion")
       declare head_; head_=$(svn info | sed -n 's/Revision: //p')
-      declare match
-      declare -a matches
-      declare -a cmd_args
-      declare filter; filter=0
       cmd_args[${#cmd_args[@]}]="--xml"
-      if [ $# -gt 0 ]; then
-        filter=1
-        cmd_args[${#cmd_args[@]}]="--search"
-        cmd_args[${#cmd_args[@]}]="$1"
-        shift
-        while [ -n "$1" ]; do
+      if [ $l_filters -gt 0 ]; then
+        # narrow initially, accepts false positives at this stage
+        # (e.g. search matched but under wrong type)
+        for type in "${commits_filters_[@]}"; do
+          IFS=$'\n'; searches=($(echo "${commits_filters["$type"]}")); IFS="$IFSORG"
+          for search in "${searches[@]}"; do
+            [ $l_filters -eq 1 ] && \
+              cmd_args[${#cmd_args[@]}]="--search" || \
           cmd_args[${#cmd_args[@]}]="--search-and"
-          cmd_args[${#cmd_args[@]}]="$1"
-          shift
+            cmd_args[${#cmd_args[@]}]="$search"
+          done
         done
       fi
       declare batch; batch=$limit
@@ -317,7 +373,7 @@ fn_repo_search() {
       processed=0
       while true; do
         cmd_args_=("${cmd_args[@]}")
-        if [ $filter -eq 0 ]; then
+        if [ $l_filters -eq 0 ]; then
           # buffer
           r1=$((r2 - batch + 1))
           [ $r1 -lt 1 ] && r1=1
@@ -326,11 +382,13 @@ fn_repo_search() {
         IFS=$'\n'; matches=($(svn log "${cmd_args_[@]}" | sed -n '/<logentry/,/<\/logentry>/{/<\/logentry>/{x;s/\n/\\\\n/g;s/^.*revision="\([^"]*\).*<author>\([^<]*\).*<date>\([^<]\+\).*<msg>\(.*\)<\/msg.*$/\3\|r\1|\2|\4/;s/\(\\\\n\)*$//;p;b;};H;}')); IFS="$IFSORG"
         [ ${#matches[@]} -eq 0 ] && break
         for commit in "${matches[@]}"; do
+          # test filter
+          fn_patch_filter_match "$vcs" "$commit" || continue
           res="$res\n$(date -d "${commit%%|*}" "+%s")|${commit#*|}"
           processed=$((processed + 1))
           [[ $limit -gt 0 && $processed -eq $limit ]] && break
         done
-        [ $filter -eq 1 ] && break  # one shot
+        [ $l_filters -ge 1 ] && break  # one shot
         r2=$((r2 - batch))
         [[ $processed -eq $limit || $r2 -lt 1 ]] && break
       done
@@ -338,36 +396,29 @@ fn_repo_search() {
       ;;
 
     "bazaar")
-      declare match
-      declare -a matches
-      declare -a cmd_args
       cmd_args[${#cmd_args[@]}]="--long"
-      if [ $# -eq 0 ]; then
+      if [ $l_filters -eq 0 ]; then
         [ $limit -gt 0 ] && cmd_args[${#cmd_args[@]}]="-l$limit"
         IFS=$'\n'; commits=($(bzr log "${cmd_args[@]}")); IFS="$IFSORG"
         for commit in "${commits[@]}"; do
           res="$res\n$(date -d "${commit%%|*}" "+%s")|${commit#*|}"
         done
       else
+        if [ -n "${commits_filters["message"]}" ]; then
         cmd_args[${#cmd_args[@]}]="--match-message"
-        cmd_args[${#cmd_args[@]}]="$1"
-        shift
+          cmd_args[${#cmd_args[@]}]=".*$(echo "${commits_filters["message"]}" | sed 's/\n.*$//').*'"
+        elif [ -n "${commits_filters["author"]}" ]; then
+          cmd_args[${#cmd_args[@]}]="--match-author"
+          cmd_args[${#cmd_args[@]}]=".*$(echo "${commits_filters["author"]}" | sed 's/\n.*$//').*"
+        fi
         IFS=$'\n'; matches=($(bzr log "${cmd_args[@]}" | sed -n '${H;x;s/^.*\nrevno: \([0-9]\+\)\n\(author\|committer\): \([^>]\+>\)\n.*branch[^:]*: \(.\+\)\ntimestamp: \(.\+\)\nmessage:\(\n\)*[\t ]*\(.*\)$/\5|r\1|\3|\4|\7/;s/\(\n\)*$//;;s/^\(\n\)*//;s/\n\(  \)*/\\\\n/g;p;b;};H;')); IFS="$IFSORG"
-        res=""
         for commit in "${matches[@]}"; do
-          match=1
-          for search in "$@"; do
-            [ -z "$(echo "$commit" | grep -P "$search")" ] && \
-              { match=0 && break; }
-          done
-          if [ $match -eq 1 ]; then
+          fn_patch_filter_match "$vcs" "$commit" || continue
             res="$res\n$(date -d "${commit%%|*}" "+%s")|${commit#*|}"
             processed=$((processed + 1))
             [[ $limit -gt 0 && $processed -eq $limit ]] && break
-          fi
         done
       fi
-
       [ ${#res} -gt 0 ] && \
         echo -e "${res:2}" | tac
       ;;
