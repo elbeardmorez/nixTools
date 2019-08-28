@@ -113,7 +113,7 @@ with OPTION:
         (default: fix,mod,hack)
       -vcs|--version-control-system [=][SOURCE|]TARGET  :
         pipe-delimited override of default version control system
-        types. support for source: git, subversion | target: git
+        types. supports source: git, subversion, bazaar | target: git
         (default: git)
       -d|--dump  : dump patch set only
       -o|order [=]TYPE  : process patchset in a specific order, which
