@@ -435,6 +435,10 @@ fn_patch_format() {
 
       echo -e "$header\n" > "$out"
       bzr diff -c${id#r} >> "$out"
+
+      # non-standard return exit code
+      res=$?
+      [ $res -eq 3 ] && return 1 || return 0
       ;;
 
     *)
