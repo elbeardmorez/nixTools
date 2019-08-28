@@ -330,9 +330,9 @@ fn_repo_search() {
         IFS=$'\n'; matches=($(git log "${cmd_args[@]}")); IFS="$IFSORG"
         for commit in "${matches[@]}"; do
           fn_patch_filter_match "$vcs" "$commit" || continue
-            res="$res\n$commit"
-            processed=$((processed + 1))
-            [[ $limit -gt 0 && $processed -eq $limit ]] && break
+          res="$res\n$commit"
+          processed=$((processed + 1))
+          [[ $limit -gt 0 && $processed -eq $limit ]] && break
         done
         [ ${#res} -gt 0 ] && \
           { IFS=$'\n'; commits=($(echo "${res:2}")); IFS="$IFSORG"; }
@@ -361,7 +361,7 @@ fn_repo_search() {
           for search in "${searches[@]}"; do
             [ $l_filters -eq 1 ] && \
               cmd_args[${#cmd_args[@]}]="--search" || \
-          cmd_args[${#cmd_args[@]}]="--search-and"
+              cmd_args[${#cmd_args[@]}]="--search-and"
             cmd_args[${#cmd_args[@]}]="$search"
           done
         done
@@ -405,7 +405,7 @@ fn_repo_search() {
         done
       else
         if [ -n "${commits_filters["message"]}" ]; then
-        cmd_args[${#cmd_args[@]}]="--match-message"
+          cmd_args[${#cmd_args[@]}]="--match-message"
           cmd_args[${#cmd_args[@]}]=".*$(echo "${commits_filters["message"]}" | sed 's/\n.*$//').*'"
         elif [ -n "${commits_filters["author"]}" ]; then
           cmd_args[${#cmd_args[@]}]="--match-author"
@@ -414,9 +414,9 @@ fn_repo_search() {
         IFS=$'\n'; matches=($(bzr log "${cmd_args[@]}" | sed -n '${H;x;s/^.*\nrevno: \([0-9]\+\)\n\(author\|committer\): \([^>]\+>\)\n.*branch[^:]*: \(.\+\)\ntimestamp: \(.\+\)\nmessage:\(\n\)*[\t ]*\(.*\)$/\5|r\1|\3|\4|\7/;s/\(\n\)*$//;;s/^\(\n\)*//;s/\n\(  \)*/\\\\n/g;p;b;};H;')); IFS="$IFSORG"
         for commit in "${matches[@]}"; do
           fn_patch_filter_match "$vcs" "$commit" || continue
-            res="$res\n$(date -d "${commit%%|*}" "+%s")|${commit#*|}"
-            processed=$((processed + 1))
-            [[ $limit -gt 0 && $processed -eq $limit ]] && break
+          res="$res\n$(date -d "${commit%%|*}" "+%s")|${commit#*|}"
+          processed=$((processed + 1))
+          [[ $limit -gt 0 && $processed -eq $limit ]] && break
         done
       fi
       [ ${#res} -gt 0 ] && \
