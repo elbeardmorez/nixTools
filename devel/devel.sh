@@ -26,7 +26,7 @@ changelog_profile_anchor_entry["update"]=3
 
 declare -A commits_info
 RX_COMMITS_AUTHOR="${RX_COMMITS_AUTHOR:-""}"
-RX_COMMITS_DESCRIPTION_DEFAULT='1{s/^[ ]*//;s/\(\. \).*$//;p;}'
+RX_COMMITS_DESCRIPTION_DEFAULT='1{s/^[ ]*//;s/\(\. \).*$//;s/\.*$//;p;}'
 RX_COMMITS_DESCRIPTION="${RX_COMMITS_DESCRIPTION:-"$RX_COMMITS_DESCRIPTION_DEFAULT"}"
 
 help() {
