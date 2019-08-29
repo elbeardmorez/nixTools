@@ -14,7 +14,7 @@ TEST=${TEST:-0}
 SERVER=http://localhost/svn/
 REPO_OWNER_ID=80
 RX_AUTHOR="${RX_AUTHOR:-""}"
-RX_DESCRIPTION_DEFAULT='1{s/^[ ]*//;s/\(\. \).*$//;p;}'
+RX_DESCRIPTION_DEFAULT='1{s/^[ ]*//;s/\(\. \).*$//;s/\.*$//;p;}'
 RX_DESCRIPTION="${RX_DESCRIPTION:-"$RX_DESCRIPTION_DEFAULT"}"
 
 help() {
