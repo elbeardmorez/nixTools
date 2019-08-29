@@ -466,7 +466,7 @@ fn_process() {
     "sha") fn_sha "$@" ;;
     "st"|"status") fn_status "$@" ;;
     "sta"|"status-all") git status --col ;;
-    "anws"|"add-no-whitespace") fn_add_no_whitespace ;;
+    "anws"|"add-no-whitespace") fn_add_no_whitespace "$@" ;;
     "fp"|"formatpatch"|"format-patch") fn_formatpatch "$@" ;;
     "rb"|"rebase") fn_rebase "$@" ;;
     "rbs"|"rebase-stash") fn_rebase "$@" -- --autostash ;;
