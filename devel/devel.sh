@@ -413,7 +413,7 @@ fn_repo_search() {
           cmd_args[${#cmd_args[@]}]="--match-author"
           cmd_args[${#cmd_args[@]}]=".*$(echo "${commits_filters["author"]}" | sed 's/\n.*$//').*"
         fi
-        IFS=$'\n'; matches=($(bzr log "${cmd_args[@]}" | sed -n '${H;x;s/^.*\nrevno: \([0-9]\+\)\n\(author\|committer\): \([^>]\+>\)\n.*branch[^:]*: \(.\+\)\ntimestamp: \(.\+\)\nmessage:\(\n\)*[\t ]*\(.*\)$/\5|r\1|\3|\4|\7/;s/\(\n\)*$//;;s/^\(\n\)*//;s/\n\(  \)*/\\\\n/g;p;b;};H;')); IFS="$IFSORG"
+        IFS=$'\n'; matches=($(bzr log "${cmd_args[@]}" | sed -n '/^revno:/,/^-\{20,\}/{/^-\{20,\}/{bblock;};${H;bblock;};H;b;:block;x;s/^-*\n*revno: \([0-9]\+\)\n\(author\|committer\): \([^>]\+>\)\n.*branch[^:]*: \(.\+\)\ntimestamp: \(.\+\)\nmessage:\(\n\)*[\t ]*\(.*\)$/\5|r\1|\3|\4|\7/;s/\(\n\)*$//;s/^\(\n\)*//;s/\n\(  \)*/\\\\n/g;p;}')); IFS="$IFSORG"
         for commit in "${matches[@]}"; do
           fn_patch_filter_match "$vcs" "$commit" || continue
           res="$res\n$(date -d "${commit%%|*}" "+%s")|${commit#*|}"
@@ -789,6 +789,8 @@ fn_commits() {
       [ "x$order" = "xdate" ] && echo -e "$commits_" | sort
       IFS=$'\n'; commits=($(echo "${commits_[@]}")); IFS="$IFSORG"
       l_commits=${#commits[@]}
+      [ $DEBUG -ge 2 ] && \
+        { echo "[debug] matched $l_commits commit$([ $l_commits -ne 1 ] && echo "s"):" 1>&2; echo -E "$commits_" 1>&2; }
       d_tmp_source="$(fn_temp_dir "$SCRIPTNAME")"
       temp_data[${#temp_data[@]}]="$d_tmp_source"
       l=0
