@@ -250,24 +250,26 @@ fn_patch_filter_match() {
   for type in "${commits_filters_[@]}"; do
     IFS=$'\n'; searches=($(echo "${commits_filters["$type"]}")); IFS="$IFSORG"
     for search in "${searches[@]}"; do
+      [ $DEBUG -ge 4 ] && echo "[debug] type: $type, search: $search" 1>&2
       case "$type" in
         "message")
           case "$vcs" in
             "git"|"subversion"|"bazaar")
-              [ -z "$(echo "${parts[${#parts[@]}]}" | sed -n '/'"$search"'/p')" ] && return 1
+              [ -z "$(echo "${parts[$((${#parts[@]} - 1))]}" | sed -n '/'"$search"'/p')" ] && return 1
               ;;
           esac
           ;;
         "author")
           case "$vcs" in
             "git"|"subversion"|"bazaar")
-              [ -z "$(echo "${parts[3]}" | sed -n '/'"$search"'/p')" ] && return 1
+              [ -z "$(echo "${parts[2]}" | sed -n '/'"$search"'/p')" ] && return 1
               ;;
           esac
           ;;
       esac
     done
   done
+  return 0
 }
 
 fn_repo_search() {
