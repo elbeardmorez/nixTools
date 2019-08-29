@@ -799,8 +799,8 @@ fn_commits() {
         id="${parts[1]}"
         [ $DEBUG -ge 2 ] && echo "[debug] adding commit '$id' to info cache" 1>&2
         commits_info["$id"]="$commit"
-        description="$(echo "${parts[${#parts[@]}]}" | sed -n "$RX_COMMITS_DESCRIPTION")"
-        name="$(fn_patch_name "$(printf "%0${#l_commits}d" $l)_$id_$description")"
+        description="$(echo -e "${parts[$((${#parts[@]} - 1))]}" | sed -n "$RX_COMMITS_DESCRIPTION")"
+        name="$(fn_patch_name "$(printf "%0${#l_commits}d" $l)_${id}_$description")"
         target_fqn="$d_tmp_source/$name"
         fn_repo_pull "$source" "$id|$target_fqn" || return 1
         patch_set[$l]="$target_fqn"
