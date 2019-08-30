@@ -1019,32 +1019,44 @@ fn_commits() {
             res="$(fn_decision "[user] take (d)iff, (s)elect, assume (n)ew, or e(x)it" "d|s|n|x")"
             case "$res" in
               "d")
+                res2=0
+                if [ ${#existing[@]} -gt 1 ]; then
                 echo -en "$CUR_UP$LN_RST" 1>&2
                 while true; do
                   res2="$(fn_edit_line "" "[user] diff against # [1-${#existing[@]}], or e(x)it: ")"
                   res2=$(echo "$res2" | sed -n 's/^[ 0]*\(x\|[^0][0-9]*\)[ ]*$/\1/p')
                   if [ "x$res2" = "xx" ]; then
+                      res2=-1
                     break
                   elif [ $res2 -le ${#existing[@]} ]; then
-                    diff -u --color=always "${existing[$((res2 - 1))]}" "$f_new" | less -R
+                      res2=$((res2 - 1))
                     break
                   fi
                 done
+                fi
+                [ $res2 -gt -1 ] && \
+                   diff -u --color=always "${existing[$res2]}" "$f_new" | less -R
                 ;;
               "s")
+                res2=0
+                if [ ${#existing[@]} -gt 1 ]; then
                 echo -en "$CUR_UP$LN_RST" 1>&2
                 while true; do
                   res2="$(fn_edit_line "" "[user] select # [1-${#existing[@]}] or e(x)it: ")"
                   res2=$(echo "$res2" | sed -n 's/^[ 0]*\(x\|[^0][0-9]*\)[ ]*$/\1/p')
                   if [ "x$res2" = "xx" ]; then
+                      res2=-1
                     break
                   elif [ $res2 -le ${#existing[@]} ]; then
                     new=0
-                    target_fqn="${existing[$((res2 - 1))]}"
-                    name="$(basename "$target_fqn")"
+                      res2=$((res2 - 1))
                     break
                   fi
                 done
+                fi
+                [ $res2 -gt -1 ] && \
+                  target_fqn="${existing[$((res2 - 1))]}"
+                  name="$(basename "$target_fqn")"
                 [ $new -eq 0 ] && break
                 ;;
               "n") break ;;
