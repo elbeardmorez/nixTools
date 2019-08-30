@@ -1010,26 +1010,29 @@ fn_commits() {
             l=$((l + 1))
           done
           files_="${files_:2}"
+          echo -e "$files_\n"
+          [ ${#matched_files[@]} -gt 0 ] && \
+            echo -e "*contains matching file set\n"
+          echo 1>&2
           while true; do
-            echo -e "$files_\n"
-            [ ${#matched_files[@]} -gt 0 ] && \
-              echo -e "*contains matching file set\n"
+            echo -en "$CUR_UP$LN_RST" 1>&2
             res="$(fn_decision "[user] take (d)iff, (s)elect, assume (n)ew, or e(x)it" "d|s|n|x")"
             case "$res" in
               "d")
+                echo -en "$CUR_UP$LN_RST" 1>&2
                 while true; do
                   res2="$(fn_edit_line "" "[user] diff against # [1-${#existing[@]}], or e(x)it: ")"
                   res2=$(echo "$res2" | sed -n 's/^[ 0]*\(x\|[^0][0-9]*\)[ ]*$/\1/p')
                   if [ "x$res2" = "xx" ]; then
                     break
                   elif [ $res2 -le ${#existing[@]} ]; then
-                    echo
                     diff -u --color=always "${existing[$((res2 - 1))]}" "$f_new" | less -R
                     break
                   fi
                 done
                 ;;
               "s")
+                echo -en "$CUR_UP$LN_RST" 1>&2
                 while true; do
                   res2="$(fn_edit_line "" "[user] select # [1-${#existing[@]}] or e(x)it: ")"
                   res2=$(echo "$res2" | sed -n 's/^[ 0]*\(x\|[^0][0-9]*\)[ ]*$/\1/p')
