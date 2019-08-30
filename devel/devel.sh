@@ -346,7 +346,7 @@ fn_repo_search() {
         for commit in "${commits[@]}"; do
           IFS="|"; parts=($(echo "$commit")); IFS="$IFSORG"
           id="${parts[1]}"
-          s="$commit|$(git log --format="format:%b" "$id" | sed 's/\n/\\\\n/g;s/\(\n\)*$//;')"
+          s="$commit|$(git log --format="format:%b" "$id" | sed -n '${x;s/\(\n\)*$//;s/\n/\\\\n/g;p;};H;')"
           res="$res\n$s"
         done
         res="${res:2}"
