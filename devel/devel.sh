@@ -1021,18 +1021,18 @@ fn_commits() {
               "d")
                 res2=0
                 if [ ${#existing[@]} -gt 1 ]; then
-                echo -en "$CUR_UP$LN_RST" 1>&2
-                while true; do
-                  res2="$(fn_edit_line "" "[user] diff against # [1-${#existing[@]}], or e(x)it: ")"
-                  res2=$(echo "$res2" | sed -n 's/^[ 0]*\(x\|[^0][0-9]*\)[ ]*$/\1/p')
-                  if [ "x$res2" = "xx" ]; then
+                  echo -en "$CUR_UP$LN_RST" 1>&2
+                  while true; do
+                    res2="$(fn_edit_line "" "[user] diff against # [1-${#existing[@]}], or e(x)it: ")"
+                    res2=$(echo "$res2" | sed -n 's/^[ 0]*\(x\|[^0][0-9]*\)[ ]*$/\1/p')
+                    if [ "x$res2" = "xx" ]; then
                       res2=-1
-                    break
-                  elif [ $res2 -le ${#existing[@]} ]; then
+                      break
+                    elif [ $res2 -le ${#existing[@]} ]; then
                       res2=$((res2 - 1))
-                    break
-                  fi
-                done
+                      break
+                    fi
+                  done
                 fi
                 [ $res2 -gt -1 ] && \
                    diff -u --color=always "${existing[$res2]}" "$f_new" | less -R
@@ -1040,19 +1040,19 @@ fn_commits() {
               "s")
                 res2=0
                 if [ ${#existing[@]} -gt 1 ]; then
-                echo -en "$CUR_UP$LN_RST" 1>&2
-                while true; do
-                  res2="$(fn_edit_line "" "[user] select # [1-${#existing[@]}] or e(x)it: ")"
-                  res2=$(echo "$res2" | sed -n 's/^[ 0]*\(x\|[^0][0-9]*\)[ ]*$/\1/p')
-                  if [ "x$res2" = "xx" ]; then
+                  echo -en "$CUR_UP$LN_RST" 1>&2
+                  while true; do
+                    res2="$(fn_edit_line "" "[user] select # [1-${#existing[@]}] or e(x)it: ")"
+                    res2=$(echo "$res2" | sed -n 's/^[ 0]*\(x\|[^0][0-9]*\)[ ]*$/\1/p')
+                    if [ "x$res2" = "xx" ]; then
                       res2=-1
-                    break
-                  elif [ $res2 -le ${#existing[@]} ]; then
-                    new=0
+                      break
+                    elif [ $res2 -le ${#existing[@]} ]; then
+                      new=0
                       res2=$((res2 - 1))
-                    break
-                  fi
-                done
+                      break
+                    fi
+                  done
                 fi
                 [ $res2 -gt -1 ] && \
                   target_fqn="${existing[$((res2 - 1))]}"
