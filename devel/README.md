@@ -129,6 +129,8 @@ with OPTION:
       -im|--interactive-match  : interactively match when target diff
                                  name clashes are unresolvable
                                  (default: assumes 'new')
+      -id|--interactive-description  : interactively edit commit
+                                       description
       -rn|--readme-name [=]NAME  : override default readme file name
                                    (default: README.md)
       -rs|--readme-status [=STATUS]  : append a commit status string

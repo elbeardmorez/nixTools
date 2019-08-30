@@ -133,6 +133,8 @@ help() {
 \n      -im|--interactive-match  : interactively match when target diff
                                  name clashes are unresolvable
                                  (default: assumes 'new')
+      -id|--interactive-description  : interactively edit commit
+                                       description
       -rn|--readme-name [=]NAME  : override default readme file name
                                    (default: README.md)
       -rs|--readme-status [=STATUS]  : append a commit status string
@@ -500,6 +502,23 @@ fn_patch_format() {
   esac
 }
 
+fn_patch_description() {
+  declare target; target="$1" && shift
+  declare vcs; vcs="$1" && shift
+  declare comments; comments="$(fn_patch_info "$target" "$vcs" "comments")"
+  declare description; description="$(fn_patch_info "$target" "$vcs" "description")"
+  echo -e "\n[${clr["hl"]}info${clr["off"]}] commit info\ncomments: $comments\ndescription: ${clr["hl"]}$description${clr["off"]}" 1>&2
+  declare res; res="$description"
+  echo -e "\n\n${CUR_UP}${CUR_UP}" 1>&2
+  while true; do
+    fn_decision "[${clr["hl"]}user${clr["off"]}] edit description?" 1>/dev/null || break
+  echo -e "${CUR_UP}${LN_RST}${CUR_UP}" 1>&2
+  res="$(fn_edit_line "$res" "[edit] ")"
+  echo -e "${CUR_UP}${LN_RST}${CUR_UP}${CUR_UP}${LN_RST}description: ${clr["hl"]}$res${clr["off"]}\n" 1>&2
+  done
+  echo "$res"
+}
+
 fn_patch_transform() {
   declare vcs_source; vcs_source="$1" && shift
   declare vcs_target; vcs_target="$1" && shift
@@ -592,6 +611,7 @@ fn_commits() {
   declare readme_status_default; readme_status_default="pending"
   declare auto_commit
   declare interactive_match; interactive_match=0
+  declare interactive_description; interactive_description=0
   declare description
   declare name
   declare type
@@ -650,6 +670,9 @@ fn_commits() {
           ;;
         "im"|"interactive-match")
           interactive_match=1
+          ;;
+        "id"|"interactive-description")
+          interactive_description=1
           ;;
         "rn"|"readme-name")
           shift
@@ -874,7 +897,9 @@ fn_commits() {
 
     id="$(fn_patch_info "$f" "$vcs_source" "id")" || return 1
     dt="$(fn_patch_info "$f" "$vcs_source" "date")" || return 1
-    description="$(fn_patch_info "$f" "$vcs_source" "description")" || return 1
+    [ $interactive_description -eq 1 ] && \
+      { description="$(fn_patch_description "$f" "$vcs_source")" || return 1; } || \
+      { description="$(fn_patch_info "$f" "$vcs_source" "description")" || return 1; }
     name="$(fn_patch_name "$description")" || return 1
     commit_set=()
 
