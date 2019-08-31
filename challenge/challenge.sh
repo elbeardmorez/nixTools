@@ -406,13 +406,17 @@ fn_test() {
         s="[info] running test: $t, file: '$tf'"
         [ -e "$f_tmp_results" ] && rm "$f_tmp_results"
         echo -e "\n$s\n$(printf "%.0s-" $(seq 1 1 ${#s}))\n" | tee -a "$log"
+        set -o pipefail
         case "$source_suffix" in
-          "cpp") OUTPUT_PATH="$f_tmp_results" ./bin-c++ < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1;;
-          "cs") OUTPUT_PATH="$f_tmp_results" ./bin-cs < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
-          "py") OUTPUT_PATH="$f_tmp_results" python "$source_" < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
-          "js") OUTPUT_PATH="$f_tmp_results" node "$source_" < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
-          "go") OUTPUT_PATH="$f_tmp_results" ./bin-go < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" || return 1 ;;
+          "cpp") OUTPUT_PATH="$f_tmp_results" ./bin-c++ < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" ;;
+          "cs") OUTPUT_PATH="$f_tmp_results" ./bin-cs < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" ;;
+          "py") OUTPUT_PATH="$f_tmp_results" python "$source_" < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" ;;
+          "js") OUTPUT_PATH="$f_tmp_results" node "$source_" < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" ;;
+          "go") OUTPUT_PATH="$f_tmp_results" ./bin-go < "$tf" | tee -a $log | tee "$f_tmp_results_stdout" ;;
         esac
+        res=$?
+        set +o pipefail
+        [ $res -ne 0 ] && return $res
         [ -z "$(cat "$f_tmp_results" 2>/dev/null)" ] && cp "$f_tmp_results_stdout" "$f_tmp_results"
         if [ $diffs -eq 1 ]; then
           of="$(echo "$tf" | sed 's/in/out/g')"
