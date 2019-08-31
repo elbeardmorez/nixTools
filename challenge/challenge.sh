@@ -368,7 +368,7 @@ fn_test() {
           ;;
         "cs")
           echo "[info] compiling c# source '${source_[0]}'"
-          mcs -debug *.cs -out:bin-cs "${source_[0]}" || return 1
+          mcs -debug -out:bin-cs "${source_[0]}" || return 1
           ;;
         "go")
           echo "[info] compiling go source '${source_[0]}'"
