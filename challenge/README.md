@@ -50,6 +50,9 @@ where MODE can be:
                            javascript (node), go*
                            (default: c++)
                            *compilation of source supported
+         -cf, --compiler-flags [FLAG[|FLAG2..]]
+           : pass additional compiler flags through for supported
+             compiled languages
          -d, --diffs  : take diffs of test output and expected
          -o, --output-results  : output 'per test' results files
        TESTS  : optional test items (numbers), or delimited list(s) of

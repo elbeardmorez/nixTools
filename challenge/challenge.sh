@@ -63,6 +63,9 @@ help() {
                            javascript (node), go*
                            (default: c++)
                            *compilation of source supported
+         -cf, --compiler-flags [FLAG[|FLAG2..]]
+           : pass additional compiler flags through for supported
+             compiled languages
          -d, --diffs  : take diffs of test output and expected
          -o, --output-results  : output 'per test' results files
        TESTS  : optional test items (numbers), or delimited list(s) of
@@ -306,6 +309,7 @@ fn_test() {
   declare diffs; diffs=0
   declare diff_
   declare output_results; output_results=0
+  declare -a compiler_flags
   declare -a tests
   declare -a test_files
   declare -a source_
@@ -326,6 +330,7 @@ fn_test() {
       "l"|"language") l=$((l + 1)) && language="${args[$l]}" ;;
       "d"|"diffs") diffs=1 ;;
       "o"|"output-results") output_results=1 ;;
+      "cf"|"compiler-flags") l=$((l + 1)); IFS="|"; compiler_flags=($(echo "${args[$l]}")); IFS="$IFSORG" ;;
       *)
         if [ -n "$(echo "${args[$l]}" | sed -n '/[0-9]\+/p')" ]; then
           tests[${#tests[@]}]="${args[$l]}"
@@ -364,15 +369,15 @@ fn_test() {
       case "$source_suffix" in
         "cpp")
           echo "[info] compiling c++ source '${source_[0]}'"
-          g++ -O0 -ggdb3 -std=c++11 -o bin-c++ "${source_[0]}" || return 1
+          g++ -O0 -ggdb3 -std=c++11 "${compiler_flags[@]}" -o bin-c++ "${source_[0]}" || return 1
           ;;
         "cs")
           echo "[info] compiling c# source '${source_[0]}'"
-          mcs -debug -out:bin-cs "${source_[0]}" || return 1
+          mcs -debug -out:bin-cs "${compiler_flags[@]}" "${source_[0]}" || return 1
           ;;
         "go")
           echo "[info] compiling go source '${source_[0]}'"
-          go build -gcflags=all="-N -l" -o bin-go "${source_[0]}" || return 1
+          go build -gcflags=all="-N -l" "${compiler_flags[@]}" -o bin-go "${source_[0]}" || return 1
           ;;
        esac
 
