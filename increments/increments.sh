@@ -153,7 +153,7 @@ fn_process() {
       for s in "${search[@]}"; do
         search2+="$s\n"
         for transform in "${transforms[@]}"; do
-          v=$(echo "$s" | sed 's'"$transform")
+          v=$(echo "$s" | sed -n 's'"$transform"'p')
           [ -n "${v}" ] && search2+="$v\n"
         done
       done
