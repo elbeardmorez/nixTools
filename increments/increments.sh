@@ -150,9 +150,9 @@ fn_process() {
       declare -a search2
       search2=""
       IFS=$'\n'; transforms=($(cat "$variants")); IFS="$IFSORG"
-      for transform in "${transforms[@]}"; do
-        for s in "${search[@]}"; do
-          search2+="$s\n"
+      for s in "${search[@]}"; do
+        search2+="$s\n"
+        for transform in "${transforms[@]}"; do
           v=$(echo "$s" | sed 's'"$transform")
           [ -n "${v}" ] && search2+="$v\n"
         done
