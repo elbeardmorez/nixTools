@@ -548,7 +548,10 @@ fnFileMultiMask()
        # invalid
        #"single [-.]\([1-4]\)[-.]"  # false positive for name.#.
 
+  l=1
   for s in "${arr[@]}"; do
+    [ $DEBUG -ge 5 ] && echo "[debug] filter: [$l] '$s'" 1>&2
+    #[ "x$s" == x"set \([0-9]\)x\([0-9]\{1,2\}\)" ] && set -x || set +x
     IFS=" " && arr2=($s) && IFS=$IFSORG
 #    [[ "x$sType" != "x" && "x$sType" != "x${arr2[0]}" ]] && continue
     sSearch=${arr2[1]}
@@ -569,6 +572,7 @@ fnFileMultiMask()
 #      esac
       break
     fi
+    l=$((l + 1))
   done
 
   sRet="$sTarget" && [ "x$sRet" == "x" ] && sRet="$sMaskDefault"
@@ -1371,7 +1375,13 @@ fnStructure()
   [ $sMask ] && sMaskDefault=${sMask[0]}
 
   if [ ${#sFilters[@]} -gt 0 ]; then
-    for s in "${sFilters[@]}"; do sTitle=$(echo "$sTitle" | sed 's/\(\.\|\-\)\+'$s'\(\.\|\-\|$\)\+/../Ig'); done
+    l=1
+    for s in "${sFilters[@]}"; do
+      sTitle_="$sTitle"
+      sTitle=$(echo "$sTitle" | sed 's/\(\.\|\-\)\+'$s'\(\.\|\-\|$\)\+/../Ig')
+      l=$((l + 1))
+      [ $DEBUG -ge 5 ] && echo "[debug] remove filter [$l] '$s' applied, '$sTitle_' -> '$sTitle'" 1>&2
+    done
 #  else
     #clear everything between either delimiters ']','[', or delimiter '[' and end
   fi
