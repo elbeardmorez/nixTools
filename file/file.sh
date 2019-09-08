@@ -190,7 +190,7 @@ for target in "${targets[@]}"; do
       "${CMD_MV[@]}" "${CMD_MV_ARGS[@]}" "$target" "$target2"
       ;;
 
-   "u"|"uniq")
+    "u"|"uniq")
       tmp="$(fn_temp_file $SCRIPTNAME)"
       uniq "$target" > "$tmp"
       mv "$tmp" "$target"
@@ -238,8 +238,10 @@ for target in "${targets[@]}"; do
       ;;
 
     "r"|"rename")
+
       [[ -n "$rename_filter" && \
          -n "$(echo "$target" | grep -P '(^\.{1,2}$|'"$rename_filter"')')" ]] && continue
+
       dir="$(dirname "$target")/"
       target="${target##*/}"
       target2="$target"
