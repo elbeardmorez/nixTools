@@ -1379,7 +1379,7 @@ fnStructure()
     l=1
     for s in "${sFilters[@]}"; do
       sTitle_="$sTitle"
-      sTitle=$(echo "$sTitle" | sed 's/\(\.\|\-\)\+'$s'\(\.\|\-\|$\)\+/../Ig')
+      sTitle=$(echo "$sTitle" | sed 's/\([._-]\)\+'$s'\([._-]\|$\)\+/../Ig')
       l=$((l + 1))
       [ $DEBUG -ge 5 ] && echo "[debug] remove filter [$l] '$s' applied, '$sTitle_' -> '$sTitle'" 1>&2
     done
@@ -1479,14 +1479,14 @@ fnStructure()
     if [ ${#sFilters[@]} -gt 0 ]; then
       #we need to manipulate the target (sTitle2) before it goes for its final name fixing (fnFileTarget)
       #providing filter terms means the sTitle2 contains only the stub
-      for s in "${sFilters[@]}"; do f2=$(echo "$f2" | sed 's/\(\.\|\-\)*'$s'\(\.\|\-\)*/../Ig'); done  # apply filters
+      for s in "${sFilters[@]}"; do f2=$(echo "$f2" | sed 's/\([._-]\)*'$s'\([._-]\)*/../Ig'); done  # apply filters
       if [ "x${sMask[1]}" != "x" ]; then
         sTarget="$sTitle2.[$sMaskDefault].$(echo "${f2%.*}" | sed 's/^.*'"$(fnRegexp "${sMask[1]}" "sed")"'\]*//')" # construct dynamic title from template and additional file info i.e post-mask characters
       else
         #no delimiter. so we need to use all info in the original filename
         #we can try and filter any info already present in the template though
-        sFilters2=($(echo "$sTitle2" | sed 's/[][)(-,.]/ /g'))
-        for s in ${sFilters2[@]}; do f2=$(echo "$f2" | sed 's/\(\.\|\-\)*'$s'\(\.\|\-\)*/../Ig'); done
+        sFilters2=($(echo "$sTitle2" | sed 's/[][)(-,._]/ /g'))
+        for s in ${sFilters2[@]}; do f2=$(echo "$f2" | sed 's/\([._-]\)*'$s'\([._-]\)*/../Ig'); done
         sTarget="$sTitle2.${f2%.*}"
       fi
 
