@@ -46,6 +46,8 @@ help() {
                               files. a match against this string will
                               result in skipping of a target
                               (default: '')
+      -npc|--no-period-compression  : do not compress multiple period
+                                      '.' characters into a single '.'
     and TRANSFORMS is:  a delimited list of transform type
                         (default: lower|spaces|underscores|dashes)
       'lower'  : convert all alpha characters to lower case
@@ -77,6 +79,7 @@ declare target
 declare -a targets
 declare rename_filter
 declare -a rename_transforms
+declare rename_period_compression; rename_period_compression=1
 declare -a args
 declare -a search_args
 declare search
@@ -143,6 +146,7 @@ case "$option" in
       if [ ${#arg_} -lt "${#arg}" ]; then
         case "$arg_" in
           "f"|"filter") l=$((l + 1)); rename_filter="${args[$l]}" ;;
+          "npc"|"no-period-compression") rename_period_compression=0 ;;
           *) help && echo "[error] unknown option arg '$arg'" && exit 1
         esac
       else
@@ -245,14 +249,12 @@ for target in "${targets[@]}"; do
       dir="$(dirname "$target")/"
       target="${target##*/}"
       target2="$target"
-      compress_periods=0
       for transform in "${rename_transforms[@]}"; do
         case "$transform" in
           "lower"|"upper")
             target2="$(echo "$target2" | awk -F'\n' '{print to'$transform'($1)}')"
             ;;
           "spaces"|"underscores"|"dashes")
-            compress_periods=1
             case "$transform" in
               "spaces") search="[:space:]" ;;
               "underscores") search="_" ;;
@@ -263,7 +265,6 @@ for target in "${targets[@]}"; do
             target2="$(echo "$target2" | awk -F'\n' '{gsub(/['"$search"']+/,"'$replace'"); print}')"
             ;;
          *=*)
-            compress_periods=1
             search="$(fn_escape "awk" "${transform%=*}")"
             replace="${transform#*=}"
             [ $DEBUG -gt 0 ] && echo "[debug] rename transform '$search' -> '$replace'" 1>&2
@@ -271,7 +272,7 @@ for target in "${targets[@]}"; do
             ;;
         esac
       done
-      [ $compress_periods -eq 1 ] &&\
+      [ $rename_period_compression -eq 1 ] &&\
         target2="$(echo "$target2" | awk -F'\n' '{gsub(/\.+/,"."); print}')"
       [ ! -e "$dir$target2" ] && "${CMD_MV[@]}" "${CMD_MV_ARGS[@]}" "$dir$target" "$dir$target2" 2>/dev/null
       ;;

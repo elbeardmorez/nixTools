@@ -31,6 +31,8 @@ where OPTION can be:
                               files. a match against this string will
                               result in skipping of a target
                               (default: '')
+      -npc|--no-period-compression  : do not compress multiple period
+                                      '.' characters into a single '.'
     and TRANSFORMS is:  a delimited list of transform type
                         (default: lower|spaces|underscores|dashes)
       'lower'  : convert all alpha characters to lower case
