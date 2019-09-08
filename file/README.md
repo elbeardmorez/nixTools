@@ -23,21 +23,23 @@ where OPTION can be:
     where LINES  : number of lines to trim (default: 1)
           END  : either 'top' / 'bottom' denoting the end to trim from
                  (default: bottom)
-  -r|--rename [FILTER] [TRANSFORMS]  : rename files using one or more
+  -r|--rename [OPTION] [TRANSFORMS]  : rename files using one or more
                                        supported transforms
-    where FILTER  : perl regular expression string for filtering out
-                    (negative matching) target files. a match against
-                    this string will result in skipping of a target
-                    (default: '')
-          TRANSFORMS  : delimited list comprising:
-            'lower'  : convert all alpha characters to lower case
-            'upper'  : convert all alpha characters to upper case
-            'spaces'  : compress and replace with periods ('.')
-            'underscores' : compress and replace with periods ('.')
-            'dashes' : compress and replace with periods ('.')
-            'X=Y'  : custom string replacements
-            '[X]=Y'  : custom character(s) replacements
-            (default: lower|spaces|underscores|dashes)
+    where OPTIONs:
+      -f|--filter [FILTER]  : perl regular expression string for
+                              filtering out (negative matching) target
+                              files. a match against this string will
+                              result in skipping of a target
+                              (default: '')
+    and TRANSFORMS is:  a delimited list of transform type
+                        (default: lower|spaces|underscores|dashes)
+      'lower'  : convert all alpha characters to lower case
+      'upper'  : convert all alpha characters to upper case
+      'spaces'  : compress and replace with periods ('.')
+      'underscores' : compress and replace with periods ('.')
+      'dashes' : compress and replace with periods ('.')
+      'X=Y'  : custom string replacements
+      '[X]=Y'  : custom character(s) replacements
   -dp|--dupe [DEST] [SUFFIX]  : duplicate TARGET to TARGET.orig, DEST,
                                 or {TARGET}{DEST} dependent upon
                                 optional arguments

@@ -12,7 +12,7 @@ DEBUG=${DEBUG:-0}
 TEST=${TEST:-0}
 
 EDITOR="${EDITOR:-vim}"
-RENAME_FILTER="."
+RENAME_FILTER=""
 RENAME_TRANSFORMS="lower|upper|spaces|underscores|dashes"
 RENAME_TRANSFORMS_DEFAULT="lower|spaces|underscores|dashes"
 MOVE_ALIASES="$HOME/.nixTools/$SCRIPTNAME"
@@ -38,21 +38,23 @@ help() {
     where LINES  : number of lines to trim (default: 1)
           END  : either 'top' / 'bottom' denoting the end to trim from
                  (default: bottom)
-  -r|--rename [FILTER] [TRANSFORMS]  : rename files using one or more
+  -r|--rename [OPTION] [TRANSFORMS]  : rename files using one or more
                                        supported transforms
-    where FILTER  : perl regular expression string for filtering out
-                    (negative matching) target files. a match against
-                    this string will result in skipping of a target
-                    (default: '')
-          TRANSFORMS  : delimited list comprising:
-            'lower'  : convert all alpha characters to lower case
-            'upper'  : convert all alpha characters to upper case
-            'spaces'  : compress and replace with periods ('.')
-            'underscores' : compress and replace with periods ('.')
-            'dashes' : compress and replace with periods ('.')
-            'X=Y'  : custom string replacements
-            '[X]=Y'  : custom character(s) replacements
-            (default: lower|spaces|underscores|dashes)
+    where OPTIONs:
+      -f|--filter [FILTER]  : perl regular expression string for
+                              filtering out (negative matching) target
+                              files. a match against this string will
+                              result in skipping of a target
+                              (default: '')
+    and TRANSFORMS is:  a delimited list of transform type
+                        (default: lower|spaces|underscores|dashes)
+      'lower'  : convert all alpha characters to lower case
+      'upper'  : convert all alpha characters to upper case
+      'spaces'  : compress and replace with periods ('.')
+      'underscores' : compress and replace with periods ('.')
+      'dashes' : compress and replace with periods ('.')
+      'X=Y'  : custom string replacements
+      '[X]=Y'  : custom character(s) replacements
   -dp|--dupe [DEST] [SUFFIX]  : duplicate TARGET to TARGET.orig, DEST,
                                 or {TARGET}{DEST} dependent upon
                                 optional arguments
@@ -70,16 +72,29 @@ help() {
 "
 }
 
-# parse options
+# vars
+declare target
+declare -a targets
+declare rename_filter
+declare -a rename_transforms
+declare -a args
+declare -a search_args
+declare search
+declare replace
+declare target2
+declare target_suffix
+
+# option parsing (generic)
 [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
 option=edit
 arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
 [ -n "$(echo "$arg" | sed -n '/^\(h\|help\|s\|strip\|u\|uniq\|e\|edit\|d\|dump\|cat\|f\|find\|grep\|search\|t\|trim\|r\|rename\|dp\|dupe\|m\|move\)$/p')" ] && option="$arg" && shift
 
-declare -a search_args
+# help short circuit
+[[ "x$option" == "xh" || "x$option" == "xhelp" ]] && help && exit
+
+# set targets
 search_args=("--targets" "--interactive" 1)
-declare -a args
-declare target
 while [ $# -gt 0 ]; do
   [ $# -eq 1 ] && target="$1" && shift && break
   if [[ "x$1" == "x-xs" || "x$1" == "x--search-args" ]]; then
@@ -96,11 +111,6 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-# help short circuit
-[[ "x$option" == "xh" || "x$option" == "xhelp" ]] && help && exit
-
-# set targets
-declare -a targets
 if [ -d "$target" ]; then
   case "$option" in
     "dp"|"dupe"|"m"|"move") targets=("$target") ;;
@@ -121,32 +131,39 @@ else
   echo "[info] no targets set for '$target'" && exit 0
 fi
 
-# option validation
-declare -a rename_transforms
-declare rename_filter
-
+# option parsing (specific)
 case "$option" in
   "r"|"rename")
-    [ ${#args[@]} -ge 2 ] && \
-      { rename_filter="${args[0]}" && args=("${args[@]:1}"); } || \
-      rename_filter=$RENAME_FILTER
-    if [ ${#args[@]} -ge 1 ]; then
-      IFS='|, '; rename_transforms=($(echo "${args[*]}")); IFS=$IFSORG
-      for transform in "${rename_transforms[@]}"; do
-        [ -z "$(echo "$transform" | sed -n '/\('"$(echo "$RENAME_TRANSFORMS" | sed 's/|/\\|/g')"'\|.\+=.*\)/p')" ] &&\
-          echo "[error] unsupported rename transform '$transform'" && exit 1
-      done
-    else
-      IFS='|, '; rename_transforms=($(echo "$RENAME_TRANSFORMS_DEFAULT")); IFS=$IFSORG
-    fi
+    rename_filter=$RENAME_FILTER
+    IFS='|, '; rename_transforms=($(echo "$RENAME_TRANSFORMS_DEFAULT")); IFS=$IFSORG
+    declare l=0
+    while [ $l -lt ${#args[@]} ]; do
+      arg="${args[$l]}"
+      arg_="$(echo "$arg" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
+      if [ ${#arg_} -lt "${#arg}" ]; then
+        case "$arg_" in
+          "f"|"filter") l=$((l + 1)); rename_filter="${args[$l]}" ;;
+          *) help && echo "[error] unknown option arg '$arg'" && exit 1
+        esac
+      else
+        IFS='|, '; rename_transforms=($(echo ${args[@]:$l})); IFS=$IFSORG
+        l=${#args[@]}
+      fi
+      l=$((l + 1))
+    done
     ;;
 esac
 
-# vars
-declare search
-declare replace
-declare target2
-declare target_suffix
+# option validation
+case "$option" in
+  "r"|"rename")
+    for transform in "${rename_transforms[@]}"; do
+      [ -z "$(echo "$transform" | sed -n '/\('"$(echo "$RENAME_TRANSFORMS" | sed 's/|/\\|/g')"'\|.\+=.*\)/p')" ] &&\
+        help && echo "[error] unsupported rename transform '$transform'" && exit 1
+    done
+    [ $DEBUG -ge 1 ] && echo "[debug] transforms: [${#rename_transforms[@]}] ${rename_transforms[*]}"
+    ;;
+esac
 
 # process
 for target in "${targets[@]}"; do
