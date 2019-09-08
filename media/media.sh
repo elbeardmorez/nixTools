@@ -1321,7 +1321,17 @@ fnStructure()
   [ "x$1" == "xlong" ] && bLong=1 && shift
 
   sSearch="$1" && shift
-  sFilters=() && [ $# -gt 0 ] && sFilters=($@)
+
+  filters_cmd=() && [ $# -gt 0 ] && filters_cmd=("$@")
+  filters_rc="$FILTERS_EXTRA"
+  filters_mod='\(\s\|\.\|\[\)*[^(]\([0-9]\{4\}\)\(\s\|\.\|\]\)*/.(\2).'
+  filters_codecs="\($(echo "$VIDCODECS|$AUDCODECS" | sed 's/[,=|]/\\\|/g')\)/."
+  filters_misc='_/\.'
+  filters_misc2='\.\-\./\.'
+  filters_misc3='\([^.]\)-/\1'
+  filters_misc4='-\([^.]\)/\1'
+  filters_repeat_misc='\(\[\.*\]\|^\.\|[-.]$\)/'
+  filters_repeat_misc2='\.\./.'
 
   IFS=$'\n'
   sFiles=($(fnFiles interactive "$sSearch"))
@@ -1375,9 +1385,9 @@ fnStructure()
 
   [ ${#sMask[@]} -gt 0 ] && sMaskDefault=${sMask[0]}
 
-  if [ ${#sFilters[@]} -gt 0 ]; then
+  if [ ${#filters_cmd[@]} -gt 0 ]; then
     l=1
-    for s in "${sFilters[@]}"; do
+    for s in "${filters_cmd[@]}"; do
       sTitle_="$sTitle"
       sTitle=$(echo "$sTitle" | sed 's/\([._-]\)\+'$s'\([._-]\|$\)\+/../Ig')
       l=$((l + 1))
@@ -1388,13 +1398,13 @@ fnStructure()
   fi
   [ ${#sMask[@]} -gt 0 ] && sTitle=$(echo "$sTitle" | sed 's/\[\?'"$(fnRegexp "${sMask[1]}" "sed")"'\]\?/['$sMaskDefault']/')
 
-  sTitle="$(echo "$sTitle" | sed 's/\(\s\|\.\|\[\)*[^(]\([0-9]\{4\}\)\(\s\|\.\|\]\)*/.(\2)./')"
-  sTitle="$(echo "$sTitle" | sed 's/'"$FILTERS_EXTRA"'/g')"
-  sTitle="$(echo "$sTitle" | sed 's/\('"$(echo "$VIDCODECS|$AUDCODECS" | sed 's/[,=|]/\\\|/g')"'\)/./Ig')"
-  sTitle="$(echo "$sTitle" | sed 's/_/\./g')"
-  sTitle="$(echo "$sTitle" | sed 's/\.\-\./\./g')"
-  s=""; while [ "x$sTitle" != "x$s" ]; do s="$sTitle"; sTitle="$(echo "$sTitle" | sed 's/\(\[\.*\]\|^\.\|\.$\)//g')"; done
-  s=""; while [ "x$sTitle" != "x$s" ]; do s="$sTitle"; sTitle="$(echo "$sTitle" | sed 's/\.\././g')"; done
+  sTitle="$(echo "$sTitle" | sed 's/'"$filters_mod"'/')"
+  sTitle="$(echo "$sTitle" | sed 's/'"${filters_rc:-/}"'/Ig')"
+  sTitle="$(echo "$sTitle" | sed 's/'"$filters_codecs"'/Ig')"
+  sTitle="$(echo "$sTitle" | sed 's/'"$filters_misc"'/g;s/'"$filters_misc2"'/g;s/'"$filters_misc3"'/g;s/'"$filters_misc4"'/g;')"
+  s=""; while [ "x$sTitle" != "x$s" ]; do s="$sTitle"; sTitle="$(echo "$sTitle" | sed 's/'"$filters_repeat_misc"'/g')"; done
+  s=""; while [ "x$sTitle" != "x$s" ]; do s="$sTitle"; sTitle="$(echo "$sTitle" | sed 's/'"$filters_repeat_misc2"'/g')"; done
+
   sTitle="$sTitle.$sTitleInfo"
   echo -e "set the title template$([ $lFiles -gt 1 ] && echo ". supported multi-file masks: '#of#', 's##e##'"). note ']/[' are fixed title delimiters" 1>&2
   bRetry=1
@@ -1476,28 +1486,29 @@ fnStructure()
     IFS=$'|'; sMask=($(fnFileMultiMask "$f2" "" "$sMaskDefault")); IFS=$IFSORG
     [ $DEBUG -gt 0 ] && echo "sMask: '${sMask[@]}'" 1>&2
 
-    if [ ${#sFilters[@]} -gt 0 ]; then
+    if [ ${#filters_cmd[@]} -gt 0 ]; then
       #we need to manipulate the target (sTitle2) before it goes for its final name fixing (fnFileTarget)
       #providing filter terms means the sTitle2 contains only the stub
-      for s in "${sFilters[@]}"; do f2=$(echo "$f2" | sed 's/\([._-]\)*'$s'\([._-]\)*/../Ig'); done  # apply filters
+      for s in "${filters_cmd[@]}"; do f2=$(echo "$f2" | sed 's/\([._-]\)*'$s'\([._-]\)*/../Ig'); done  # apply filters
       if [ "x${sMask[1]}" != "x" ]; then
         sTarget="$sTitle2.[$sMaskDefault].$(echo "${f2%.*}" | sed 's/^.*'"$(fnRegexp "${sMask[1]}" "sed")"'\]*//')" # construct dynamic title from template and additional file info i.e post-mask characters
       else
         #no delimiter. so we need to use all info in the original filename
         #we can try and filter any info already present in the template though
-        sFilters2=($(echo "$sTitle2" | sed 's/[][)(-,._]/ /g'))
-        for s in ${sFilters2[@]}; do f2=$(echo "$f2" | sed 's/\([._-]\)*'$s'\([._-]\)*/../Ig'); done
+        filters_cmd2=($(echo "$sTitle2" | sed 's/[][)(-,._]/ /g'))
+        for s in ${filters_cmd2[@]}; do f2=$(echo "$f2" | sed 's/\([._-]\)*'$s'\([._-]\)*/../Ig'); done
         sTarget="$sTitle2.${f2%.*}"
       fi
 
 #      sTarget="$(echo "$sTarget" | awk '{gsub(" ",".",$0); print tolower($0)}')" # go lower case now
-      sTarget="$(echo "$sTarget" | sed 's/\(\s\|\.\|\[\)*[^(]\([0-9]\{4\}\)\(\s\|\.\|\]\)*/.(\2)./')"
-      sTarget="$(echo "$sTarget" | sed 's/'"$FILTERS_EXTRA"'/g')"
-      sTarget="$(echo "$sTarget" | sed 's/\('"$(echo "$VIDCODECS|$AUDCODECS" | sed 's/[,=|]/\\\|/g')"'\)/./Ig')"
-      sTarget="$(echo "$sTarget" | sed 's/_/\./g')"
-      sTarget="$(echo "$sTarget" | sed 's/\.\-\./\./g')"
-      s=""; while [ "x$sTarget" != "x$s" ]; do s="$sTarget"; sTarget="$(echo "$sTarget" | sed 's/\(\[\.*\]\|(\.*)\|^\.\|\.$\)//g')"; done
-      s=""; while [ "x$sTarget" != "x$s" ]; do s="$sTarget"; sTarget="$(echo "$sTarget" | sed 's/\.\././g')"; done
+
+      sTarget="$(echo "$sTarget" | sed 's/'"$filters_mod"'/')"
+      sTarget="$(echo "$sTarget" | sed 's/'"${filters_rc:-/}"'/Ig')"
+      sTarget="$(echo "$sTarget" | sed 's/'"$filters_codecs"'/Ig')"
+      sTarget="$(echo "$sTarget" | sed 's/'"$filters_misc"'/g;s/'"$filters_misc2"'/g;s/'"$filters_misc3"'/g;s/'"$filters_misc4"'/g;')"
+      s=""; while [ "x$sTarget" != "x$s" ]; do s="$sTarget"; sTarget="$(echo "$sTarget" | sed 's/'"$filters_repeat_misc"'/g')"; done
+      s=""; while [ "x$sTarget" != "x$s" ]; do s="$sTarget"; sTarget="$(echo "$sTarget" | sed 's/'"$filters_repeat_misc2"'/g')"; done
+
     else
       # static
       sTarget="$sTitle"
