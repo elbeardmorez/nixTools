@@ -1373,7 +1373,7 @@ fnStructure()
   sMaskDefault=""
   IFS=$'\|'; sMask=(`fnFileMultiMask "$sTitle"`); IFS=$IFSORG
 
-  [ $sMask ] && sMaskDefault=${sMask[0]}
+  [ ${#sMask[@]} -gt 0 ] && sMaskDefault=${sMask[0]}
 
   if [ ${#sFilters[@]} -gt 0 ]; then
     l=1
@@ -1386,7 +1386,7 @@ fnStructure()
 #  else
     #clear everything between either delimiters ']','[', or delimiter '[' and end
   fi
-  [ $sMask ] && sTitle=$(echo "$sTitle" | sed 's/\[\?'"$(fnRegexp "${sMask[1]}" "sed")"'\]\?/['$sMaskDefault']/')
+  [ ${#sMask[@]} -gt 0 ] && sTitle=$(echo "$sTitle" | sed 's/\[\?'"$(fnRegexp "${sMask[1]}" "sed")"'\]\?/['$sMaskDefault']/')
 
   sTitle="$(echo "$sTitle" | sed 's/\(\s\|\.\|\[\)*[^(]\([0-9]\{4\}\)\(\s\|\.\|\]\)*/.(\2)./')"
   sTitle="$(echo "$sTitle" | sed 's/'"$FILTERS_EXTRA"'/g')"
