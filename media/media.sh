@@ -1344,71 +1344,77 @@ fnStructure()
   # set title
   l=0
   sTemplateFile=""
-  sTitle=""
+  # set video template file
   for f in "${sFiles[@]}"; do
     if [ "x$(echo "$f" | grep -iP ".*\.($VIDEXT)\$")" != "x" ]; then
-      #set video template file
       [ $l -eq 0 ] && sTemplateFile="$f"
-      #set title to video file iff it contains the search string
-      [[ "x$sTitle" == "x" && "x`echo "$f" | grep -i "$(fnRegexp "$sSearch" "grep")"`" != "x" ]] && sTitle="${f%.*}"
       l=$[$l+1]
     fi
   done
   lFiles=$l
   if [ $lFiles -lt 1 ]; then
+    # set audio template file
     l=0
     for f in "${sFiles[@]}"; do
       if [ "x$(echo "$f" | grep -iP ".*\.($AUDEXT)\$")" != "x" ]; then
-        #set audio template file
         [ $l -eq 0 ] && sTemplateFile="$f"
-        #set title to audio file iff it contains the search string
-        [[ "x$sTitle" == "x" && "x`echo "$f" | grep -i "$(fnRegexp "$sSearch" "grep")"`" != "x" ]] && sTitle="${f%.*}"
         l=$[$l+1]
       fi
     done
     lFiles=$l
   fi
-  [ "x$sTitle" == "x" ] && sTitle="$sSearch"
 
   [ $lFiles -lt 1 ] && echo "[error] no recognised video or audio extention for any of the selected files" 2>&1 && exit 1
   # *IMPLEMENT: potential for mismatch of file information here. dependence on file list order is wrong
 
   sTitleInfo="[$(fnFileInfo "$sTemplateFile")]" # use first video file found as template
-#  sTitleInfo="[$(fnFileInfo /dev/null)]" # use default template
-  sTitle=$(echo "$sTitle" | sed 's/'"$(fnRegexp "$sTitleInfo" "sed")"'//')
-  sTitlePath="${sTitle%/*}/"
+  sTemplateFile="$(echo "$sTemplateFile" | sed 's/'"$(fnRegexp "$sTitleInfo" "sed")"'//')"
+  sTemplateFile="${sTemplateFile%.*}"
+  sTitlePath="${sTemplateFile%/*}/"
   [[ ! -d "$sTitlePath" || x$(cd "$sTitlePath" && pwd) == "x$(pwd)" ]] && sTitlePath=""
-  sTitle="$(echo ${sTitle##*/} | awk '{gsub(" ",".",$0); print tolower($0)}')"
-
-  sMaskDefault=""
-  IFS=$'\|'; sMask=(`fnFileMultiMask "$sTitle"`); IFS=$IFSORG
-
-  [ ${#sMask[@]} -gt 0 ] && sMaskDefault=${sMask[0]}
+  sTemplateFile="$(echo ${sTemplateFile##*/} | awk '{gsub(" ",".",$0); print tolower($0)}')"
 
   if [ ${#filters_cmd[@]} -gt 0 ]; then
     l=1
     for s in "${filters_cmd[@]}"; do
-      sTitle_="$sTitle"
+      sTemplateFile_="$sTemplateFile"
       expr='\([._-]\)\+'"$s"'\([._-]\|$\)\+'
-      while [ -n "$(echo "$sTitle" | sed -n '/'"$expr"'/p')" ]; do
-        sTitle=$(echo "$sTitle" | sed 's/'"$expr"'/../Ig')
+      while [ -n "$(echo "$sTemplateFile" | sed -n '/'"$expr"'/p')" ]; do
+        sTemplateFile=$(echo "$sTemplateFile" | sed 's/'"$expr"'/../Ig')
       done
       l=$((l + 1))
-      [ $DEBUG -ge 5 ] && echo "[debug] remove filter [$l] '$s' applied, '$sTitle_' -> '$sTitle'" 1>&2
+      [ $DEBUG -ge 5 ] && echo "[debug] remove filter [$l] '$s' applied, '$sTemplateFile_' -> '$sTemplateFile'" 1>&2
     done
 #  else
     #clear everything between either delimiters ']','[', or delimiter '[' and end
   fi
-  [ ${#sMask[@]} -gt 0 ] && sTitle=$(echo "$sTitle" | sed 's/\[\?'"$(fnRegexp "${sMask[1]}" "sed")"'\]\?/['$sMaskDefault']/')
 
-  sTitle="$(echo "$sTitle" | sed 's/'"$filters_mod"'/')"
-  sTitle="$(echo "$sTitle" | sed 's/'"${filters_rc:-/}"'/Ig')"
-  sTitle="$(echo "$sTitle" | sed 's/'"$filters_codecs"'/Ig')"
-  sTitle="$(echo "$sTitle" | sed 's/'"$filters_misc"'/g;s/'"$filters_misc2"'/g;s/'"$filters_misc3"'/g;s/'"$filters_misc4"'/g;')"
-  s=""; while [ "x$sTitle" != "x$s" ]; do s="$sTitle"; sTitle="$(echo "$sTitle" | sed 's/'"$filters_repeat_misc"'/g')"; done
-  s=""; while [ "x$sTitle" != "x$s" ]; do s="$sTitle"; sTitle="$(echo "$sTitle" | sed 's/'"$filters_repeat_misc2"'/g')"; done
+  # mask?
+  sMaskDefault=""
+  IFS=$'\|'; sMask=(`fnFileMultiMask "$sTemplateFile"`); IFS=$IFSORG
+  if [ ${#sMask[@]} -gt 0 ]; then
+    [ $DEBUG -ge 5 ] && echo "[debug] mask found, parts: ${sMask[@]}, setting generic"
+    sMaskDefault=${sMask[0]}
+    sTemplateFile=$(echo "$sTemplateFile" | sed 's/\[\?'"$(fnRegexp "${sMask[2]}" "sed")"'\]\?/['$sMaskDefault']/')
+  fi
 
-  sTitle="$sTitle.$sTitleInfo"
+  sTemplateFile="$(echo "$sTemplateFile" | sed 's/'"$filters_mod"'/')"
+  sTemplateFile="$(echo "$sTemplateFile" | sed 's/'"${filters_rc:-/}"'/Ig')"
+  sTemplateFile="$(echo "$sTemplateFile" | sed 's/'"$filters_codecs"'/Ig')"
+  sTemplateFile="$(echo "$sTemplateFile" | sed 's/'"$filters_misc"'/g;s/'"$filters_misc2"'/g;s/'"$filters_misc3"'/g;s/'"$filters_misc4"'/g;')"
+  s=""; while [ "x$sTemplateFile" != "x$s" ]; do s="$sTemplateFile"; sTemplateFile="$(echo "$sTemplateFile" | sed 's/'"$filters_repeat_misc"'/g')"; done
+  s=""; while [ "x$sTemplateFile" != "x$s" ]; do s="$sTemplateFile"; sTemplateFile="$(echo "$sTemplateFile" | sed 's/'"$filters_repeat_misc2"'/g')"; done
+
+  # set title based on search / template file name / mask / file info parts
+  sSearch_="$(echo "$sSearch" | awk '{gsub(" ",".",$0); print tolower($0)}')"
+  if [ -n "$(echo "$sTemplateFile" | grep -i "$(fnRegexp "$sSearch_" "grep")")" ]; then
+    sTitle="$sTemplateFile.$sTitleInfo"
+  elif [ -n $sMaskDefault ]; then
+    sTitle="$sSearch_.[$sMaskDefault].${sTemplateFile#*\[${sMaskDefault}\]}.$sTitleInfo"
+  else
+    sTitle="$sSearch_.$sTitleInfo"
+  fi
+
   echo -e "set the title template$([ $lFiles -gt 1 ] && echo ". supported multi-file masks: '#of#', 's##e##'"). note ']/[' are fixed title delimiters" 1>&2
   bRetry=1
   while [ $bRetry -gt 0 ]; do
