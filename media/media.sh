@@ -1389,7 +1389,10 @@ fnStructure()
     l=1
     for s in "${filters_cmd[@]}"; do
       sTitle_="$sTitle"
-      sTitle=$(echo "$sTitle" | sed 's/\([._-]\)\+'$s'\([._-]\|$\)\+/../Ig')
+      expr='\([._-]\)\+'"$s"'\([._-]\|$\)\+'
+      while [ -n "$(echo "$sTitle" | sed -n '/'"$expr"'/p')" ]; do
+        sTitle=$(echo "$sTitle" | sed 's/'"$expr"'/../Ig')
+      done
       l=$((l + 1))
       [ $DEBUG -ge 5 ] && echo "[debug] remove filter [$l] '$s' applied, '$sTitle_' -> '$sTitle'" 1>&2
     done
