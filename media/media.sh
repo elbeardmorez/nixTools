@@ -963,7 +963,7 @@ fnSearch()
         fi
       fi
     else
-      echo "no archive lists found at: '$PATHARCHIVELISTS'" 1>&2
+      [ $DEBUG -ge 1 ] && echo "[debug] no archive lists found at: '$PATHARCHIVELISTS'" 1>&2
     fi
 
     if [[ $bIterative -eq 0 ||
