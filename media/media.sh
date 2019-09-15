@@ -13,6 +13,7 @@ RC_FILE="${RC_FILE:-"$HOME/.nixTools/$SCRIPTNAME"}"
 ROOTDISK="${ROOTDISK:-"/media/"}"
 ROOTISO="${ROOTISO:-"/media/iso/"}"
 PATHMEDIA="${PATHMEDIA:-"$HOME/media/"}"
+PATHMEDIATARGETS="${PATHMEDIATARGETS:-""}"
 PATHRATINGSDEFAULT="${PATHRATINGSDEFAULT:-"${PATHMEDIA}watched/"}"
 PATHARCHIVELISTS="${PATHARCHIVELISTS:-"${PATHMEDIA}/archives/"}"
 
@@ -847,11 +848,14 @@ fnFiles()
 
 fnSearch()
 {
-  # search in a set of directories
+  # search in a set of target directories
   # optionally 'iterative'ly substring search term and research until success
   # optionally 'interactive'ly search, prompting whether to return when any given path/substring returns valid results
 
   [ $DEBUG -ge 1 ] && echo "[debug fnSearch]" 1>&2
+
+  declare -a targets
+  declare target
 
   bVerbose=1
   [ "x$1" == "xsilent" ] && bVerbose=0 && shift
@@ -878,25 +882,36 @@ fnSearch()
     sSearch="$(fnRegexp "$sSearch")" 
     [ $DEBUG -ge 1 ] && echo "[debug fnSearch] sSearch (post-regexp-esacape): '$sSearch'" 1>&2
   fi
-  IFS=$'\n'
 
+  targets=("$(pwd)")
+  if [ -n "$PATHMEDIATARGETS" ]; then
+    IFS="|"; a_=($(echo "$PATHMEDIATARGETS")); IFS="$IFSORG"
+    for s_ in "${a_[@]}"; do
+      [ -d "$s_" ] && \
+        targets[${#targets[@]}]="$s_" || \
+        targets[${#targets[@]}]="$PATHMEDIA/$s_"
+    done
+  else
+    targets[${#targets[@]}]="$PATHMEDIA"
+  fi
+
+  IFS=$'\n'
   bContinue=1
-  dirs=("$PATHMEDIA"*/)
   while [ $bContinue -eq 1 ]; do
-    for dir in "${dirs[@]}"; do
-      [ $DEBUG -ge 1 ] && echo "[debug fnSearch] sSearch: '$sSearch', dir: '$dir'" 1>&2
+    for target in "${targets[@]}"; do
+      [ $DEBUG -ge 1 ] && echo "[debug fnSearch] sSearch: '$sSearch', target: '$target'" 1>&2
       if [ "$REGEX" -eq 1 ]; then
         # FIX: video file only filter for globs?
-        #arr=($(find "$dir" -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)$'))
-        arr=($(find $dir -type f -iregex ".*$sSearch.*" 2>/dev/null))
+        #arr=($(find "$target" -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)$'))
+        arr=($(find "$target" -type f -iregex ".*$sSearch.*" 2>/dev/null))
       else
         #glob match
-        arr=($(find $dir -type f -iname "*$sSearch*" 2>/dev/null))
+        arr=($(find "$target" -type f -iname "*$sSearch*" 2>/dev/null))
       fi
       if [[ ${#arr[@]} -gt 0 && "x$arr" != "x" ]]; then
         bAdd=1
         if [ $bInteractive -eq 1 ]; then
-          echo "[user] target: '$dir', search: '*sSearch*', found files:" 1>&2
+          echo "[user] target: '$target', search: '*sSearch*', found files:" 1>&2
           for f in "${arr[@]}"; do echo "  $f" 1>&2; done
           echo -n "[user] search further? [(y)es/(n)o/e(x)it]:  " 1>&2
           bRetry2=1
@@ -942,7 +957,7 @@ fnSearch()
         #merge results
         bAdd=1
         if [ $bInteractive -eq 1 ]; then
-          echo "[user] target: '$dir', search: '*sSearch*', found files:" 1>&2
+          echo "[user] target: '$target', search: '*sSearch*', found files:" 1>&2
           for f in "${arr[@]}"; do echo "  $f" 1>&2; done
           echo -n "[user] search further? [(y)es/(n)o/e(x)it]:  " 1>&2
           bRetry2=1
