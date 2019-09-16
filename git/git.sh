@@ -60,12 +60,15 @@ help() {
                         HEAD of 'linked'
   -rd|--rescue-dangling  : dump any orphaned commits still accessable
                            to a 'commits' directory
-  -doc|--dates-order-check [OPTIONS] TARGET
-    : highlight non-chronological TARGET commit(s)
-\n    where OPTIONS can be:
-      -t|--type TYPE  : check on date type TYPE, supporting 'authored'
-                        (default) or 'committed'
-      -i|--issues  : only output non-chronological commits
+  -dc|--date-check TYPE [OPTIONS] TARGET
+\n    where TYPE :
+      order  : highlight non-chronological TARGET commit(s)
+      timezone  : highlight TARGET commit(s) with invalid timezone
+                  given locale's daylight saving rules
+\n    and OPTIONS can be:
+      -dt|--date-type TYPE  : check on date type TYPE, supporting
+                              'authored' (default) or 'committed'
+      -i|--issues  : only output highlighted commits
 \n  -smr|--submodule-remove <NAME> [PATH]  : remove a submodule named
                                            NAME at PATH (default: NAME)
   -fb|--find-binary  : find all binary files in the current HEAD
@@ -178,7 +181,7 @@ fn_log() {
   for commit in "${commits[@]}"; do
     commit="$(echo "$commit" | cut -d' ' -f1)"
     if [ "x$command" = "xlog" ]; then
-      git "${bin_args[@]}" log --format=format:"%at | %ct | version: $(printf ${clr["bwn"]})%H$(printf ${clr["off"]}) $(printf ${clr["ylw"]})%d$(printf ${clr["off"]})%n %s (%an)" "${cmd_args[@]}" $commit | awk '{if ( $0 ~ /[0-9]{10} \| [0-9]{10} | version:/ ) { $1=strftime("%Y%b%d %H:%M:%S",$1); $3=strftime("%Y%b%d %H:%M:%S",$3); }; print $0;}'
+      git "${bin_args[@]}" log --format=format:"%at | %ct | version: $(printf ${clr["bwn"]})%H$(printf ${clr["off"]}) $(printf ${clr["ylw"]})%d$(printf ${clr["off"]})%n %s (%an)" "${cmd_args[@]}" $commit | awk '{if ( $0 ~ /[0-9]{10} \| [0-9]{10} | version:/ ) { $1=strftime("%Y%b%d %H:%M:%S %z",$1); $3=strftime("%Y%b%d %H:%M:%S %z",$3); }; print $0;}'
     else
       format="$([ "x$command" = "xlog1" ] && echo "oneline" || echo "fuller")"
       git "${bin_args[@]}" log --format="$format" "${cmd_args[@]}" $commit | cat
@@ -252,36 +255,40 @@ fn_formatpatch() {
   git format-patch -k -$n $sha "${cmd_args[@]}"
 }
 
-fn_dates_order_check() {
+fn_date_check() {
   declare target
   declare prev_commit
   declare prev_commit_date
   declare option
+  declare -a args
 
-  declare type
-  declare diff_only; diff_only=0
+  declare date_type
+  declare issues_only; issues_only=0
 
   # process options
   while [ -n "$1" ]; do
     option="$1"
     case "$option" in
-      "-t"|"--type") shift; type="$1" && shift ;;
-      "-i"|"--issues") shift; diff_only=1 ;;
-      *)
-        [ -n "$target" ] && \
-          _help && echo "[error] unrecognised option '$opt" && exit 1
-        target="$opt" && shift
-        ;;
+      "-dt"|"--date-type") shift; date_type="$1" && shift ;;
+      "-i"|"--issues") shift; issues_only=1 ;;
+      *) args[${#args[@]}]="$1"; shift ;;
     esac
   done
 
+  [ ${#args[@]} -lt 1 ] && echo "[error] missing check type argument" && exit 1
+  type="$(echo "${args[0]}" | sed -n '/\(order\|timezone\)/p')"
+  [ -z "$type" ] && echo "[error] invalid check type '$1'" && exit 1
+  args=("${args[@]:1}")
+  [ ${#args[@]} -gt 0 ] && target="${args[0]}"; args=("${args[@]:1}")
+  [ ${#args[@]} -gt 0 ] && _help && echo "[error] unrecognised arg(s): '${args[@]}'" && exit 1
+
   # default options
   target="${target:-HEAD}"
-  type="${type:-authored}"
+  date_type="${date_type:-authored}"
 
   # verify options
-  [[ "x$type" != "xauthored" && "x$type" != "xcommitted" ]] && \
-    _help && echo "[error] invalid type '%type' set" && exit 1
+  [[ "x$date_type" != "xauthored" && "x$date_type" != "xcommitted" ]] && \
+    _help && echo "[error] invalid type '$date_type' set" && exit 1
   declare -a commits
   IFS=$'\n'; commits=($(git rev-list --reverse "$target")); IFS="$IFSORG"
   [ ${#commits[@]} -lt 1 ] && \
@@ -291,37 +298,128 @@ fn_dates_order_check() {
   if [ -n "$prev_commit" ]; then
     prev_commit_date="$(git log -n1 --format=format:"%$([ "x$type" = "xauthored" ] && echo "a" || echo "c")t" "$prev_commit")"
   fi
-  git log --reverse --format=format:"%at | %ct | version: $(printf $CLR_BWN)%H$(printf $CLR_OFF)%n %s (%an)" "${cmdargs[@]}" "$target" | awk -v pcd="$prev_commit_date" -v type="$type" -v diff_only=$diff_only '
-BEGIN { last = pcd; }
+
+  [ $DEBUG -ge 1 ] && echo "[debug] previous commit date: '$prev_commit_date'" 1>&2
+  git log --reverse --format=format:"authored: %ad | committed: %cd | version: ${clr["bwn"]}%H${clr["off"]}%n %s (%an)" "${cmdargs[@]}" "$target" | awk \
+    -v type="$type" \
+    -v date_type=$date_type \
+    -v issues_only=$issues_only \
+    -v pcd="$prev_commit_date" \
+'
+function dateToEpoch(dt    , dt_, parts) {
+  # DATESPEC (git): Sun Sep 8 11:32:38 2013 +0100
+  # DATESPEC (awk): 2015 02 26 16 02 32 -1  : auto dst
+  split(dt, parts, " ");
+  if (length(parts) != 6)
+    return ""
+  time_ = parts[4];
+  gsub(/:/, " ", time_);
+  dt_ = parts[5]" "month_idx[parts[2]]" "parts[3]" "time_" -1";
+  #print("dt_: "dt_);
+  return mktime(dt_);
+}
+
+func dateLongToShort(dt,    parts) {
+  split(dt, parts, " ")
+  day = parts[3];
+  if (length(day) == 1)
+    day = "0"day;
+  return parts[5]parts[2]day" "parts[4]" "parts[6];
+}
+
+func check_order(dt1, dt2) {
+  if (dt1 >= dt2)
+    return 1;
+  else
+    return 0;
+}
+
+func check_timezone(dt,    parts) {
+  split(dt, parts, " ")
+  dt = parts[3]"-"parts[2]"-"parts[5]" "parts[4];
+  z_orig=parts[6]
+  cmd = "date -d\""dt"\" \"+%z\""
+  cmd | getline z_actual
+  close(cmd)
+  #print("checking timezone dt: "dt", z-orig: "z_orig" vs z-actual: "z_actual)
+  if (z_orig != z_actual)
+    return 1;
+  else
+    return 0;
+}
+
+BEGIN {
+  s="Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec"
+  split(s, months, "|")
+  for (idx in months) month_idx[months[idx]] = idx
+  #for (idx in month_idx) print("["idx"] : "month_idx[idx]);
+
+  state = 0;
+  last = dateToEpoch(pcd);
+}
 {
-  if ( $0 ~ /[0-9]{10} \| [0-9]{10} | version:/ ) {
-    test = ""
-    if (type == "authored") {
-      test = $1;
-      $1=strftime("%Y%b%d %H:%M:%S",$1);
-      if (last != "" && test <= last) {
-        diff = 2;
-        $1="'"$(printf ${CLR_RED})"'"$1"'"$(printf ${CLR_OFF})"'";
-      } else
-        $1="'"$(printf ${CLR_RED}${CLR_OFF})"'"$1;
-      $3=strftime("%Y%b%d %H:%M:%S",$3);
-    } else if (type == "committed") {
-      test = $3;
-      $3=strftime("%Y%b%d %H:%M:%S",$3);
-      if (last != "" && test <= last) {
-        diff = 2;
-        $3="'"$(printf ${CLR_RED})"'"$3"'"$(printf ${CLR_OFF})"'";
-      } else
-        $3="'"$(printf ${CLR_RED}${CLR_OFF})"'"$3;
-      $1=strftime("%Y%b%d %H:%M:%S",$1);
-    }
-    last = test;
+  if ( $0 ~ /^authored: [A-Z][a-z]{2}.*/ ) {
+    split($0, sections, "|");
+
+    #for (idx in sections) print("["idx"]: "sections[idx]);
+
+    section = date_type == "authored" ? 1 : 2
+    test = sections[section];
+    gsub(/^[^:]*: /, "", test);
+    gsub(/ *$/, "", test);
+    dt = test;
+    dt_ = dateLongToShort(dt);
+    dt__ = dateToEpoch(dt);
+    test = sections[section];
+
+    #print("test: "test);
+
+    expr = dt;
+    sub(/+/, "\\+", expr);
+
+    #print("testing: authored, dt: "dt", dt_: "dt_", dt__: "dt__);
+
+    if (type == "order") {
+      if (last != "")
+        issue = check_order(last, dt__);
+      last = dt__;
+    } else if (type == "timezone")
+      issue = check_timezone(dt);
+
+    if (issue == 1) {
+      state = 2;
+      dt_="'"${clr["red"]}"'"dt_"'"${clr["off"]}"'";
+    } else
+      dt_="'"${clr["red"]}${clr["off"]}"'"dt_;
+
+    sub(expr, dt_, sections[section]);
+
+    #print("final section: "sections[section]);
+
+    # modify other date
+    section = section == 1 ? 2 : 1;
+    test = sections[section];
+    gsub(/^[^:]*: /, "", test);
+    gsub(/ *$/, "", test);
+    dt = test;
+    dt_ = dateLongToShort(dt);
+    test = sections[section];
+    expr = dt;
+    sub(/+/, "\\+", expr);
+    sub(expr, dt_, sections[section]);
+
+    # mod line
+    $0 = "";
+    for (idx in sections) $0 = $0"|"sections[idx];
+    $0 = substr($0, 2);
   }
-  if (diff_only == 1) {
-    if (diff == 0)
+
+  if (issues_only == 1) {
+    if (state == 0)
       next;
-    diff--;
+    state--;
   }
+  print $0;
 }'
 }
 
@@ -480,7 +578,7 @@ fn_process() {
     "ff"|"fast-forward") fn_fast_foward "$@" ;;
     "rd"|"rescue-dangling") fn_rescue_dangling "$@" ;;
     "b"|"blame") fn_blame "$@" ;;
-    "doc"|"dates-order-check") fn_dates_order_check "$@" ;;
+    "dc"|"date-check") fn_date_check "$@" ;;
     "smr"|"submodule-remove") fn_submodule_remove "$@" ;;
     "fb"|"find-binary") fn_find_binary "$@" ;;
     *) git "$option" "$@" ;;

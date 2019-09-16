@@ -56,13 +56,17 @@ where OPTION:
                         HEAD of 'linked'
   -rd|--rescue-dangling  : dump any orphaned commits still accessable
                            to a 'commits' directory
-  -doc|--dates-order-check [OPTIONS] TARGET
-    : highlight non-chronological TARGET commit(s)
+  -dc|--date-check TYPE [OPTIONS] TARGET
 
-    where OPTIONS can be:
-      -t|--type TYPE  : check on date type TYPE, supporting 'authored'
-                        (default) or 'committed'
-      -i|--issues  : only output non-chronological commits
+    where TYPE :
+      order  : highlight non-chronological TARGET commit(s)
+      timezone  : highlight TARGET commit(s) with invalid timezone
+                  given locale's daylight saving rules
+
+    and OPTIONS can be:
+      -dt|--date-type TYPE  : check on date type TYPE, supporting
+                              'authored' (default) or 'committed'
+      -i|--issues  : only output highlighted commits
 
   -smr|--submodule-remove <NAME> [PATH]  : remove a submodule named
                                            NAME at PATH (default: NAME)
