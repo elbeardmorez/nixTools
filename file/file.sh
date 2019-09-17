@@ -15,6 +15,8 @@ EDITOR="${EDITOR:-vim}"
 RENAME_FILTER=""
 RENAME_TRANSFORMS="lower|upper|spaces|underscores|dashes"
 RENAME_TRANSFORMS_DEFAULT="lower|spaces|underscores|dashes"
+SEARCH_AND_REPLACE_TRANSFORMS=""
+
 MOVE_ALIASES="$HOME/.nixTools/$SCRIPTNAME"
 CMD_MV=($(echo "$([ $TEST -eq 1 ] && echo "echo ")mv"))
 CMD_MV_ARGS=("-i")
@@ -57,6 +59,11 @@ help() {
       'dashes' : compress and replace with periods ('.')
       'X=Y'  : custom string replacements
       '[X]=Y'  : custom character(s) replacements
+\n  -snr|--search-and-replace TRANSFORMS  : search target file(s) for
+                                          text and apply supported
+                                          transform types
+\n    with TRANSFORMS:  a delimited list of the following transforms
+      '[X]=Y'  : custom character(s) replacements
 \n  -dp|--dupe [DEST] [SUFFIX]  : duplicate TARGET to TARGET.orig, DEST,
                                 or {TARGET}{DEST} dependent upon
                                 optional arguments
@@ -74,11 +81,21 @@ help() {
 "
 }
 
+transforms_check() {
+  declare valid_names; valid_names="$(echo "$1" | sed 's/|/\\|/g')" && shift
+  while [ -n "$1" ]; do
+    [ -z "$(echo "$1" | sed -n '/\('"$valid_names"'\|[^\]=.*\)/p')" ] && \
+      help && echo "[error] unsupported transform '$transform'" && return 1
+    shift
+  done
+  [ $DEBUG -ge 1 ] && echo "[debug] transforms: [${#transforms[@]}] ${transforms[*]}"
+}
+
 # vars
 declare target
 declare -a targets
 declare rename_filter
-declare -a rename_transforms
+declare -a transforms
 declare rename_period_compression; rename_period_compression=1
 declare -a args
 declare -a search_args
@@ -86,12 +103,13 @@ declare search
 declare replace
 declare target2
 declare target_suffix
+declare s
 
 # option parsing (generic)
 [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
 option=edit
 arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
-[ -n "$(echo "$arg" | sed -n '/^\(h\|help\|s\|strip\|u\|uniq\|e\|edit\|d\|dump\|cat\|f\|find\|grep\|search\|t\|trim\|r\|rename\|dp\|dupe\|m\|move\)$/p')" ] && option="$arg" && shift
+[ -n "$(echo "$arg" | sed -n '/^\(h\|help\|s\|strip\|u\|uniq\|e\|edit\|d\|dump\|cat\|f\|find\|grep\|search\|t\|trim\|r\|rename\|dp\|dupe\|m\|move\|snr\|search-and-replace\)$/p')" ] && option="$arg" && shift
 
 # help short circuit
 [[ "x$option" == "xh" || "x$option" == "xhelp" ]] && help && exit
@@ -138,7 +156,7 @@ fi
 case "$option" in
   "r"|"rename")
     rename_filter=$RENAME_FILTER
-    IFS='|, '; rename_transforms=($(echo "$RENAME_TRANSFORMS_DEFAULT")); IFS=$IFSORG
+    IFS='|, '; transforms=($(echo "$RENAME_TRANSFORMS_DEFAULT")); IFS=$IFSORG
     declare l=0
     while [ $l -lt ${#args[@]} ]; do
       arg="${args[$l]}"
@@ -150,23 +168,23 @@ case "$option" in
           *) help && echo "[error] unknown option arg '$arg'" && exit 1
         esac
       else
-        IFS='|, '; rename_transforms=($(echo ${args[@]:$l})); IFS=$IFSORG
+        IFS='|, '; transforms=($(echo ${args[@]:$l})); IFS=$IFSORG
         l=${#args[@]}
       fi
       l=$((l + 1))
     done
     ;;
+
+  "snr"|"search-and-replace")
+    [ ${#args[@]} -ne 1 ] && help && "[error] insufficient args" && exit 1
+    IFS='|, '; transforms=($(echo "${args[0]}")); IFS=$IFSORG
+    ;;
 esac
 
 # option validation
 case "$option" in
-  "r"|"rename")
-    for transform in "${rename_transforms[@]}"; do
-      [ -z "$(echo "$transform" | sed -n '/\('"$(echo "$RENAME_TRANSFORMS" | sed 's/|/\\|/g')"'\|[^\]=.*\)/p')" ] &&\
-        help && echo "[error] unsupported rename transform '$transform'" && exit 1
-    done
-    [ $DEBUG -ge 1 ] && echo "[debug] transforms: [${#rename_transforms[@]}] ${rename_transforms[*]}"
-    ;;
+  "r"|"rename") transforms_check "$RENAME_TRANSFORMS" "${transforms[@]}" || exit 1 ;;
+  "snr"|"search-and-replace") transforms_check "$SEARCH_AND_REPLACE_TRANSFORMS" "${transforms[@]}" || exit 1 ;;
 esac
 
 # process
@@ -249,7 +267,7 @@ for target in "${targets[@]}"; do
       dir="$(dirname "$target")/"
       target="${target##*/}"
       target2="$target"
-      for transform in "${rename_transforms[@]}"; do
+      for transform in "${transforms[@]}"; do
         case "$transform" in
           "lower"|"upper")
             target2="$(echo "$target2" | awk -F'\n' '{print to'$transform'($1)}')"
@@ -279,6 +297,28 @@ for target in "${targets[@]}"; do
       [ $rename_period_compression -eq 1 ] &&\
         target2="$(echo "$target2" | awk -F'\n' '{gsub(/\.+/,"."); print}')"
       [ ! -e "$dir$target2" ] && "${CMD_MV[@]}" "${CMD_MV_ARGS[@]}" "$dir$target" "$dir$target2" 2>/dev/null
+      ;;
+
+    "snr"|"search-and-replace")
+
+      for transform in "${transforms[@]}"; do
+        case "$transform" in
+          *)
+            search="$transform"
+            while true; do
+               s="$(echo "$search" | sed 's/\(.*[^\]\)=.*/\1/')"
+               [ "x$s" = "x$search" ] && break || search="$s"
+            done
+            replace="${transform:$((${#search} + 1))}"
+            search="$(fn_escape "awk" "$(echo "$search" | sed 's/\\=/=/g')")"
+            [ $DEBUG -gt 0 ] && echo "[debug] search and replace transform '$search' -> '$replace'" 1>&2
+            f_temp="$(fn_temp_file "$SCRIPTNAME")"
+            awk -F'\n' '{ gsub(/('"$search"')+/, "'"$replace"'"); print; }' "$target" > "$f_temp"
+            res=$?
+            [ $res -eq 0 ] && mv "$f_temp" "$target" || rm "$f_temp"
+            ;;
+        esac
+      done
       ;;
 
     "dp"|"dupe")

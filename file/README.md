@@ -49,6 +49,13 @@ where OPTION can be:
       'X=Y'  : custom string replacements
       '[X]=Y'  : custom character(s) replacements
 
+  -snr|--search-and-replace TRANSFORMS  : search target file(s) for
+                                          text and apply supported
+                                          transform types
+
+    with TRANSFORMS:  a delimited list of the following transforms
+      '[X]=Y'  : custom character(s) replacements
+
   -dp|--dupe [DEST] [SUFFIX]  : duplicate TARGET to TARGET.orig, DEST,
                                 or {TARGET}{DEST} dependent upon
                                 optional arguments
