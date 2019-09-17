@@ -1573,11 +1573,11 @@ fn_refactor() {
   transforms_default="tabs whitespace"
   declare xi
   xi=0
+  declare xi_profiles_all="standard"
+  declare xi_profile_default; xi_profile_default="standard"
+  declare -A xi_profiles_valid
+  for s_ in $xi_profiles_all; do xi_profiles_valid["$s_"]="$s_"
   declare xi_profile
-  declare -a xi_profiles_valid
-  xi_profiles_valid["standard"]="standard"
-  declare xi_profile_default
-  xi_profile_default="standard"
 
   while [ -n "$1" ]; do
     arg="$(echo "$1" | awk '{gsub(/^[ ]*-+/,"",$0); print(tolower($0))}')"
@@ -1605,7 +1605,9 @@ fn_refactor() {
         "xi"|"external-indent")
           shift
           xi=1
-          [[ -n "$1" && -n "${xi_profiles_valid["$1"]}" ]] && xi_profile
+          [[ -n "$1" && -n "${xi_profiles_valid["$xi_profile"]}" ]] && \
+            xi_profiles="$1" || \
+            { help && echo "[error] invalid 'indent' profile" 1>&2; }
           ;;
       esac
     else
