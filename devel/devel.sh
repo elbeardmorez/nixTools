@@ -1558,21 +1558,16 @@ fn_refactor() {
   declare option; option="refactor"
 
   declare -a targets
-  declare targets_default
-  targets_default="."
+  declare targets_default; targets_default="."
   declare filter
   declare depth
-  declare modify
-  modify=0
-  declare -a transforms
+  declare modify; modify=0
+  declare transforms_all; transforms_all="braces tabs whitespace"
+  declare transform_default; transforms_default="tabs whitespace"
   declare -A transforms_valid
-  transforms_valid["braces"]="braces"
-  transforms_valid["tabs"]="tabs"
-  transforms_valid["whitespace"]="whitespace"
-  declare transform_default
-  transforms_default="tabs whitespace"
-  declare xi
-  xi=0
+  for s_ in $transforms_all; do transforms_valid["$s_"]="$s_"
+  declare -a transforms
+  declare xi; xi=0
   declare xi_profiles_all="standard"
   declare xi_profile_default; xi_profile_default="standard"
   declare -A xi_profiles_valid
