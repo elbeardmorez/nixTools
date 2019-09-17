@@ -48,7 +48,7 @@ help() {
                               (default: '')
       -npc|--no-period-compression  : do not compress multiple period
                                       '.' characters into a single '.'
-\n    and TRANSFORMS is:  a delimited list of transform type
+\n    and TRANSFORMS is:  a delimited list of the following transforms
                         (default: lower|spaces|underscores|dashes)
       'lower'  : convert all alpha characters to lower case
       'upper'  : convert all alpha characters to upper case

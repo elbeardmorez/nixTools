@@ -39,7 +39,7 @@ where OPTION can be:
       -npc|--no-period-compression  : do not compress multiple period
                                       '.' characters into a single '.'
 
-    and TRANSFORMS is:  a delimited list of transform type
+    and TRANSFORMS is:  a delimited list of the following transforms
                         (default: lower|spaces|underscores|dashes)
       'lower'  : convert all alpha characters to lower case
       'upper'  : convert all alpha characters to upper case
