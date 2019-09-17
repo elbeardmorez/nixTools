@@ -162,7 +162,7 @@ esac
 case "$option" in
   "r"|"rename")
     for transform in "${rename_transforms[@]}"; do
-      [ -z "$(echo "$transform" | sed -n '/\('"$(echo "$RENAME_TRANSFORMS" | sed 's/|/\\|/g')"'\|.\+=.*\)/p')" ] &&\
+      [ -z "$(echo "$transform" | sed -n '/\('"$(echo "$RENAME_TRANSFORMS" | sed 's/|/\\|/g')"'\|[^\]=.*\)/p')" ] &&\
         help && echo "[error] unsupported rename transform '$transform'" && exit 1
     done
     [ $DEBUG -ge 1 ] && echo "[debug] transforms: [${#rename_transforms[@]}] ${rename_transforms[*]}"
@@ -265,8 +265,12 @@ for target in "${targets[@]}"; do
             target2="$(echo "$target2" | awk -F'\n' '{gsub(/['"$search"']+/,"'$replace'"); print}')"
             ;;
          *=*)
-            search="$(fn_escape "awk" "${transform%=*}")"
-            replace="${transform#*=}"
+            search="$transform"
+            while true; do
+               s="$(echo "$search" | sed 's/\(.*[^\]\)=.*/\1/')"
+               [ "x$s" = "x$search" ] && break || search="$s"
+            done
+            replace="${transform:$((${#search} + 1))}"
             [ $DEBUG -gt 0 ] && echo "[debug] rename transform '$search' -> '$replace'" 1>&2
             target2="$(echo "$target2" | awk -F'\n' '{gsub(/('"$search"')+/,"'$replace'"); print}')"
             ;;
