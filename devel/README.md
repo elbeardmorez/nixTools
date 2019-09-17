@@ -30,6 +30,8 @@ with OPTION:
             tabs  : replace tab characters with 2 spaces
             whitespace  : remove trailing whitespace
             braces  : inline leading control structure braces
+            camelcase  : replace camel case pairs with underscore
+                         delimited lower case characters
 
       -xi|--external-indent [PROFILE]  : use external gnu indent
                                          binary with PROFILE

@@ -52,6 +52,8 @@ help() {
             tabs  : replace tab characters with 2 spaces
             whitespace  : remove trailing whitespace
             braces  : inline leading control structure braces
+                         delimited lower case characters
+            camelcase  : replace camel case pairs with underscore
 \n      -xi|--external-indent [PROFILE]  : use external gnu indent
                                          binary with PROFILE
                                          (default: standard*)
@@ -1562,16 +1564,16 @@ fn_refactor() {
   declare filter
   declare depth
   declare modify; modify=0
-  declare transforms_all; transforms_all="braces tabs whitespace"
+  declare transforms_all; transforms_all="braces tabs whitespace camelcase"
   declare transform_default; transforms_default="tabs whitespace"
   declare -A transforms_valid
-  for s_ in $transforms_all; do transforms_valid["$s_"]="$s_"
+  for s_ in $transforms_all; do transforms_valid["$s_"]="$s_"; done
   declare -a transforms
   declare xi; xi=0
   declare xi_profiles_all="standard"
   declare xi_profile_default; xi_profile_default="standard"
   declare -A xi_profiles_valid
-  for s_ in $xi_profiles_all; do xi_profiles_valid["$s_"]="$s_"
+  for s_ in $xi_profiles_all; do xi_profiles_valid["$s_"]="$s_"; done
   declare xi_profile
 
   while [ -n "$1" ]; do
@@ -1692,6 +1694,11 @@ fn_refactor() {
                 echo "$line" | sed -n ':1;s/^\(.*\S\)\s\(\s*$\)/\1\'"$(printf ${clr["red"]})"'·\2/;t1;s/$/\'"$(printf ${clr["off"]})"'/;p'
               done
               ;;
+            "camelcase")
+              # search for camel case pairs
+              fn_refactor_header "> searching for 'camel case pairs' in file '$f'"
+              sed -n 's/\([a-z][A-Z]\)/'"${clr["red"]}"'\1'"${clr["off"]}"'/gp' "$f"
+              ;;
             *)
               printf "${clr["red"]}[error] missing transform '$t'${clr["off"]}\n"
               ;;
@@ -1721,6 +1728,11 @@ fn_refactor() {
               # remove trailing whitespace
               fn_refactor_header "> removing 'trailing whitespace' in file '$f'"
               $sedcmd -i 's/\s*$//g' "$f"
+              ;;
+            "camelcase")
+              # replace camel case pairs with underscore delimited lower case characters
+              fn_refactor_header "> refactoring 'camel case pairs' in file '$f'"
+              $sedcmd -i 's/\([a-z]\)\([A-Z]\)/\1_\L\2/g' "$f"
               ;;
             *)
               printf "${clr["red"]}[error] missing transform '$t'${clr["off"]}\n"
