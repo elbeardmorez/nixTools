@@ -1550,7 +1550,7 @@ fn_refactor_header() {
   declare info
   info="$1" && shift
   printf "%s\n%s\n%s\n" $(printf "%.s-" $(seq 1 1 ${#info})) \
-                        "${clr["hl"]}"$info"${clr["off"]}" \
+                        "${clr["hl"]}$info${clr["off"]}" \
                         $(printf "%.s-" $(seq 1 1 ${#info}))
 }
 
