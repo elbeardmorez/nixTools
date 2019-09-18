@@ -107,7 +107,6 @@ fn_regexp() {
   esac
   [ $DEBUG -ge 2 ] && echo "[debug fn_regexp] #2, s_exp: '$s_exp'" 1>&2
   echo "$s_exp"
-  exit 1
 }
 
 fn_position_time_valid() {
@@ -143,7 +142,7 @@ fn_position_numeric_to_time() {
   s_prefix="$(echo "$1" | sed -n 's/^\([^0-9]\+\).*$/\1/p')"
   l_num="${1:${#s_prefix}}"
   shift
-  [ $(fn_position_numeric_valid "$l_num") -eq 0 ] && exit 1
+  [ $(fn_position_numeric_valid "$l_num") -eq 0 ] && return 1
   l_token="-1" && [ $# -gt 0 ] && l_token=$1 && shift
   s_delim_milliseconds="." && [ $# -gt 0 ] && s_delim_milliseconds="$1" && shift
   #IFS='.,:' && s_tokens=($(echo "$s_pos")) && IFS=$IFSORG
@@ -191,7 +190,7 @@ fn_position_time_to_numeric() {
 
   s_prefix="$(echo "$1" | sed -n 's/^\([^0-9]\+\).*$/\1/p')"
   s_pos="${1:${#s_prefix}}"
-  [ $(fn_position_time_valid "$s_pos") -eq 0 ] && exit 1
+  [ $(fn_position_time_valid "$s_pos") -eq 0 ] && return 1
   IFS='.,:' && s_tokens=($(echo "$s_pos")) && IFS=$IFSORG
   l_total=0
   l_scale=3
@@ -363,7 +362,7 @@ fn_file_info() {
             IFS=$'|'; a_codecs=($(echo "$VIDCODECS")); IFS=$IFSORG
             [ $DEBUG -ge 2 ] && echo "[debug] fn_file_info #2, IFS='$IFS'" 1>&2
             [ $DEBUG -ge 1 ] && echo "[debug] fn_file_info, codecs: ${#a_codecs[@]}, codecs: '${a_codecs[@]}'" 1>&2
-            #[ $TEST -eq 1 ] && exit 0
+            #[ $TEST -eq 1 ] && return 0
             for s2 in "${a_codecs[@]}"; do
               if [ -z "$(echo "'$s2'" | sed -n '/\=/p')" ]; then
                 [ -n "$(echo "'$s'" | sed -n '/'"$(fn_regexp "$s2" "sed")"'/Ip')" ] && s_video="$s2"
@@ -764,7 +763,6 @@ fn_files() {
       l_found_prev=$l_found
       if [[ $b_auto -eq 1 && ${#s_search} -gt $MINSEARCH ]]; then  s_search=${s_search:0:$((${#s_search} - 1))}; fi
       [ $DEBUG -ge 2 ] && echo "[debug fn_files] #3 s_search: '$s_search' s_search_custom: '$s_search_custom' s_search_prev: '$s_search_prev'  s_search_last: '$s_search_last'" 1>&2
-      #exit 1
     fi
   done
   IFS=$IFSORG
@@ -858,7 +856,7 @@ fn_search() {
   b_interactive=0
   [ "x$1" = "xinteractive" ] && b_interactive=1 && shift
 
-  [ -z "$args" ] && help && exit 1
+  [ -z "$args" ] && help && return 1
   s_search="$1"
   if [ "$REGEX" -eq 0 ]; then
     # basic escapes only
@@ -913,7 +911,7 @@ fn_search() {
             echo -en '\033[1D\033[K'
             read -n 1 -s result
             case "$result" in
-              "x" | "X") echo -n $result; b_retry2=0; b_continue=0; echo ""; exit 0 ;;
+              "x" | "X") echo -n $result; b_retry2=0; b_continue=0; echo ""; return 0 ;;
               "n" | "N") echo -n $result; b_retry2=0; b_retry=0; b_continue=0; echo ""; break ;;
               "y" | "Y") echo -n $result; b_retry2=0; b_add=0 ;;
               *) echo -n " " 1>&2
@@ -959,7 +957,7 @@ fn_search() {
             echo -en '\033[1D\033[K'
             read -n 1 -s result
             case "$result" in
-              "x" | "X") echo -n $result; b_retry2=0; b_continue=0; echo ""; exit 0 ;;
+              "x" | "X") echo -n $result; b_retry2=0; b_continue=0; echo ""; return 0 ;;
               "n" | "N") echo -n $result; b_retry2=0; b_retry=0; b_continue=0; echo ""; break ;;
               "y" | "Y") echo -n $result; b_retry2=0; b_add=0 ;;
               *) echo -n " " 1>&2
@@ -1003,7 +1001,7 @@ fn_play_list() {
   [ $DEBUG -ge 1 ] && echo "[debug fn_play_list]" 1>&2
 
   list="$1" && shift
-  [ ! -e $list ] && echo "[error] no playlist argument!" && exit 1
+  [ ! -e $list ] && echo "[error] no playlist argument!" && return 1
 
   IFS=$'\n' items=($(cat $list)); IFS=$IFSORG
 
@@ -1071,7 +1069,7 @@ fn_play() {
   display=$(fn_display)
   [ $DEBUG -ge 1 ] && echo "[debug fn_play] display: '$display', search: '$s_search'" 1>&2
 
-  [[ -d "$s_search" || -f "$s_search" ]] && DISPLAY=$display $CMDPLAY $CMDPLAY_OPTIONS "$s_search" "$@" && exit 0
+  [[ -d "$s_search" || -f "$s_search" ]] && DISPLAY=$display $CMDPLAY $CMDPLAY_OPTIONS "$s_search" "$@" && return 0
   IFS=$'\n' s_matched=($(fn_search $([ $REGEX -eq 1 ] && echo "regex") "$s_search" 2>/dev/null )); IFS=$IFSORG
 
   play=0
@@ -1129,7 +1127,7 @@ fn_play() {
           echo -en '\033[1D\033[K'
           read -n 1 -s result
           case "$result" in
-            "x" | "X") echo -n $result; b_retry=0; echo ""; exit 0 ;;
+            "x" | "X") echo -n $result; b_retry=0; echo ""; return 0 ;;
             "n" | "N") echo -n $result; b_retry=0; file="" ;;
             "y" | "Y") echo -n $result; b_retry=0 ;;
             *) echo -n " " 1>&2
@@ -1227,7 +1225,7 @@ fn_play() {
               "y" | "Y") echo -n $result; b_retry=0 ;;
               "n" | "N") echo -n $result; b_retry=0; file="" ;;
               "v" | "V") echo -n $result; echo -en "\033[G\033[1Kplay '$file'? [(y)es/(n)o/(v)erbose/e(x)it]:  " ;;
-              "x" | "X") echo -n $result; b_retry=0; echo ""; exit 0 ;;
+              "x" | "X") echo -n $result; b_retry=0; echo ""; return 0 ;;
               *) echo -n " " 1>&2
             esac
           done
@@ -1246,7 +1244,7 @@ fn_play() {
                   echo -en '\033[1D\033[K'
                   read -n 1 -s result
                   case "$result" in
-                    "x" | "X") echo -n $result; b_retry=0; b_retry2=0; echo ""; exit 0 ;;
+                    "x" | "X") echo -n $result; b_retry=0; b_retry2=0; echo ""; return 0 ;;
                     "s" | "S") echo -n $result; b_retry=0; b_retry2=0 ;;
                     "r" | "R") echo -n $result; b_retry2=0 ;;
                     *) echo -n " " 1>&2
@@ -1341,9 +1339,9 @@ fn_structure() {
 
   IFS=$'\n'
   s_files=($(fn_files interactive "$s_search"))
-  x=$? && [ $x -ne 0 ] && exit $x
+  x=$? && [ $x -ne 0 ] && return $x
   IFS=$IFSORG
-  [ ${#s_files} -eq 0 ] && exit 1
+  [ ${#s_files} -eq 0 ] && return 1
   [ $DEBUG -ge 1 ] && echo "s_files: '${s_files[@]}'" 1>&2
   # count type files
   # set type template file
@@ -1370,7 +1368,7 @@ fn_structure() {
     l_files=$l
   fi
 
-  [ $l_files -lt 1 ] && echo "[error] no recognised video or audio extention for any of the selected files" 2>&1 && exit 1
+  [ $l_files -lt 1 ] && echo "[error] no recognised video or audio extention for any of the selected files" 2>&1 && return 1
   # *IMPLEMENT: potential for mismatch of file information here.
   # dependence on file list order is wrong
 
@@ -1436,7 +1434,7 @@ fn_structure() {
       case "$result" in
         "y"|"Y") echo "$result" 1>&2; b_retry2=0; b_retry=0 ;;
         "n"|"N") echo "$result" 1>&2; b_retry2=0 ;;
-        "x"|"X") echo "$result" 1>&2; exit 1 ;;
+        "x"|"X") echo "$result" 1>&2; return 0 ;;
       esac
     done
   done
@@ -1487,7 +1485,7 @@ fn_structure() {
   for l in $(seq 1 1 ${#f_dirs[@]}); do
     for d in "${f_dirs[@]}"; do rmdir "$d" >/dev/null 2>&1; done
   done
-  #[ $DEBUG -eq 0 ] && (cd $s_title || exit 1)
+  #[ $DEBUG -eq 0 ] && { cd $s_title || return 1; }
   # rename
   # trim dummy extra info stub, sent as separate parameter to
   # fn_file_target function
@@ -1599,7 +1597,7 @@ fn_rate() {
   cmdcp="$([ $TEST -gt 0 ] && echo "echo ")$CMDCP"
 
   # args
-  [ $# -eq 0 ] && echo "[user] search string / target parameter required!" && exit 1
+  [ $# -eq 0 ] && echo "[user] search string / target parameter required!" && return 1
 
   # rating (optional)
   [ $# -gt 1 ] && [ -n "$(echo $1 | sed -n '/^[0-9]\+$/p')" ] && l_rating="$1" && shift
@@ -1609,7 +1607,7 @@ fn_rate() {
   [ $# -gt 0 ] && [ -n "$(echo $1 | sed -n '/^[0-9]\+$/p')" ] && l_rating="$1" && shift
   # path
   if [ $# -gt 0 ] && [ -n "$(echo $1 | sed -n '/^[0-9]\+$/p')" ]; then
-    [ ! -d "$1" ] && echo "[user] the ratings base path '$1' is invalid" && exit 1
+    [ ! -d "$1" ] && echo "[user] the ratings base path '$1' is invalid" && return 1
     s_path_base="$1" && shift
   fi
   # rating (optional)
@@ -1627,7 +1625,7 @@ fn_rate() {
     # get list of associated files in pwd
     IFS=$'\n'
     s_files=($(fn_files silent "$s_search"))
-    x=$? && [ $x -ne 0 ] && exit $x
+    x=$? && [ $x -ne 0 ] && return $x
     [ $DEBUG -ge 1 ] && echo "[debug fn_rate] fn_files results: count=${#s_files[@]}" 1>&2
     IFS=$IFSORG
     # if all are under the same subdirectory then assume that is a
@@ -1650,7 +1648,7 @@ fn_rate() {
           case "$result" in
             "y" | "Y") echo -n $result; b_retry=0; source="" ;;
             "n" | "N") echo -n $result; b_retry=0; source=${s_files[0]} ;;
-            "x" | "X") echo -n $result; b_retry=0; echo ""; exit 0 ;;
+            "x" | "X") echo -n $result; b_retry=0; echo ""; return 0 ;;
             *) echo -n " " 1>&2
           esac
         done
@@ -1697,7 +1695,7 @@ fn_rate() {
               case "$result" in
                 "y" | "Y") echo -n $result; b_retry=0; source="" ;;
                 "n" | "N") echo -n $result; b_retry=0; source=${s_files[0]} ;;
-                "x" | "X") echo -n $result; b_retry=0; echo ""; exit 0 ;;
+                "x" | "X") echo -n $result; b_retry=0; echo ""; return 0 ;;
                 *) echo -n " " 1>&2
               esac
             done
@@ -1782,7 +1780,7 @@ fn_rate() {
                   case "$result" in
                     "y" | "Y") echo -n $result; b_retry2=0; b_retry=0; source="${sources2[$lidx]}" ;;
                     "n" | "N") echo -n $result; b_retry2=0; lidx=$((lidx + 1)) ;;
-                    "x" | "X") echo -n $result; b_retry2=0; echo ""; exit 0 ;;
+                    "x" | "X") echo -n $result; b_retry2=0; echo ""; return 0 ;;
                     *) echo -n " " 1>&2
                   esac
                 done
@@ -1800,7 +1798,7 @@ fn_rate() {
     # manual local re-structure
     if [ -z "$source" ]; then
       source="$(fn_structure silent long "$s_search")"
-      x=$? && [ $x -ne 0 ] && exit $x
+      x=$? && [ $x -ne 0 ] && return $x
     fi
 
   fi
@@ -1824,7 +1822,7 @@ fn_rate() {
       [ ! -d $s_path_base ] && $cmdmd $PATHRATINGSDEFAULT
     fi
   fi
-  [ ! -d "$s_path_base" ] && echo "[user] the default ratings base path '$s_path_base' is invalid" 1>&2 && exit 1
+  [ ! -d "$s_path_base" ] && echo "[user] the default ratings base path '$s_path_base' is invalid" 1>&2 && return 1
   [ "x${s_path_base:$((${#s_path_base} - 1))}" != "x/" ] && s_path_base="$s_path_base/"
 
   if [ ! "$l_rating" ]; then
@@ -1851,7 +1849,7 @@ fn_rate() {
       read -n 1 -s result
       case "$result" in
         "y" | "Y") echo -n $result; b_retry=0 ;;
-        "n" | "N") echo -n $result; echo "" && exit 1 ;;
+        "n" | "N") echo -n $result; echo "" && return 1 ;;
         *) echo -n " " 1>&2
       esac
     done
@@ -1870,7 +1868,6 @@ fn_rate() {
     $cmdcp "$source" "$target/" && $cmdrm "$source" 2>/dev/null 1>&2 &
   fi
 
-  exit
   return 0
 }
 
@@ -1878,7 +1875,7 @@ fn_reconsile() {
   [ $DEBUG -ge 1 ] && echo "[debug fn_reconsile]" 1>&2
 
   file="$1"
-  [[ ! -e $file || -z "$file" ]] && echo "invalid source file '$file'" && exit 1
+  [[ ! -e $file || -z "$file" ]] && echo "invalid source file '$file'" && return 1
   file2="$file"2
   [ -e $file2 ] && echo "" > "$file2"
 
@@ -1903,7 +1900,7 @@ fn_fix() {
 
   [ -f "$CMDFLVFIXER" ] && echo "missing flvfixer.php" 1>&2
 
-  [ $# -ne 1 ] && echo "single source file arg required" && exit 1
+  [ $# -ne 1 ] && echo "single source file arg required" && return 1
   echo -e "\n[cmd] php $CMDFLVFIXER\n --in '$1'\n --out '$1.fix'"
   echo -e "[orig] $(ls -al "$1")"
   php "$CMDFLVFIXER" --in "$1" --out "$1.fix" 2>/dev/null
@@ -1918,18 +1915,18 @@ fn_fix() {
 fn_sync() {
   [ $DEBUG -ge 1 ] && echo "[debug fn_sync]" 1>&2
 
-  [ ${#args[@]} -ne 2 ] && echo "source file and offset args required" && exit 1
+  [ ${#args[@]} -ne 2 ] && echo "source file and offset args required" && return 1
   file="$1"
   offset="$2" && offset=$(fn_position_numeric_to_time $offset 4)
   target="${file%.*}.sync.${file##*.}"
 
   echo -e "\n#origial video runtime: $(fn_position_numeric_to_time $($CMDINFOMPLAYER "$file" 2>/dev/null | grep "ID_LENGTH=" | cut -d '=' -f2) 4)\n"
-  [ $? -ne 0 ] && exit 1
+  [ $? -ne 0 ] && return 1
   echo command: ffmpeg -y -itsoffset $offset -i "$file" -i "$file" -map 0:v -map 1:a -c copy "$target"
   ffmpeg -y -itsoffset $offset -i "$file" -i "$file" -map 0:v -map 1:a -c copy "$target"
-  [ $? -ne 0 ] && exit 1
+  [ $? -ne 0 ] && return 1
   echo -e "\n#new video runtime: $(fn_position_numeric_to_time $($CMDINFOMPLAYER "$target" 2>/dev/null | grep "ID_LENGTH=" | cut -d '=' -f2) 4)\n"
-  [ $? -ne 0 ] && exit 1
+  [ $? -ne 0 ] && return 1
   chown --reference "$file" "$target"
 }
 
@@ -1937,7 +1934,7 @@ fn_calc_video_rate() {
   [ $DEBUG -ge 1 ] && echo "[debug fn_calc_video_rate]" 1>&2
 
   # output size in kbps
-  [ $# -ne 3 ] && echo "target size, audio size and length args required" && exit 1
+  [ $# -ne 3 ] && echo "target size, audio size and length args required" && return 1
   t_size="$1" && shift
   kt_size=1 && [ "x${t_size:$((${#t_size} - 1))}" = "xM" ] && kt_size="(1024^2)"
   t_size="$(echo "$t_size" | sed 's/[Mb]//g')"
@@ -1979,9 +1976,9 @@ fn_edit() {
       echo "converting part files to transport stream format"
       for v in "${mp4s[@]}"; do ts="${v%.*}.ts"; [ ! -f "$ts" ] && ffmpeg -i "$v" -map 0:v -c:v copy -bsf h264_mp4toannexb -f mpegts "$ts"; echo "file '$(echo "$ts" | sed "s/'/'\\\''/g")'" >> $target/$n/files; done;
       echo "concatenating video streams"
-      ffmpeg -y -f concat -i $target/$n/files -map 0:v -c:v copy -f mp4 $target/$n/$n.mp4.concat || exit 1
+      ffmpeg -y -f concat -i $target/$n/files -map 0:v -c:v copy -f mp4 $target/$n/$n.mp4.concat || return 1
       echo "re-muxing a/v"
-      ffmpeg -y -i $target/$n/$n.mp4.concat -i $f -map 0:v -c:v copy -map 1:a -c:a copy -f mp4 $f.mod || exit 1
+      ffmpeg -y -i $target/$n/$n.mp4.concat -i $f -map 0:v -c:v copy -map 1:a -c:a copy -f mp4 $f.mod || return 1
     fi
   done
 }
@@ -1989,13 +1986,13 @@ fn_edit() {
 fn_calc_dimension() {
   [ $DEBUG -ge 1 ] && echo "[debug fn_calc_dimension]" 1>&2
 
-  [ $# -ne 3 ] && echo "syntax: fn_calc_dimension original_dimensions=1920x1080 scale_dimension=height|width target_dimension_other=x" && exit 1
+  [ $# -ne 3 ] && echo "syntax: fn_calc_dimension original_dimensions=1920x1080 scale_dimension=height|width target_dimension_other=x" && return 1
   original_dimensions=$1
   scale_dimension=$2
   target_dimension_other=$3
 
   [[ "x$scale_dimension" != "xwidth" && "x$scale_dimension" != "xheight" ]] &&
-    echo invalid scaled dimension && exit 1
+    echo invalid scaled dimension && return 1
   if [ "x$scale_dimension" = "xwidth" ]; then
     original_dimension=${original_dimensions%x*}
     original_dimension_other=${original_dimensions#*x}
@@ -2019,7 +2016,7 @@ fn_calc_dimension() {
 fn_remux() {
   [ $DEBUG -ge 1 ] && echo "[debug fn_remux]" 1>&2
 
-  [ $# -lt 1 ] && echo "syntax: remux source_file [profile=2p6ch] [width=auto] [height=auto] [vbr=1750k] [abr=320k] [passes=1] [vstream=0] [astream=0]" && exit 1
+  [ $# -lt 1 ] && echo "syntax: remux source_file [profile=2p6ch] [width=auto] [height=auto] [vbr=1750k] [abr=320k] [passes=1] [vstream=0] [astream=0]" && return 1
 
   cmdffmpeg="ffmpeg"
   cmdffmpeg="$(echo $([ $TEST -gt 0 ] && echo "echo ")$cmdffmpeg)"
@@ -2078,7 +2075,7 @@ fn_remux() {
        ;;
      *)
        echo "unknown profile"
-       exit 1
+       return 1
        ;;
   esac
 
@@ -2110,7 +2107,7 @@ fn_remux() {
       cmd="$cmd -f ${target##*.} file:$target"
       echo "[$profile (pass 1)] $cmd"
       exec $cmd
-      [ $? -eq 0 ] && echo "# pass complete" || (echo "# pass failed" && exit 1)
+      [ $? -eq 0 ] && echo "# pass complete" || { echo "# pass failed" && return 1; }
       ;;
     2)
       cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset $preset -vcodec $vcdc"
@@ -2118,7 +2115,7 @@ fn_remux() {
       cmd="$cmd -pass 1 -threads:0 9 -f ${target##*.} /dev/null"
       echo "[$profile (pass 1)] $cmd"
       exec $cmd
-      [ $? -eq 0 ] && echo "# pass 1 complete" || (echo "# pass 1 failed" && exit 1)
+      [ $? -eq 0 ] && echo "# pass 1 complete" || { echo "# pass 1 failed" && return 1; }
 
       cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset $preset -vcodec $vcdc"
       [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $v_bitrate -vf crop=$crop$([ -n "$scale" ] && echo ,scale=$scale)"
@@ -2127,7 +2124,7 @@ fn_remux() {
       cmd="$cmd -threads:0 9 -f ${target##*.} file:$target"
       echo "[$profile (pass 1)] $cmd"
       exec $cmd
-      [ $? -eq 0 ] && echo "# pass 2 complete" || (echo "# pass 2 failed" && exit 1)
+      [ $? -eq 0 ] && echo "# pass 2 complete" || { echo "# pass 2 failed" && return 1; }
       ;;
   esac
 }
@@ -2139,7 +2136,7 @@ fn_names()
   cmdmv="$(echo $([ $TEST -gt 0 ] && echo "echo ")$CMDMV)"
 
   [ $# -lt 1 ] && \
-    echo "missing set name" && exit 1
+    echo "missing set name" && return 1
   set="$1" && shift
 
   source="names"
@@ -2147,7 +2144,7 @@ fn_names()
   [ ! -e "$source" ] && \
     [ -e "../$source" ] && ROOTSUFFIX="../"
   [ ! -e "$ROOTSUFFIX$source" ] && \
-    echo "missing names list" && exit 1
+    echo "missing names list" && return 1
 
   source=$PWD/$ROOTSUFFIX$source
   if [ -n "$(head -n 1 $source | cut -d'|' -f3)" ]; then
@@ -2164,7 +2161,7 @@ fn_names()
         mf=(*e$item*)
         for f in "${mf[@]}"; do
           [ ! -f "$f" ] && f=(*e$item*)
-          [ ! -f "$f" ] && echo "missing item '$item|$name', aborting!" && exit 1
+          [ ! -f "$f" ] && echo "missing item '$item|$name', aborting!" && return 1
           $cmdmv "$f" "$set.[$(echo "$f" | sed -n 's/.*\[\(.*\)\].*\[.*\].*/\1/p')].$name.[${f##*[}";
         done
       done < $source
@@ -2177,7 +2174,7 @@ fn_names()
       name=$(echo ${line#*|} | awk '{gsub(/ /,".",$0); print tolower($0)}');
       f=(*e0$item*)
       [ ! -f "$f" ] && f=(*e$item*)
-      [ ! -f "$f" ] && echo "missing item '$item|$name', aborting!" && exit 1
+      [ ! -f "$f" ] && echo "missing item '$item|$name', aborting!" && return 1
       $cmdmv "$f" "$set.["$(echo "$f" | sed -n 's/.*\[\(.*\)\].*\[.*\].*/\1/p')"].$name.[${f##*[}";
     done < $source
   fi
@@ -2243,7 +2240,7 @@ fn_test_files() {
 fn_test_file_info() {
   target="."
   [ $# -gt 0 ] && target="$1" && shift
-  [ ! -d "$target" ] && echo "[error] invalid target directory: '$target'" && exit 1
+  [ ! -d "$target" ] && echo "[error] invalid target directory: '$target'" && return 1
   for f in "$target"/*; do
     arr=($(fn_file_info i 4 "$f/" | sed -n 's/^\[.*|\(.*\)\]\s\+.*\[\(.*\)\].*$/\1 \2/p'));
     [ "${arr[0]}" != "${arr[1]}" ] && echo "'$f': ${arr[@]}";
