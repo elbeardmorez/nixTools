@@ -1113,7 +1113,7 @@ fn_play() {
     done
 
     # iterate list and play
-    # #format title:file[:search]
+    # format | title:file[:search]
     [ $DEBUG -eq 2 ] && echo "[debug fn_play] s_playlist: ${s_playlist[@]}" 1>&2
     s_files=
     for s in "${s_playlist[@]}"; do
@@ -1471,7 +1471,7 @@ fn_structure() {
   [ $DEBUG -gt 0 ] && echo "#s_title: '$s_title'" 1>&2
 
   # structure files
-  # #move
+  # move
   s_short_title=${s_title%%[*} && s_short_title=${s_short_title%.}
   $cmdmd -p "$s_short_title"
   info="$s_short_title/info"
@@ -1488,7 +1488,7 @@ fn_structure() {
     for d in "${f_dirs[@]}"; do rmdir "$d" >/dev/null 2>&1; done
   done
   #[ $DEBUG -eq 0 ] && (cd $s_title || exit 1)
-  # #rename
+  # rename
   # trim dummy extra info stub, sent as separate parameter to
   # fn_file_target function
   s_title2="$(echo "${s_title%[*}" | sed 's/\(^\.\|\.$\)//g')"
