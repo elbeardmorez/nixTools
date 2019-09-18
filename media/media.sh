@@ -2184,6 +2184,8 @@ fn_names()
 }
 
 fn_rip() {
+  [ $DEBUG -ge 1 ] && echo "[debug fn_rip]" 1>&2
+
   target="${1:-title}"
   VIDEO=${VIDEO:-1}
   AUDIO=${AUDIO:-1}
