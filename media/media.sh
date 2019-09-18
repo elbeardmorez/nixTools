@@ -437,7 +437,7 @@ fn_file_info() {
   [ $level -lt 3 ] && s_size=""
   [ $level -lt 4 ] && s_fps=""
   [ $level -lt 5 ] && s_audio_bitrate="" && s_video_bitrate=""
-  [ $s_type = "audio" ] && s_size="" && s_fps="" && s_video="" && s_video_bitrate="" && s_audio="${s_audio#.}"
+  [ "x$s_type" = "xaudio" ] && s_size="" && s_fps="" && s_video="" && s_video_bitrate="" && s_audio="${s_audio#.}"
   [ $level -gt 0 ] && echo "$s_file_size$s_length$s_fps$s_size$s_video$s_video_bitrate$s_audio$s_channels$s_audio_bitrate"
 }
 
@@ -548,8 +548,8 @@ fn_file_multi_mask() {
     #[[ -n "$s_type" && "x$s_type" != "x${arr2[0]}" ]] && continue
     s_search=${arr2[1]}
     s_replace="" && [ ${#arr2} -ge 2 ] && s_replace=${arr2[2]}
-    [[ $s_replace == "" && ${arr2[0]} == "single" ]] && s_replace="\1"
-    [[ $s_replace == "" && ${arr2[0]} == "set" ]] && s_replace="\1\|\2"
+    [[ -z $s_replace && "x${arr2[0]}" == "single" ]] && s_replace="\1"
+    [[ -z $s_replace && "x${arr2[0]}" == "set" ]] && s_replace="\1\|\2"
     s_mask_raw=$(echo "${s_title##/}" | sed -n 's|^.*\('"$s_search"'\).*$|\1|Ip')
     if [ -n "$s_mask_raw" ]; then
       s_type="${arr2[0]}"
@@ -684,7 +684,7 @@ fn_files() {
         # previous search replace the last search by the previous search
         [ $DEBUG -ge 2 ] && echo "[debug fn_files] #1 s_search: '$s_search' s_search_custom: '$s_search_custom' s_search_prev: '$s_search_prev'  s_search_last: '$s_search_last'" 1>&2
         [ -n "$s_search_custom" ] && s_search_prev="$s_search" && s_search="$s_search_custom"
-        if [[ ! "x$s_search" == x$s_search_prev || -z "$s_search_last" ]]; then
+        if [[ "x$s_search" != x$s_search_prev || -z "$s_search_last" ]]; then
           s_files=($(find ./ -maxdepth $l_depth -iregex '.*'"$(fn_regexp "$s_search" "sed")"'.*\('"$(fn_regexp "$s_type" "sed")"'\)$'))
           unset s_files2
           for f in "${s_files[@]}"; do
@@ -1119,7 +1119,7 @@ fn_play() {
     for s in "${s_playlist[@]}"; do
       title="${s%%|*}" && s=${s:$((${#title} + 1))} && title="$(echo ${title##*/} | sed 's/[. ]\[.*$//I')"
       file="${s%%|*}" && s=${s:$((${#file} + 1))}
-      search="$s" && [ "$search" = "$file" ] && search=""
+      search="$s" && [ "x$search" = "x$file" ] && search=""
       [ $DEBUG -ge 1 ] && echo "[debug fn_play] title: '$title', file: '$file', search: '$search'" 1>&2
       if [ -n "$(echo "$file" | grep "/dev/dvd")" ]; then
         # play?
@@ -1191,7 +1191,7 @@ fn_play() {
                   [ $x -ne 0 ] && b_retry=0 && s_files= && continue
                 else
                   # specify the track for vcds
-                  if [ "${file:0:3}" = "vcd" ]; then
+                  if [ "x${file:0:3}" = "xvcd" ]; then
                     #ID_VCD_TRACK_1_MSF=00:16:63
                     IFS=$'\n'; s_tracks=($($CMDINFOMPLAYER "$file" | sed -n 's/^ID_VCD_TRACK_\([0-9]\)_MSF=\([0-9:]*\)$/\1|\2\.0/p')); IFS=$IFSORG
                     if [ ${#s_tracks[@]} -gt 0 ]; then
@@ -2021,23 +2021,23 @@ fn_remux() {
 
   [ $# -lt 1 ] && echo "syntax: remux source_file [profile=2p6ch] [width=auto] [height=auto] [vbr=1750k] [abr=320k] [passes=1] [vstream=0] [astream=0]" && exit 1
 
-  cmdffmpeg=ffmpeg
-  cmdffmpeg=$(echo $([ $TEST -gt 0 ] && echo "echo ")$cmdffmpeg)
+  cmdffmpeg="ffmpeg"
+  cmdffmpeg="$(echo $([ $TEST -gt 0 ] && echo "echo ")$cmdffmpeg)"
 
   source="$1" && shift
-  target=${source%.*}.remux.mp4
+  target="${source%.*}.remux.mp4"
 
   profile=2p6ch
-  [ $# -gt 0 ] && [ -n "$(echo $1 | sed -n '/^\(2p6ch[0-9]\?\|1p2ch[0-9]\?\)$/p')" ] && profile=$1 && shift
+  [ $# -gt 0 ] && [ -n "$(echo "$1" | sed -n '/^\(2p6ch[0-9]\?\|1p2ch[0-9]\?\)$/p')" ] && profile="$1" && shift
 
-  [ $# -gt 0 ] && [ -n "$(echo $1 | sed -n '/^\([0-9]\+\|auto\)$/p')" ] && width=$1 && shift
-  [ $# -gt 0 ] && [ -n "$(echo $1 | sed -n '/^\([0-9]\+\|auto\)$/p')" ] && height=$1 && shift
-  if [[ $# -gt 0 && -n "$(echo $1 | sed -n '/^\([0-9]\+[kK]\|auto\|copy\)$/p')" ]]; then
-     [ "x$1" != "xauto" ] && vbr=$1
+  [ $# -gt 0 ] && [ -n "$(echo "$1" | sed -n '/^\([0-9]\+\|auto\)$/p')" ] && width=$1 && shift
+  [ $# -gt 0 ] && [ -n "$(echo "$1" | sed -n '/^\([0-9]\+\|auto\)$/p')" ] && height=$1 && shift
+  if [[ $# -gt 0 && -n "$(echo "$1" | sed -n '/^\([0-9]\+[kK]\|auto\|copy\)$/p')" ]]; then
+     [ "x$1" != "xauto" ] && vbr="$1"
      shift
   fi
-  if [[ $# -gt 0 && -n "$(echo $1 | sed -n '/^\([0-9]\+[kK]\|auto\|copy\)$/p')" ]]; then
-    [ "x$1" != "xauto" ] && abr=$1
+  if [[ $# -gt 0 && -n "$(echo "$1" | sed -n '/^\([0-9]\+[kK]\|auto\|copy\)$/p')" ]]; then
+    [ "x$1" != "xauto" ] && abr="$1"
     shift
   fi
 
@@ -2050,46 +2050,46 @@ fn_remux() {
   [[ $# -gt 0 && -n "$(echo $1 | sed -n '/^[0-9]$/p')" ]] && astream=$1 && shift
 
   # profile base
-  case $profile in
+  case "$profile" in
      2p6ch*)
-       vcdc=hevc
-       [ "x$vbr" = "xcopy" ] && vcdc=copy
-       vbr=${vbr:-1750k}
-       acdc=aac
-       [ "x$abr" = "xcopy" ] && acdc=copy
-       abr=${abr:-320k}
+       vcdc="hevc"
+       [ "x$vbr" = "xcopy" ] && vcdc="copy"
+       vbr="${vbr:-"1750k"}"
+       acdc="aac"
+       [ "x$abr" = "xcopy" ] && acdc="copy"
+       abr="${abr:-"320k"}"
        channels=6
-       preset=medium
-       defwidth=auto
+       preset="medium"
+       defwidth="auto"
        defheight=720
        ;;
      1p2ch*)
-       vcdc=hevc
-       [ "x$vbr" = "xcopy" ] && vcdc=copy
-       vbr=${vbr:-1500k}
-       acdc=aac
-       [ "x$abr" = "xcopy" ] && acdc=copy
-       abr=${abr:-256k}
+       vcdc="hevc"
+       [ "x$vbr" = "xcopy" ] && vcdc="copy"
+       vbr="${vbr:-"1500k"}"
+       acdc="aac"
+       [ "x$abr" = "xcopy" ] && acdc="copy"
+       abr="${abr:-"256k"}"
        channels=2
        af="aresample=matrix_encoding=dplii"
-       preset=veryfast
-       defheight=auto
+       preset="veryfast"
+       defheight="auto"
        defwidth=1280
        ;;
      *)
-       echo unknown profile
+       echo "unknown profile"
        exit 1
        ;;
   esac
 
   # profile tweaks
   case $profile in
-     "2p6ch2")
-       defheight=auto
-       ;;
-     "1p2ch2")
-       defwidth=auto
-       ;;
+    "2p6ch2")
+      defheight="auto"
+      ;;
+    "1p2ch2")
+      defwidth="auto"
+      ;;
   esac
 
   scale=""
