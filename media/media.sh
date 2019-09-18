@@ -48,7 +48,7 @@ TXT_RST=$(tput sgr0)
 REGEX=0
 OPTION="play"
 
-function help()
+help()
 {
   echo ""
   echo -e "usage: $SCRIPTNAME [OPTION] TARGET"
@@ -75,52 +75,52 @@ function help()
   echo ""
 }
 
-function fnLog()
+fn_log()
 {
-  [ $DEBUG -ge 2 ] && echo "[debug fnLog]" 1>&2
+  [ $DEBUG -ge 2 ] && echo "[debug fn_log]" 1>&2
 
   echo "$@" | tee $LOG 1>&2
 }
 
-function fnDisplay()
+fn_display()
 {
-  [ $DEBUG -ge 1 ] && echo "[debug fnDisplay]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_display]" 1>&2
 
   display="${DISPLAY_:-"$DISPLAY"}"
   echo $display
 }
 
-function fnDriveStatus()
+fn_drive_status()
 {
-  [ $DEBUG -ge 1 ] && echo "[debug fnDriveStatus]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_drive_status]" 1>&2
 
-  [ "x$(cdrecord -V --inq dev=/dev/dvd 2>&1 | grep "medium not present")" == "x" ] && echo 1 || echo -1
+  [ -z "$(cdrecord -V --inq dev=/dev/dvd 2>&1 | grep "medium not present")" ] && echo 1 || echo -1
 }
 
-function fnRegexp()
+fn_regexp()
 {
-  [ $DEBUG -ge 2 ] && echo "[debug fnRegexp]" 1>&2
+  [ $DEBUG -ge 2 ] && echo "[debug fn_regexp]" 1>&2
 
   #escape reserved characters
-  sExp="$1" && shift
-  sType="${1:-"posix"}"
-  [ $DEBUG -ge 2 ] && echo "[debug fnRegexp], sExp: '$sExp', sType: '$sType', CHAR${sType^^}: '`eval 'echo $CHAR'${sType^^}`'" 1>&2
-  case "$sType" in
-    "grep") sExp=$(echo "$sExp" | sed 's/\(['$CHARGREP']\)/\\\1/g') ;;
-    "sed") sExp=$(echo "$sExp" | sed 's/\(['$CHARSED']\)/\\\1/g') ;;
-    "posix") sExp=$(echo "$sExp" | sed 's/\(['$CHARPOSIX']\)/\\\1/g') ;;
+  s_exp="$1" && shift
+  s_type="${1:-"posix"}"
+  [ $DEBUG -ge 2 ] && echo "[debug fn_regexp], s_exp: '$s_exp', s_type: '$s_type', CHAR${s_type^^}: '$(eval 'echo $CHAR'${s_type^^})'" 1>&2
+  case "$s_type" in
+    "grep") s_exp=$(echo "$s_exp" | sed 's/\(['$CHARGREP']\)/\\\1/g') ;;
+    "sed") s_exp=$(echo "$s_exp" | sed 's/\(['$CHARSED']\)/\\\1/g') ;;
+    "posix") s_exp=$(echo "$s_exp" | sed 's/\(['$CHARPOSIX']\)/\\\1/g') ;;
   esac
-  [ $DEBUG -ge 2 ] && echo "[debug fnRegexp] #2, sExp: '$sExp'" 1>&2
-  echo "$sExp"
+  [ $DEBUG -ge 2 ] && echo "[debug fn_regexp] #2, s_exp: '$s_exp'" 1>&2
+  echo "$s_exp"
   exit 1
 }
 
-function fnPositionTimeValid()
+fn_position_time_valid()
 {
-  [ $DEBUG -ge 2 ] && echo "[debug fnPositionTimeValid]" 1>&2
+  [ $DEBUG -ge 2 ] && echo "[debug fn_position_time_valid]" 1>&2
 
   pos="$1"
-  if [ "x$(echo "$pos" | sed -n 's|^\([+-/*]\{,1\}\s*[0-9:]*[0-9]\{2\}:[0-9]\{2\}[:,.]\{1\}[0-9]\{1,\}\)$|\1|p')" == "x" ]; then
+  if [ -z "$(echo "$pos" | sed -n 's|^\([+-/*]\{,1\}\s*[0-9:]*[0-9]\{2\}:[0-9]\{2\}[:,.]\{1\}[0-9]\{1,\}\)$|\1|p')" ]; then
     echo "illegal position format. require '00:00:00[.,:]0[00...]'" 1>&2
     echo 0
   else
@@ -128,13 +128,13 @@ function fnPositionTimeValid()
   fi
 }
 
-function fnPositionNumericValid()
+fn_position_numeric_valid()
 {
-  [ $DEBUG -ge 2 ] && echo "[debug fnPositionNumericValid]" 1>&2
+  [ $DEBUG -ge 2 ] && echo "[debug fn_position_numeric_valid]" 1>&2
 
   num="$1"
-  [ "x$(echo "$num" | sed -n '/.*[.,:]\{1\}[0-9]\+/p')" == "x" ] && num="$num.0"
-  if [ "x$(echo "$num" | sed -n 's|^\([+-/*]\{,1\}\s*[0-9]\+[:,.]\{1\}[0-9]\{1,\}\)$|\1|p')" == "x" ]; then
+  [ -z "$(echo "$num" | sed -n '/.*[.,:]\{1\}[0-9]\+/p')" ] && num="$num.0"
+  if [ -z "$(echo "$num" | sed -n 's|^\([+-/*]\{,1\}\s*[0-9]\+[:,.]\{1\}[0-9]\{1,\}\)$|\1|p')" ]; then
     echo "illegal number format. require '0[.,:]0[00...]'" 1>&2
     echo 0
   else
@@ -142,175 +142,175 @@ function fnPositionNumericValid()
   fi
 }
 
-function fnPositionNumericToTime()
+fn_position_numeric_to_time()
 {
   #convert float to positon string
 
-  [ $DEBUG -ge 2 ] && echo "[debug fnPositionNumericToTime]" 1>&2
+  [ $DEBUG -ge 2 ] && echo "[debug fn_position_numeric_to_time]" 1>&2
 
-  sPrefix="$(echo "$1" | sed -n 's/^\([^0-9]\+\).*$/\1/p')"
-  lNum="${1:${#sPrefix}}"
+  s_prefix="$(echo "$1" | sed -n 's/^\([^0-9]\+\).*$/\1/p')"
+  l_num="${1:${#s_prefix}}"
   shift
-  [ $(fnPositionNumericValid "$lNum") -eq 0 ] && exit 1
-  lToken="-1" && [ $# -gt 0 ] && lToken=$1 && shift
-  sDelimMilliseconds="." && [ $# -gt 0 ] && sDelimMilliseconds="$1" && shift
-  #IFS='.,:' && sTokens=($(echo "$sPos")) && IFS=$IFSORG
-  #lTokens=${lTokens:-${#sTokens[@]}}
+  [ $(fn_position_numeric_valid "$l_num") -eq 0 ] && exit 1
+  l_token="-1" && [ $# -gt 0 ] && l_token=$1 && shift
+  s_delim_milliseconds="." && [ $# -gt 0 ] && s_delim_milliseconds="$1" && shift
+  #IFS='.,:' && s_tokens=($(echo "$s_pos")) && IFS=$IFSORG
+  #l_tokens=${l_tokens:-${#s_tokens[@]}}
   ##force emtpy tokens if required
-  #if [ $lTokens -ne ${#sTokens[@]} ]; then
-  #  for l in $(seq ${#sTokens[@]} 1 $lTokens); do sTokens[$[$l-1]]="00"; done
+  #if [ $l_tokens -ne ${#s_tokens[@]} ]; then
+  #  for l in $(seq ${#s_tokens[@]} 1 $l_tokens); do s_tokens[$((l - 1))]="00"; done
   #fi
-  IFS='.,:' && sTokens=($(echo "$lNum")) && IFS=$IFSORG
+  IFS='.,:' && s_tokens=($(echo "$l_num")) && IFS=$IFSORG
 
-  sTotal=$(printf "%.3f" "0.${sTokens[1]}" | cut -d'.' -f2) #milliseconds
-  lCarry=${sTokens[0]} #the rest!
+  s_total=$(printf "%.3f" "0.${s_tokens[1]}" | cut -d'.' -f2) #milliseconds
+  l_carry=${s_tokens[0]} #the rest!
   local l
-  while [[ `echo "$lCarry > 0" | bc` -eq 1 || $l -lt $lToken || $l -le 1 ]]; do
+  while [[ $(echo "$l_carry > 0" | bc) -eq 1 || $l -lt $l_token || $l -le 1 ]]; do
     case $l in
       1) #seconds
-        lCarry2=`echo "scale=0;($lCarry)/60" | bc`
-        sTotal="$(printf "%02d" `echo "scale=0;($lCarry-($lCarry2*60))" | bc`).$sTotal"
-        lCarry=$lCarry2
+        l_carry2=$(echo "scale=0;($l_carry)/60" | bc)
+        s_total="$(printf "%02d" $(echo "scale=0;($l_carry-($l_carry2*60))" | bc)).$s_total"
+        l_carry=$l_carry2
         ;;
       2) #minutes
-        lCarry2=`echo "scale=0;($lCarry)/60" | bc`
-        sTotal="$(printf "%02d" `echo "scale=0;($lCarry-($lCarry2*60))" | bc`):$sTotal"
-        lCarry=$lCarry2
+        l_carry2=$(echo "scale=0;($l_carry)/60" | bc)
+        s_total="$(printf "%02d" $(echo "scale=0;($l_carry-($l_carry2*60))" | bc)):$s_total"
+        l_carry=$l_carry2
         ;;
       3) #hours
-        lCarry2=`echo "scale=0;($lCarry)/24" | bc`
-        sTotal="$(printf "%02d" `echo "scale=0;($lCarry-($lCarry2*24))" | bc`):$sTotal"
-        lCarry=$lCarry2
+        l_carry2=$(echo "scale=0;($l_carry)/24" | bc)
+        s_total="$(printf "%02d" $(echo "scale=0;($l_carry-($l_carry2*24))" | bc)):$s_total"
+        l_carry=$l_carry2
         ;;
       4) #days
-        sTotal="$lCarry:$sTotal"
-        lCarry=0
+        s_total="$l_carry:$s_total"
+        l_carry=0
         ;;
     esac
-    l=$[$l+1]
+    l=$((l + 1))
   done
-  echo "$sPrefix$(echo "$sTotal" | sed 's/\./'$sDelimMilliseconds'/')"
+  echo "$s_prefix$(echo "$s_total" | sed 's/\./'$s_delim_milliseconds'/')"
 }
 
-function fnPositionTimeToNumeric()
+fn_position_time_to_numeric()
 {
-  #convert sPositon string to float
+  #convert s_positon string to float
 
-  [ $DEBUG -ge 2 ] && echo "[debug fnPositionTimeToNumber]" 1>&2
+  [ $DEBUG -ge 2 ] && echo "[debug fn_position_time_to_number]" 1>&2
 
-  sPrefix="$(echo "$1" | sed -n 's/^\([^0-9]\+\).*$/\1/p')"
-  sPos="${1:${#sPrefix}}"
-  [ $(fnPositionTimeValid "$sPos") -eq 0 ] && exit 1
-  IFS='.,:' && sTokens=($(echo "$sPos")) && IFS=$IFSORG
-  lTotal=0
-  lScale=3
+  s_prefix="$(echo "$1" | sed -n 's/^\([^0-9]\+\).*$/\1/p')"
+  s_pos="${1:${#s_prefix}}"
+  [ $(fn_position_time_valid "$s_pos") -eq 0 ] && exit 1
+  IFS='.,:' && s_tokens=($(echo "$s_pos")) && IFS=$IFSORG
+  l_total=0
+  l_scale=3
   local l
-  for l in $(seq 0 1 $[${#sTokens[@]}-1]); do
-    sToken=${sTokens[$[${#sTokens[@]}-$l-1]]}
-#    echo "$sToken"
+  for l in $(seq 0 1 $((${#s_tokens[@]} - 1))); do
+    s_token=${s_tokens[$((${#s_tokens[@]} - l - 1))]}
+#    echo "$s_token"
     case $l in
-      0) lScale=${#sToken}; lTotal=`echo "scale=$lScale;$sToken/(10^${#sToken})" | bc` ;; #milliseconds
-      1) lTotal=`echo "scale=$lScale;$lTotal+$sToken" | bc` ;; #seconds
-      2) lTotal=`echo "scale=$lScale;$lTotal+($sToken*60)" | bc` ;; #minutes
-      3) lTotal=`echo "scale=$lScale;$lTotal+($sToken*3600)" | bc` ;; #hours
-      4) lTotal=`echo "scale=$lScale;$lTotal+($sToken*24*3600)" | bc`;; #days
+      0) l_scale=${#s_token}; l_total=$(echo "scale=$l_scale;$s_token/(10^${#s_token})" | bc) ;; #milliseconds
+      1) l_total=$(echo "scale=$l_scale;$l_total+$s_token" | bc) ;; #seconds
+      2) l_total=$(echo "scale=$l_scale;$l_total+($s_token*60)" | bc) ;; #minutes
+      3) l_total=$(echo "scale=$l_scale;$l_total+($s_token*3600)" | bc) ;; #hours
+      4) l_total=$(echo "scale=$l_scale;$l_total+($s_token*24*3600)" | bc);; #days
     esac
   done
-  echo $sPrefix$lTotal
+  echo $s_prefix$l_total
 }
 
-function fnPositionAdd()
+fn_position_add()
 {
   #iterate through : delimited array, adding $2 $1 ..carrying an extra 1 iff length of result
   #is greater than the length of either ot the original numbers
 
-  [ $DEBUG -ge 2 ] && echo "[debug fnPositionAdd]" 1>&2
+  [ $DEBUG -ge 2 ] && echo "[debug fn_position_add]" 1>&2
 
   base="$1"
   bump="$2"
-  [[ $(fnPositionTimeValid "$base") -eq 0 || $(fnPositionTimeValid "$bump") -eq 0 ]] && echo "$base" &&  return 1
+  [[ $(fn_position_time_valid "$base") -eq 0 || $(fn_position_time_valid "$bump") -eq 0 ]] && echo "$base" &&  return 1
 
   IFS=$'\:\,\.'
-  aBase=($base)
-  aBump=($bump)
+  a_base=($base)
+  a_bump=($bump)
   IFS=$IFSORG
-  sFinal=""
-  lCarry=0
-  l=${#aBase[@]}
+  s_final=""
+  l_carry=0
+  l=${#a_base[@]}
   while [ $l -gt 0 ]; do
-    lBase=${aBase[$[$l-1]]}
-    lBump=${aBump[$[$l-1]]}
-    lRes=$((10#$lBase+10#$lBump+10#$lCarry))
-    if [ ${#lBase} -eq 2 ]; then
-      sToken=$[10#$lRes%60]
-      lCarry=$[$[10#$lRes-10#$lRes%60]/60]
+    l_base=${a_base[$((l - 1))]}
+    l_bump=${a_bump[$((l - 1))]}
+    l_res=$((10#$l_base+10#$l_bump+10#$l_carry))
+    if [ ${#l_base} -eq 2 ]; then
+      s_token=$((10#$l_res % 60))
+      l_carry=$(($((10#$l_res - 10#$l_res % 60))/60))
     else
-      if [ ${#lRes} -gt ${#lBase} ]; then
-        sToken=${lRes:1:${#lBase}}
-        lCarry=1
+      if [ ${#l_res} -gt ${#l_base} ]; then
+        s_token=${l_res:1:${#l_base}}
+        l_carry=1
       else
-        sToken=$lRes
-        lCarry=0
+        s_token=$l_res
+        l_carry=0
       fi
     fi
     #re-pad token
-    if [ ${#sToken} -lt ${#lBase} ]; then
-      ll=${#sToken}
-      while [ ${#sToken} -lt ${#lBase} ]; do
-        sToken="0"$sToken
+    if [ ${#s_token} -lt ${#l_base} ]; then
+      ll=${#s_token}
+      while [ ${#s_token} -lt ${#l_base} ]; do
+        s_token="0"$s_token
       done
     fi
-    if [ "x$sFinal" == "x" ]; then
-      sFinal=$sToken
+    if [ -z "$s_final" ]; then
+      s_final=$s_token
     else
-      sFinal="$sToken${base:$[${#base[0]}-${#sFinal[0]}-1]:1}$sFinal"
+      s_final="$s_token${base:$((${#base[0]} - ${#s_final[0]} - 1)):1}$s_final"
     fi
-    l=$[$l-1]
+    l=$((l - 1))
   done
-  echo "$sFinal"
+  echo "$s_final"
 }
 
-fnFileStreamInfo()
+fn_file_stream_info()
 {
-  [ $DEBUG -ge 1 ] && echo "[debug fnFileStreamInfo]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_file_stream_info]" 1>&2
 
   # via ffmpeg
-  sFile="$1"
-  IFS=$'\n'; sInfo=($(ffmpeg -i "file:$sFile" 2>&1 | grep -iP "stream|duration")); IFS=$IFSORG
-  [ ${#sInfo[@]} -gt 0 ] && sInfo=("# ffmpeg #" "${sInfo[@]}")
+  s_file="$1"
+  IFS=$'\n'; s_info=($(ffmpeg -i "file:$s_file" 2>&1 | grep -iP "stream|duration")); IFS=$IFSORG
+  [ ${#s_info[@]} -gt 0 ] && s_info=("# ffmpeg #" "${s_info[@]}")
 
   # via mplayer
   #ID_VCD_TRACK_1_MSF=00:16:63.0
-  IFS=$'\n'; sInfo2=($($CMDINFOMPLAYER "$sFile" 2>/dev/null | sed -n '/^\(VIDEO\|AUDIO\).*$/p')); IFS=$IFSORG
-  [ ${#sInfo2[@]} -gt 0 ] && sInfo2=("# mplayer #" "${sInfo2[@]}")
-  IFS=$'\n'; sTracks=($($CMDINFOMPLAYER "$sFile" 2>/dev/null | sed -n 's/^ID_VCD_TRACK_\([0-9]\)_MSF=\([0-9:]*\)$/\1|\2/p')); IFS=$IFSORG
-  if [ ${#sTracks[@]} -gt 0 ]; then
-    sTrackTime2=
-    for s in "${sTracks[@]}"; do
-      sTrackTime2=$(fnPositionTimeToNumeric "${s##*|}")
-      if [[ "x$sTrack" == "x" || $(math_ "\$gt($sTrackTime2, $sTrackTime)") -eq 1 ]]; then
-        sTrack="${s%%|*}"
-        sTrackTime="$sTrackTime2"
+  IFS=$'\n'; s_info2=($($CMDINFOMPLAYER "$s_file" 2>/dev/null | sed -n '/^\(VIDEO\|AUDIO\).*$/p')); IFS=$IFSORG
+  [ ${#s_info2[@]} -gt 0 ] && s_info2=("# mplayer #" "${s_info2[@]}")
+  IFS=$'\n'; s_tracks=($($CMDINFOMPLAYER "$s_file" 2>/dev/null | sed -n 's/^ID_VCD_TRACK_\([0-9]\)_MSF=\([0-9:]*\)$/\1|\2/p')); IFS=$IFSORG
+  if [ ${#s_tracks[@]} -gt 0 ]; then
+    s_track_time2=
+    for s in "${s_tracks[@]}"; do
+      s_track_time2=$(fn_position_time_to_numeric "${s##*|}")
+      if [[ -z "$s_track" || $(math_ "\$gt($s_track_time2, $s_track_time)") -eq 1 ]]; then
+        s_track="${s%%|*}"
+        s_track_time="$s_track_time2"
       fi
     done
-    s="duration: $(fnPositionNumericToTime $sTrackTime),"
-    [ ${#sInfo2[@]} -eq 0 ] && sInfo2=("# mplayer #" "$s") || sInfo2=("${sInfo2[@]}" "$s" "${sInfo2[@]}")
-    [ ${#sInfo[@]} -eq 0 ] && sInfo="${sInfo2[@]}" || sInfo=("${sInfo[@]}" "${sInfo2[@]}")
+    s="duration: $(fn_position_numeric_to_time $s_track_time),"
+    [ ${#s_info2[@]} -eq 0 ] && s_info2=("# mplayer #" "$s") || s_info2=("${s_info2[@]}" "$s" "${s_info2[@]}")
+    [ ${#s_info[@]} -eq 0 ] && s_info="${s_info2[@]}" || s_info=("${s_info[@]}" "${s_info2[@]}")
   fi
 
   # via mkvtools
-  if [ "x${sFile##*.}" == "xmkv" ]; then
-    IFS=$'\n'; sInfo2=(`mkvmerge --identify "$sFile" 2>&1`); IFS=$IFSORG
-    [ ${#sInfo2[@]} -gt 0 ] && sInfo2=("# mkvtools #" "${sInfo2[@]}")
-    [ ${#sInfo[@]} -eq 0 ] && sInfo="${sInfo2[@]}" || sInfo=("${sInfo[@]}" "${sInfo2[@]}")
+  if [ "x${s_file##*.}" == "xmkv" ]; then
+    IFS=$'\n'; s_info2=($(mkvmerge --identify "$s_file" 2>&1)); IFS=$IFSORG
+    [ ${#s_info2[@]} -gt 0 ] && s_info2=("# mkvtools #" "${s_info2[@]}")
+    [ ${#s_info[@]} -eq 0 ] && s_info="${s_info2[@]}" || s_info=("${s_info[@]}" "${s_info2[@]}")
   fi
 
-  for s in "${sInfo[@]}"; do echo "$s"; done
+  for s in "${s_info[@]}"; do echo "$s"; done
 }
 
-fnFileInfo()
+fn_file_info()
 {
-  [ $DEBUG -ge 1 ] && echo "[debug fnFileInfo]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_file_info]" 1>&2
 
   #level
   #0 raw
@@ -320,116 +320,116 @@ fnFileInfo()
   #4 length|fps|size|vid.aud.ch
 
   #defaults
-  sLengthDefault="00:00:00.000|"
-  sFpsDefault="x.xfps|"
-  sSizeDefault="0x0|"
-  sVideoDefault="vidxxx"
-  sVideoBitrateDefault=".0kb/s"
-  sAudioDefault=".audxxx"
-  sAudioBitrateDefault=".0kb/s"
-  sChannelsDefault=".x.xch"
+  s_length_default="00:00:00.000|"
+  s_fps_default="x.xfps|"
+  s_size_default="0x0|"
+  s_video_default="vidxxx"
+  s_video_bitrate_default=".0kb/s"
+  s_audio_default=".audxxx"
+  s_audio_bitrate_default=".0kb/s"
+  s_channels_default=".x.xch"
 
-  sLength="$sLengthDefault"
-  sFps="$sFpsDefault"
-  sSize="$sSizeDefault"
-  sVideo="$sVideoDefault"
-  sVideoBitrate="$sVideoBitrateDefault"
-  sAudio="$sAudioDefault"
-  sAudioBitrate="$sAudioBitrateDefault"
-  sChannels="$sChannelsDefault"
+  s_length="$s_length_default"
+  s_fps="$s_fps_default"
+  s_size="$s_size_default"
+  s_video="$s_video_default"
+  s_video_bitrate="$s_video_bitrate_default"
+  s_audio="$s_audio_default"
+  s_audio_bitrate="$s_audio_bitrate_default"
+  s_channels="$s_channels_default"
 
-  [[ $# -gt 0 && "x$(echo "$1" | sed -n '/^[0-9]\+$/p')" != "x" ]] && level=$1 && shift || level=1
-  sFile="$1" && shift
+  [[ $# -gt 0 && -n "$(echo "$1" | sed -n '/^[0-9]\+$/p')" ]] && level=$1 && shift || level=1
+  s_file="$1" && shift
   #archived?
-  if [ ! -f "$sFile" ]; then
+  if [ ! -f "$s_file" ]; then
     #*IMPLEMENT
     #return requested level of info
-    sFileInfo=$(grep "$(fnRegexp "${sFile##*|}" "grep")" "${sFile%%|*}")
-#    echo "${sFileInfo:${#sFile}}" && return
-    [ "x${sFileInfo}" != "x" ] && echo "${sFileInfo#*|}" || echo "$sVideo$sAudio$sChannels"
+    s_file_info=$(grep "$(fn_regexp "${s_file##*|}" "grep")" "${s_file%%|*}")
+#    echo "${s_file_info:${#s_file}}" && return
+    [ -z "${s_file_info}" ] && echo "${s_file_info#*|}" || echo "$s_video$s_audio$s_channels"
     return
   fi
 
   #filetype
-  audioTypes="`echo "$AUDCODECS" | sed 's/[,.=|]/\\\|/g'`"
-  sType="video" && [ "x`echo "${sFile##*.}" | sed -n '/'$audioTypes'/p'`" != "x" ] && sType="audio"
+  audio_types="$(echo "$AUDCODECS" | sed 's/[,.=|]/\\\|/g')"
+  s_type="video" && [ -n "$(echo "${s_file##*.}" | sed -n '/'$audio_types'/p')" ] && s_type="audio"
 
-  sFileStreamInfo="$(fnFileStreamInfo "$sFile")"
-  IFS=$'\n'; sInfo=(`echo -e "$sFileStreamInfo"`); IFS=$IFSORG
-  for s in "${sInfo[@]}"; do
+  s_file_stream_info="$(fn_file_stream_info "$s_file")"
+  IFS=$'\n'; s_info=($(echo -e "$s_file_stream_info")); IFS=$IFSORG
+  for s in "${s_info[@]}"; do
     case $level in
       0)
         echo "$s"
         ;;
       *)
-        if [ "x$(echo "$s" | sed -n '/^.*duration.*$/Ip')" != "x" ]; then
+        if [ -n "$(echo "$s" | sed -n '/^.*duration.*$/Ip')" ]; then
           if [ $level -gt 1 ]; then
             #parse duration
-            sLength2=$(echo "$s" | sed -n 's/^.*duration:\s\([0-9:.]\+\),.*$/\1/Ip')
-            [ ! "x$sLength2" == "x" ] && sLength="$sLength2|"
+            s_length2=$(echo "$s" | sed -n 's/^.*duration:\s\([0-9:.]\+\),.*$/\1/Ip')
+            [ -n "$s_length2" ] && s_length="$s_length2|"
           fi
-        elif [ "x$(echo "$s" | sed -n '/^.*video.*$/Ip')" != "x" ]; then
-          if [ "x$sVideo" == "x$sVideoDefault" ]; then
-            [ $DEBUG -ge 2 ] && echo "#fnFileInfo, IFS='$IFS'" 1>&2
-            IFS=$'|'; aCodecs=($(echo "$VIDCODECS")); IFS=$IFSORG
-            [ $DEBUG -ge 2 ] && echo "[debug] fnFileInfo #2, IFS='$IFS'" 1>&2
-            [ $DEBUG -ge 1 ] && echo "[debug] fnFileInfo, codecs: ${#aCodecs[@]}, codecs: '${aCodecs[@]}'" 1>&2
+        elif [ -n "$(echo "$s" | sed -n '/^.*video.*$/Ip')" ]; then
+          if [ "x$s_video" == "x$s_video_default" ]; then
+            [ $DEBUG -ge 2 ] && echo "#fn_file_info, IFS='$IFS'" 1>&2
+            IFS=$'|'; a_codecs=($(echo "$VIDCODECS")); IFS=$IFSORG
+            [ $DEBUG -ge 2 ] && echo "[debug] fn_file_info #2, IFS='$IFS'" 1>&2
+            [ $DEBUG -ge 1 ] && echo "[debug] fn_file_info, codecs: ${#a_codecs[@]}, codecs: '${a_codecs[@]}'" 1>&2
             #[ $TEST -eq 1 ] && exit 0
-            for s2 in "${aCodecs[@]}"; do
-              if [ "x$(echo "'$s2'" | sed -n '/\=/p')" == "x" ]; then
-                [ "x$(echo "'$s'" | sed -n '/'"$(fnRegexp "$s2" "sed")"'/Ip')" != "x" ] && sVideo="$s2"
+            for s2 in "${a_codecs[@]}"; do
+              if [ -z "$(echo "'$s2'" | sed -n '/\=/p')" ]; then
+                [ -n "$(echo "'$s'" | sed -n '/'"$(fn_regexp "$s2" "sed")"'/Ip')" ] && s_video="$s2"
               else
                 #iterate and match using a list of codec descriptions
-                IFS=$','; aCodecInfo=($(echo "${s2#*=}" )); IFS=$IFSORG
-                for s3 in "${aCodecInfo[@]}"; do
-                  [ "x$(echo """$s""" | sed -n '/'"$(fnRegexp "$s3" "sed")"'/Ip')" != "x" ] && sVideo="${s2%=*}" && break
+                IFS=$','; a_codec_info=($(echo "${s2#*=}" )); IFS=$IFSORG
+                for s3 in "${a_codec_info[@]}"; do
+                  [ -n "$(echo """$s""" | sed -n '/'"$(fn_regexp "$s3" "sed")"'/Ip')" ] && s_video="${s2%=*}" && break
                 done
               fi
-              [ "x$sVideo" != "x$sVideoDefault" ] && break
+              [ "x$s_video" != "x$s_video_default" ] && break
             done
           fi
-          if [[ $level -gt 2 && "x$sSize" == "x0x0|" ]]; then
+          if [[ $level -gt 2 && "x$s_size" == "x0x0|" ]]; then
             #parse size
-            sSize2=$(echo "'$s'" | sed -n 's/^.*[^0-9]\([0-9]\+x[0-9]\+\).*$/\1/p')
-            [ "x$sSize2" != "x" ] && sSize="$sSize2|"
+            s_size2=$(echo "'$s'" | sed -n 's/^.*[^0-9]\([0-9]\+x[0-9]\+\).*$/\1/p')
+            [ -n "$s_size2" ] && s_size="$s_size2|"
           fi
-          if [[ $level -gt 3 && "x$sFps" == "x$sFpsDefault" ]]; then
+          if [[ $level -gt 3 && "x$s_fps" == "x$s_fps_default" ]]; then
             #parse fps
-            sFps2="$(echo "'$s'" | sed -n 's/^.*\s\+\([0-9.]\+\)\s*tbr.*$/\1/p')"
-            [ "x$sFps2" == "x" ] && sFps2="$(echo "$s" | sed -n 's/^.*\s\+\([0-9.]\+\)\sfps.*$/\1/p')"
-            [ "x$sFps2" != "x" ] && sFps2="$(echo "$sFps2" | sed 's/\(\.\+0*\)$//')"
-            [ "x$sFps2" != "x" ] && sFps=$sFps2"fps|"
+            s_fps2="$(echo "'$s'" | sed -n 's/^.*\s\+\([0-9.]\+\)\s*tbr.*$/\1/p')"
+            [ -z "$s_fps2" ] && s_fps2="$(echo "$s" | sed -n 's/^.*\s\+\([0-9.]\+\)\sfps.*$/\1/p')"
+            [ -n "$s_fps2" ] && s_fps2="$(echo "$s_fps2" | sed 's/\(\.\+0*\)$//')"
+            [ -n "$s_fps2" ] && s_fps=$s_fps2"fps|"
           fi
-          [ $DEBUG -ge 1 ] && echo "[debug] fnFileInfo, sFps: '$sFps', sSize: '$sSize'" 1>&2
-        elif [ "x$(echo "'$s'" | sed -n '/^.*audio.*$/Ip')" != "x" ]; then
-          if [ "x$sAudio" == "x$sAudioDefault" ]; then
-            IFS=$'|'; aCodecs=($(echo "$AUDCODECS")); IFS=$IFSORG
-            for s2 in "${aCodecs[@]}"; do
-              if [ "x$(echo "'$s2'" | sed -n '/\=/p')" == "x" ]; then
-                [ "x$(echo "'$s'" | sed -n '/'"$(fnRegexp "$s2" "sed")"'/Ip')" != "x" ] && sAudio="$s2"
+          [ $DEBUG -ge 1 ] && echo "[debug] fn_file_info, s_fps: '$s_fps', s_size: '$s_size'" 1>&2
+        elif [ -n "$(echo "'$s'" | sed -n '/^.*audio.*$/Ip')" ]; then
+          if [ "x$s_audio" == "x$s_audio_default" ]; then
+            IFS=$'|'; a_codecs=($(echo "$AUDCODECS")); IFS=$IFSORG
+            for s2 in "${a_codecs[@]}"; do
+              if [ -z "$(echo "'$s2'" | sed -n '/\=/p')" ]; then
+                [ -n "$(echo "'$s'" | sed -n '/'"$(fn_regexp "$s2" "sed")"'/Ip')" ] && s_audio="$s2"
               else
                 #iterate and match using a list of codec descriptions
-                IFS=$','; aCodecInfo=($(echo "${s2#*=}" )); IFS=$IFSORG
-                for s3 in "${aCodecInfo[@]}"; do
-                  [ "x$(echo "'$s'" | sed -n '/'"$(fnRegexp "$s3" "sed")"'/Ip')" != "x" ] && sAudio="${s2%=*}" && break
+                IFS=$','; a_codec_info=($(echo "${s2#*=}" )); IFS=$IFSORG
+                for s3 in "${a_codec_info[@]}"; do
+                  [ -n "$(echo "'$s'" | sed -n '/'"$(fn_regexp "$s3" "sed")"'/Ip')" ] && s_audio="${s2%=*}" && break
                 done
               fi
-              [ "x$sAudio" != "x$sAudioDefault" ] && sAudio=".$sAudio" && break
+              [ "x$s_audio" != "x$s_audio_default" ] && s_audio=".$s_audio" && break
             done
           fi
-          if [ "x$sChannels" == "x$sChannelsDefault" ]; then
-            IFS=$'|'; aCodecs=($(echo "$AUDCHANNELS")); IFS=$IFSORG
-            for s2 in "${aCodecs[@]}"; do
-              if [ "x$(echo "$s2" | sed -n '/\=/p')" == "x" ]; then
-                [ "x$(echo "'$s'" | sed -n '/[^0-9]'"$(fnRegexp "$s2" "sed")"'[^0-9]/Ip')" != "x" ] && sChannels="$s2"
+          if [ "x$s_channels" == "x$s_channels_default" ]; then
+            IFS=$'|'; a_codecs=($(echo "$AUDCHANNELS")); IFS=$IFSORG
+            for s2 in "${a_codecs[@]}"; do
+              if [ -z "$(echo "$s2" | sed -n '/\=/p')" ]; then
+                [ -n "$(echo "'$s'" | sed -n '/[^0-9]'"$(fn_regexp "$s2" "sed")"'[^0-9]/Ip')" ] && s_channels="$s2"
               else
                 #iterate and match using a list of codec descriptions
-                IFS=$','; aCodecInfo=($(echo "${s2#*=}" )); IFS=$IFSORG
-                for s3 in "${aCodecInfo[@]}"; do
-                  [ "x$(echo "'$s'" | sed -n '/[^0-9]'"$(fnRegexp "$s3" "sed")"'[^0-9]/Ip')" != "x" ] && sChannels="${s2%=*}" && break
+                IFS=$','; a_codec_info=($(echo "${s2#*=}" )); IFS=$IFSORG
+                for s3 in "${a_codec_info[@]}"; do
+                  [ -n "$(echo "'$s'" | sed -n '/[^0-9]'"$(fn_regexp "$s3" "sed")"'[^0-9]/Ip')" ] && s_channels="${s2%=*}" && break
                 done
               fi
-              [ "x$sChannels" != "x$sChannelsDefault" ] && sChannels=".$sChannels" && break
+              [ "x$s_channels" != "x$s_channels_default" ] && s_channels=".$s_channels" && break
             done
           fi
         fi
@@ -437,88 +437,88 @@ fnFileInfo()
     esac
   done
 
-  _sAudioBitrate=`echo -e "$sFileStreamInfo" | sed -n 's/^[ ]*Stream\ .*Audio.* \([0-9]\+\)\ kb\/s/\1kb\/s/p'`
-  [ "x$_sAudioBitrate" != "x" ] && sAudioBitrate=".$_sAudioBitrate"
+  _s_audio_bitrate="$(echo -e "$s_file_stream_info" | sed -n 's/^[ ]*Stream\ .*Audio.* \([0-9]\+\)\ kb\/s/\1kb\/s/p')"
+  [ -n "$_s_audio_bitrate" ] && s_audio_bitrate=".$_s_audio_bitrate"
 
-  sFileSizeBytes=`stat "$sFile" | sed -n 's/[ ]*Size: \([0-9]\+\).*/\1/p'`
-  sFileSize="`echo "scale=2; $sFileSizeBytes/1024^2" | bc`MB|"
+  s_file_size_bytes="$(stat "$s_file" | sed -n 's/[ ]*Size: \([0-9]\+\).*/\1/p')"
+  s_file_size="$(echo "scale=2; $s_file_size_bytes/1024^2" | bc)MB|"
 
-  [[ "x$sAudio" == "x$sAudioDefault" && "x$sVideo" == "xmpeg2" ]] && sAudio=""
-  [ $level -lt 2 ] && sFileSize="" && sLength=""
-  [ $level -lt 3 ] && sSize=""
-  [ $level -lt 4 ] && sFps=""
-  [ $level -lt 5 ] && sAudioBitrate="" && sVideoBitrate=""
-  [ $sType == "audio" ] && sSize="" && sFps="" && sVideo="" && sVideoBitrate="" && sAudio="${sAudio#.}"
-  [ $level -gt 0 ] && echo "$sFileSize$sLength$sFps$sSize$sVideo$sVideoBitrate$sAudio$sChannels$sAudioBitrate"
+  [[ "x$s_audio" == "x$s_audio_default" && "x$s_video" == "xmpeg2" ]] && s_audio=""
+  [ $level -lt 2 ] && s_file_size="" && s_length=""
+  [ $level -lt 3 ] && s_size=""
+  [ $level -lt 4 ] && s_fps=""
+  [ $level -lt 5 ] && s_audio_bitrate="" && s_video_bitrate=""
+  [ $s_type == "audio" ] && s_size="" && s_fps="" && s_video="" && s_video_bitrate="" && s_audio="${s_audio#.}"
+  [ $level -gt 0 ] && echo "$s_file_size$s_length$s_fps$s_size$s_video$s_video_bitrate$s_audio$s_channels$s_audio_bitrate"
 }
 
-fnFilesInfo()
+fn_files_info()
 {
-  [ $DEBUG -ge 1 ] && echo "[debug fnFilesInfo]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_files_info]" 1>&2
 
   #echo "#args: $#" 1>&2
-  [[ $# -gt 0 && "x$(echo "$1" | sed -n '/^[0-9]\+$/p')" != "x" ]] && level=$1 && shift || level=1
+  [[ $# -gt 0 && -n "$(echo "$1" | sed -n '/^[0-9]\+$/p')" ]] && level=$1 && shift || level=1
   #echo "#args: $#" 1>&2
   if [ $# -gt 1 ]; then
-    sFiles=("$@")
+    s_files=("$@")
   else
-    sSearch="$1" && shift
-    if [ -f "$sSearch" ]; then
-      sFiles=("$sSearch")
-    elif [ -d "$sSearch" ]; then
-      IFS=$'\n'; sFiles=($(find "$sSearch" -type f -maxdepth 1 -iregex '^.*\.\('"$(echo $VIDEXT\|$AUDEXT | sed 's|\||\\\||g')"'\)$' | sort)); IFS=$IFSORG
+    s_search="$1" && shift
+    if [ -f "$s_search" ]; then
+      s_files=("$s_search")
+    elif [ -d "$s_search" ]; then
+      IFS=$'\n'; s_files=($(find "$s_search" -type f -maxdepth 1 -iregex '^.*\.\('"$(echo $VIDEXT\|$AUDEXT | sed 's|\||\\\||g')"'\)$' | sort)); IFS=$IFSORG
       x=$? && [ $x -ne 0 ] && return $x
     else
-      IFS=$'\n'; sFiles=($(fnSearch "$sSearch" "$VIDEXT\|$AUDEXT")); IFS=$IFSORG
+      IFS=$'\n'; s_files=($(fn_search "$s_search" "$VIDEXT\|$AUDEXT")); IFS=$IFSORG
       x=$? && [ $x -ne 0 ] && return $x
     fi
   fi
-  sLength="00:00:00.00"
+  s_length="00:00:00.00"
   l=0
-  for f in "${sFiles[@]}"; do
-    [ "x$(echo "$f" | grep -iP "\||(\.($VIDEXT|$AUDEXT)$)")" == "x" ] && continue # allow archive strings through (match '|')
+  for f in "${s_files[@]}"; do
+    [ -z "$(echo "$f" | grep -iP "\||(\.($VIDEXT|$AUDEXT)$)")" ] && continue # allow archive strings through (match '|')
     #echo -ne "#$f$([ $level -gt 2 ] && echo '\n' || echo ' | ')"
     if [ $level -eq 0 ]; then
-      echo "#$f" && fnFileInfo $level "$f"
+      echo "#$f" && fn_file_info $level "$f"
     else
-      s=$(fnFileInfo $level "$f")
+      s=$(fn_file_info $level "$f")
       echo -e "[$s]  \t$f"
-      #[ $level -ge 3 ] && sLength=$(fnPositionAdd "$sLength" "$(echo "$s" | sed -n 's/^\[\(.*\)|.*$/\1/p')" 2>/dev/null)
-      [ $level -ge 3 ] && sLength=$(fnPositionAdd "$sLength" "$(echo "$s" | cut -d'|' -f1)" 2>/dev/null)
+      #[ $level -ge 3 ] && s_length=$(fn_position_add "$s_length" "$(echo "$s" | sed -n 's/^\[\(.*\)|.*$/\1/p')" 2>/dev/null)
+      [ $level -ge 3 ] && s_length=$(fn_position_add "$s_length" "$(echo "$s" | cut -d'|' -f1)" 2>/dev/null)
     fi
-    l=$[$l+1]
+    l=$((l + 1))
   done
-  [[ $level -ge 3 && $l -gt 1 ]] && echo "[total duration: $sLength]"
+  [[ $level -ge 3 && $l -gt 1 ]] && echo "[total duration: $s_length]"
 }
 
-fnFileMultiMask()
+fn_file_multi_mask()
 {
   #determine an appropriate default multifile mask for multi-file titles, and optionally set values
   #passing title: determine type. return default mask
   #passing title and target: get mask from target, search for values in title to set mask. return set mask
 
-  [ $DEBUG -ge 1 ] && echo "[debug fnFileMultiMask]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_file_multi_mask]" 1>&2
 
-  sTitle="$1" && shift
-  sTarget="$1" && shift
-  sMaskDefault="" && [ $# -gt 0 ] && sMaskDefault="$1" && shift
-  sMaskVal=""
-  sMaskDefault_single="#of#"
-  sMaskDefault_set="s##e##"
+  s_title="$1" && shift
+  s_target="$1" && shift
+  s_mask_default="" && [ $# -gt 0 ] && s_mask_default="$1" && shift
+  s_mask_val=""
+  s_mask_default_single="#of#"
+  s_mask_default_set="s##e##"
 
   #determine type
-  sType=""
-  if [ "$sTarget" ]; then
+  s_type=""
+  if [ -n "$s_target" ]; then
     #look for default mask in target
     #single?
-    sMask="$(echo "$sTarget" | sed -n 's|^.*\(#\+of[0-9#]\+\).*$|\1|p')"
-    if [ "x$sMask" != "x" ]; then
-      sType="single" && sMaskDefault="${sMaskDefault:-$sMask}"
+    s_mask="$(echo "$s_target" | sed -n 's|^.*\(#\+of[0-9#]\+\).*$|\1|p')"
+    if [ -n "$s_mask" ]; then
+      s_type="single" && s_mask_default="${s_mask_default:-$s_mask}"
     else
       #set?
-      sMask="$(echo "$sTarget" | sed -n 's|^.*\(s#\+e#\+\).*$|\1|p')"
-      if [ "x$sMask" != "x" ]; then
-        sType="set" && sMaskDefault="${sMaskDefault:-$sMask}"
+      s_mask="$(echo "$s_target" | sed -n 's|^.*\(s#\+e#\+\).*$|\1|p')"
+      if [ -n "$s_mask" ]; then
+        s_type="set" && s_mask_default="${s_mask_default:-$s_mask}"
       fi
     fi
   fi
@@ -555,21 +555,21 @@ fnFileMultiMask()
     [ $DEBUG -ge 5 ] && echo "[debug] filter: [$l] '$s'" 1>&2
     #[ "x$s" == x"set \([0-9]\)x\([0-9]\{1,2\}\)" ] && set -x || set +x
     IFS=" " && arr2=($s) && IFS=$IFSORG
-#    [[ "x$sType" != "x" && "x$sType" != "x${arr2[0]}" ]] && continue
-    sSearch=${arr2[1]}
-    sReplace="" && [ ${#arr2} -ge 2 ] && sReplace=${arr2[2]}
-    [[ $sReplace == "" && ${arr2[0]} == "single" ]] && sReplace="\1"
-    [[ $sReplace == "" && ${arr2[0]} == "set" ]] && sReplace="\1\|\2"
-    sMaskRaw=$(echo "${sTitle##/}" | sed -n 's|^.*\('"$sSearch"'\).*$|\1|Ip')
-    if [ "x$sMaskRaw" != "x" ]; then
-      sType="${arr2[0]}"
-      s="sMaskDefault_${sType}" && sMaskDefault=${sMaskDefault:-"${!s}"}
-      sMaskVal=$(echo "${sTitle##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|'$sReplace'|Ip' 2>/dev/null)
-#      case $sType in
-#        "single") sMaskVal=$(echo "${sTitle##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|\1|Ip' 2>/dev/null) ;;
+#    [[ -n "$s_type" && "x$s_type" != "x${arr2[0]}" ]] && continue
+    s_search=${arr2[1]}
+    s_replace="" && [ ${#arr2} -ge 2 ] && s_replace=${arr2[2]}
+    [[ $s_replace == "" && ${arr2[0]} == "single" ]] && s_replace="\1"
+    [[ $s_replace == "" && ${arr2[0]} == "set" ]] && s_replace="\1\|\2"
+    s_mask_raw=$(echo "${s_title##/}" | sed -n 's|^.*\('"$s_search"'\).*$|\1|Ip')
+    if [ -n "$s_mask_raw" ]; then
+      s_type="${arr2[0]}"
+      s="s_mask_default_${s_type}" && s_mask_default=${s_mask_default:-"${!s}"}
+      s_mask_val=$(echo "${s_title##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|'$s_replace'|Ip' 2>/dev/null)
+#      case $s_type in
+#        "single") s_mask_val=$(echo "${s_title##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|\1|Ip' 2>/dev/null) ;;
 #        "set")
-#          sMaskVal=$(echo "${sTitle##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|\1\|\2|Ip' 2>/dev/null)
-#          [ "x$sMaskVal" == "x" ] && sMaskVal=$(echo "${sTitle##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|0\|\1|Ip' 2>/dev/null)
+#          s_mask_val=$(echo "${s_title##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|\1\|\2|Ip' 2>/dev/null)
+#          [ -z "$s_mask_val" ] && s_mask_val=$(echo "${s_title##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|0\|\1|Ip' 2>/dev/null)
 #          ;;
 #      esac
       break
@@ -577,310 +577,310 @@ fnFileMultiMask()
     l=$((l + 1))
   done
 
-  sRet="$sTarget" && [ "x$sRet" == "x" ] && sRet="$sMaskDefault"
-  if [ "$sMaskVal" ]; then
+  s_ret="$s_target" && [ -z "$s_ret" ] && s_ret="$s_mask_default"
+  if [ "$s_mask_val" ]; then
     #set mask
-    IFS=$'|'; arr=($sMaskVal); IFS="$IFSORG"
+    IFS=$'|'; arr=($s_mask_val); IFS="$IFSORG"
     #replacing right to left is impossible to do directly in gnu sed mainly, due to the lack of non-greedy match implementation
     #work around by collecting mask parts. and creating a padded (if necessary) replacement array of the same dimension. then just replace left to right as normal
     arr2=()
-    while [ "x$(echo "$sRet" | sed -n '/#\+/p')" != "x" ]; do
-      m="$(echo "$sRet" | sed -n 's/^[^#]*\(#\+\).*$/\1/p')"
+    while [ -n "$(echo "$s_ret" | sed -n '/#\+/p')" ]; do
+      m="$(echo "$s_ret" | sed -n 's/^[^#]*\(#\+\).*$/\1/p')"
       #arr2[${#arr2[@]}]=$m
       arr2[${#arr2[@]}]="$(printf "%0"${#m}"d" 0)"  # record mask length
       #mark the hash occurance
-      sRet="$(echo "$sRet" | sed -n 's/#\+/\^/p')"
+      s_ret="$(echo "$s_ret" | sed -n 's/#\+/\^/p')"
     done
-    l=$[ 0 - ${#arr2[@]} + ${#arr[@]} ]
-    for ll in $( seq 0 1 $[${#arr2[@]}-1] ); do
+    l=$((0 - ${#arr2[@]} + ${#arr[@]}))
+    for ll in $( seq 0 1 $((${#arr2[@]} - 1)) ); do
       #replace left to right ^ markers
       v=""
       v2="${arr2[$ll]}"
       [ $l -ge 0 ] && v="${arr[$l]}" && v2="$(printf "%0${#v2}d" "$(echo "$v" | sed 's/^0*//')")"
       #replace left to right ^ markers
-      sRet=$(echo "$sRet" | sed 's|\^|'$v2'|')
-      l=$[$l+1]
+      s_ret=$(echo "$s_ret" | sed 's|\^|'$v2'|')
+      l=$((l + 1))
     done
   fi
   #prefix
-  [ ! "$sTarget" ] && sRet="$sMaskDefault|$sMaskRaw|$sRet"
+  [ -z "$s_target" ] && s_ret="$s_mask_default|$s_mask_raw|$s_ret"
 
   #return
-  echo "$sRet"
+  echo "$s_ret"
 }
 
-fnFileTarget()
+fn_file_target()
 {
   #set a target name for a file. attempt to set a mask for multi-file titles. assume no target extention
 
-  [ $DEBUG -ge 1 ] && echo "[debug fnFileTarget]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_file_target]" 1>&2
 
-  sTitle="$(echo "${1##*/}" | awk -F'\n' '{print tolower($1)}')"
-  sTarget="$2"
-  sExtra="$3"
-  sExt="${sTitle##*.}"
-  sTargetExt="$sExt"
-  case "$sTargetExt" in
-    "txt") sTargetExt="nfo" ;;
-    "jpeg") sTargetExt="jpg" ;;
+  s_title="$(echo "${1##*/}" | awk -F'\n' '{print tolower($1)}')"
+  s_target="$2"
+  s_extra="$3"
+  s_ext="${s_title##*.}"
+  s_target_ext="$s_ext"
+  case "$s_target_ext" in
+    "txt") s_target_ext="nfo" ;;
+    "jpeg") s_target_ext="jpg" ;;
   esac
-  if [ "x$(echo "$sExt" | grep -iP "^.*($VIDEXT|$VIDXEXT)\$")" != "x" ]; then
+  if [ -n "$(echo "$s_ext" | grep -iP "^.*($VIDEXT|$VIDXEXT)\$")" ]; then
     #multi-file mask?
-    sTarget=$(fnFileMultiMask "$sTitle" "$sTarget")
-#    if [ "x$sMask" != "x" ]; then
+    s_target=$(fn_file_multi_mask "$s_title" "$s_target")
+#    if [ -n "$s_mask" ]; then
 #      #use dynamic mask
-#      sMask2=$(echo $sMask | sed 's|\[#of|\['$n'of|')
-#      sTarget=$(echo "$sTarget" | sed 's|'$sMask'|'$sMask2'|')
-#      sTarget="$sTarget$sExtra$sExt"
-#    elif [ ! "${sTitle##*.}" == "$sTitle" ]; then
+#      s_mask2=$(echo $s_mask | sed 's|\[#of|\['$n'of|')
+#      s_target=$(echo "$s_target" | sed 's|'$s_mask'|'$s_mask2'|')
+#      s_target="$s_target$s_extra$s_ext"
+#    elif [ ! "${s_title##*.}" == "$s_title" ]; then
 #      #use static mask and file's extension
-#      sTarget="$sTarget$sExtra$sExt"
+#      s_target="$s_target$s_extra$s_ext"
 #    fi
-    [ ! "${sTitle##*.}" == "$sTitle" ] && sTarget="$sTarget.$sExtra.$sExt"
-  elif [ ! "${sTitle##*.}" == "$sTitle" ]; then
+    [ ! "${s_title##*.}" == "$s_title" ] && s_target="$s_target.$s_extra.$s_ext"
+  elif [ ! "${s_title##*.}" == "$s_title" ]; then
     #use static mask and file's extension
-    sTarget="$sTarget.$sTargetExt"
+    s_target="$s_target.$s_target_ext"
   else
     #default
-    sTarget=
+    s_target=
   fi
-  [ $DEBUG -ge 1 ] && echo "[debug fnFileTarget] sTarget: '$sTarget'" 1>&2
-  echo "$sTarget" | sed 's/\(^\.\|\.$\)//g'
+  [ $DEBUG -ge 1 ] && echo "[debug fn_file_target] s_target: '$s_target'" 1>&2
+  echo "$s_target" | sed 's/\(^\.\|\.$\)//g'
 }
 
-fnFiles()
+fn_files()
 {
   #given a file name, return a tab delimited array of associated files in the local directory
 
-  [ $DEBUG -ge 1 ] && echo "[debug fnFiles]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_files]" 1>&2
 
-  bVerbose=1
-  [ "x$1" == "xsilent" ] && bVerbose=0 && shift
-  bInteractive=0
-  [ "x$1" == "xinteractive" ] && bInteractive=1 && shift
-  lDepth=1
-  [ "x$1" == "xfull" ] && lDepth=10 && shift
-  sSearch="$1" && shift
-  sSearchPrev=""
-  sSearchLast=""
-  sSearchCustom=""
-  lFound=0
-  lFoundPrev=0
-  lFoundFirst=0 #used to delay exit to 2nd successful search
-  lFoundLast=0
-  bAuto=1
-  bMerge=0
-  bSearch=1
-  sType=""
-  [ $# -gt 0 ] && sType="$1" && shift
+  b_verbose=1
+  [ "x$1" == "xsilent" ] && b_verbose=0 && shift
+  b_interactive=0
+  [ "x$1" == "xinteractive" ] && b_interactive=1 && shift
+  l_depth=1
+  [ "x$1" == "xfull" ] && l_depth=10 && shift
+  s_search="$1" && shift
+  s_search_prev=""
+  s_search_last=""
+  s_search_custom=""
+  l_found=0
+  l_found_prev=0
+  l_found_first=0 #used to delay exit to 2nd successful search
+  l_found_last=0
+  b_auto=1
+  b_merge=0
+  b_search=1
+  s_type=""
+  [ $# -gt 0 ] && s_type="$1" && shift
 
   IFS=$'\n'
-  while [ $bSearch -gt 0 ]; do
-    bSearched=0
-    bDiff=0
-    if [[ $bInteractive -eq 0 && (
-            ${#sSearch} -eq 0 ||
-            (${#sSearch} -le $MINSEARCH && $lFoundLast -gt $lFoundFirst)) ]]; then
-      bSearch=0
+  while [ $b_search -gt 0 ]; do
+    b_searched=0
+    b_diff=0
+    if [[ $b_interactive -eq 0 && (
+            ${#s_search} -eq 0 ||
+            (${#s_search} -le $MINSEARCH && $l_found_last -gt $l_found_first)) ]]; then
+      b_search=0
     else
-      if [[ $bAuto -eq 0 ||
-           ($bAuto -eq 1 && ${#sSearch} -ge $MINSEARCH) ||
-           ($bAuto -eq 1 && $bInteractive -eq 1) ]]; then
-#           ($bAuto -eq 1 && ${#sSearch} -ge $MINSEARCH) ]]; then
+      if [[ $b_auto -eq 0 ||
+           ($b_auto -eq 1 && ${#s_search} -ge $MINSEARCH) ||
+           ($b_auto -eq 1 && $b_interactive -eq 1) ]]; then
+#           ($b_auto -eq 1 && ${#s_search} -ge $MINSEARCH) ]]; then
         #whenever there is a difference between the new search and the previous search
         #replace the last search by the previous search
-        [ $DEBUG -ge 2 ] && echo "[debug fnFiles] #1 sSearch: '$sSearch' sSearchCustom: '$sSearchCustom' sSearchPrev: '$sSearchPrev'  sSearchLast: '$sSearchLast'" 1>&2
-        [ ! "x$sSearchCustom" == "x" ] && sSearchPrev="$sSearch" && sSearch="$sSearchCustom"
-        if [[ ! "x$sSearch" == x$sSearchPrev || "x$sSearchLast" == "x" ]]; then
-          sFiles=($(find ./ -maxdepth $lDepth -iregex '.*'"$(fnRegexp "$sSearch" "sed")"'.*\('"$(fnRegexp "$sType" "sed")"'\)$'))
-          unset sFiles2
-          for f in "${sFiles[@]}"; do
+        [ $DEBUG -ge 2 ] && echo "[debug fn_files] #1 s_search: '$s_search' s_search_custom: '$s_search_custom' s_search_prev: '$s_search_prev'  s_search_last: '$s_search_last'" 1>&2
+        [ -n "$s_search_custom" ] && s_search_prev="$s_search" && s_search="$s_search_custom"
+        if [[ ! "x$s_search" == x$s_search_prev || -z "$s_search_last" ]]; then
+          s_files=($(find ./ -maxdepth $l_depth -iregex '.*'"$(fn_regexp "$s_search" "sed")"'.*\('"$(fn_regexp "$s_type" "sed")"'\)$'))
+          unset s_files2
+          for f in "${s_files[@]}"; do
             [ -d "$f" ] &&
-               sFiles2=("${sFiles2[@]}" $(find "$f"/ $sDepth -type f)) ||
-               sFiles2=("${sFiles2[@]}" "$f")
+               s_files2=("${s_files2[@]}" $(find "$f"/ $s_depth -type f)) ||
+               s_files2=("${s_files2[@]}" "$f")
           done
-          sFiles=(${sFiles2[@]})
-          lFound=${#sFiles[@]}
-          if [ $lFound -ne $lFoundPrev ]; then
-            bDiff=1
-          elif [ $bAuto -eq 0 ]; then
+          s_files=(${s_files2[@]})
+          l_found=${#s_files[@]}
+          if [ $l_found -ne $l_found_prev ]; then
+            b_diff=1
+          elif [ $b_auto -eq 0 ]; then
             #compare old and new searches
             declare -A arr
-            for f in "${sFilesPrev[@]}"; do arr["$f"]="$f"; done
-            for f in "${sFiles[@]}"; do [ "x${arr[$f]}" == "x" ] && bDiff=1 && break; done
+            for f in "${s_files_prev[@]}"; do arr["$f"]="$f"; done
+            for f in "${s_files[@]}"; do [ -z "${arr[$f]}" ] && b_diff=1 && break; done
           fi
-          if [ $bDiff -eq 1 ]; then
+          if [ $b_diff -eq 1 ]; then
             #keep record for revert
-            lFoundLast=$lFoundPrev
-            sFilesLast=(${sFilesPrev[@]})
-            sSearchLast=$sSearchPrev
-            [ $DEBUG -ge 2 ] && echo "[debug fnFiles] lFoundLast: '$lFoundLast', sSearchLast: '$sSearchLast', sFilesLast: '${sFilesLast[@]}'" 1>&2
+            l_found_last=$l_found_prev
+            s_files_last=(${s_files_prev[@]})
+            s_search_last=$s_search_prev
+            [ $DEBUG -ge 2 ] && echo "[debug fn_files] l_found_last: '$l_found_last', s_search_last: '$s_search_last', s_files_last: '${s_files_last[@]}'" 1>&2
           fi
-          if [ $lFoundFirst -eq 0 ]; then lFoundFirst=$lFound; fi
-          if [ $bMerge -eq 1 ]; then
-            [ $DEBUG -ge 2 ] && echo "[debug fnFiles] lFoundLast: '$lFoundLast', sSearchLast: '$sSearchLast', sFilesLast: '${sFilesLast[@]}'" 1>&2
-            sFiles2=("${sFiles[@]}") && sFiles=("${sFilesLast[@]}")
+          if [ $l_found_first -eq 0 ]; then l_found_first=$l_found; fi
+          if [ $b_merge -eq 1 ]; then
+            [ $DEBUG -ge 2 ] && echo "[debug fn_files] l_found_last: '$l_found_last', s_search_last: '$s_search_last', s_files_last: '${s_files_last[@]}'" 1>&2
+            s_files2=("${s_files[@]}") && s_files=("${s_files_last[@]}")
             declare -A arr
-            for f in "${sFilesLast[@]}"; do arr["$f"]="$f"; done
-            for f in "${sFiles2[@]}"; do [ "x${arr[$f]}" == "x" ] &&
-                                         sFiles=("${sFiles[@]}" "$f"); done
-            lFound=${#sFiles[@]}
+            for f in "${s_files_last[@]}"; do arr["$f"]="$f"; done
+            for f in "${s_files2[@]}"; do [ -z "${arr[$f]}" ] &&
+                                         s_files=("${s_files[@]}" "$f"); done
+            l_found=${#s_files[@]}
           fi
         fi
       fi
-      [ $DEBUG -ge 2 ] && echo "[debug fnFiles] #2 sSearch: '$sSearch' sSearchCustom: '$sSearchCustom' sSearchPrev: '$sSearchPrev'  sSearchLast: '$sSearchLast'" 1>&2
-      if [[ ($bDiff -eq 1) ||
-            ($bInteractive -eq 1 && $bAuto -eq 0) ||
-            ($bAuto -eq 1 && ${#sSearch} -le $MINSEARCH) ]]; then
-        [ $DEBUG -ge 1 ] && echo "[debug fnFiles] $sSearch == $sSearchPrev ??" 1>&2
-        if [ $bVerbose -eq 1 ]; then
-          if [[ $bAuto -eq 1 && $bDiff -eq 0 && ${#sSearch} -le $MINSEARCH && x$sSearch == x$sSearchPrev ]]; then
-            echo "minimum search term length hit with '$sSearch'" 1>&2
+      [ $DEBUG -ge 2 ] && echo "[debug fn_files] #2 s_search: '$s_search' s_search_custom: '$s_search_custom' s_search_prev: '$s_search_prev'  s_search_last: '$s_search_last'" 1>&2
+      if [[ ($b_diff -eq 1) ||
+            ($b_interactive -eq 1 && $b_auto -eq 0) ||
+            ($b_auto -eq 1 && ${#s_search} -le $MINSEARCH) ]]; then
+        [ $DEBUG -ge 1 ] && echo "[debug fn_files] $s_search == $s_search_prev ??" 1>&2
+        if [ $b_verbose -eq 1 ]; then
+          if [[ $b_auto -eq 1 && $b_diff -eq 0 && ${#s_search} -le $MINSEARCH && x$s_search == x$s_search_prev ]]; then
+            echo "minimum search term length hit with '$s_search'" 1>&2
           else
-            echo -e "found ${#sFiles[@]} associated files searching with '$sSearch'" 1>&2
+            echo -e "found ${#s_files[@]} associated files searching with '$s_search'" 1>&2
           fi
         fi
-        if [ $bInteractive -gt 0 ]; then
-          l=0; for f in "${sFiles[@]}"; do l=$[$l+1]; echo "  $f" 1>&2; [ $l -ge 10 ] && break; done
-          if [ $lFound -gt 10 ]; then echo "..." 1>&2; fi
+        if [ $b_interactive -gt 0 ]; then
+          l=0; for f in "${s_files[@]}"; do l=$((l + 1)); echo "  $f" 1>&2; [ $l -ge 10 ] && break; done
+          if [ $l_found -gt 10 ]; then echo "..." 1>&2; fi
           echo -ne "search for more files automatically [y]es/[n]o" \
             "or manually [a]ppend/[c]lear? [r]evert matches or e[x]it? " 1>&2
-          bRetry=1
-          while [ $bRetry -gt 0 ]; do
+          b_retry=1
+          while [ $b_retry -gt 0 ]; do
             result=
             read -s -n 1 result
             case "$result" in
-              "y"|"Y") echo "$result" 1>&2; bRetry=0; bAuto=1; sSearchCustom="" ;;
-              "n"|"N") echo "$result" 1>&2; bRetry=0; bSearch=0 ;;
-              "a"|"A") echo "$result" 1>&2; bRetry=0; bAuto=0; bMerge=1; echo -n "search: " 1>&2; read sSearchCustom ;;
-              "c"|"C") echo "$result" 1>&2; bRetry=0; bAuto=0; echo -n "search: " 1>&2; read sSearchCustom ;;
-              "r"|"R") echo "$result" 1>&2; bRetry=0; bAuto=0; bMerge=0; sSearchCustom="$sSearchLast" ;;
+              "y"|"Y") echo "$result" 1>&2; b_retry=0; b_auto=1; s_search_custom="" ;;
+              "n"|"N") echo "$result" 1>&2; b_retry=0; b_search=0 ;;
+              "a"|"A") echo "$result" 1>&2; b_retry=0; b_auto=0; b_merge=1; echo -n "search: " 1>&2; read s_search_custom ;;
+              "c"|"C") echo "$result" 1>&2; b_retry=0; b_auto=0; echo -n "search: " 1>&2; read s_search_custom ;;
+              "r"|"R") echo "$result" 1>&2; b_retry=0; b_auto=0; b_merge=0; s_search_custom="$s_search_last" ;;
               "x"|"X") echo "$result" 1>&2; return 1 ;;
             esac
           done
         else
-          if [[ (! "x$sSearchLast" == "x" && $lFound -gt 1) || ${#sSearch} -le $MINSEARCH ]]; then bSearch=0; fi
+          if [[ (-n "$s_search_last" && $l_found -gt 1) || ${#s_search} -le $MINSEARCH ]]; then b_search=0; fi
         fi
       else
-        if [[ $bAuto -eq 1 && ${#sSearch} -le $MINSEARCH ]]; then
-          if [ $bInteractive -eq 0 ]; then bSearch=0; fi
+        if [[ $b_auto -eq 1 && ${#s_search} -le $MINSEARCH ]]; then
+          if [ $b_interactive -eq 0 ]; then b_search=0; fi
         fi
       fi
-      sSearchPrev="$sSearch"
-      sFilesPrev=("${sFiles[@]}")
-      lFoundPrev=$lFound
-      if [[ $bAuto -eq 1 && ${#sSearch} -gt $MINSEARCH ]]; then  sSearch=${sSearch:0:$[${#sSearch}-1]}; fi
-      [ $DEBUG -ge 2 ] && echo "[debug fnFiles] #3 sSearch: '$sSearch' sSearchCustom: '$sSearchCustom' sSearchPrev: '$sSearchPrev'  sSearchLast: '$sSearchLast'" 1>&2
+      s_search_prev="$s_search"
+      s_files_prev=("${s_files[@]}")
+      l_found_prev=$l_found
+      if [[ $b_auto -eq 1 && ${#s_search} -gt $MINSEARCH ]]; then  s_search=${s_search:0:$((${#s_search} - 1))}; fi
+      [ $DEBUG -ge 2 ] && echo "[debug fn_files] #3 s_search: '$s_search' s_search_custom: '$s_search_custom' s_search_prev: '$s_search_prev'  s_search_last: '$s_search_last'" 1>&2
 #      exit 1
     fi
   done
   IFS=$IFSORG
 
   #verify files
-  [ $DEBUG -ge 1 ] && echo "[debug fnFiles] sFiles: '${sFiles[@]}'" 1>&2
-  bVerify=1
+  [ $DEBUG -ge 1 ] && echo "[debug fn_files] s_files: '${s_files[@]}'" 1>&2
+  b_verify=1
   IFS=$'\n'
-  if [ $lFound -gt 0 ]; then
-    if [ $bInteractive -eq 0 ]; then
-      sFiles2=(${sFiles[@]})
+  if [ $l_found -gt 0 ]; then
+    if [ $b_interactive -eq 0 ]; then
+      s_files2=(${s_files[@]})
     else
       echo -e "verify associations for matched files" 1>&2
-      bAutoAdd=0
-      unset sFiles2
-      for f in "${sFiles[@]}"; do
+      b_auto_add=0
+      unset s_files2
+      for f in "${s_files[@]}"; do
         if [ -d "$f" ]; then
           for f2 in $(find "$f2" -type f); do
-            bAdd=0
-            if [ $bAutoAdd -gt 0 ]; then
-              bAdd=1
+            b_add=0
+            if [ $b_auto_add -gt 0 ]; then
+              b_add=1
             else
               echo -ne "  $f [(y)es/(n)o/(a)ll/(c)ancel/e(x)it] " 1>&2
-              bRetry=1
-              while [ $bRetry -gt 0 ]; do
+              b_retry=1
+              while [ $b_retry -gt 0 ]; do
                 result=
                 read -s -n 1 result
                 case "$result" in
-                  "y"|"Y") echo "$result" 1>&2; bRetry=0; bAdd=1 ;;
-                  "n"|"N") echo "$result" 1>&2; bRetry=0 ;;
-                  "a"|"A") echo "$result" 1>&2; bRetry=0; bAdd=1; bAutoAdd=1 ;;
-                  "c"|"C") echo "$result" 1>&2; bRetry=0; bVerify=0 ;;
+                  "y"|"Y") echo "$result" 1>&2; b_retry=0; b_add=1 ;;
+                  "n"|"N") echo "$result" 1>&2; b_retry=0 ;;
+                  "a"|"A") echo "$result" 1>&2; b_retry=0; b_add=1; b_auto_add=1 ;;
+                  "c"|"C") echo "$result" 1>&2; b_retry=0; b_verify=0 ;;
                   "x"|"X") echo "$result" 1>&2; return 1 ;;
                 esac
               done
             fi
-            if [ $bAdd -eq 1 ]; then sFiles2=("${sFiles2[@]}" "$f"); fi
-            if [ $bVerify -eq 0 ]; then break; fi
+            if [ $b_add -eq 1 ]; then s_files2=("${s_files2[@]}" "$f"); fi
+            if [ $b_verify -eq 0 ]; then break; fi
           done
         elif [ -f "$f" ]; then
-          bAdd=0
-          if [ $bAutoAdd -gt 0 ]; then
-            bAdd=1
+          b_add=0
+          if [ $b_auto_add -gt 0 ]; then
+            b_add=1
           else
             echo -ne "  $f [(y)es/(n)o/(a)ll/(c)ancel/e(x)it] " 1>&2
-            bRetry=1
-            while [ $bRetry -gt 0 ]; do
+            b_retry=1
+            while [ $b_retry -gt 0 ]; do
               result=
               read -s -n 1 result
               case "$result" in
-                "y"|"Y") echo "$result" 1>&2; bRetry=0; bAdd=1 ;;
-                "n"|"N") echo "$result" 1>&2; bRetry=0 ;;
-                "a"|"A") echo "$result" 1>&2; bRetry=0; bAdd=1; bAutoAdd=1 ;;
-                "c"|"C") echo "$result" 1>&2; bRetry=0; bVerify=0 ;;
+                "y"|"Y") echo "$result" 1>&2; b_retry=0; b_add=1 ;;
+                "n"|"N") echo "$result" 1>&2; b_retry=0 ;;
+                "a"|"A") echo "$result" 1>&2; b_retry=0; b_add=1; b_auto_add=1 ;;
+                "c"|"C") echo "$result" 1>&2; b_retry=0; b_verify=0 ;;
                 "x"|"X") echo "$result" 1>&2; return 1 ;;
               esac
             done
           fi
-          if [ $bAdd -eq 1 ]; then sFiles2=("${sFiles2[@]}" "$f"); fi
-          if [ $bVerify -eq 0 ]; then break; fi
+          if [ $b_add -eq 1 ]; then s_files2=("${s_files2[@]}" "$f"); fi
+          if [ $b_verify -eq 0 ]; then break; fi
         fi
       done
     fi
   fi
   IFS=$IFSORG
 
-  [ $DEBUG -ge 1 ] && echo "[debug fnFiles] sFiles2: '${sFiles2[@]}'" 1>&2
-  if [[ ! "x${sFiles2}" == "x" && ${#sFiles2[@]} -gt 0 ]]; then
-    [ $bVerbose -eq 1 ] && fnLog "associated files for '$sSearch': '${sFiles2[@]}'"
+  [ $DEBUG -ge 1 ] && echo "[debug fn_files] s_files2: '${s_files2[@]}'" 1>&2
+  if [[ -n "${s_files2}" && ${#s_files2[@]} -gt 0 ]]; then
+    [ $b_verbose -eq 1 ] && fn_log "associated files for '$s_search': '${s_files2[@]}'"
     #return '\n' delimited strings
-    for f in "${sFiles2[@]}"; do echo "$f"; done
+    for f in "${s_files2[@]}"; do echo "$f"; done
   fi
 }
 
-fnSearch()
+fn_search()
 {
   # search in a set of target directories
   # optionally 'iterative'ly substring search term and research until success
   # optionally 'interactive'ly search, prompting whether to return when any given path/substring returns valid results
 
-  [ $DEBUG -ge 1 ] && echo "[debug fnSearch]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_search]" 1>&2
 
   declare -a targets
   declare target
 
-  bVerbose=1
-  [ "x$1" == "xsilent" ] && bVerbose=0 && shift
-  bIterative=0
-  [ "x$1" == "xiterative" ] && bIterative=1 && shift
-  bInteractive=0
-  [ "x$1" == "xinteractive" ] && bInteractive=1 && shift
+  b_verbose=1
+  [ "x$1" == "xsilent" ] && b_verbose=0 && shift
+  b_iterative=0
+  [ "x$1" == "xiterative" ] && b_iterative=1 && shift
+  b_interactive=0
+  [ "x$1" == "xinteractive" ] && b_interactive=1 && shift
 
-  [ "x$args" == "x" ] && help && exit 1
-  sSearch="$1"
+  [ -z "$args" ] && help && exit 1
+  s_search="$1"
   if [ "$REGEX" -eq 0 ]; then
     # basic escapes only
     # \[ \] \. \^ \$ \? \* \+
     for c in \' \"; do
-      sSearch=${sSearch//"$c"/"\\$c"}
+      s_search=${s_search//"$c"/"\\$c"}
     done
     # replace white-space with wild-card
-    [ $DEBUG -ge 1 ] && echo "[debug fnSearch] sSearch (pre-basic-escape): '$sSearch'" 1>&2
-    sSearch=${sSearch//" "/"?"}
-    [ $DEBUG -ge 1 ] && echo "[debug fnSearch] sSearch (post-basic-escape): '$sSearch'" 1>&2
+    [ $DEBUG -ge 1 ] && echo "[debug fn_search] s_search (pre-basic-escape): '$s_search'" 1>&2
+    s_search=${s_search//" "/"?"}
+    [ $DEBUG -ge 1 ] && echo "[debug fn_search] s_search (post-basic-escape): '$s_search'" 1>&2
   else
     # escape posix regex characters
-    [ $DEBUG -ge 1 ] && echo "[debug fnSearch] sSearch (pre-regexp-esacape): '$sSearch'" 1>&2
-    sSearch="$(fnRegexp "$sSearch")" 
-    [ $DEBUG -ge 1 ] && echo "[debug fnSearch] sSearch (post-regexp-esacape): '$sSearch'" 1>&2
+    [ $DEBUG -ge 1 ] && echo "[debug fn_search] s_search (pre-regexp-esacape): '$s_search'" 1>&2
+    s_search="$(fn_regexp "$s_search")"
+    [ $DEBUG -ge 1 ] && echo "[debug fn_search] s_search (post-regexp-esacape): '$s_search'" 1>&2
   fi
 
   targets=("$(pwd)")
@@ -896,133 +896,133 @@ fnSearch()
   fi
 
   IFS=$'\n'
-  bContinue=1
-  while [ $bContinue -eq 1 ]; do
+  b_continue=1
+  while [ $b_continue -eq 1 ]; do
     for target in "${targets[@]}"; do
-      [ $DEBUG -ge 1 ] && echo "[debug fnSearch] sSearch: '$sSearch', target: '$target'" 1>&2
+      [ $DEBUG -ge 1 ] && echo "[debug fn_search] s_search: '$s_search', target: '$target'" 1>&2
       if [ "$REGEX" -eq 1 ]; then
         # FIX: video file only filter for globs?
         #arr=($(find "$target" -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)$'))
-        arr=($(find "$target" -type f -iregex ".*$sSearch.*" 2>/dev/null))
+        arr=($(find $target -type f -iregex ".*$s_search.*" 2>/dev/null))
       else
         #glob match
-        arr=($(find "$target" -type f -iname "*$sSearch*" 2>/dev/null))
+        arr=($(find $target -type f -iname "*$s_search*" 2>/dev/null))
       fi
-      if [[ ${#arr[@]} -gt 0 && "x$arr" != "x" ]]; then
-        bAdd=1
-        if [ $bInteractive -eq 1 ]; then
-          echo "[user] target: '$target', search: '*sSearch*', found files:" 1>&2
+      if [[ ${#arr[@]} -gt 0 && -n "$arr" ]]; then
+        b_add=1
+        if [ $b_interactive -eq 1 ]; then
+          echo "[user] target: '$target', search: '*s_search*', found files:" 1>&2
           for f in "${arr[@]}"; do echo "  $f" 1>&2; done
           echo -n "[user] search further? [(y)es/(n)o/e(x)it]:  " 1>&2
-          bRetry2=1
-          while [ $bRetry2 -eq 1 ]; do
+          b_retry2=1
+          while [ $b_retry2 -eq 1 ]; do
             echo -en '\033[1D\033[K'
             read -n 1 -s result
             case "$result" in
-              "x" | "X") echo -n $result; bRetry2=0; bContinue=0; echo ""; exit 0 ;;
-              "n" | "N") echo -n $result; bRetry2=0; bRetry=0; bContinue=0; echo ""; break ;;
-              "y" | "Y") echo -n $result; bRetry2=0; bAdd=0 ;;
+              "x" | "X") echo -n $result; b_retry2=0; b_continue=0; echo ""; exit 0 ;;
+              "n" | "N") echo -n $result; b_retry2=0; b_retry=0; b_continue=0; echo ""; break ;;
+              "y" | "Y") echo -n $result; b_retry2=0; b_add=0 ;;
               *) echo -n " " 1>&2
             esac
           done
           echo ""
         fi
-        if [ $bAdd -eq 1 ]; then
-          [[ ${#files[@]} -gt 0 && ! "x$files" == "x" ]] && files=("${files[@]}" "${arr[@]}") || files=("${arr[@]}")
+        if [ $b_add -eq 1 ]; then
+          [[ ${#files[@]} -gt 0 && -n "$files" ]] && files=("${files[@]}" "${arr[@]}") || files=("${arr[@]}")
         fi
       fi
     done
     if [ -d "$PATHARCHIVELISTS" ]; then
       if [ "$REGEX" -eq 0 ]; then
-        arr=($(grep -ri "$sSearch" "$PATHARCHIVELISTS" 2>/dev/null))
+        arr=($(grep -ri "$s_search" "$PATHARCHIVELISTS" 2>/dev/null))
       else
-        arr=($(grep -rie "$sSearch" "$PATHARCHIVELISTS" 2>/dev/null))
+        arr=($(grep -rie "$s_search" "$PATHARCHIVELISTS" 2>/dev/null))
       fi
-      [ $DEBUG -ge 1 ] && echo "[debug fnSearch] results arr: '${arr[@]}'" 1>&2
+      [ $DEBUG -ge 1 ] && echo "[debug fn_search] results arr: '${arr[@]}'" 1>&2
       #filter results
-      if [[ ${#arr[@]} -gt 0 && "x$arr" != "x" ]]; then
+      if [[ ${#arr[@]} -gt 0 && -n "$arr" ]]; then
         arr2=
         for s in ${arr[@]}; do
           s="$(echo "$s" | sed -n 's/^\([^:~]*\):\([^|]*\).*$/\1|\2/p')"
           if [ "$REGEX" -eq 0 ]; then
-            s="$(echo "$s" | grep -i "$sSearch" 2>/dev/null)"
+            s="$(echo "$s" | grep -i "$s_search" 2>/dev/null)"
           else
-            s="$(echo "$s" | grep -ie "$sSearch" 2>/dev/null)"
+            s="$(echo "$s" | grep -ie "$s_search" 2>/dev/null)"
           fi
-          if [ "x$s" != "x" ]; then
-            [ "x${arr2}" == "x" ] && arr2=("$s") || arr2=("${arr2[@]}" "$s")
+          if [ -n "$s" ]; then
+            [ -z "${arr2}" ] && arr2=("$s") || arr2=("${arr2[@]}" "$s")
           fi
         done
-        [ $DEBUG -ge 1 ] && echo "[debug fnSearch] filtered results arr2: '${arr2[@]}'" 1>&2
+        [ $DEBUG -ge 1 ] && echo "[debug fn_search] filtered results arr2: '${arr2[@]}'" 1>&2
         #merge results
-        bAdd=1
-        if [ $bInteractive -eq 1 ]; then
-          echo "[user] target: '$target', search: '*sSearch*', found files:" 1>&2
+        b_add=1
+        if [ $b_interactive -eq 1 ]; then
+          echo "[user] target: '$target', search: '*s_search*', found files:" 1>&2
           for f in "${arr[@]}"; do echo "  $f" 1>&2; done
           echo -n "[user] search further? [(y)es/(n)o/e(x)it]:  " 1>&2
-          bRetry2=1
-          while [ $bRetry2 -eq 1 ]; do
+          b_retry2=1
+          while [ $b_retry2 -eq 1 ]; do
             echo -en '\033[1D\033[K'
             read -n 1 -s result
             case "$result" in
-              "x" | "X") echo -n $result; bRetry2=0; bContinue=0; echo ""; exit 0 ;;
-              "n" | "N") echo -n $result; bRetry2=0; bRetry=0; bContinue=0; echo ""; break ;;
-              "y" | "Y") echo -n $result; bRetry2=0; bAdd=0 ;;
+              "x" | "X") echo -n $result; b_retry2=0; b_continue=0; echo ""; exit 0 ;;
+              "n" | "N") echo -n $result; b_retry2=0; b_retry=0; b_continue=0; echo ""; break ;;
+              "y" | "Y") echo -n $result; b_retry2=0; b_add=0 ;;
               *) echo -n " " 1>&2
             esac
           done
           echo ""
         fi
-        if [ $bAdd -eq 1 ]; then
-          [[ ${#files[@]} -gt 0 && "x$files" != "x" ]] && files=(${files[@]} ${arr2[@]}) || files=(${arr2[@]})
+        if [ $b_add -eq 1 ]; then
+          [[ ${#files[@]} -gt 0 && -n "$files" ]] && files=(${files[@]} ${arr2[@]}) || files=(${arr2[@]})
         fi
       fi
     else
       [ $DEBUG -ge 1 ] && echo "[debug] no archive lists found at: '$PATHARCHIVELISTS'" 1>&2
     fi
 
-    if [[ $bIterative -eq 0 ||
-      ${#sSearch} -le $MINSEARCH ||
-      (${#files[@]} -gt 0 && ${files} != "x") ]]; then
-      bContinue=0
+    if [[ $b_iterative -eq 0 ||
+      ${#s_search} -le $MINSEARCH ||
+      (${#files[@]} -gt 0 && -n "${files}") ]]; then
+      b_continue=0
     else
-      #sSearch=${sSearch:0:$[${#sSearch}-1]} # too slow
+      #s_search=${s_search:0:$((${#s_search} - 1))} # too slow
       #trim back to next shortest token set, using '][)(.,:- ' delimiter
-      s=$(echo "$sSearch" | sed -n 's/^\(.*\)[][)(.,: -]\+.*$/\1/p')
-      [ "${#s}" -lt $MINSEARCH ] && s=${sSearch:0:$[${#sSearch}-2]}
-      [ "${#s}" -lt $MINSEARCH ] && s=${sSearch:0:$[${#sSearch}-1]}
-      sSearch="$s"
-      echo "$sSearch" >> /tmp/search
+      s=$(echo "$s_search" | sed -n 's/^\(.*\)[][)(.,: -]\+.*$/\1/p')
+      [ "${#s}" -lt $MINSEARCH ] && s=${s_search:0:$((${#s_search} - 2))}
+      [ "${#s}" -lt $MINSEARCH ] && s=${s_search:0:$((${#s_search} - 1))}
+      s_search="$s"
+      echo "$s_search" >> /tmp/search
     fi
 
   done
 
   #process list
-  [ $DEBUG -ge 1 ] && echo "[debug fnSearch] processing list: ${files[@]}" 1>&2
-  if [[ ${#files[@]} -gt 0 && ! "x$files" == "x" ]]; then
+  [ $DEBUG -ge 1 ] && echo "[debug fn_search] processing list: ${files[@]}" 1>&2
+  if [[ ${#files[@]} -gt 0 && -n "$files" ]]; then
     printf '%s\n' "${files[@]}" | sort
   fi
   IFS=$IFSORG
 }
 
-fnPlayList()
+fn_play_list()
 {
-  [ $DEBUG -ge 1 ] && echo "[debug fnPlayList]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_play_list]" 1>&2
 
   list="$1" && shift
   [ ! -e $list ] && echo "[error] no playlist argument!" && exit 1
 
-  IFS=$'\n' items=(`cat $list`); IFS=$IFSORG
+  IFS=$'\n' items=($(cat $list)); IFS=$IFSORG
 
   current=${items[0]};
   if [ -e $list.current ]; then
-    current=`cat $list.current`
+    current="$(cat $list.current)"
   fi
 
   idx=0
   for li in "${items[@]}"; do
     [ "x$li" == "x$current" ] && break;
-    idx=$[$idx+1]
+    idx=$((idx + 1))
   done
 
   # select from here
@@ -1032,9 +1032,9 @@ fnPlayList()
   if [[ ${#file} -gt 0 && -f "$file" ]]; then
     path="${file%/*}/"
     result=
-    bRetry=1
+    b_retry=1
     echo -en '\033[2K\012\033[2K\012\033[2K\012\033[2K\012\033[2K\033[A\033[A\033[A\033[A\033[s\033[B'
-    while [ $bRetry -gt 0 ]; do
+    while [ $b_retry -gt 0 ]; do
       echo -en '\033[u\033[s\033[2K\012\033[2K\012\033[2K\012\033[2K\033[u\033[s\012'
       echo -n "play '$file'? [(y)es/(n)o/(u)p/(d)own] "
       read -n 1 -s c1
@@ -1044,22 +1044,22 @@ fnPlayList()
       result=$c1$c2$c3$c4
       case "$result" in
 
-        "u"|$'\e[A') [ ${#items[@]} -gt $idx ] && idx=$[$idx+1] && file="${items[$idx]}" ;;
+        "u"|$'\e[A') [ ${#items[@]} -gt $idx ] && idx=$((idx + 1)) && file="${items[$idx]}" ;;
 
-        "d"|$'\e[B') [ $idx -gt 0 ] && idx=$[$idx-1] && file="${items[$idx]}" ;;
+        "d"|$'\e[B') [ $idx -gt 0 ] && idx=$((idx - 1)) && file="${items[$idx]}" ;;
 
-        "n"|"N") echo $result; bRetry=0 ;;
+        "n"|"N") echo $result; b_retry=0 ;;
 
         "y"|"Y")
           echo $result
           # write current
           echo "$file" > "$list".current
           # create playlist from remaining items
-          last=$[${#items[@]}-$idx]
+          last=$((${#items[@]} - idx))
           tail -n $last $list > $PLAYLIST
           # play list
           $cmdplay $cmdplay_options $cmdplay_playlist_options$PLAYLIST $@
-          bRetry=0
+          b_retry=0
           ;;
 
         *)
@@ -1071,16 +1071,16 @@ fnPlayList()
   fi
 }
 
-fnPlay()
+fn_play()
 {
-  [ $DEBUG -ge 1 ] && echo "[debug fnPlay]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_play]" 1>&2
 
-  sSearch="$1" && shift
-  display=$(fnDisplay)
-  [ $DEBUG -ge 1 ] && echo "[debug fnPlay] display: '$display', search: '$sSearch'" 1>&2
+  s_search="$1" && shift
+  display=$(fn_display)
+  [ $DEBUG -ge 1 ] && echo "[debug fn_play] display: '$display', search: '$s_search'" 1>&2
 
-  [[ -d "$sSearch" || -f "$sSearch" ]] && DISPLAY=$display $CMDPLAY $CMDPLAY_OPTIONS "$sSearch" "$@" && exit 0
-  IFS=$'\n' sMatched=($(fnSearch $([ $REGEX -eq 1 ] && echo "regex") "$sSearch" 2>/dev/null )); IFS=$IFSORG
+  [[ -d "$s_search" || -f "$s_search" ]] && DISPLAY=$display $CMDPLAY $CMDPLAY_OPTIONS "$s_search" "$@" && exit 0
+  IFS=$'\n' s_matched=($(fn_search $([ $REGEX -eq 1 ] && echo "regex") "$s_search" 2>/dev/null )); IFS=$IFSORG
 
   play=0
   cmdplay="$([ $DEBUG -ge 1 ] && echo 'echo ')$CMDPLAY"
@@ -1090,16 +1090,16 @@ fnPlay()
   echo supported file-types: $VIDEXT 1>&2
   #VIDEXT="($(echo $VIDEXT | sed 's|\||\\\||g'))"
 
-  if [[ ${#sMatched[@]} -gt 0 && ! "x$sMatched" == "x" ]]; then
+  if [[ ${#s_matched[@]} -gt 0 && -n "$s_matched" ]]; then
     #files to play!
     #iterate results. prepend titles potentially requiring user interation (e.g. using discs)
     ##format type:name[:info] -> title:file[:search]
-    [ $DEBUG -eq 2 ] && echo "[debug fnPlay] sMatched: ${sMatched[@]}"
-    sPlaylist=
-    for s in "${sMatched[@]}"; do
-      [ "x$(echo "$s" | grep '|')" == "x" ] && s="file|$s"
-      type="${s%%|*}" && s=${s:$[${#type}+1]} && type="${type##*/}"
-      name="${s%%|*}" && s=${s:$[${#name}+1]}
+    [ $DEBUG -eq 2 ] && echo "[debug fn_play] s_matched: ${s_matched[@]}"
+    s_playlist=
+    for s in "${s_matched[@]}"; do
+      [ -z "$(echo "$s" | grep '|')" ] && s="file|$s"
+      type="${s%%|*}" && s=${s:$((${#type} + 1))} && type="${type##*/}"
+      name="${s%%|*}" && s=${s:$((${#name} + 1))}
       s=""
       prepend=0
 #        title="$(echo "$name" | sed -n 's/^.*\/\([^[]*\)[. ]\+.*$/\1/p')"
@@ -1107,113 +1107,113 @@ fnPlay()
       case "$type" in
         "dvd"|"dvds") s="$title|dvdnav:////dev/dvd"; prepend=1 ;;
         "vcd"|"vcds") s="$title|vcd:////dev/dvd"; prepend=1 ;;
-        "cd"|"cds") s="$title|/dev/dvd|$sSearch"; prepend=1 ;;
+        "cd"|"cds") s="$title|/dev/dvd|$s_search"; prepend=1 ;;
         "file"|"files") s="$title|$name" ;;
         *) s="$title|$ROOTDISK$type/$name" ;; #convert archive entry to location
       esac
       #add to list
-      if [ "x${sPlaylist}" == "x" ]; then
-        sPlaylist=("$s")
+      if [ -z "${s_playlist}" ]; then
+        s_playlist=("$s")
       else
-        [ $prepend -eq 1 ] && sPlaylist=("$s" "${sPlaylist[@]}") || sPlaylist=("${sPlaylist[@]}" "$s")
+        [ $prepend -eq 1 ] && s_playlist=("$s" "${s_playlist[@]}") || s_playlist=("${s_playlist[@]}" "$s")
       fi
     done
 
     #iterate list and play
     ##format title:file[:search]
-    [ $DEBUG -eq 2 ] && echo "[debug fnPlay] sPlaylist: ${sPlaylist[@]}" 1>&2
-    sFiles=
-    for s in "${sPlaylist[@]}"; do
-      title="${s%%|*}" && s=${s:$[${#title}+1]} && title="$(echo ${title##*/} | sed 's/[. ]\[.*$//I')"
-      file="${s%%|*}" && s=${s:$[${#file}+1]}
+    [ $DEBUG -eq 2 ] && echo "[debug fn_play] s_playlist: ${s_playlist[@]}" 1>&2
+    s_files=
+    for s in "${s_playlist[@]}"; do
+      title="${s%%|*}" && s=${s:$((${#title} + 1))} && title="$(echo ${title##*/} | sed 's/[. ]\[.*$//I')"
+      file="${s%%|*}" && s=${s:$((${#file} + 1))}
       search="$s" && [ "$search" == "$file" ] && search=""
-      [ $DEBUG -ge 1 ] && echo "[debug fnPlay] title: '$title', file: '$file', search: '$search'" 1>&2
-      if [ "x$(echo "$file" | grep "/dev/dvd")" != "x" ]; then
+      [ $DEBUG -ge 1 ] && echo "[debug fn_play] title: '$title', file: '$file', search: '$search'" 1>&2
+      if [ -n "$(echo "$file" | grep "/dev/dvd")" ]; then
         #play?
         echo -n "play '$title'? [(y)es/(n)o/e(x)it]:  "
-        bRetry=1
-        while [ $bRetry -eq 1 ]; do
+        b_retry=1
+        while [ $b_retry -eq 1 ]; do
           echo -en '\033[1D\033[K'
           read -n 1 -s result
           case "$result" in
-            "x" | "X") echo -n $result; bRetry=0; echo ""; exit 0 ;;
-            "n" | "N") echo -n $result; bRetry=0; file="" ;;
-            "y" | "Y") echo -n $result; bRetry=0 ;;
+            "x" | "X") echo -n $result; b_retry=0; echo ""; exit 0 ;;
+            "n" | "N") echo -n $result; b_retry=0; file="" ;;
+            "y" | "Y") echo -n $result; b_retry=0 ;;
             *) echo -n " " 1>&2
           esac
         done
         echo ""
-        if [ "x$file" != "x" ]; then
+        if [ -n "$file" ]; then
           played=0
-          bRetry=1
-          sFiles=
-          while [ $bRetry -eq 1 ]; do
+          b_retry=1
+          s_files=
+          while [ $b_retry -eq 1 ]; do
             [ $played -gt 0 ] && NEXT="next "
-            if [ "${#sFiles}" -gt 0 ]; then
+            if [ "${#s_files}" -gt 0 ]; then
               #files to play
               if [ "x$file" == "x/dev/dvd" ]; then
                 type="cd" #cds
                 echo "playing '$title' [cd]" 1>&2
-                for f in "${sFiles[@]}"; do DISPLAY=$display $cmdplay $cmdplay_options $@ "$ROOTISO$f"; done
+                for f in "${s_files[@]}"; do DISPLAY=$display $cmdplay $cmdplay_options $@ "$ROOTISO$f"; done
                 umount "$ROOTISO" 2>/dev/null
               else
                 type="${file:0:3}" #dvds/vcds
                 echo "playing '$title' []" 1>&2
-                DISPLAY=$display $cmdplay $@ $cmdplay_options "${sFiles[0]}"
+                DISPLAY=$display $cmdplay $@ $cmdplay_options "${s_files[0]}"
               fi
-              played=$[$played+${#sFiles[@]}]
-              sFiles=
+              played=$((played + ${#s_files[@]}))
+              s_files=
             else
-              if [[ ! -t $(fnDriveStatus) || $played -gt 0 ]]; then
+              if [[ ! -t $(fn_drive_status) || $played -gt 0 ]]; then
                 #block until disc is inserted
                 echo -n "[user] insert "$NEXT"disk for '$title' [(r)etry|(e)ject|(l)oad|e(x)it]:  "
-                bRetry2=1
-                while [ $bRetry2 -eq 1 ]; do
+                b_retry2=1
+                while [ $b_retry2 -eq 1 ]; do
                   echo -en '\033[1D\033[K'
                   read -n 1 -s result
                   case "$result" in
-                    "r" | "R") echo -n $result; [ -t $(fnDriveStatus) ] && bRetry2=0 ;;
-                    "e" | "E") echo -n $result; umount /dev/dvd >/dev/null 1>&2; [ -t $(fnDriveStatus) ] && eject -T >/dev/null 1>&2 ;;
-                    "l" | "L") echo -n $result; [ ! -t $(fnDriveStatus) ] && eject -t 2>/dev/null ;;
-                    "x" | "X") echo -n $result; bRetry=0; bRetry2=0; file="" ;;
+                    "r" | "R") echo -n $result; [ -t $(fn_drive_status) ] && b_retry2=0 ;;
+                    "e" | "E") echo -n $result; umount /dev/dvd >/dev/null 1>&2; [ -t $(fn_drive_status) ] && eject -T >/dev/null 1>&2 ;;
+                    "l" | "L") echo -n $result; [ ! -t $(fn_drive_status) ] && eject -t 2>/dev/null ;;
+                    "x" | "X") echo -n $result; b_retry=0; b_retry2=0; file="" ;;
                     *) echo -n " " 1>&2
                   esac
                 done
                 echo ""
               fi
-              if [ "x$file" != "x" ]; then
+              if [ -n "$file" ]; then
                 if [ "x$file" == "x/dev/dvd" ]; then
                   #mount and search for files
                   mount -t auto -o ro /dev/dvd "$ROOTISO" 2>/dev/null && sleep 1
                   cd $ROOTISO
                   IFS=$'\n'
-                  sFiles=($(fnFiles silent full "$search" "$VIDEXT"))
+                  s_files=($(fn_files silent full "$search" "$VIDEXT"))
                   x=$?
-                  if [ ${#sFiles[@]} -eq 0 ]; then
-                    sFiles=($(fnFiles interactive full "$search" "$VIDEXT"))
+                  if [ ${#s_files[@]} -eq 0 ]; then
+                    s_files=($(fn_files interactive full "$search" "$VIDEXT"))
                     x=$?
                   fi
                   IFS=$IFSORG
                   cd - >/dev/null 2>&1
-                  [ $x -ne 0 ] && bRetry=0 && sFiles= && continue
+                  [ $x -ne 0 ] && b_retry=0 && s_files= && continue
                 else
                   #specify the track for vcds
                   if [ "${file:0:3}" == "vcd" ]; then
                     #ID_VCD_TRACK_1_MSF=00:16:63
-                    IFS=$'\n'; sTracks=($($CMDINFOMPLAYER "$file" | sed -n 's/^ID_VCD_TRACK_\([0-9]\)_MSF=\([0-9:]*\)$/\1|\2\.0/p')); IFS=$IFSORG
-                    if [ ${#sTracks[@]} -gt 0 ]; then
-                      for s in "${sTracks[@]}"; do
-                        sTrackTime2=$(fnPositionTimeToNumeric "${s##*|}")
-                        if [[ "x$sTrack" == "x" || $(math_ "\$gt($sTrackTime2, $sTrackTime)") -eq 1 ]]; then
-                          sTrack="${s%%|*}"
-                          sTrackTime="$sTrackTime2"
+                    IFS=$'\n'; s_tracks=($($CMDINFOMPLAYER "$file" | sed -n 's/^ID_VCD_TRACK_\([0-9]\)_MSF=\([0-9:]*\)$/\1|\2\.0/p')); IFS=$IFSORG
+                    if [ ${#s_tracks[@]} -gt 0 ]; then
+                      for s in "${s_tracks[@]}"; do
+                        s_track_time2=$(fn_position_time_to_numeric "${s##*|}")
+                        if [[ -z "$s_track" || $(math_ "\$gt($s_track_time2, $s_track_time)") -eq 1 ]]; then
+                          s_track="${s%%|*}"
+                          s_track_time="$s_track_time2"
                         fi
                       done
                     fi
-                    [ "x$sTrack" == "x" ] && sTrack="1"
-                    sFiles=("$(echo "$file" | sed 's|vcd://|vcd://'$sTrack'|')")
+                    [ -z "$s_track" ] && s_track="1"
+                    s_files=("$(echo "$file" | sed 's|vcd://|vcd://'$s_track'|')")
                   else
-                    sFiles=("$file")
+                    s_files=("$file")
                   fi
                 fi
               fi
@@ -1222,40 +1222,40 @@ fnPlay()
         fi
       else
         #file type?
-        if [ "x$(echo "$file" | grep -iP '^.*\.('$VIDEXT')$')" != "x" ]; then
+        if [ -n "$(echo "$file" | grep -iP '^.*\.('$VIDEXT')$')" ]; then
 
           #play?
           echo -n "play '$title'? [(y)es/(n)o/(v)erbose/e(x)it]:  "
-          bRetry=1
-          while [ $bRetry -eq 1 ]; do
+          b_retry=1
+          while [ $b_retry -eq 1 ]; do
             echo -en '\033[1D\033[K'
             read -n 1 -s result
             case "$result" in
-              "y" | "Y") echo -n $result; bRetry=0 ;;
-              "n" | "N") echo -n $result; bRetry=0; file="" ;;
+              "y" | "Y") echo -n $result; b_retry=0 ;;
+              "n" | "N") echo -n $result; b_retry=0; file="" ;;
               "v" | "V") echo -n $result; echo -en "\033[G\033[1Kplay '$file'? [(y)es/(n)o/(v)erbose/e(x)it]:  " ;;
-              "x" | "X") echo -n $result; bRetry=0; echo ""; exit 0 ;;
+              "x" | "X") echo -n $result; b_retry=0; echo ""; exit 0 ;;
               *) echo -n " " 1>&2
             esac
           done
           echo ""
 
-          if [ "x$file" != "x" ]; then
+          if [ -n "$file" ]; then
             #block whilst file doesn't exist
-            bRetry=1
-            while [ $bRetry -eq 1 ]; do
+            b_retry=1
+            while [ $b_retry -eq 1 ]; do
               if [ -e "$file" ]; then
-                bRetry=0
+                b_retry=0
               else
                 echo -n "[user] file '$file' does not exist? [(r)etry/(s)kip/e(x)it]:  "
-                bRetry2=1
-                while [ $bRetry2 -eq 1 ]; do
+                b_retry2=1
+                while [ $b_retry2 -eq 1 ]; do
                   echo -en '\033[1D\033[K'
                   read -n 1 -s result
                   case "$result" in
-                    "x" | "X") echo -n $result; bRetry=0; bRetry2=0; echo ""; exit 0 ;;
-                    "s" | "S") echo -n $result; bRetry=0; bRetry2=0 ;;
-                    "r" | "R") echo -n $result; bRetry2=0 ;;
+                    "x" | "X") echo -n $result; b_retry=0; b_retry2=0; echo ""; exit 0 ;;
+                    "s" | "S") echo -n $result; b_retry=0; b_retry2=0 ;;
+                    "r" | "R") echo -n $result; b_retry2=0 ;;
                     *) echo -n " " 1>&2
                   esac
                 done
@@ -1263,9 +1263,9 @@ fnPlay()
               fi
             done
             #add to playlist
-            [ $DEBUG -ge 1 ] && echo "[debug fnPlay] file: $file" 1>&2
-            if [[ -e "$file" && "x$file" != "x" ]]; then
-              [ "x${sFiles[@]}" == "x" ] && sFiles=("$file") || sFiles=("${sFiles[@]}" "$file")
+            [ $DEBUG -ge 1 ] && echo "[debug fn_play] file: $file" 1>&2
+            if [[ -e "$file" && -n "$file" ]]; then
+              [ -z "${s_files[@]}" ] && s_files=("$file") || s_files=("${s_files[@]}" "$file")
             fi
           fi
         fi
@@ -1273,47 +1273,47 @@ fnPlay()
     done
 
     #play remaining files
-    if [ "x${sFiles}" != "x" ]; then
-      [ $DEBUG -ge 1 ] && echo "[debug fnPlay] sFiles: ${sFiles[@]}" 1>&2
-      for l in $(seq 0 1 $[${#sFiles[@]}-1]); do
-        file="${sFiles[$l]}"
+    if [ -n "${s_files}" ]; then
+      [ $DEBUG -ge 1 ] && echo "[debug fn_play] s_files: ${s_files[@]}" 1>&2
+      for l in $(seq 0 1 $((${#s_files[@]} - 1))); do
+        file="${s_files[$l]}"
         #construct playlist?
-        if [ "x$PLAYLIST" != "x" ]; then
+        if [ -n "$PLAYLIST" ]; then
           [ $l -eq 0 ] && echo "$file" > "$PLAYLIST" || echo "$file" >> "$PLAYLIST"
         else
-          DISPLAY=$display $cmdplay $([ "x$cmdplay_options" != "x" ] && echo "$cmdplay_options") "$file" "$@"
+          DISPLAY=$display $cmdplay $([ -n "$cmdplay_options" ] && echo "$cmdplay_options") "$file" "$@"
         fi
       done
-      [ "x$PLAYLIST" != "x" ] && DISPLAY=$display eval $cmdplay $([ "x$cmdplay_options" != x ] && echo "$cmdplay_options") $([ "x$cmdplay_playlist_options" != "x" ] && echo "${cmdplay_playlist_options}${PLAYLIST}" || echo "$PLAYLIST") "$@"
+      [ -n "$PLAYLIST" ] && DISPLAY=$display eval $cmdplay $([ "x$cmdplay_options" != x ] && echo "$cmdplay_options") $([ -n "$cmdplay_playlist_options" ] && echo "${cmdplay_playlist_options}${PLAYLIST}" || echo "$PLAYLIST") "$@"
     fi
   fi
 }
 
-fnArchive()
+fn_archive()
 {
   #list files at target for archive purposes
 
-  [ $DEBUG -ge 1 ] && echo "[debug fnArchive]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_archive]" 1>&2
 
   CWD="$PWD/"
   target="$PATHARCHIVELISTS"
   level=0
-  [[ $# -gt 0 && "x$(echo "$1" | sed -n '/^[0-9]\+$/p')" != "x" ]] && level=$1 && shift
+  [[ $# -gt 0 && -n "$(echo "$1" | sed -n '/^[0-9]\+$/p')" ]] && level=$1 && shift
   [ $# -gt 0 ] && source="$1" && shift || source="."
   [ -d "$source" ] && cd "$source"
-  [ "x${source:$[${#source}-1]:1}" == "x/" ] && source="${source:0:$[${#source}-2]}" && shift || source="$PWD"
+  [ "x${source:$((${#source} - 1)):1}" == "x/" ] && source="${source:0:$((${#source} - 2))}" && shift || source="$PWD"
   [ $# -gt 0 ] && file="$1" && shift || file="${source##*/}"
 
   source="$source/"
   if [ $level -eq 0 ]; then
     find . -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)' | sort -i > "$target$file"
   else
-    IFS=$'\n'; sFiles=($(find . -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)' | sort -i)); IFS=$IFSORG
-    bAppend=0
-    for f in "${sFiles[@]}"; do
-      s="$f|$(fnFileInfo $level "$f")"
-      if [ $bAppend -eq 0 ]; then
-        echo "$s" > "$target$file" && bAppend=1
+    IFS=$'\n'; s_files=($(find . -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)' | sort -i)); IFS=$IFSORG
+    b_append=0
+    for f in "${s_files[@]}"; do
+      s="$f|$(fn_file_info $level "$f")"
+      if [ $b_append -eq 0 ]; then
+        echo "$s" > "$target$file" && b_append=1
       else
         echo "$s" >> "$target$file"
       fi
@@ -1323,19 +1323,19 @@ fnArchive()
   cd $CWD
 }
 
-fnStructure()
+fn_structure()
 {
-  [ $DEBUG -ge 1 ] && echo "[debug fnStructure]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_structure]" 1>&2
 
   cmdmv="$([ $TEST -ge 1 ] && echo 'echo ')$CMDMV"
   cmdmd="$([ $TEST -ge 1 ] && echo 'echo ')$CMDMD"
 
-  bVerbose=1
-  [ "x$1" == "xsilent" ] && bVerbose=0 && shift
-  bLong=1
-  [ "x$1" == "xlong" ] && bLong=1 && shift
+  b_verbose=1
+  [ "x$1" == "xsilent" ] && b_verbose=0 && shift
+  b_long=1
+  [ "x$1" == "xlong" ] && b_long=1 && shift
 
-  sSearch="$1" && shift
+  s_search="$1" && shift
 
   filters_cmd=() && [ $# -gt 0 ] && filters_cmd=("$@")
   filters_rc="$FILTERS_EXTRA"
@@ -1349,245 +1349,245 @@ fnStructure()
   filters_repeat_misc2='\.\./.'
 
   IFS=$'\n'
-  sFiles=($(fnFiles interactive "$sSearch"))
+  s_files=($(fn_files interactive "$s_search"))
   x=$? && [ $x -ne 0 ] && exit $x
   IFS=$IFSORG
-  [ ${#sFiles} -eq 0 ] && exit 1
-  [ $DEBUG -ge 1 ] && echo "sFiles: '${sFiles[@]}'" 1>&2
+  [ ${#s_files} -eq 0 ] && exit 1
+  [ $DEBUG -ge 1 ] && echo "s_files: '${s_files[@]}'" 1>&2
   # count type files
   # set type template file
   # set title
   l=0
-  sTitleTemplate=""
+  s_title_template=""
   # set video template file
-  for f in "${sFiles[@]}"; do
-    if [ "x$(echo "$f" | grep -iP ".*\.($VIDEXT)\$")" != "x" ]; then
-      [ $l -eq 0 ] && sTitleTemplate="$f"
-      l=$[$l+1]
+  for f in "${s_files[@]}"; do
+    if [ -n "$(echo "$f" | grep -iP ".*\.($VIDEXT)\$")" ]; then
+      [ $l -eq 0 ] && s_title_template="$f"
+      l=$((l + 1))
     fi
   done
-  lFiles=$l
-  if [ $lFiles -lt 1 ]; then
+  l_files=$l
+  if [ $l_files -lt 1 ]; then
     # set audio template file
     l=0
-    for f in "${sFiles[@]}"; do
-      if [ "x$(echo "$f" | grep -iP ".*\.($AUDEXT)\$")" != "x" ]; then
-        [ $l -eq 0 ] && sTitleTemplate="$f"
-        l=$[$l+1]
+    for f in "${s_files[@]}"; do
+      if [ -n "$(echo "$f" | grep -iP ".*\.($AUDEXT)\$")" ]; then
+        [ $l -eq 0 ] && s_title_template="$f"
+        l=$((l + 1))
       fi
     done
-    lFiles=$l
+    l_files=$l
   fi
 
-  [ $lFiles -lt 1 ] && echo "[error] no recognised video or audio extention for any of the selected files" 2>&1 && exit 1
+  [ $l_files -lt 1 ] && echo "[error] no recognised video or audio extention for any of the selected files" 2>&1 && exit 1
   # *IMPLEMENT: potential for mismatch of file information here. dependence on file list order is wrong
 
-  sTitleInfo="[$(fnFileInfo "$sTitleTemplate")]" # use first video file found as template
-  sTitleTemplate="$(echo "$sTitleTemplate" | sed 's/'"$(fnRegexp "$sTitleInfo" "sed")"'//')"
-  sTitleTemplate="${sTitleTemplate%.*}"
-  sTitlePath="${sTitleTemplate%/*}/"
-  [[ ! -d "$sTitlePath" || x$(cd "$sTitlePath" && pwd) == "x$(pwd)" ]] && sTitlePath=""
-  sTitleTemplate="$(echo ${sTitleTemplate##*/} | awk '{gsub(" ",".",$0); print tolower($0)}')"
+  s_title_info="[$(fn_file_info "$s_title_template")]" # use first video file found as template
+  s_title_template="$(echo "$s_title_template" | sed 's/'"$(fn_regexp "$s_title_info" "sed")"'//')"
+  s_title_template="${s_title_template%.*}"
+  s_title_path="${s_title_template%/*}/"
+  [[ ! -d "$s_title_path" || x$(cd "$s_title_path" && pwd) == "x$(pwd)" ]] && s_title_path=""
+  s_title_template="$(echo ${s_title_template##*/} | awk '{gsub(" ",".",$0); print tolower($0)}')"
 
   if [ ${#filters_cmd[@]} -gt 0 ]; then
     l=1
     for s in "${filters_cmd[@]}"; do
-      sTitleTemplate_="$sTitleTemplate"
+      s_title_template_="$s_title_template"
       expr='\([._-]\)\+'"$s"'\([._-]\|$\)\+'
-      while [ -n "$(echo "$sTitleTemplate" | sed -n '/'"$expr"'/p')" ]; do
-        sTitleTemplate=$(echo "$sTitleTemplate" | sed 's/'"$expr"'/../Ig')
+      while [ -n "$(echo "$s_title_template" | sed -n '/'"$expr"'/p')" ]; do
+        s_title_template=$(echo "$s_title_template" | sed 's/'"$expr"'/../Ig')
       done
       l=$((l + 1))
-      [ $DEBUG -ge 5 ] && echo "[debug] remove filter [$l] '$s' applied, '$sTitleTemplate_' -> '$sTitleTemplate'" 1>&2
+      [ $DEBUG -ge 5 ] && echo "[debug] remove filter [$l] '$s' applied, '$s_title_template_' -> '$s_title_template'" 1>&2
     done
 #  else
     #clear everything between either delimiters ']','[', or delimiter '[' and end
   fi
 
   # mask?
-  sMaskDefault=""
-  IFS=$'\|'; sMask=(`fnFileMultiMask "$sTitleTemplate"`); IFS=$IFSORG
-  if [ ${#sMask[@]} -gt 0 ]; then
-    [ $DEBUG -ge 5 ] && echo "[debug] mask found, parts: ${sMask[@]}, setting generic"
-    sMaskDefault=${sMask[0]}
-    sTitleTemplate=$(echo "$sTitleTemplate" | sed 's/\[\?'"$(fnRegexp "${sMask[2]}" "sed")"'\]\?/['$sMaskDefault']/')
+  s_mask_default=""
+  IFS=$'\|'; s_mask=($(fn_file_multi_mask "$s_title_template")); IFS=$IFSORG
+  if [ ${#s_mask[@]} -gt 0 ]; then
+    [ $DEBUG -ge 5 ] && echo "[debug] mask found, parts: ${s_mask[@]}, setting generic"
+    s_mask_default=${s_mask[0]}
+    s_title_template=$(echo "$s_title_template" | sed 's/\[\?'"$(fn_regexp "${s_mask[2]}" "sed")"'\]\?/['$s_mask_default']/')
   fi
 
-  sTitleTemplate="$(echo "$sTitleTemplate" | sed 's/'"$filters_mod"'/')"
-  sTitleTemplate="$(echo "$sTitleTemplate" | sed 's/'"${filters_rc:-/}"'/Ig')"
-  sTitleTemplate="$(echo "$sTitleTemplate" | sed 's/'"$filters_codecs"'/Ig')"
-  sTitleTemplate="$(echo "$sTitleTemplate" | sed 's/'"$filters_misc"'/g;s/'"$filters_misc2"'/g;s/'"$filters_misc3"'/g;s/'"$filters_misc4"'/g;')"
-  s=""; while [ "x$sTitleTemplate" != "x$s" ]; do s="$sTitleTemplate"; sTitleTemplate="$(echo "$sTitleTemplate" | sed 's/'"$filters_repeat_misc"'/g')"; done
-  s=""; while [ "x$sTitleTemplate" != "x$s" ]; do s="$sTitleTemplate"; sTitleTemplate="$(echo "$sTitleTemplate" | sed 's/'"$filters_repeat_misc2"'/g')"; done
+  s_title_template="$(echo "$s_title_template" | sed 's/'"$filters_mod"'/')"
+  s_title_template="$(echo "$s_title_template" | sed 's/'"${filters_rc:-/}"'/Ig')"
+  s_title_template="$(echo "$s_title_template" | sed 's/'"$filters_codecs"'/Ig')"
+  s_title_template="$(echo "$s_title_template" | sed 's/'"$filters_misc"'/g;s/'"$filters_misc2"'/g;s/'"$filters_misc3"'/g;s/'"$filters_misc4"'/g;')"
+  s=""; while [ "x$s_title_template" != "x$s" ]; do s="$s_title_template"; s_title_template="$(echo "$s_title_template" | sed 's/'"$filters_repeat_misc"'/g')"; done
+  s=""; while [ "x$s_title_template" != "x$s" ]; do s="$s_title_template"; s_title_template="$(echo "$s_title_template" | sed 's/'"$filters_repeat_misc2"'/g')"; done
 
   # set title based on search / template file name / mask / file info parts
-  sSearch_="$(echo "$sSearch" | awk '{gsub(" ",".",$0); print tolower($0)}')"
-  if [ -n "$(echo "$sTitleTemplate" | grep -i "$(fnRegexp "$sSearch_" "grep")")" ]; then
-    sTitle="$sTitleTemplate.$sTitleInfo"
-  elif [ -n $sMaskDefault ]; then
-    sTitle="$sSearch_.[$sMaskDefault].${sTitleTemplate#*\[${sMaskDefault}\]}.$sTitleInfo"
+  s_search_="$(echo "$s_search" | awk '{gsub(" ",".",$0); print tolower($0)}')"
+  if [ -n "$(echo "$s_title_template" | grep -i "$(fn_regexp "$s_search_" "grep")")" ]; then
+    s_title="$s_title_template.$s_title_info"
+  elif [ -n "$s_mask_default" ]; then
+    s_title="$s_search_.[$s_mask_default].${s_title_template#*\[${s_mask_default}\]}.$s_title_info"
   else
-    sTitle="$sSearch_.$sTitleInfo"
+    s_title="$s_search_.$s_title_info"
   fi
 
-  echo -e "set the title template$([ $lFiles -gt 1 ] && echo ". supported multi-file masks: '#of#', 's##e##'"). note ']/[' are fixed title delimiters" 1>&2
-  bRetry=1
-  while [ $bRetry -gt 0 ]; do
-      echo -n $TXT_BOLD 1>&2 && read -e -i "$sTitle" sTitle && echo -n $TXT_RST 1>&2
-    echo -ne "confirm title: '$sTitle'? [(y)es/(n)o/e(x)it] " 1>&2
-    bRetry2=1
-    while [ $bRetry2 -gt 0 ]; do
+  echo -e "set the title template$([ $l_files -gt 1 ] && echo ". supported multi-file masks: '#of#', 's##e##'"). note ']/[' are fixed title delimiters" 1>&2
+  b_retry=1
+  while [ $b_retry -gt 0 ]; do
+      echo -n $TXT_BOLD 1>&2 && read -e -i "$s_title" s_title && echo -n $TXT_RST 1>&2
+    echo -ne "confirm title: '$s_title'? [(y)es/(n)o/e(x)it] " 1>&2
+    b_retry2=1
+    while [ $b_retry2 -gt 0 ]; do
       result=
       read -s -n 1 result
       case "$result" in
-        "y"|"Y") echo "$result" 1>&2; bRetry2=0; bRetry=0 ;;
-        "n"|"N") echo "$result" 1>&2; bRetry2=0 ;;
+        "y"|"Y") echo "$result" 1>&2; b_retry2=0; b_retry=0 ;;
+        "n"|"N") echo "$result" 1>&2; b_retry2=0 ;;
         "x"|"X") echo "$result" 1>&2; exit 1 ;;
       esac
     done
   done
   #deconstruct title
-  if [ ! "x$(echo $sTitle | grep -iP '\[')" == "x" ]; then
-    sTitleExtra=${sTitle##*[}
-    if [ ${#sTitleExtra} -gt 0 ]; then
-      sTitleExtra="[$sTitleExtra"
-      sTitle=$(echo "$sTitle" | sed 's/'"$(fnRegexp "$sTitleExtra" "sed")"'//')
-      [ "x${sTitle:$[${#sTitle}-1]:1}" == "x." ] && sTitle=${sTitle%.}
+  if [ -n "$(echo $s_title | grep -iP '\[')" ]; then
+    s_title_extra=${s_title##*[}
+    if [ ${#s_title_extra} -gt 0 ]; then
+      s_title_extra="[$s_title_extra"
+      s_title=$(echo "$s_title" | sed 's/'"$(fn_regexp "$s_title_extra" "sed")"'//')
+      [ "x${s_title:$((${#s_title} - 1)):1}" == "x." ] && s_title=${s_title%.}
     fi
     # recover (potentially modified) default multi-file mask
-    [ $DEBUG -ge 1 ] && echo "sMask: '${sMask[@]}', sMaskDefault: '$sMaskDefault'" 1>&2
-    IFS=$'\|'; sMask=($(fnFileMultiMask "$sTitle")); IFS=$IFSORG
-    [ $DEBUG -ge 1 ] && echo "sMask: '${sMask[@]}', sMaskDefault: '$sMaskDefault'" 1>&2
+    [ $DEBUG -ge 1 ] && echo "s_mask: '${s_mask[@]}', s_mask_default: '$s_mask_default'" 1>&2
+    IFS=$'\|'; s_mask=($(fn_file_multi_mask "$s_title")); IFS=$IFSORG
+    [ $DEBUG -ge 1 ] && echo "s_mask: '${s_mask[@]}', s_mask_default: '$s_mask_default'" 1>&2
     # correct default mask to be based on total files (where necessary)
-    if [[ $sMask && "x$(echo "${sMask[0]}" | sed -n '/of/p')" != "x" ]]; then
-      sMaskDefault=$(echo "$sMaskDefault" | sed 's/\(#\+of\)#/\1'$lFiles'/')
-      [ $DEBUG -ge 1 ] && echo "sMask: '${sMask[@]}', sMaskDefault: '$sMaskDefault'" 1>&2
-      IFS=$'\|'; sMask=($(fnFileMultiMask "$sTitle" $sMaskDefault)); IFS=$IFSORG
-      [ $DEBUG -ge 1 ] && echo "sMask: '${sMask[@]}', sMaskDefault: '$sMaskDefault'" 1>&2
+    if [[ $s_mask && -n "$(echo "${s_mask[0]}" | sed -n '/of/p')" ]]; then
+      s_mask_default=$(echo "$s_mask_default" | sed 's/\(#\+of\)#/\1'$l_files'/')
+      [ $DEBUG -ge 1 ] && echo "s_mask: '${s_mask[@]}', s_mask_default: '$s_mask_default'" 1>&2
+      IFS=$'\|'; s_mask=($(fn_file_multi_mask "$s_title" $s_mask_default)); IFS=$IFSORG
+      [ $DEBUG -ge 1 ] && echo "s_mask: '${s_mask[@]}', s_mask_default: '$s_mask_default'" 1>&2
       # remember to update the title too, ensuring the modified default mask is there for templated replacement in the latter files loop
-      sTitle=$(echo "$sTitle" | sed 's/\(#\+of\)#/\1'$lFiles'/')
-      [ $DEBUG -gt 0 ] && echo "#sTitle: '$sTitle'" 1>&2
+      s_title=$(echo "$s_title" | sed 's/\(#\+of\)#/\1'$l_files'/')
+      [ $DEBUG -gt 0 ] && echo "#s_title: '$s_title'" 1>&2
     fi
 
-    s=""; while [ "x$sTitle" != "x$s" ]; do s="$sTitle"; sTitle="$(echo "$sTitle" | sed 's/\(\[\.*\]\|(\.*)\|^\.\|\.$\)//g')"; done
-    s=""; while [ "x$sTitle" != "x$s" ]; do s="$sTitle"; sTitle="$(echo "$sTitle" | sed 's/\.\././g')"; done
+    s=""; while [ "x$s_title" != "x$s" ]; do s="$s_title"; s_title="$(echo "$s_title" | sed 's/\(\[\.*\]\|(\.*)\|^\.\|\.$\)//g')"; done
+    s=""; while [ "x$s_title" != "x$s" ]; do s="$s_title"; s_title="$(echo "$s_title" | sed 's/\.\././g')"; done
   fi
 
-  [ $DEBUG -gt 0 ] && echo "#sTitle: '$sTitle'" 1>&2
+  [ $DEBUG -gt 0 ] && echo "#s_title: '$s_title'" 1>&2
 
   #structure files
   ##move
-  sShortTitle=${sTitle%%[*} && sShortTitle=${sShortTitle%.}
-  $cmdmd -p "$sShortTitle"
-  info="$sShortTitle/info"
-  declare -A fDirs
-  for f in "${sFiles[@]}"; do
-    $cmdmv "$f" "$sShortTitle/" #2>/dev/null
+  s_short_title=${s_title%%[*} && s_short_title=${s_short_title%.}
+  $cmdmd -p "$s_short_title"
+  info="$s_short_title/info"
+  declare -A f_dirs
+  for f in "${s_files[@]}"; do
+    $cmdmv "$f" "$s_short_title/" #2>/dev/null
     #collect dirs
     f2="${f%/*}"
-    [[ -d "$f2" && "x$d" != "" &&  x$(cd "$f2" && pwd) != "x$(pwd)" ]] && fDirs["$f2"]="$f2"
+    [[ -d "$f2" && "x$d" != "" &&  x$(cd "$f2" && pwd) != "x$(pwd)" ]] && f_dirs["$f2"]="$f2"
   done
   #clean up. subdirs needs to be removed first. loop as many times as is directories achieves this, crudely!
-  for l in $(seq 1 1 ${#fDirs[@]}); do
-    for d in "${fDirs[@]}"; do rmdir "$d" >/dev/null 2>&1; done
+  for l in $(seq 1 1 ${#f_dirs[@]}); do
+    for d in "${f_dirs[@]}"; do rmdir "$d" >/dev/null 2>&1; done
   done
-#    [ $DEBUG -eq 0 ] && (cd $sTitle || exit 1)
+#    [ $DEBUG -eq 0 ] && (cd $s_title || exit 1)
   ##rename
-  #trim dummy extra info stub, sent as separate parameter to fnFileTarget function
-  sTitle2="$(echo "${sTitle%[*}" | sed 's/\(^\.\|\.$\)//g')"
+  #trim dummy extra info stub, sent as separate parameter to fn_file_target function
+  s_title2="$(echo "${s_title%[*}" | sed 's/\(^\.\|\.$\)//g')"
 
-  #IFSORG=$IFS; IFS=$'\n'; files=($(fnFiles "$n")); IFS=$IFSORG; for f2 in "${files[@]}"; do n2=${f2##*.}; [ ! -e "$n.$n2" ] && mv -i "$f2" "$n.$n2"; done; done
-  IFS=$'\n'; sFiles2=($(find "./$sShortTitle/" -type f -maxdepth 1 -iregex '^.*\.\('"$(echo $VIDEXT\|$VIDXEXT\|$EXTEXT | sed 's|\||\\\||g')"'\)$')); IFS=$IFSORG
+  #IFSORG=$IFS; IFS=$'\n'; files=($(fn_files "$n")); IFS=$IFSORG; for f2 in "${files[@]}"; do n2=${f2##*.}; [ ! -e "$n.$n2" ] && mv -i "$f2" "$n.$n2"; done; done
+  IFS=$'\n'; s_files2=($(find "./$s_short_title/" -type f -maxdepth 1 -iregex '^.*\.\('"$(echo $VIDEXT\|$VIDXEXT\|$EXTEXT | sed 's|\||\\\||g')"'\)$')); IFS=$IFSORG
   if [ $TEST -ge 1 ]; then
     # use original files as we didn't move any!
-    sFiles2=()
-    for f in "${sFiles[@]}"; do [ "x$(echo "$f" | sed -n '/^.*\.\('"$(echo $VIDEXT\|$VIDXEXT\|$EXTEXT | sed 's|\||\\\||g')"'\)$/p')" != "x" ] && sFiles2[${#sFiles2[@]}]="$f"; done
+    s_files2=()
+    for f in "${s_files[@]}"; do [ -n "$(echo "$f" | sed -n '/^.*\.\('"$(echo $VIDEXT\|$VIDXEXT\|$EXTEXT | sed 's|\||\\\||g')"'\)$/p')" ] && s_files2[${#s_files2[@]}]="$f"; done
   fi
-  [ $DEBUG -gt 0 ] && echo "#sFiles2: ${#sFiles2[@]}, sFiles2: '${sFiles2[@]}'" 1>&2
-  for f in "${sFiles2[@]}"; do
+  [ $DEBUG -gt 0 ] && echo "#s_files2: ${#s_files2[@]}, s_files2: '${s_files2[@]}'" 1>&2
+  for f in "${s_files2[@]}"; do
     f2="$(echo "${f##*/}" | awk '{gsub(" ",".",$0); print tolower($0)}')" # go lower case, remove spaces, remove path
 
-    IFS=$'|'; sMask=($(fnFileMultiMask "$f2" "" "$sMaskDefault")); IFS=$IFSORG
-    [ $DEBUG -gt 0 ] && echo "sMask: '${sMask[@]}'" 1>&2
+    IFS=$'|'; s_mask=($(fn_file_multi_mask "$f2" "" "$s_mask_default")); IFS=$IFSORG
+    [ $DEBUG -gt 0 ] && echo "s_mask: '${s_mask[@]}'" 1>&2
 
     if [ ${#filters_cmd[@]} -gt 0 ]; then
-      #we need to manipulate the target (sTitle2) before it goes for its final name fixing (fnFileTarget)
-      #providing filter terms means the sTitle2 contains only the stub
+      #we need to manipulate the target (s_title2) before it goes for its final name fixing (fn_file_target)
+      #providing filter terms means the s_title2 contains only the stub
       for s in "${filters_cmd[@]}"; do f2=$(echo "$f2" | sed 's/\([._-]\)*'$s'\([._-]\)*/../Ig'); done  # apply filters
-      if [ "x${sMask[1]}" != "x" ]; then
-        sTarget="$sTitle2.[$sMaskDefault].$(echo "${f2%.*}" | sed 's/^.*'"$(fnRegexp "${sMask[1]}" "sed")"'\]*//')" # construct dynamic title from template and additional file info i.e post-mask characters
+      if [ -n "${s_mask[1]}" ]; then
+        s_target="$s_title2.[$s_mask_default].$(echo "${f2%.*}" | sed 's/^.*'"$(fn_regexp "${s_mask[1]}" "sed")"'\]*//')" # construct dynamic title from template and additional file info i.e post-mask characters
       else
         #no delimiter. so we need to use all info in the original filename
         #we can try and filter any info already present in the template though
-        filters_cmd2=($(echo "$sTitle2" | sed 's/[][)(-,._]/ /g'))
+        filters_cmd2=($(echo "$s_title2" | sed 's/[][)(-,._]/ /g'))
         for s in ${filters_cmd2[@]}; do f2=$(echo "$f2" | sed 's/\([._-]\)*'$s'\([._-]\)*/../Ig'); done
-        sTarget="$sTitle2.${f2%.*}"
+        s_target="$s_title2.${f2%.*}"
       fi
 
-#      sTarget="$(echo "$sTarget" | awk '{gsub(" ",".",$0); print tolower($0)}')" # go lower case now
+#      s_target="$(echo "$s_target" | awk '{gsub(" ",".",$0); print tolower($0)}')" # go lower case now
 
-      sTarget="$(echo "$sTarget" | sed 's/'"$filters_mod"'/')"
-      sTarget="$(echo "$sTarget" | sed 's/'"${filters_rc:-/}"'/Ig')"
-      sTarget="$(echo "$sTarget" | sed 's/'"$filters_codecs"'/Ig')"
-      sTarget="$(echo "$sTarget" | sed 's/'"$filters_misc"'/g;s/'"$filters_misc2"'/g;s/'"$filters_misc3"'/g;s/'"$filters_misc4"'/g;')"
-      s=""; while [ "x$sTarget" != "x$s" ]; do s="$sTarget"; sTarget="$(echo "$sTarget" | sed 's/'"$filters_repeat_misc"'/g')"; done
-      s=""; while [ "x$sTarget" != "x$s" ]; do s="$sTarget"; sTarget="$(echo "$sTarget" | sed 's/'"$filters_repeat_misc2"'/g')"; done
+      s_target="$(echo "$s_target" | sed 's/'"$filters_mod"'/')"
+      s_target="$(echo "$s_target" | sed 's/'"${filters_rc:-/}"'/Ig')"
+      s_target="$(echo "$s_target" | sed 's/'"$filters_codecs"'/Ig')"
+      s_target="$(echo "$s_target" | sed 's/'"$filters_misc"'/g;s/'"$filters_misc2"'/g;s/'"$filters_misc3"'/g;s/'"$filters_misc4"'/g;')"
+      s=""; while [ "x$s_target" != "x$s" ]; do s="$s_target"; s_target="$(echo "$s_target" | sed 's/'"$filters_repeat_misc"'/g')"; done
+      s=""; while [ "x$s_target" != "x$s" ]; do s="$s_target"; s_target="$(echo "$s_target" | sed 's/'"$filters_repeat_misc2"'/g')"; done
 
     else
       # static
-      sTarget="$sTitle"
+      s_target="$s_title"
     fi
     # set fileinfo
     #*IMPLEMENT: this could be removing additional info set interactively
-    [ "x$(echo "${f##*.}" | sed -n 's/\('$(echo "$VIDEXT" | sed 's/[|]/\\\|/g')'\)/\1/p')" != "x" ] && sTitleExtra="[$(fnFileInfo "$f")]" # update info for video files. potential for mismatch here
-    sTarget=$(fnFileTarget "$f2" "$sTarget" "$sTitleExtra") # should use $f, but more filters would be required to cope with spaces etc.
+    [ -n "$(echo "${f##*.}" | sed -n 's/\('$(echo "$VIDEXT" | sed 's/[|]/\\\|/g')'\)/\1/p')" ] && s_title_extra="[$(fn_file_info "$f")]" # update info for video files. potential for mismatch here
+    s_target=$(fn_file_target "$f2" "$s_target" "$s_title_extra") # should use $f, but more filters would be required to cope with spaces etc.
     # strip failed multifile suffixes
-    sTarget=$(echo "$sTarget" | sed 's/\.*\(\.\['$sMaskDefault'\]\)\.*/./')
+    s_target=$(echo "$s_target" | sed 's/\.*\(\.\['$s_mask_default'\]\)\.*/./')
 
-    [ $DEBUG -ge 1 ] && echo "sTarget: '$sTarget' from f: '$f', sTitle2: '$sTitle2', sTitleExtra: '$sTitleExtra', sMaskDefault: $sMaskDefault" 1>&2
+    [ $DEBUG -ge 1 ] && echo "s_target: '$s_target' from f: '$f', s_title2: '$s_title2', s_title_extra: '$s_title_extra', s_mask_default: $s_mask_default" 1>&2
 
-    if [[ "x$sTarget" != "x" && "x$f" != "x./$sShortTitle/$sTarget" ]]; then
+    if [[ -n "$s_target" && "x$f" != "x./$s_short_title/$s_target" ]]; then
       #move!
       if [ $TEST -eq 0 ]; then
-        while [ -f "./$sShortTitle/$sTarget" ]; do
+        while [ -f "./$s_short_title/$s_target" ]; do
           #target already exists
-          if [ "x$(diff -q "$f" "./$sShortTitle/$sTarget")" == "x" ]; then
+          if [ -z "$(diff -q "$f" "./$s_short_title/$s_target")" ]; then
             #dupe file
-            [ $DEBUG -ge 1 ] && echo "file: '$f' is identical to pre-existing target: '$sTarget'. assuming duplicate and removing file" 1>&2
-            sTarget=""
+            [ $DEBUG -ge 1 ] && echo "file: '$f' is identical to pre-existing target: '$s_target'. assuming duplicate and removing file" 1>&2
+            s_target=""
             rm "$f"
             break
           else
-            echo -e "target file '$sTarget' for '${f##*/}' already exists, rename target or set blank to skip" 1>&2
-            echo -n $TXT_BOLD 1>&2 && read -e -i "$sTarget" sTarget && echo -n $TXT_RST 1>&2
-            [ "x$sTarget" == "x" ] && break
+            echo -e "target file '$s_target' for '${f##*/}' already exists, rename target or set blank to skip" 1>&2
+            echo -n $TXT_BOLD 1>&2 && read -e -i "$s_target" s_target && echo -n $TXT_RST 1>&2
+            [ -z "$s_target" ] && break
           fi
         done
       fi
-      if [ "x$sTarget" != "x" ]; then
+      if [ -n "$s_target" ]; then
         #log
-        [ $TEST -eq 0 ] && echo "${f##*/} -> $sTarget" | tee -a "$info"
+        [ $TEST -eq 0 ] && echo "${f##*/} -> $s_target" | tee -a "$info"
         #move
-        $cmdmv "$f" "./$sShortTitle/$sTarget"
+        $cmdmv "$f" "./$s_short_title/$s_target"
       fi
     fi
   done
 
-  #echo -n "structure '" 1>&2 && echo -n "$sTitle" | tee >(cat - 1>&2) && echo "' created" 1>&2
-  #echo "structure '$sTitle' created" 1>&2
-  #echo "$sTitle"
-  [ $bVerbose -eq 1 ] && echo -n "structure '" 1>&2
-  [ $bLong -eq 1 ] && echo -n "$pwd/$sShortTitle" || echo -n "$sShortTitle"
-  [ $bVerbose -eq 1 ] && echo "' created" 1>&2
+  #echo -n "structure '" 1>&2 && echo -n "$s_title" | tee >(cat - 1>&2) && echo "' created" 1>&2
+  #echo "structure '$s_title' created" 1>&2
+  #echo "$s_title"
+  [ $b_verbose -eq 1 ] && echo -n "structure '" 1>&2
+  [ $b_long -eq 1 ] && echo -n "$pwd/$s_short_title" || echo -n "$s_short_title"
+  [ $b_verbose -eq 1 ] && echo "' created" 1>&2
   return 0
 }
 
-fnRate()
+fn_rate()
 {
   #move files to the local ratings hierarchy (or default rating hierarchy location if we
   #cannot find the local hierarchy 'nearby'
 
-  [ $DEBUG -ge 1 ] && echo "[debug fnRate]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_rate]" 1>&2
 
   cmdmd="$([ $TEST -gt 0 ] && echo "echo ")$CMDMD"
   cmdmv="$([ $TEST -gt 0 ] && echo "echo ")$CMDMV"
@@ -1598,38 +1598,38 @@ fnRate()
   [ $# -eq 0 ] && echo "[user] search string / target parameter required!" && exit 1
 
   #rating (optional)
-  [ $# -gt 1 ] && [ "x$(echo $1 | sed -n '/^[0-9]\+$/p')" != "x" ] && lRating="$1" && shift
+  [ $# -gt 1 ] && [ -n "$(echo $1 | sed -n '/^[0-9]\+$/p')" ] && l_rating="$1" && shift
   #search
-  sSearch="$1" && shift
+  s_search="$1" && shift
   #rating (optional)
-  [ $# -gt 0 ] && [ "x$(echo $1 | sed -n '/^[0-9]\+$/p')" != "x" ] && lRating="$1" && shift
+  [ $# -gt 0 ] && [ -n "$(echo $1 | sed -n '/^[0-9]\+$/p')" ] && l_rating="$1" && shift
   #path
-  if [ $# -gt 0 ] && [ "x$(echo $1 | sed -n '/^[0-9]\+$/p')" == "x" ]; then
+  if [ $# -gt 0 ] && [ -n "$(echo $1 | sed -n '/^[0-9]\+$/p')" ]; then
     [ ! -d "$1" ] && echo "[user] the ratings base path '$1' is invalid" && exit 1
-    sPathBase="$1" && shift
+    s_path_base="$1" && shift
   fi
   #rating (optional)
-  [ $# -gt 0 ] && [ "x$(echo $1 | sed -n '/^[0-9]\+$/p')" != "x" ] && lRating="$1" && shift
+  [ $# -gt 0 ] && [ -n "$(echo $1 | sed -n '/^[0-9]\+$/p')" ] && l_rating="$1" && shift
 
   #source
   source=""
-  if [ -d "$sSearch" ]; then
-    source="$(cd "$sSearch" && pwd)"
-  elif [ -d $sSearch* ] 2>/dev/null; then
-    source="$(cd $sSearch* && pwd)"
+  if [ -d "$s_search" ]; then
+    source="$(cd "$s_search" && pwd)"
+  elif [ -d $s_search* ] 2>/dev/null; then
+    source="$(cd $s_search* && pwd)"
   else
     #auto local source
 
     #get list of associated files in pwd
     IFS=$'\n'
-    sFiles=($(fnFiles silent "$sSearch"))
+    s_files=($(fn_files silent "$s_search"))
     x=$? && [ $x -ne 0 ] && exit $x
-    [ $DEBUG -ge 1 ] && echo "[debug fnRate] fnFiles results: count=${#sFiles[@]}" 1>&2
+    [ $DEBUG -ge 1 ] && echo "[debug fn_rate] fn_files results: count=${#s_files[@]}" 1>&2
     IFS=$IFSORG
     #if all are under the same subdirectory then assume that is a source structure, otherwise, structure those files interactively
-    if [ ${#sFiles[@]} -eq 1 ]; then
+    if [ ${#s_files[@]} -eq 1 ]; then
       #is it inside a dir structure
-      f="${sFiles[0]}"
+      f="${s_files[0]}"
       s0=${f##*/} #file
       s1=${f%/*} #path
       s2=${s1##*/} #parent dir
@@ -1637,45 +1637,45 @@ fnRate()
         source="$s1" # structured
       else
         #option to structure?
-        echo -n "[user] structure single file '${sFiles[0]}'? [(y)es/(n)o/e(x)it]:  " 1>&2
-        bRetry=1
-        while [ $bRetry -eq 1 ]; do
+        echo -n "[user] structure single file '${s_files[0]}'? [(y)es/(n)o/e(x)it]:  " 1>&2
+        b_retry=1
+        while [ $b_retry -eq 1 ]; do
           echo -en '\033[1D\033[K'
           read -n 1 -s result
           case "$result" in
-            "y" | "Y") echo -n $result; bRetry=0; source="" ;;
-            "n" | "N") echo -n $result; bRetry=0; source=${sFiles[0]} ;;
-            "x" | "X") echo -n $result; bRetry=0; echo ""; exit 0 ;;
+            "y" | "Y") echo -n $result; b_retry=0; source="" ;;
+            "n" | "N") echo -n $result; b_retry=0; source=${s_files[0]} ;;
+            "x" | "X") echo -n $result; b_retry=0; echo ""; exit 0 ;;
             *) echo -n " " 1>&2
           esac
         done
         echo ""
       fi
-    elif [ ${#sFiles[@]} -gt 1 ]; then
-      for f in "${sFiles[@]}"; do
+    elif [ ${#s_files[@]} -gt 1 ]; then
+      for f in "${s_files[@]}"; do
         f2=${f%/*}
-        if [ "x$source" == "x" ]; then
+        if [ -z "$source" ]; then
           source="$f2"
         else
           #this disables auto rating when our working directory is the same as the target files. necessary, but also
           #defeats use case where we are in a legitimate structure directory
-          [[ ! "x$f2" == "x$source" || "x$(cd "$f2" && pwd)" == "x$PWD" ]] && source="" && break
+          [[ "x$f2" != "x$source" || "x$(cd "$f2" && pwd)" == "x$PWD" ]] && source="" && break
         fi
       done
     fi
     #global search
-    lType=0 # 0 auto, 1 interactive
-    while [ $lType -lt 2 ]; do
-      if [ "x$source" == "x" ]; then
-        IFS=$'\n'; sFiles=($(fnSearch iterative $([ $lType -eq 1 ] && echo "interactive") "$sSearch" "$VIDEXT")); IFS=$IFSORG
-        [ $DEBUG -ge 1 ] && echo "[debug fnRate] fnSearch results: count=${#sFiles[@]}" 1>&2
+    l_type=0 # 0 auto, 1 interactive
+    while [ $l_type -lt 2 ]; do
+      if [ -z "$source" ]; then
+        IFS=$'\n'; s_files=($(fn_search iterative $([ $l_type -eq 1 ] && echo "interactive") "$s_search" "$VIDEXT")); IFS=$IFSORG
+        [ $DEBUG -ge 1 ] && echo "[debug fn_rate] fn_search results: count=${#s_files[@]}" 1>&2
         #filter valid
-        sFiles2=()
-        for f in "${sFiles[@]}"; do [ -f "$f" ] && sFiles2[${#sFiles2[@]}]="$f"; done;
-        sFiles=(${sFiles2[@]})
-        if [ ${#sFiles[@]} -eq 1 ]; then
+        s_files2=()
+        for f in "${s_files[@]}"; do [ -f "$f" ] && s_files2[${#s_files2[@]}]="$f"; done;
+        s_files=(${s_files2[@]})
+        if [ ${#s_files[@]} -eq 1 ]; then
           #is it inside a dir structure
-          f="${sFiles[0]}"
+          f="${s_files[0]}"
           s0=${f##*/} #file
           s1=${f%/*} #path
           s2=${s1##*/} #parent dir
@@ -1683,22 +1683,22 @@ fnRate()
             source="$s1" # structured
           else
             #option to structure?
-            echo -n "[user] structure single file '${sFiles[0]}'? [(y)es/(n)o/e(x)it]:  " 1>&2
-            bRetry=1
-            while [ $bRetry -eq 1 ]; do
+            echo -n "[user] structure single file '${s_files[0]}'? [(y)es/(n)o/e(x)it]:  " 1>&2
+            b_retry=1
+            while [ $b_retry -eq 1 ]; do
               echo -en '\033[1D\033[K'
               read -n 1 -s result
               case "$result" in
-                "y" | "Y") echo -n $result; bRetry=0; source="" ;;
-                "n" | "N") echo -n $result; bRetry=0; source=${sFiles[0]} ;;
-                "x" | "X") echo -n $result; bRetry=0; echo ""; exit 0 ;;
+                "y" | "Y") echo -n $result; b_retry=0; source="" ;;
+                "n" | "N") echo -n $result; b_retry=0; source=${s_files[0]} ;;
+                "x" | "X") echo -n $result; b_retry=0; echo ""; exit 0 ;;
                 *) echo -n " " 1>&2
               esac
             done
             echo ""
           fi
-          lType+=1
-        elif [ ${#sFiles[@]} -gt 1 ]; then
+          l_type+=1
+        elif [ ${#s_files[@]} -gt 1 ]; then
           # if all files are under the same subdirectory then assume that is the
           # stucture
           # if there are multiple subdirectories all under a common subdirectory,
@@ -1706,11 +1706,11 @@ fnRate()
           # if there are multi subdirectories, choose the desired base
           sources=()
           lastbase=""
-          for f in "${sFiles[@]}"; do
+          for f in "${s_files[@]}"; do
             d=${f%/*}
-            if [ "x$lastbase" == "x" ]; then
+            if [ -z "$lastbase" ]; then
               sources=("$d")
-              lType+=1
+              l_type+=1
             else
               # disables auto rating when multiple directories/structures have
               # been found, or our working directory is the same as the target
@@ -1719,61 +1719,61 @@ fnRate()
               [ "x$d" == "x$lastbase" ] && continue
               sources=("${sources[@]}" "$d")
             fi
-            [ $DEBUG -ge 1 ] && echo "[debug fnRate] found files in: '$d'" 1>&2
+            [ $DEBUG -ge 1 ] && echo "[debug fn_rate] found files in: '$d'" 1>&2
             lastbase="$d"
           done
-          [ $DEBUG -ge 1 ] && echo "[debug fnRate] found ${#sources[@]} source dir`[ ${#sources[@]} -ne 1 ] && echo "s"` with file(s) containing search term" 1>&2
+          [ $DEBUG -ge 1 ] && echo "[debug fn_rate] found ${#sources[@]} source dir$([ ${#sources[@]} -ne 1 ] && echo "s") with file(s) containing search term" 1>&2
           if [ ${#sources[@]} -eq 1 ]; then
             source="${sources[0]}"
-            [ $DEBUG -ge 1 ] && echo "[debug fnRate] source dir set to '$source'" 1>&2
+            [ $DEBUG -ge 1 ] && echo "[debug fn_rate] source dir set to '$source'" 1>&2
           else
             #strip same subdirectory roots?
             sources2=()
             for d2 in "${sources[@]}"; do
               if [ ${#sources2[@]} -eq 0 ]; then
-                [ $DEBUG -ge 1 ] && echo -e "[debug fnRate] adding d2: '$d2'" 1>&2
+                [ $DEBUG -ge 1 ] && echo -e "[debug fn_rate] adding d2: '$d2'" 1>&2
                 sources2=("$d2")
               else
                 lidx=0
                 for d3 in "${sources2[@]}"; do
                   #if d2 is a base of d3 then ignore d3, else add it!
                   #if d3 is a base of d2 then replace d2 with d3, else add it!
-                  [ $DEBUG -ge 1 ] && echo -e "[debug fnRate] testing\nd2: '$d2'\nd3: '$d3'" 1>&2
+                  [ $DEBUG -ge 1 ] && echo -e "[debug fn_rate] testing\nd2: '$d2'\nd3: '$d3'" 1>&2
                   if [ ${#d2} -gt ${#d3} ]; then
                     #d2 could be a subdirectory of d3..
-                    [ "x`echo "$d2" | sed -n '/.*'"$(fnRegexp "$d3" "sed")"'.*/p'`" == "x" ] &&
+                    [ -z "$(echo "$d2" | sed -n '/.*'"$(fn_regexp "$d3" "sed")"'.*/p')" ] &&
                       { sources2=("${sources2[@]}" "$d2") &&
-                        [ $DEBUG -ge 1 ] && echo -e "[debug fnRate] adding d2: '$d2'" 1>&2; }
+                        [ $DEBUG -ge 1 ] && echo -e "[debug fn_rate] adding d2: '$d2'" 1>&2; }
                   else
                     #d3 could be a subdirectory of d2..
-                    [ "x`echo "$d3" | sed -n '/.*'"$(fnRegexp "$d3" "sed")"'.*/p'`" != "x" ] &&
+                    [ -n "$(echo "$d3" | sed -n '/.*'"$(fn_regexp "$d3" "sed")"'.*/p')" ] &&
                       { sources2[$lidx]="$d2" &&
-                        [ $DEBUG -ge 1 ] && echo -e "[debug fnRate] replacing d3 with d2: '$d2'" 1>&2; } ||
+                        [ $DEBUG -ge 1 ] && echo -e "[debug fn_rate] replacing d3 with d2: '$d2'" 1>&2; } ||
                       { sources2=("${sources2[@]}" "$d3") &&
-                        [ $DEBUG -ge 1 ] && echo -e "[debug fnRate] adding d2: '$d2'" 1>&2; }
+                        [ $DEBUG -ge 1 ] && echo -e "[debug fn_rate] adding d2: '$d2'" 1>&2; }
                   fi
                   lidx+=1
                 done
               fi
             done
-            [ $DEBUG -ge 1 ] && echo "[debug fnRate] stripped $[${#sources[@]}-${#sources2[@]}] subdirectories from sources list" 1>&2
+            [ $DEBUG -ge 1 ] && echo "[debug fn_rate] stripped $((${#sources[@]} - ${#sources2[@]})) subdirectories from sources list" 1>&2
             if [ ${#sources[@]} -eq 1 ]; then
               source="${sources[0]}"
-              [ $DEBUG -ge 1 ] && echo "[debug fnRate] source dir set to '$source'" 1>&2
+              [ $DEBUG -ge 1 ] && echo "[debug fn_rate] source dir set to '$source'" 1>&2
             else
               # choose!
               lidx=0
-              bRetry=1
-              while [[ $bRetry -eq 1 && $lidx -lt ${#sources2[@]} ]]; do
+              b_retry=1
+              while [[ $b_retry -eq 1 && $lidx -lt ${#sources2[@]} ]]; do
                 echo -n "[user] multiple source dirs found, use '${sources2[$lidx]}'? [(y)es/(n)o/e(x)it]:  " 1>&2
-                bRetry2=1
-                while [ $bRetry2 -eq 1 ]; do
+                b_retry2=1
+                while [ $b_retry2 -eq 1 ]; do
                   echo -en '\033[1D\033[K'
                   read -n 1 -s result
                   case "$result" in
-                    "y" | "Y") echo -n $result; bRetry2=0; bRetry=0; source="${sources2[$lidx]}" ;;
-                    "n" | "N") echo -n $result; bRetry2=0; lidx+=1 ;;
-                    "x" | "X") echo -n $result; bRetry2=0; echo ""; exit 0 ;;
+                    "y" | "Y") echo -n $result; b_retry2=0; b_retry=0; source="${sources2[$lidx]}" ;;
+                    "n" | "N") echo -n $result; b_retry2=0; lidx+=1 ;;
+                    "x" | "X") echo -n $result; b_retry2=0; echo ""; exit 0 ;;
                     *) echo -n " " 1>&2
                   esac
                 done
@@ -1783,65 +1783,65 @@ fnRate()
           fi
         fi
       fi
-      lType+=1
+      l_type+=1
     done
 
-    [ $DEBUG -ge 1 ] && echo "[debug fnRate] source: '$source'" 1>&2
+    [ $DEBUG -ge 1 ] && echo "[debug fn_rate] source: '$source'" 1>&2
 
     #manual local re-structure
-    if [ "x$source" == "x" ]; then
-      source="$(fnStructure silent long "$sSearch")"
+    if [ -z "$source" ]; then
+      source="$(fn_structure silent long "$s_search")"
       x=$? && [ $x -ne 0 ] && exit $x
     fi
 
   fi
 
-  if [ "x$sPathBase" == "x" ]; then
+  if [ -z "$s_path_base" ]; then
     #iterate up file hierarchy looking for 'watched' folder. use a default if failure
     wd="${source%/*}"
-    bRetry=1
-    while [ $bRetry -eq 1 ]; do
+    b_retry=1
+    while [ $b_retry -eq 1 ]; do
       if [ -e "$wd/watched/" ]; then
-        bRetry=0
-        sPathBase="$wd/watched/"
-      elif [ "x$wd" == "x" ]; then
-        bRetry=0
+        b_retry=0
+        s_path_base="$wd/watched/"
+      elif [ -z "$wd" ]; then
+        b_retry=0
       else
         wd="${wd%/*}"
       fi
     done
-    if [ "x$sPathBase" == "x" ]; then
-      sPathBase="$PATHRATINGSDEFAULT"
-      [ ! -d $sPathBase ] && $cmdmd $PATHRATINGSDEFAULT
+    if [ -z "$s_path_base" ]; then
+      s_path_base="$PATHRATINGSDEFAULT"
+      [ ! -d $s_path_base ] && $cmdmd $PATHRATINGSDEFAULT
     fi
   fi
-  [ ! -d "$sPathBase" ] && echo "[user] the default ratings base path '$sPathBase' is invalid" 1>&2 && exit 1
-  [ ! "x${sPathBase:$[${#sPathBase}-1]}" == "x/" ] && sPathBase="$sPathBase/"
+  [ ! -d "$s_path_base" ] && echo "[user] the default ratings base path '$s_path_base' is invalid" 1>&2 && exit 1
+  [ ! "x${s_path_base:$((${#s_path_base} - 1))}" == "x/" ] && s_path_base="$s_path_base/"
 
-  if [ ! "$lRating" ]; then
-    bRetry=1
-    while [ $bRetry -eq 1 ]; do
+  if [ ! "$l_rating" ]; then
+    b_retry=1
+    while [ $b_retry -eq 1 ]; do
       echo -en "[user] enter an integer rating between 1 and 10 for '${source##*/}' or leave empty for unrated (where file structure is pushed to the root of the 'watched' dir): " 1>&2
       read result
       case "$result" in
-        [1-9]|10|"") bRetry=0; lRating=$result ;;
+        [1-9]|10|"") b_retry=0; l_rating=$result ;;
 #        *) echo -en "\033[u\033[A\033[K" ;;
         *) echo -en "\033[A\033[2K" ;;
       esac
     done
 #    echo -en "\033[7h" 1>&2
   fi
-  echo -e "source: '$source'\ntarget: '$sPathBase$lRating'"
-  $cmdmd "$sPathBase$lRating" 2>/dev/null 1>&2
+  echo -e "source: '$source'\ntarget: '$s_path_base$l_rating'"
+  $cmdmd "$s_path_base$l_rating" 2>/dev/null 1>&2
 
-  if [ -e "$sPathBase$lRating/${source##*/}" ]; then
-    echo -en "[user] path '$sPathBase$lRating/${source##*/}' exists, overwrite? [(y)es/(no):  " 1>&2
-    bRetry=1
-    while [ $bRetry -eq 1 ]; do
+  if [ -e "$s_path_base$l_rating/${source##*/}" ]; then
+    echo -en "[user] path '$s_path_base$l_rating/${source##*/}' exists, overwrite? [(y)es/(no):  " 1>&2
+    b_retry=1
+    while [ $b_retry -eq 1 ]; do
       echo -en '\033[1D\033[K'
       read -n 1 -s result
       case "$result" in
-        "y" | "Y") echo -n $result; bRetry=0 ;;
+        "y" | "Y") echo -n $result; b_retry=0 ;;
         "n" | "N") echo -n $result; echo "" && exit 1 ;;
         *) echo -n " " 1>&2
       esac
@@ -1849,15 +1849,15 @@ fnRate()
     echo ""
   fi
 
-  target="$sPathBase$lRating"
+  target="$s_path_base$l_rating"
 
-  devSource=`stat --format '%d' $source`
-  devTarget=`stat --format '%d' $target`
-  if [ "$devSource" = "$devTarget" ]; then
-    [ $DEBUG -ge 1 ] && echo "[debug fnRate] local move" 1>&2
+  dev_source="$(stat --format '%d' $source)"
+  dev_target="$(stat --format '%d' $target)"
+  if [ "$dev_source" = "$dev_target" ]; then
+    [ $DEBUG -ge 1 ] && echo "[debug fn_rate] local move" 1>&2
     $cmdmv "$source" "$target" 2>/dev/null 1>&2 &
   else
-    [ $DEBUG -ge 1 ] && echo "[debug fnRate] safe copy/delete move" 1>&2
+    [ $DEBUG -ge 1 ] && echo "[debug fn_rate] safe copy/delete move" 1>&2
     $cmdcp "$source" "$target/" && $cmdrm "$source" 2>/dev/null 1>&2 &
   fi
 
@@ -1865,34 +1865,34 @@ fnRate()
   return 0
 }
 
-fnReconsile()
+fn_reconsile()
 {
-  [ $DEBUG -ge 1 ] && echo "[debug fnReconsile]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_reconsile]" 1>&2
 
   file="$1"
-  [[ ! -e $file || "x$file" == "x" ]] && echo "invalid source file '$file'" && exit 1
+  [[ ! -e $file || -z "$file" ]] && echo "invalid source file '$file'" && exit 1
   file2="$file"2
   [ -e $file2 ] && echo "" > "$file2"
 
   MINSEARCH=5
   l=0
-  lMax=0
+  l_max=0
   while read line; do
-    sSearch="$(echo "${line%%|*}" | sed 's/\s/\./g' | awk -F'\n' '{print tolower($0)}')"
-    IFS=$'\n'; aFound=($(fnSearch silent iterative "$sSearch")); IFS=$IFSORG
+    s_search="$(echo "${line%%|*}" | sed 's/\s/\./g' | awk -F'\n' '{print tolower($0)}')"
+    IFS=$'\n'; a_found=($(fn_search silent iterative "$s_search")); IFS=$IFSORG
     s="$line"
-    for s2 in "${aFound[@]}"; do s="$s\t$s2"; done
+    for s2 in "${a_found[@]}"; do s="$s\t$s2"; done
     echo -e "$s" >> "$file2"
-    l=$[$l+1]
-    [ $l -eq $lMax ] && break
+    l=$((l + 1))
+    [ $l -eq $l_max ] && break
   done < $file
 #  sed -i -n '1b;p' "$file2"
   return 0
 }
 
-fnFix()
+fn_fix()
 {
-  [ $DEBUG -ge 1 ] && echo "[debug fnFix]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_fix]" 1>&2
 
   [ -f "$CMDFLVFIXER" ] && echo "missing flvfixer.php" 1>&2
 
@@ -1908,47 +1908,47 @@ fnFix()
   echo -e "[new] $(ls -al "$1")\n"
 }
 
-fnSync()
+fn_sync()
 {
-  [ $DEBUG -ge 1 ] && echo "[debug fnSync]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_sync]" 1>&2
 
   [ ${#args[@]} -ne 2 ] && echo "source file and offset args required" && exit 1
   file="$1"
-  offset="$2" && offset=$(fnPositionNumericToTime $offset 4)
+  offset="$2" && offset=$(fn_position_numeric_to_time $offset 4)
   target="${file%.*}.sync.${file##*.}"
 
-  echo -e "\n#origial video runtime: $(fnPositionNumericToTime $($CMDINFOMPLAYER "$file" 2>/dev/null | grep "ID_LENGTH=" | cut -d '=' -f2) 4)\n"
+  echo -e "\n#origial video runtime: $(fn_position_numeric_to_time $($CMDINFOMPLAYER "$file" 2>/dev/null | grep "ID_LENGTH=" | cut -d '=' -f2) 4)\n"
   [ $? -ne 0 ] && exit 1
   echo command: ffmpeg -y -itsoffset $offset -i "$file" -i "$file" -map 0:v -map 1:a -c copy "$target"
   ffmpeg -y -itsoffset $offset -i "$file" -i "$file" -map 0:v -map 1:a -c copy "$target"
   [ $? -ne 0 ] && exit 1
-  echo -e "\n#new video runtime: $(fnPositionNumericToTime $($CMDINFOMPLAYER "$target" 2>/dev/null | grep "ID_LENGTH=" | cut -d '=' -f2) 4)\n"
+  echo -e "\n#new video runtime: $(fn_position_numeric_to_time $($CMDINFOMPLAYER "$target" 2>/dev/null | grep "ID_LENGTH=" | cut -d '=' -f2) 4)\n"
   [ $? -ne 0 ] && exit 1
   chown --reference "$file" "$target"
 }
 
-fnCalcVideoRate()
+fn_calc_video_rate()
 {
-  [ $DEBUG -ge 1 ] && echo "[debug fnCalcVideoRate]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_calc_video_rate]" 1>&2
 
   #output size in kbps
   [ $# -ne 3 ] && echo "target size, audio size and length args required" && exit 1
-  tSize="$1" && shift
-  ktSize=1 && [ "x${tSize:$[${#tSize}-1]}" == "xM" ] && ktSize="(1024^2)"
-  tSize="$(echo "$tSize" | sed 's/[Mb]//g')"
-  aSize="$1" && shift
-  kaSize=1 && [ "x${aSize:$[${#aSize}-1]}" == "xM" ] && kaSize="(1024^2)"
-  aSize="$(echo "$aSize" | sed 's/[Mb]//g')"
+  t_size="$1" && shift
+  kt_size=1 && [ "x${t_size:$((${#t_size} - 1))}" == "xM" ] && kt_size="(1024^2)"
+  t_size="$(echo "$t_size" | sed 's/[Mb]//g')"
+  a_size="$1" && shift
+  ka_size=1 && [ "x${a_size:$((${#a_size} - 1))}" == "xM" ] && ka_size="(1024^2)"
+  a_size="$(echo "$a_size" | sed 's/[Mb]//g')"
   length="$1" && shift
-  kLength=1 && [ "x${length:$[${#length}-1]}" != "xs" ] && kLength="60"
+  k_length=1 && [ "x${length:$((${#length} - 1))}" != "xs" ] && k_length="60"
   length="$(echo "$length" | sed 's/[ms]//g')"
 
-  echo "target: $(math_ "((($tSize*$ktSize)-($aSize*$kaSize))*8/1024)/($length*$kLength)")kbps"
+  echo "target: $(math_ "((($t_size*$kt_size)-($a_size*$ka_size))*8/1024)/($length*$k_length)")kbps"
 }
 
-fnEdit()
+fn_edit()
 {
-  [ $DEBUG -ge 1 ] && echo "[debug fnEdit]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_edit]" 1>&2
 
   target="$(pwd)" && [ $# -gt 0 ] && target="$1" && shift
   filter=".*" && [ $# -gt 0 ] && filter="$1" && shift
@@ -1959,7 +1959,7 @@ fnEdit()
   IFS=$'\n'; files=($(find "$target" -maxdepth 1 -iregex '^.*\(mp4\|mkv\|avi\)$')); IFS=$IFSORG
   for f in "${files[@]}"; do
     # short-circuit with filter
-    [ "x$(echo "$f" | sed -n '/'$filter'/p')" == "x" ] && continue
+    [ -z "$(echo "$f" | sed -n '/'$filter'/p')" ] && continue
 
     echo "#source: $f"
     n="${f%.*}"; n="${n##*/}"
@@ -1982,11 +1982,11 @@ fnEdit()
   done
 }
 
-fnCalcDimension()
+fn_calc_dimension()
 {
-  [ $DEBUG -ge 1 ] && echo "[debug fnCalcDimension]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_calc_dimension]" 1>&2
 
-  [ $# -ne 3 ] && echo "syntax: fnCalcDimension original_dimensions=1920x1080 scale_dimension=height|width target_dimension_other=x" && exit 1
+  [ $# -ne 3 ] && echo "syntax: fn_calc_dimension original_dimensions=1920x1080 scale_dimension=height|width target_dimension_other=x" && exit 1
   original_dimensions=$1
   scale_dimension=$2
   target_dimension_other=$3
@@ -2001,21 +2001,21 @@ fnCalcDimension()
     original_dimension_other=${original_dimensions%x*}
   fi
 
-  scaled_dimension=`math_ $target_dimension_other/$original_dimension_other*$original_dimension 0`
+  scaled_dimension="$(math_ $target_dimension_other/$original_dimension_other*$original_dimension 0)"
 
   int=0
   inc=1
-  [ `echo "scale=0; $scaled_dimension % 8 < 4" | bc` -eq ] && inc=-1
+  [ "$(echo "scale=0; $scaled_dimension % 8 < 4" | bc)" -eq ] && inc=-1
   while [ $int -ne 1 ]; do
-     divisor=`math_ $scaled_dimension/8 2`
-     [ "x${divisor##*.}" == "x00" ] && int=1 || scaled_dimension=$[ $scaled_dimension + $inc ]
+     divisor="$(math_ $scaled_dimension/8 2)"
+     [ "x${divisor##*.}" == "x00" ] && int=1 || scaled_dimension=$((scaled_dimension + inc))
   done
   echo $scaled_dimension
 }
 
-fnRemux()
+fn_remux()
 {
-  [ $DEBUG -ge 1 ] && echo "[debug fnRemux]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_remux]" 1>&2
 
   [ $# -lt 1 ] && echo "syntax: remux source_file [profile=2p6ch] [width=auto] [height=auto] [vbr=1750k] [abr=320k] [passes=1] [vstream=0] [astream=0]" && exit 1
 
@@ -2026,26 +2026,26 @@ fnRemux()
   target=${source%.*}.remux.mp4
 
   profile=2p6ch
-  [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^\(2p6ch[0-9]\?\|1p2ch[0-9]\?\)$/p'`" != "x" ] && profile=$1 && shift
+  [ $# -gt 0 ] && [ -n "$(echo $1 | sed -n '/^\(2p6ch[0-9]\?\|1p2ch[0-9]\?\)$/p')" ] && profile=$1 && shift
 
-  [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^\([0-9]\+\|auto\)$/p'`" != "x" ] && width=$1 && shift
-  [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^\([0-9]\+\|auto\)$/p'`" != "x" ] && height=$1 && shift
-  if [[ $# -gt 0 && "x`echo $1 | sed -n '/^\([0-9]\+[kK]\|auto\|copy\)$/p'`" != "x" ]]; then
+  [ $# -gt 0 ] && [ -n "$(echo $1 | sed -n '/^\([0-9]\+\|auto\)$/p')" ] && width=$1 && shift
+  [ $# -gt 0 ] && [ -n "$(echo $1 | sed -n '/^\([0-9]\+\|auto\)$/p')" ] && height=$1 && shift
+  if [[ $# -gt 0 && -n "$(echo $1 | sed -n '/^\([0-9]\+[kK]\|auto\|copy\)$/p')" ]]; then
      [ "x$1" != "xauto" ] && vbr=$1
      shift
   fi
-  if [[ $# -gt 0 && "x`echo $1 | sed -n '/^\([0-9]\+[kK]\|auto\|copy\)$/p'`" != "x" ]]; then
+  if [[ $# -gt 0 && -n "$(echo $1 | sed -n '/^\([0-9]\+[kK]\|auto\|copy\)$/p')" ]]; then
     [ "x$1" != "xauto" ] && abr=$1
     shift
   fi
 
   passes=1
-  [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^[1-2]$/p'`" != "x" ] && passes=$1 && shift
+  [[ $# -gt 0 && -n "$(echo $1 | sed -n '/^[1-2]$/p')" ]] && passes=$1 && shift
 
   vstream=0
-  [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^[0-9]$/p'`" != "x" ] && vstream=$1 && shift
+  [[ $# -gt 0 && -n "$(echo $1 | sed -n '/^[0-9]$/p')" ]] && vstream=$1 && shift
   astream=0
-  [ $# -gt 0 ] && [ "x`echo $1 | sed -n '/^[0-9]$/p'`" != "x" ] && astream=$1 && shift
+  [[ $# -gt 0 && -n "$(echo $1 | sed -n '/^[0-9]$/p')" ]] && astream=$1 && shift
 
   # profile base
   case $profile in
@@ -2092,20 +2092,20 @@ fnRemux()
 
 
   scale=""
-  if [[ "x$height" != "x" || "x$width" != "x" ]] ||
+  if [[ -n "$height" || -n "$width" ]] ||
      [[ "x$defheight" != "xauto" || "x$defwidth" != "xauto" ]]; then
-    dimensions=`fnFileInfo 3 $source | cut -d'|' -f 3`
-    [[ "x$height" == "x" && "x$width" == "x" ]] && height=$defheight && width=$defwidth
-    [[ "x$height" == "x" || "x$height" == "xauto" ]] && height=`fnCalcDimension $dimensions height ${width:-$defwidth}`
-    [[ "x$width" == "x" || "x$width" == "xauto" ]] && width=`fnCalcDimension $dimensions width ${height:-$defheight}`
+    dimensions="$(fn_file_info 3 $source | cut -d'|' -f 3)"
+    [[ -z "$height" && -z "$width" ]] && height=$defheight && width=$defwidth
+    [[ -z "$height" || "x$height" == "xauto" ]] && height="$(fn_calc_dimension $dimensions height ${width:-$defwidth})"
+    [[ -z "$width" || "x$width" == "xauto" ]] && width="$(fn_calc_dimension $dimensions width ${height:-$defheight})"
     scale="$width:$height"
   fi
 
   case $passes in
     1)
       cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset $preset -vcodec $vcdc"
-      [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $vbr -vf crop=$crop`[ "x$scale" != "x" ] && echo ,scale=$scale` -threads:0 9 -map 0:a:$astream -acodec $acdc"
-      [ "x$acdc" != "xcopy" ] && cmd="$cmd -b:a $abr -ac $channels `[ "x$af" != "x" ] && echo -af $af`"
+      [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $vbr -vf crop=$crop$([ -n "$scale" ] && echo ,scale=$scale) -threads:0 9 -map 0:a:$astream -acodec $acdc"
+      [ "x$acdc" != "xcopy" ] && cmd="$cmd -b:a $abr -ac $channels $([ -n "$af" ] && echo -af $af)"
       cmd="$cmd -f ${target##*.} file:$target"
       echo "[$profile (pass 1)] $cmd"
       exec $cmd
@@ -2113,16 +2113,16 @@ fnRemux()
       ;;
     2)
       cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset $preset -vcodec $vcdc"
-      [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $vBitrate -vf crop=$crop`[ "x$scale" != "x" ] && echo ,scale=$scale`"
+      [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $v_bitrate -vf crop=$crop$([ -n "$scale" ] && echo ,scale=$scale)"
       cmd="$cmd -pass 1 -threads:0 9 -f ${target##*.} /dev/null"
       echo "[$profile (pass 1)] $cmd"
       exec $cmd
       [ $? -eq 0 ] && echo "# pass 1 complete" || (echo "# pass 1 failed" && exit 1)
 
       cmd="$cmdffmpeg -y -i file:$source -map 0:v:$vstream -preset $preset -vcodec $vcdc"
-      [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $vBitrate -vf crop=$crop`[ "x$scale" != "x" ] && echo ,scale=$scale`"
+      [ "x$vcdc" != "xcopy" ] && cmd="$cmd -b:v $v_bitrate -vf crop=$crop$([ -n "$scale" ] && echo ,scale=$scale)"
       cmd="$cmd -pass 2 -map 0:a:$astream -acodec $acdc"
-      [ "x$acdc" != "xcopy" ] && cmd="$cmd -ab $aBitrate -ac $channels `[ "x$af" != "x" ] && echo -af $af`"
+      [ "x$acdc" != "xcopy" ] && cmd="$cmd -ab $a_bitrate -ac $channels $([ -n "$af" ] && echo -af $af)"
       cmd="$cmd -threads:0 9 -f ${target##*.} file:$target"
       echo "[$profile (pass 1)] $cmd"
       exec $cmd
@@ -2131,11 +2131,11 @@ fnRemux()
   esac
 }
 
-fnNames()
+fn_names()
 {
-  [ $DEBUG -ge 1 ] && echo "[debug fnNames]" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_names]" 1>&2
 
-  cmdmv=$(echo `[ $TEST -gt 0 ] && echo "echo "`$CMDMV)
+  cmdmv="$(echo $([ $TEST -gt 0 ] && echo "echo ")$CMDMV)"
 
   [ $# -lt 1 ] && \
     echo "missing set name" && exit 1
@@ -2149,28 +2149,28 @@ fnNames()
     echo "missing names list" && exit 1
 
   source=$PWD/$ROOTSUFFIX$source
-  if [ "x`head -n 1 $source | cut -d'|' -f3`" != "x" ]; then
+  if [ -n "$(head -n 1 $source | cut -d'|' -f3)" ]; then
     set_no="*"
     [ $# -gt 0 ] && set_no=$1 && shift
-    set_dirs=`echo ${ROOTSUFFIX}$set_no`
+    set_dirs="$(echo ${ROOTSUFFIX}$set_no)"
     set_dirs=($set_dirs)
     for s in ${set_dirs[@]}; do
       cd $s 2>/dev/null || continue  # dir only
       while read line; do
-        [ "x`echo "$line" | awk -F'|' '{print $1}'`" != "x${s##*.}" ] && continue;
-        item=`echo $line | cut -d'|' -f2` && [ ${#item} -lt 2 ] && item="0$item";
+        [ "x$(echo "$line" | awk -F'|' '{print $1}')" != "x${s##*.}" ] && continue;
+        item="$(echo $line | cut -d'|' -f2)" && [ ${#item} -lt 2 ] && item="0$item";
         name=$(echo ${line##*|} | awk '{gsub(/ /,".",$0); print tolower($0)}');
         mf=(*e$item*)
         for f in "${mf[@]}"; do
           [ ! -f "$f" ] && f=(*e$item*)
           [ ! -f "$f" ] && echo "missing item '$item|$name', aborting!" && exit 1
-          $cmdmv "$f" "$set.[`echo "$f" | sed -n 's/.*\[\(.*\)\].*\[.*\].*/\1/p'`].$name.[${f##*[}";
+          $cmdmv "$f" "$set.[$(echo "$f" | sed -n 's/.*\[\(.*\)\].*\[.*\].*/\1/p')].$name.[${f##*[}";
         done
       done < $source
       cd - 1>&2 2>/dev/null
     done
 
-  elif [ "x`head -n 1 | cut -d'|' -f2`" != "x" ]; then
+  elif [ -n "$(head -n 1 | cut -d'|' -f2)" ]; then
     while read line; do
       item=${line%%|*};
       name=$(echo ${line#*|} | awk '{gsub(/ /,".",$0); print tolower($0)}');
@@ -2182,7 +2182,7 @@ fnNames()
   fi
 }
 
-fnRip() {
+fn_rip() {
   target="${1:-title}"
   VIDEO=${VIDEO:-1}
   AUDIO=${AUDIO:-1}
@@ -2192,20 +2192,20 @@ fnRip() {
     mplayer -dvd-device . dvd://1 -dumpvideo -dumpfile "$target".vob
   fi
   if [ $AUDIO -eq 1 ]; then
-    audio=(`$CMDINFOMPLAYER -dvd-device . dvd://1 2>/dev/null | grep ID_AID | tr _= '|' | cut -d'|' -f 3,5`)
+    audio=($($CMDINFOMPLAYER -dvd-device . dvd://1 2>/dev/null | grep ID_AID | tr _= '|' | cut -d'|' -f 3,5))
     declare -A lang_streams
     for t in ${audio[@]}; do
       idx=${t%|*}
       lang=${t#*|}
       starget="$target" && [ ${#audio[@]} -gt 1 ] && starget="$starget.$lang"
-      [ "x${lang_streams[$lang]}" == "x" ] && lang_streams[$lang]=1 || lang_streams[$lang]=$[${lang_streams[$lang]} + 1]
+      [ -z "${lang_streams[$lang]}" ] && lang_streams[$lang]=1 || lang_streams[$lang]=$((${lang_streams[$lang]} + 1))
       [ ${lang_streams[$lang]} -gt 1 ] && starget=$starget${lang_streams[$lang]}
       echo "# extracting audio track $idx: $lang"
       mplayer -dvd-device . dvd://1 -aid 128 -dumpaudio -dumpfile "$starget".ac3 2>/dev/null 1>&2
     done
   fi
   if [ $SUBS -gt 0 ]; then
-    subs=(`$CMDINFOMPLAYER -dvd-device . dvd://1 2>/dev/null | grep ID_SID | tr _= '|' | cut -d'|' -f 3,5 | grep 'en'`)
+    subs=($($CMDINFOMPLAYER -dvd-device . dvd://1 2>/dev/null | grep ID_SID | tr _= '|' | cut -d'|' -f 3,5 | grep 'en'))
     stargetidx=0
     for t in ${subs[@]}; do
       idx=${t%|*}
@@ -2217,12 +2217,12 @@ fnRip() {
         starget="$target.$lang$idx"
       fi
       mencoder -dvd-device . dvd://1 -nosound -ovc frameno -o /dev/null -sid $idx -vobsubout $starget -vobsuboutindex $stargetidx 2>/dev/null 1>&2
-      stargetidx=$[$stargetidx + 1]
+      stargetidx=$(($stargetidx + 1))
     done
   fi
 }
 
-fnTestFiles()
+fn_test_files()
 {
   types=("single" "set")
   target="$PWD"
@@ -2238,13 +2238,13 @@ fnTestFiles()
   done
 }
 
-fnTestFileInfo()
+fn_test_file_info()
 {
   target="."
   [ $# -gt 0 ] && target="$1" && shift
   [ ! -d "$target" ] && echo "[error] invalid target directory: '$target'" && exit 1
   for f in "$target"/*; do
-    arr=($(fnFileInfo i 4 "$f/" | sed -n 's/^\[.*|\(.*\)\]\s\+.*\[\(.*\)\].*$/\1 \2/p'));
+    arr=($(fn_file_info i 4 "$f/" | sed -n 's/^\[.*|\(.*\)\]\s\+.*\[\(.*\)\].*$/\1 \2/p'));
     [ "${arr[0]}" != "${arr[1]}" ] && echo "'$f': ${arr[@]}";
   done
 }
@@ -2255,11 +2255,11 @@ fnTestFileInfo()
 #TEST
 [[ $# -gt 1 && "x$1" == "xtest" ]] && TEST=1 && shift
 #DEBUG
-[[ $# -gt 1 && "x$1" == "xdebug" ]] && DEBUG=1 && shift && [ "x$(echo "$1" | sed -n '/^[0-9]\+$/p')" != "x" ] && DEBUG=$1 && shift
+[[ $# -gt 1 && "x$1" == "xdebug" ]] && DEBUG=1 && shift && [ -n "$(echo "$1" | sed -n '/^[0-9]\+$/p')" ] && DEBUG=$1 && shift
 #REGEX
 [[ $# -gt 1 && "x$1" == "xregex" ]] && REGEX=1 && shift
 
-if [ "x$(echo $1 | sed -n 's/^\('\
+if [ -n "$(echo $1 | sed -n 's/^\('\
 's\|search\|'\
 'p\|play\|'\
 'pl\|playlist\|'\
@@ -2276,7 +2276,7 @@ if [ "x$(echo $1 | sed -n 's/^\('\
 'n\|names\|'\
 'rip\|'\
 'test'\
-'\)$/\1/p')" != "x" ]; then
+'\)$/\1/p')" ]; then
   OPTION=$1
   shift
 fi
@@ -2286,43 +2286,43 @@ args=("$@")
 [ $DEBUG -ge 1 ] && echo "[debug $SCRIPTNAME] option: '$OPTION', args: '${args[@]}'" 1>&2
 
 case $OPTION in
-  "s"|"search") fnSearch "${args[@]}" ;;
-  "p"|"play") fnPlay "${args[@]}" ;;
-  "pl"|"playlist") fnPlayList "${args[@]}" ;;
-  "i"|"info") fnFilesInfo "${args[@]}" ;;
-  "a"|"archive") fnArchive "${args[@]}" ;;
-  "f"|"fix") fnFix "${args[@]}" ;;
-  "str"|"structure") fnStructure "${args[@]}" ;;
-  "r"|"rate") fnRate "${args[@]}" ;;
-  "rec"|"reconsile") fnReconsile "${args[@]}" ;;
-  "kbps") fnCalcVideoRate "${args[@]}" ;;
-  "syn"|"sync") fnSync "${args[@]}" ;;
-  "e"|"edit") fnEdit "${args[@]}" ;;
-  "rmx"|"remux") fnRemux "${args[@]}" ;;
-  "n"|"names") fnNames "${args[@]}" ;;
-  "rip") fnRip "${args[@]}" ;;
+  "s"|"search") fn_search "${args[@]}" ;;
+  "p"|"play") fn_play "${args[@]}" ;;
+  "pl"|"playlist") fn_play_list "${args[@]}" ;;
+  "i"|"info") fn_files_info "${args[@]}" ;;
+  "a"|"archive") fn_archive "${args[@]}" ;;
+  "f"|"fix") fn_fix "${args[@]}" ;;
+  "str"|"structure") fn_structure "${args[@]}" ;;
+  "r"|"rate") fn_rate "${args[@]}" ;;
+  "rec"|"reconsile") fn_reconsile "${args[@]}" ;;
+  "kbps") fn_calc_video_rate "${args[@]}" ;;
+  "syn"|"sync") fn_sync "${args[@]}" ;;
+  "e"|"edit") fn_edit "${args[@]}" ;;
+  "rmx"|"remux") fn_remux "${args[@]}" ;;
+  "n"|"names") fn_names "${args[@]}" ;;
+  "rip") fn_rip "${args[@]}" ;;
   "test")
     #custom functionality tests
     [ ! $# -gt 0 ] && echo "[user] no function name or function args given!" && exit 1
     func=$1
     shift
     case $func in
-      "fnFiles")
+      "fn_files")
         #args: [interative] search
         IFS=$'\n'; files=($($func "$@")); IFS=$IFSORG
         echo "results: count=${#files[@]}" 1>&2
         for f in "${files[@]}"; do echo "$f"; done
         ;;
       "misc")
-        sFiles=($(find . -iregex '^.*\('"$(echo $VIDEXT\|$VIDXEXT\|nfo | sed 's|\||\\\||g')"'\)$'))
-        echo "sFiles: ${sFiles[@]}"
-        sFiles=($(find . -iregex '^.*\('"$VIDEXT\|$VIDXEXT\|nfo"'\)$'))
-        echo "sFiles: ${sFiles[@]}"
-        sFiles=($(find . -iregex '^.*\(avi\|nfo\)$'))
-        echo "sFiles: ${sFiles[@]}"
+        s_files=($(find . -iregex '^.*\('"$(echo $VIDEXT\|$VIDXEXT\|nfo | sed 's|\||\\\||g')"'\)$'))
+        echo "s_files: ${s_files[@]}"
+        s_files=($(find . -iregex '^.*\('"$VIDEXT\|$VIDXEXT\|nfo"'\)$'))
+        echo "s_files: ${s_files[@]}"
+        s_files=($(find . -iregex '^.*\(avi\|nfo\)$'))
+        echo "s_files: ${s_files[@]}"
         ;;
       "undo")
-        IFSORIG="$IFS"; IFS=$'\n'; moves=(`cat info`); IFS="$IFSORIG"
+        IFSORIG="$IFS"; IFS=$'\n'; moves=($(cat info)); IFS="$IFSORIG"
         for s in "${moves[@]}"; do
           f1=${s% -> *}
           f2=${s#* \-\> }
