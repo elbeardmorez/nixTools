@@ -34,10 +34,13 @@ help() {
                       path files only
   -sta|--status-all : show column format status
   -anws|--add-no-whitespace  : stage non-whitespace-only changes
-  -fp|--format-patch [ID] [N]  : format N patch(es) back from an id or
-                                 partial description string
-                                 (default: HEAD)
-  -rb|--rebase <ID> [N]  : interactively rebase back from id or partial
+  -fp|--format-patch [OPTION] [N] [ID]  : format N patch(es) back from
+                                          an id or partial description
+                                          string (default: HEAD)
+\n    where OPTION:
+      --root  : format all patches in current branch
+
+\n  -rb|--rebase <ID> [N]  : interactively rebase back from id or partial
                            description string. use N to limit the search
                            range to the last N commits
   -rbs|--rebase-stash <ID> [N]  : same as 'rebase', but uses git's
@@ -229,6 +232,7 @@ fn_rebase() {
 fn_formatpatch() {
   declare id
   declare n
+  declare root; root=0
   declare -a cmd_args
   while [ -n "$1" ]; do
     if [ "x$1" = "x--" ]; then
@@ -238,6 +242,9 @@ fn_formatpatch() {
       arg="$(echo "$1" | sed 's/^[ ]*-*//')"
       if [ -n "$(echo "$arg" | sed -n '/^[0-9]\+$/p')" ]; then
         n="$arg"
+      elif [ "x$arg" = "xroot" ]; then
+        root=1
+        id="HEAD"
       elif [ -z "$id" ]; then
         id="$arg"
       else
@@ -247,6 +254,7 @@ fn_formatpatch() {
     shift
   done
   n=${n:-1}
+  [ $root -eq 1 ] && n=$(($(git log --format="format:%h" | wc -l) + 1))
   id="${id:-"HEAD"}"
   commit=$(fn_search_commit "$id")
   res=$?; [ $res -ne 0 ] && exit $res

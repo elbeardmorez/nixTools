@@ -30,9 +30,13 @@ where OPTION:
                       path files only
   -sta|--status-all : show column format status
   -anws|--add-no-whitespace  : stage non-whitespace-only changes
-  -fp|--format-patch [ID] [N]  : format N patch(es) back from an id or
-                                 partial description string
-                                 (default: HEAD)
+  -fp|--format-patch [OPTION] [N] [ID]  : format N patch(es) back from
+                                          an id or partial description
+                                          string (default: HEAD)
+
+    where OPTION:
+      --root  : format all patches in current branch
+
   -rb|--rebase <ID> [N]  : interactively rebase back from id or partial
                            description string. use N to limit the search
                            range to the last N commits
