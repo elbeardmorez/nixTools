@@ -2008,7 +2008,7 @@ fn_calc_dimension() {
 
   int=0
   inc=1
-  [ "$(echo "scale=0; $scaled_dimension % 8 < 4" | bc)" -eq ] && inc=-1
+  [ "$(echo "scale=0; $scaled_dimension % 8 < 4" | bc)" -eq 1 ] && inc=-1
   while [ $int -ne 1 ]; do
      divisor="$(math_ $scaled_dimension/8 2)"
      [ "x${divisor##*.}" == "x00" ] && int=1 || scaled_dimension=$((scaled_dimension + inc))
