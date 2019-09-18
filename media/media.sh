@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 SCRIPTNAME=${0##*/}
 IFSORG=$IFS
@@ -289,7 +289,7 @@ fn_file_stream_info() {
   fi
 
   # via mkvtools
-  if [ "x${s_file##*.}" == "xmkv" ]; then
+  if [ "x${s_file##*.}" = "xmkv" ]; then
     IFS=$'\n'; s_info2=($(mkvmerge --identify "$s_file" 2>&1)); IFS=$IFSORG
     [ ${#s_info2[@]} -gt 0 ] && s_info2=("# mkvtools #" "${s_info2[@]}")
     [ ${#s_info[@]} -eq 0 ] && s_info="${s_info2[@]}" || s_info=("${s_info[@]}" "${s_info2[@]}")
@@ -358,7 +358,7 @@ fn_file_info() {
             [ -n "$s_length2" ] && s_length="$s_length2|"
           fi
         elif [ -n "$(echo "$s" | sed -n '/^.*video.*$/Ip')" ]; then
-          if [ "x$s_video" == "x$s_video_default" ]; then
+          if [ "x$s_video" = "x$s_video_default" ]; then
             [ $DEBUG -ge 2 ] && echo "#fn_file_info, IFS='$IFS'" 1>&2
             IFS=$'|'; a_codecs=($(echo "$VIDCODECS")); IFS=$IFSORG
             [ $DEBUG -ge 2 ] && echo "[debug] fn_file_info #2, IFS='$IFS'" 1>&2
@@ -391,7 +391,7 @@ fn_file_info() {
           fi
           [ $DEBUG -ge 1 ] && echo "[debug] fn_file_info, s_fps: '$s_fps', s_size: '$s_size'" 1>&2
         elif [ -n "$(echo "'$s'" | sed -n '/^.*audio.*$/Ip')" ]; then
-          if [ "x$s_audio" == "x$s_audio_default" ]; then
+          if [ "x$s_audio" = "x$s_audio_default" ]; then
             IFS=$'|'; a_codecs=($(echo "$AUDCODECS")); IFS=$IFSORG
             for s2 in "${a_codecs[@]}"; do
               if [ -z "$(echo "'$s2'" | sed -n '/\=/p')" ]; then
@@ -406,7 +406,7 @@ fn_file_info() {
               [ "x$s_audio" != "x$s_audio_default" ] && s_audio=".$s_audio" && break
             done
           fi
-          if [ "x$s_channels" == "x$s_channels_default" ]; then
+          if [ "x$s_channels" = "x$s_channels_default" ]; then
             IFS=$'|'; a_codecs=($(echo "$AUDCHANNELS")); IFS=$IFSORG
             for s2 in "${a_codecs[@]}"; do
               if [ -z "$(echo "$s2" | sed -n '/\=/p')" ]; then
@@ -437,7 +437,7 @@ fn_file_info() {
   [ $level -lt 3 ] && s_size=""
   [ $level -lt 4 ] && s_fps=""
   [ $level -lt 5 ] && s_audio_bitrate="" && s_video_bitrate=""
-  [ $s_type == "audio" ] && s_size="" && s_fps="" && s_video="" && s_video_bitrate="" && s_audio="${s_audio#.}"
+  [ $s_type = "audio" ] && s_size="" && s_fps="" && s_video="" && s_video_bitrate="" && s_audio="${s_audio#.}"
   [ $level -gt 0 ] && echo "$s_file_size$s_length$s_fps$s_size$s_video$s_video_bitrate$s_audio$s_channels$s_audio_bitrate"
 }
 
@@ -543,7 +543,7 @@ fn_file_multi_mask() {
   l=1
   for s in "${arr[@]}"; do
     [ $DEBUG -ge 5 ] && echo "[debug] filter: [$l] '$s'" 1>&2
-    #[ "x$s" == x"set \([0-9]\)x\([0-9]\{1,2\}\)" ] && set -x || set +x
+    #[ "x$s" = x"set \([0-9]\)x\([0-9]\{1,2\}\)" ] && set -x || set +x
     IFS=" " && arr2=($s) && IFS=$IFSORG
     #[[ -n "$s_type" && "x$s_type" != "x${arr2[0]}" ]] && continue
     s_search=${arr2[1]}
@@ -625,12 +625,12 @@ fn_file_target() {
     #  s_mask2=$(echo $s_mask | sed 's|\[#of|\['$n'of|')
     #  s_target=$(echo "$s_target" | sed 's|'$s_mask'|'$s_mask2'|')
     #  s_target="$s_target$s_extra$s_ext"
-    #elif [ ! "${s_title##*.}" == "$s_title" ]; then
+    #elif [ "${s_title##*.}" != "$s_title" ]; then
     #  # use static mask and file's extension
     #  s_target="$s_target$s_extra$s_ext"
     #fi
-    [ ! "${s_title##*.}" == "$s_title" ] && s_target="$s_target.$s_extra.$s_ext"
-  elif [ ! "${s_title##*.}" == "$s_title" ]; then
+    [ "x${s_title##*.}" != "x$s_title" ] && s_target="$s_target.$s_extra.$s_ext"
+  elif [ "x${s_title##*.}" != "x$s_title" ]; then
     # use static mask and file's extension
     s_target="$s_target.$s_target_ext"
   else
@@ -648,11 +648,11 @@ fn_files() {
   [ $DEBUG -ge 1 ] && echo "[debug fn_files]" 1>&2
 
   b_verbose=1
-  [ "x$1" == "xsilent" ] && b_verbose=0 && shift
+  [ "x$1" = "xsilent" ] && b_verbose=0 && shift
   b_interactive=0
-  [ "x$1" == "xinteractive" ] && b_interactive=1 && shift
+  [ "x$1" = "xinteractive" ] && b_interactive=1 && shift
   l_depth=1
-  [ "x$1" == "xfull" ] && l_depth=10 && shift
+  [ "x$1" = "xfull" ] && l_depth=10 && shift
   s_search="$1" && shift
   s_search_prev=""
   s_search_last=""
@@ -852,11 +852,11 @@ fn_search() {
   declare target
 
   b_verbose=1
-  [ "x$1" == "xsilent" ] && b_verbose=0 && shift
+  [ "x$1" = "xsilent" ] && b_verbose=0 && shift
   b_iterative=0
-  [ "x$1" == "xiterative" ] && b_iterative=1 && shift
+  [ "x$1" = "xiterative" ] && b_iterative=1 && shift
   b_interactive=0
-  [ "x$1" == "xinteractive" ] && b_interactive=1 && shift
+  [ "x$1" = "xinteractive" ] && b_interactive=1 && shift
 
   [ -z "$args" ] && help && exit 1
   s_search="$1"
@@ -1014,7 +1014,7 @@ fn_play_list() {
 
   idx=0
   for li in "${items[@]}"; do
-    [ "x$li" == "x$current" ] && break;
+    [ "x$li" = "x$current" ] && break;
     idx=$((idx + 1))
   done
 
@@ -1119,7 +1119,7 @@ fn_play() {
     for s in "${s_playlist[@]}"; do
       title="${s%%|*}" && s=${s:$((${#title} + 1))} && title="$(echo ${title##*/} | sed 's/[. ]\[.*$//I')"
       file="${s%%|*}" && s=${s:$((${#file} + 1))}
-      search="$s" && [ "$search" == "$file" ] && search=""
+      search="$s" && [ "$search" = "$file" ] && search=""
       [ $DEBUG -ge 1 ] && echo "[debug fn_play] title: '$title', file: '$file', search: '$search'" 1>&2
       if [ -n "$(echo "$file" | grep "/dev/dvd")" ]; then
         # play?
@@ -1144,7 +1144,7 @@ fn_play() {
             [ $played -gt 0 ] && NEXT="next "
             if [ "${#s_files}" -gt 0 ]; then
               # files to play
-              if [ "x$file" == "x/dev/dvd" ]; then
+              if [ "x$file" = "x/dev/dvd" ]; then
                 type="cd" # cds
                 echo "playing '$title' [cd]" 1>&2
                 for f in "${s_files[@]}"; do DISPLAY=$display $cmdplay $cmdplay_options $@ "$ROOTISO$f"; done
@@ -1175,7 +1175,7 @@ fn_play() {
                 echo ""
               fi
               if [ -n "$file" ]; then
-                if [ "x$file" == "x/dev/dvd" ]; then
+                if [ "x$file" = "x/dev/dvd" ]; then
                   # mount and search for files
                   mount -t auto -o ro /dev/dvd "$ROOTISO" 2>/dev/null && sleep 1
                   cd $ROOTISO
@@ -1191,7 +1191,7 @@ fn_play() {
                   [ $x -ne 0 ] && b_retry=0 && s_files= && continue
                 else
                   # specify the track for vcds
-                  if [ "${file:0:3}" == "vcd" ]; then
+                  if [ "${file:0:3}" = "vcd" ]; then
                     #ID_VCD_TRACK_1_MSF=00:16:63
                     IFS=$'\n'; s_tracks=($($CMDINFOMPLAYER "$file" | sed -n 's/^ID_VCD_TRACK_\([0-9]\)_MSF=\([0-9:]*\)$/\1|\2\.0/p')); IFS=$IFSORG
                     if [ ${#s_tracks[@]} -gt 0 ]; then
@@ -1293,7 +1293,7 @@ fn_archive() {
   [[ $# -gt 0 && -n "$(echo "$1" | sed -n '/^[0-9]\+$/p')" ]] && level=$1 && shift
   [ $# -gt 0 ] && source="$1" && shift || source="."
   [ -d "$source" ] && cd "$source"
-  [ "x${source:$((${#source} - 1)):1}" == "x/" ] && source="${source:0:$((${#source} - 2))}" && shift || source="$PWD"
+  [ "x${source:$((${#source} - 1)):1}" = "x/" ] && source="${source:0:$((${#source} - 2))}" && shift || source="$PWD"
   [ $# -gt 0 ] && file="$1" && shift || file="${source##*/}"
 
   source="$source/"
@@ -1322,9 +1322,9 @@ fn_structure() {
   cmdmd="$([ $TEST -ge 1 ] && echo 'echo ')$CMDMD"
 
   b_verbose=1
-  [ "x$1" == "xsilent" ] && b_verbose=0 && shift
+  [ "x$1" = "xsilent" ] && b_verbose=0 && shift
   b_long=1
-  [ "x$1" == "xlong" ] && b_long=1 && shift
+  [ "x$1" = "xlong" ] && b_long=1 && shift
 
   s_search="$1" && shift
 
@@ -1446,7 +1446,7 @@ fn_structure() {
     if [ ${#s_title_extra} -gt 0 ]; then
       s_title_extra="[$s_title_extra"
       s_title=$(echo "$s_title" | sed 's/'"$(fn_regexp "$s_title_extra" "sed")"'//')
-      [ "x${s_title:$((${#s_title} - 1)):1}" == "x." ] && s_title=${s_title%.}
+      [ "x${s_title:$((${#s_title} - 1)):1}" = "x." ] && s_title=${s_title%.}
     fi
     # recover (potentially modified) default multi-file mask
     [ $DEBUG -ge 1 ] && echo "s_mask: '${s_mask[@]}', s_mask_default: '$s_mask_default'" 1>&2
@@ -1724,7 +1724,7 @@ fn_rate() {
               # is the same as the target files. necessary, but also
               # defeats use case where we are in a legitimate structure
               # directory
-              [ "x$d" == "x$lastbase" ] && continue
+              [ "x$d" = "x$lastbase" ] && continue
               sources=("${sources[@]}" "$d")
             fi
             [ $DEBUG -ge 1 ] && echo "[debug fn_rate] found files in: '$d'" 1>&2
@@ -1825,7 +1825,7 @@ fn_rate() {
     fi
   fi
   [ ! -d "$s_path_base" ] && echo "[user] the default ratings base path '$s_path_base' is invalid" 1>&2 && exit 1
-  [ ! "x${s_path_base:$((${#s_path_base} - 1))}" == "x/" ] && s_path_base="$s_path_base/"
+  [ "x${s_path_base:$((${#s_path_base} - 1))}" != "x/" ] && s_path_base="$s_path_base/"
 
   if [ ! "$l_rating" ]; then
     b_retry=1
@@ -1939,10 +1939,10 @@ fn_calc_video_rate() {
   # output size in kbps
   [ $# -ne 3 ] && echo "target size, audio size and length args required" && exit 1
   t_size="$1" && shift
-  kt_size=1 && [ "x${t_size:$((${#t_size} - 1))}" == "xM" ] && kt_size="(1024^2)"
+  kt_size=1 && [ "x${t_size:$((${#t_size} - 1))}" = "xM" ] && kt_size="(1024^2)"
   t_size="$(echo "$t_size" | sed 's/[Mb]//g')"
   a_size="$1" && shift
-  ka_size=1 && [ "x${a_size:$((${#a_size} - 1))}" == "xM" ] && ka_size="(1024^2)"
+  ka_size=1 && [ "x${a_size:$((${#a_size} - 1))}" = "xM" ] && ka_size="(1024^2)"
   a_size="$(echo "$a_size" | sed 's/[Mb]//g')"
   length="$1" && shift
   k_length=1 && [ "x${length:$((${#length} - 1))}" != "xs" ] && k_length="60"
@@ -1996,7 +1996,7 @@ fn_calc_dimension() {
 
   [[ "x$scale_dimension" != "xwidth" && "x$scale_dimension" != "xheight" ]] &&
     echo invalid scaled dimension && exit 1
-  if [ "x$scale_dimension" == "xwidth" ]; then
+  if [ "x$scale_dimension" = "xwidth" ]; then
     original_dimension=${original_dimensions%x*}
     original_dimension_other=${original_dimensions#*x}
   else
@@ -2011,7 +2011,7 @@ fn_calc_dimension() {
   [ "$(echo "scale=0; $scaled_dimension % 8 < 4" | bc)" -eq 1 ] && inc=-1
   while [ $int -ne 1 ]; do
      divisor="$(math_ $scaled_dimension/8 2)"
-     [ "x${divisor##*.}" == "x00" ] && int=1 || scaled_dimension=$((scaled_dimension + inc))
+     [ "x${divisor##*.}" = "x00" ] && int=1 || scaled_dimension=$((scaled_dimension + inc))
   done
   echo $scaled_dimension
 }
@@ -2053,10 +2053,10 @@ fn_remux() {
   case $profile in
      2p6ch*)
        vcdc=hevc
-       [ "x$vbr" == "xcopy" ] && vcdc=copy
+       [ "x$vbr" = "xcopy" ] && vcdc=copy
        vbr=${vbr:-1750k}
        acdc=aac
-       [ "x$abr" == "xcopy" ] && acdc=copy
+       [ "x$abr" = "xcopy" ] && acdc=copy
        abr=${abr:-320k}
        channels=6
        preset=medium
@@ -2065,10 +2065,10 @@ fn_remux() {
        ;;
      1p2ch*)
        vcdc=hevc
-       [ "x$vbr" == "xcopy" ] && vcdc=copy
+       [ "x$vbr" = "xcopy" ] && vcdc=copy
        vbr=${vbr:-1500k}
        acdc=aac
-       [ "x$abr" == "xcopy" ] && acdc=copy
+       [ "x$abr" = "xcopy" ] && acdc=copy
        abr=${abr:-256k}
        channels=2
        af="aresample=matrix_encoding=dplii"
