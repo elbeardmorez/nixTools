@@ -2222,29 +2222,80 @@ fn_rip() {
   fi
 }
 
-fn_test_files() {
-  types=("single" "set")
-  target="$PWD"
+fn_util() {
+  # miscellaneous utils
+  [ $# -lt 1 ] && echo "[error] insufficient args, option name required" 1>&2 && return 1
+  option="$1" && shift
+  case "$option" in
+    "structure-create-test-files")
+      declare target; target="$PWD"
+      declare type_; type_="${1:-"single"}"
+      declare -a files
+      case "$type_" in
+        "single")
+          IFS="|"; files=($(echo "i.jpeg|xt-xvid-tx.nfo|the.2011.dummy.xvid-cd1.avi|the.2011.dummy.xvid-cd2.avi")); IFS="$IFSORG"
+          ;;
+        "set")
+          IFS="|"; files=($(echo "tiesto.s01e00.special.1.avi|tiesto.1x00.special.2.(1996).avi|tiesto-S1E0.special.3.xt.avi|tiesto.2005.S02e10.exit.avi|tiesto.[s01e02].mask-xt.avi")); IFS="$IFSORG"
+          ;;
+      esac
+      mkdir -p "$target/$type" 2>/dev/null
+      for f in "${files[@]}"; do touch "$target/$type/$f"; done
+      ;;
 
-  declare -A files
-  files["single"]="i.jpeg|xt-xvid-tx.nfo|the.2011.dummy.xvid-cd1.avi|the.2011.dummy.xvid-cd2.avi"
-  files["set"]="tiesto.s01e00.special.1.avi|tiesto.1x00.special.2.(1996).avi|tiesto-S1E0.special.3.xt.avi|tiesto.2005.S02e10.exit.avi|tiesto.[s01e02].mask-xt.avi"
+    "undo")
+      IFSORIG="$IFS"; IFS=$'\n'; moves=($(cat info)); IFS="$IFSORIG"
+      for s in "${moves[@]}"; do
+        f1=${s% -> *}
+        f2=${s#* \-\> }
+        echo "$f2 -> $f1"
+        mv "$f2" "$f1"
+      done
+      ;;
 
-  for type in "${types[@]}"; do
-    mkdir -p ./$type 2>/dev/null
-    IFS=$'|'; af=(${files[$type]}); IFS="$IFSORG"
-    for f in "${af[@]}"; do touch "./$type/$f"; done
-  done
+    *)
+      echo "[error] unsupported option '$option'" 1>&2 && return 1
+    ;;
+  esac
 }
 
-fn_test_file_info() {
-  target="."
-  [ $# -gt 0 ] && target="$1" && shift
-  [ ! -d "$target" ] && echo "[error] invalid target directory: '$target'" && return 1
-  for f in "$target"/*; do
-    arr=($(fn_file_info i 4 "$f/" | sed -n 's/^\[.*|\(.*\)\]\s\+.*\[\(.*\)\].*$/\1 \2/p'));
-    [ "${arr[0]}" != "${arr[1]}" ] && echo "'$f': ${arr[@]}";
-  done
+fn_test() {
+  [ $DEBUG -ge 1 ] && echo "[debug fn_test]" 1>&2
+
+  # functionality testing
+  [ $# -lt 1 ] && echo "[error] insufficient args, function name required" 1>&2 && return 1
+  func="$1" && shift
+  case $func in
+    "files")
+      # args: [interative] search
+      IFS=$'\n'; files=($($func "$@")); IFS=$IFSORG
+      echo "results: count=${#files[@]}" 1>&2
+      for f in "${files[@]}"; do echo "$f"; done
+      ;;
+
+    "file_info")
+      declare target; target="$PWD"
+      [ $# -gt 0 ] && target="$1" && shift
+      [ ! -d "$target" ] && echo "[error] invalid target directory: '$target'" && return 1
+      for f in "$target"/*; do
+        arr=($(fn_file_info i 4 "$f/" | sed -n 's/^\[.*|\(.*\)\]\s\+.*\[\(.*\)\].*$/\1 \2/p'));
+        [ "${arr[0]}" != "${arr[1]}" ] && echo "'$f': ${arr[@]}";
+      done
+      ;;
+
+    "misc")
+      s_files=($(find . -iregex '^.*\('"$(echo $VIDEXT\|$VIDXEXT\|nfo | sed 's|\||\\\||g')"'\)$'))
+      echo "s_files: ${s_files[@]}"
+      s_files=($(find . -iregex '^.*\('"$VIDEXT\|$VIDXEXT\|nfo"'\)$'))
+      echo "s_files: ${s_files[@]}"
+      s_files=($(find . -iregex '^.*\(avi\|nfo\)$'))
+      echo "s_files: ${s_files[@]}"
+      ;;
+
+    *)
+      $func "$@"
+      ;;
+  esac
 }
 
 # args
@@ -2273,6 +2324,7 @@ if [ -n "$(echo $1 | sed -n 's/^\('\
 'e\|edit\|'\
 'n\|names\|'\
 'rip\|'\
+'util\|'\
 'test'\
 '\)$/\1/p')" ]; then
   OPTION=$1
@@ -2299,39 +2351,7 @@ case $OPTION in
   "rmx"|"remux") fn_remux "${args[@]}" ;;
   "n"|"names") fn_names "${args[@]}" ;;
   "rip") fn_rip "${args[@]}" ;;
-  "test")
-    # custom functionality tests
-    [ ! $# -gt 0 ] && echo "[user] no function name or function args given!" && exit 1
-    func=$1
-    shift
-    case $func in
-      "fn_files")
-        # args: [interative] search
-        IFS=$'\n'; files=($($func "$@")); IFS=$IFSORG
-        echo "results: count=${#files[@]}" 1>&2
-        for f in "${files[@]}"; do echo "$f"; done
-        ;;
-      "misc")
-        s_files=($(find . -iregex '^.*\('"$(echo $VIDEXT\|$VIDXEXT\|nfo | sed 's|\||\\\||g')"'\)$'))
-        echo "s_files: ${s_files[@]}"
-        s_files=($(find . -iregex '^.*\('"$VIDEXT\|$VIDXEXT\|nfo"'\)$'))
-        echo "s_files: ${s_files[@]}"
-        s_files=($(find . -iregex '^.*\(avi\|nfo\)$'))
-        echo "s_files: ${s_files[@]}"
-        ;;
-      "undo")
-        IFSORIG="$IFS"; IFS=$'\n'; moves=($(cat info)); IFS="$IFSORIG"
-        for s in "${moves[@]}"; do
-          f1=${s% -> *}
-          f2=${s#* \-\> }
-          echo "$f2 -> $f1"
-          mv "$f2" "$f1"
-        done
-        ;;
-      *)
-        $func "$@"
-        ;;
-    esac
-    ;;
+  "util") fn_util "${args[@]}" ;;
+  "test") fn_test "${args[@]}" ;;
   *) help ;;
 esac
