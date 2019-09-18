@@ -1703,7 +1703,7 @@ fn_rate() {
             done
             echo ""
           fi
-          l_type+=1
+          l_type=$((l_type + 1))
         elif [ ${#s_files[@]} -gt 1 ]; then
           # if all files are under the same subdirectory then assume
           # that is the stucture
@@ -1717,7 +1717,7 @@ fn_rate() {
             d=${f%/*}
             if [ -z "$lastbase" ]; then
               sources=("$d")
-              l_type+=1
+              l_type=$((l_type + 1))
             else
               # disables auto rating when multiple directories /
               # structures have been found, or our working directory
@@ -1761,7 +1761,7 @@ fn_rate() {
                       { sources2=("${sources2[@]}" "$d3") &&
                         [ $DEBUG -ge 1 ] && echo -e "[debug fn_rate] adding d2: '$d2'" 1>&2; }
                   fi
-                  lidx+=1
+                  lidx=$((lidx + 1))
                 done
               fi
             done
@@ -1781,7 +1781,7 @@ fn_rate() {
                   read -n 1 -s result
                   case "$result" in
                     "y" | "Y") echo -n $result; b_retry2=0; b_retry=0; source="${sources2[$lidx]}" ;;
-                    "n" | "N") echo -n $result; b_retry2=0; lidx+=1 ;;
+                    "n" | "N") echo -n $result; b_retry2=0; lidx=$((lidx + 1)) ;;
                     "x" | "X") echo -n $result; b_retry2=0; echo ""; exit 0 ;;
                     *) echo -n " " 1>&2
                   esac
@@ -1792,7 +1792,7 @@ fn_rate() {
           fi
         fi
       fi
-      l_type+=1
+      l_type=$((l_type + 1))
     done
 
     [ $DEBUG -ge 1 ] && echo "[debug fn_rate] source: '$source'" 1>&2
