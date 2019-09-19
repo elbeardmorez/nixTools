@@ -237,7 +237,10 @@ fn_formatpatch() {
   while [ -n "$1" ]; do
     if [ "x$1" = "x--" ]; then
       # cmd args
-      shift; while [ -n "$1" ]; do cmd_args[${#cmd_args[@]}]="$1"; shift; done
+      shift
+      cmd_args=("$@")
+      shift "$#"
+      break
     else
       arg="$(echo "$1" | sed 's/^[ ]*-*//')"
       if [ -n "$(echo "$arg" | sed -n '/^[0-9]\+$/p')" ]; then
