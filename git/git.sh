@@ -307,7 +307,7 @@ fn_date_check() {
   [ ${#commits[@]} -lt 1 ] && \
     _help && echo "[error] invalid target '$target'" && exit 1
 
-  prev_commit="$(git rev-list --max-count=1 "${commits[0]}~1")"
+  prev_commit="$(git rev-list --max-count=1 "${commits[0]}~1" 2>/dev/null)"
   if [ -n "$prev_commit" ]; then
     prev_commit_date="$(git log -n1 --format=format:"%$([ "x$type" = "xauthored" ] && echo "a" || echo "c")t" "$prev_commit")"
   fi
