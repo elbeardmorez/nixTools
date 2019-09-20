@@ -34,12 +34,12 @@ help() {
                       path files only
   -sta|--status-all : show column format status
   -anws|--add-no-whitespace  : stage non-whitespace-only changes
-  -fp|--format-patch [OPTION] [N] [ID]  : format N patch(es) back from
-                                          an id or partial description
-                                          string (default: HEAD)
+  -fp|--format-patch [OPTION] [ID]
+    : format one or more commits as patch file(s) up to a specified
+      id or partial description string (default: HEAD)
 \n    where OPTION:
-      --root  : format all patches in current branch
-
+      [-l|--limit] N  : format N patches up to the target ID
+      -r|--root  : format all patches in current branch
 \n  -rb|--rebase <ID> [N]  : interactively rebase back from id or partial
                            description string. use N to limit the search
                            range to the last N commits
@@ -245,7 +245,9 @@ fn_formatpatch() {
       arg="$(echo "$1" | sed 's/^[ ]*-*//')"
       if [ -n "$(echo "$arg" | sed -n '/^[0-9]\+$/p')" ]; then
         n="$arg"
-      elif [ "x$arg" = "xroot" ]; then
+      elif [[ "x$arg" == "l" || "x$arg" == "xlimit" ]]; then
+        n="$arg"
+      elif [[ "x$arg" == "r" || "x$arg" == "xroot" ]]; then
         root=1
         id="HEAD"
       elif [ -z "$id" ]; then
