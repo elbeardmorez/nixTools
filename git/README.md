@@ -73,6 +73,10 @@ where OPTION:
                               'authored' (default) or 'committed'
       -i|--issues  : only output highlighted commits
 
+  -ds|--date-sort  : rebase all commits in current branch onto an
+                     empty master branch of a new repository in a
+                     date sorted order
+
   -smr|--submodule-remove <NAME> [PATH]  : remove a submodule named
                                            NAME at PATH (default: NAME)
   -fb|--find-binary  : find all binary files in the current HEAD

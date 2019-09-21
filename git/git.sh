@@ -72,6 +72,9 @@ help() {
       -dt|--date-type TYPE  : check on date type TYPE, supporting
                               'authored' (default) or 'committed'
       -i|--issues  : only output highlighted commits
+\n  -ds|--date-sort  : rebase all commits in current branch onto an
+                     empty master branch of a new repository in a
+                     date sorted order
 \n  -smr|--submodule-remove <NAME> [PATH]  : remove a submodule named
                                            NAME at PATH (default: NAME)
   -fb|--find-binary  : find all binary files in the current HEAD
@@ -436,6 +439,48 @@ BEGIN {
 }'
 }
 
+fn_date_sort() {
+
+  declare target
+  declare -a patches
+  declare l_patches
+  declare -a ordered
+  declare s
+  declare commit
+  declare -a parts
+  declare l_ordered
+  declare l
+  declare id
+
+  echo "[info] rebuilding repository with commits ordered by date"
+
+  IFS=$'\n'; ordered=($(git log --format="format:%at|%H|%s" | sort)); IFS="$IFSORG"
+  l_ordered=${#ordered[@]}
+
+  target="$(fn_temp_dir "$SCRIPTNAME" ".")"
+  fn_formatpatch "root" -- -o "$target" >/dev/null
+
+  cd "$target"
+  git init 2>/dev/null 1>&2
+
+  IFS=$'\n'; patches=($(find "." -type f -name "*patch")); IFS="$IFSORG"
+  l_patches=${#patches[@]}
+  [ $DEBUG -ge 1 ] && echo "[debug] sorting $l_patches commit$([ $l_patches -ne 1 ] && echo "s")"
+  for f in "${patches[@]}"; do
+    commit="$(sed -n 's/^From \([0-9a-f]\{40\}\) .*$/\1/p' "$f")"
+    mv "$f" "./$commit.diff"
+  done
+
+  l=0
+  while [ $l -lt $l_ordered ]; do
+    IFS="|"; parts=($(echo "${ordered[$l]}")); IFS="$IFSORG"
+    id="${parts[1]}"
+    l=$((l + 1))
+    echo "applying patch: [$l] ${clr["hl"]}${id:0:7}${clr["off"]} | '${parts[2]}'"
+    git am --keep-non-patch "$id.diff" >/dev/null || return 1
+  done
+}
+
 fn_submodule_remove() {
   [ $# -lt 1 ] && help && echo "[error] not enough args" && exit 1
   submodule="$1" && shift
@@ -592,6 +637,7 @@ fn_process() {
     "rd"|"rescue-dangling") fn_rescue_dangling "$@" ;;
     "b"|"blame") fn_blame "$@" ;;
     "dc"|"date-check") fn_date_check "$@" ;;
+    "ds"|"date-sort") fn_date_sort "$@" ;;
     "smr"|"submodule-remove") fn_submodule_remove "$@" ;;
     "fb"|"find-binary") fn_find_binary "$@" ;;
     *) git "$option" "$@" ;;
