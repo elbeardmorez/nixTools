@@ -73,9 +73,16 @@ where OPTION:
                               'authored' (default) or 'committed'
       -i|--issues  : only output highlighted commits
 
-  -ds|--date-sort  : rebase all commits in current branch onto an
-                     empty master branch of a new repository in a
-                     date sorted order
+  -ds|--date-sort [OPTION]  : rebase all commits in current branch
+                              onto an empty master branch of a new
+                              repository in a date sorted order
+
+    where OPTION:
+      -r|--resume ID TARGET  : continue to create TARGET repo with ID
+                               the next patch to push. ID is either a
+                               number corresponding to the original
+                               failed patch, or the (partial) id of
+                               the patch itself
 
   -smr|--submodule-remove <NAME> [PATH]  : remove a submodule named
                                            NAME at PATH (default: NAME)

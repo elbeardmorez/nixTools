@@ -72,9 +72,15 @@ help() {
       -dt|--date-type TYPE  : check on date type TYPE, supporting
                               'authored' (default) or 'committed'
       -i|--issues  : only output highlighted commits
-\n  -ds|--date-sort  : rebase all commits in current branch onto an
-                     empty master branch of a new repository in a
-                     date sorted order
+\n  -ds|--date-sort [OPTION]  : rebase all commits in current branch
+                              onto an empty master branch of a new
+                              repository in a date sorted order
+\n    where OPTION:
+      -r|--resume ID TARGET  : continue to create TARGET repo with ID
+                               the next patch to push. ID is either a
+                               number corresponding to the original
+                               failed patch, or the (partial) id of
+                               the patch itself
 \n  -smr|--submodule-remove <NAME> [PATH]  : remove a submodule named
                                            NAME at PATH (default: NAME)
   -fb|--find-binary  : find all binary files in the current HEAD
@@ -451,27 +457,77 @@ fn_date_sort() {
   declare l_ordered
   declare l
   declare id
+  declare idx_start; idx_start=0
+
+  declare resume; resume=0
+  declare resume_id
+  declare resume_target
+
+  declare option
+  # process options
+  while [ -n "$1" ]; do
+    option="$1"
+    case "$option" in
+      "-r"|"--resume")
+        shift
+        resume=1
+        [ $# -gt 0 ] && resume_id="$1" && shift
+        [ $# -gt 0 ] && resume_target="$1" && shift
+        ;;
+      *)
+        help && echo "[error] unsupported option '$option'" 1>&2 && return 1
+        ;;
+    esac
+  done
+
+  # validate options
+  if [ $resume -eq 1 ]; then
+    [ -z "$resume_id" ] && help && echo "[error] missing ID arg" 1>&2 && return 1
+    [ -z "$resume_target" ] && help && echo "[error] missing TARGET arg" 1>&2 && return 1
+    [ ! -d "$resume_target" ] && help && echo "[error] invalid target directory '$resume_target'" 1>&2 && return 1
+  fi
 
   echo "[info] rebuilding repository with commits ordered by date"
 
   IFS=$'\n'; ordered=($(git log --format="format:%at|%H|%s" | sort)); IFS="$IFSORG"
   l_ordered=${#ordered[@]}
 
-  target="$(fn_temp_dir "$SCRIPTNAME" ".")"
-  fn_formatpatch "root" -- -o "$target" >/dev/null
+  if [ -n "$resume_target" ]; then
+    target="$resume_target"
+    cd "$target"
+    # set start idx
+    s_="$(echo "$resume_id" | sed -n 's/^ *\([0-9]\+\) *$/\1/p')"
+    if [[ -n "$s_" && $s_ -le $l_ordered ]]; then
+      idx_start=$((s_ - 1))
+      resume_id="$(echo "${ordered[$idx_start]}" | sed 's/^[^|]\+|\([^|]\+\).*/\1/')"
+    else
+      declare -a matches
+      IFS=$'\n'; matches=($(find "$resume_target" -name "*$resume_id*")); IFS="$IFSORG"
+      [ ${#matches[@]} -eq 0 ] && echo "[error] cannot find next patch at target '$target' based on (partial) id match '$resume_id'" 1>&2 && return 1
+      [ ${#matches[@]} -ge 0 ] && echo "[error] partial id '$resume_id' matched multiple patches at target '$target', uniqueness is required" 1>&2 && return 1
+      s_="$(echo "${matches[0]}" | sed 's/\(.\*\/\)\?\(.*\)\..*$/\2/p')"
+      resume_id="$s_"
+      while [ "x${ordered[$idx_start]}" != "x$resume_id" ]; do
+        idx_start=$((idx_start + 1))
+      done
+    fi
+    echo "[info] resuming from commit '$((idx_start + 1))|$resume_id'"
+  else
+    target="$(fn_temp_dir "$SCRIPTNAME" ".")"
+    fn_formatpatch "root" -- -o "$target" >/dev/null
+    cd "$target"
+    git init 2>/dev/null 1>&2
+    IFS=$'\n'; patches=($(find "." -type f -name "*patch")); IFS="$IFSORG"
+    l_patches=${#patches[@]}
+    for f in "${patches[@]}"; do
+      commit="$(sed -n 's/^From \([0-9a-f]\{40\}\) .*$/\1/p' "$f")"
+      mv "$f" "./$commit.diff"
+    done
+  fi
 
-  cd "$target"
-  git init 2>/dev/null 1>&2
+  echo "[info] applying $((l_ordered - (idx_start + 1))) commit$([ $((l_ordered - (idx_start + 1))) -ne 1 ] && echo "s")"
 
-  IFS=$'\n'; patches=($(find "." -type f -name "*patch")); IFS="$IFSORG"
-  l_patches=${#patches[@]}
-  [ $DEBUG -ge 1 ] && echo "[debug] sorting $l_patches commit$([ $l_patches -ne 1 ] && echo "s")"
-  for f in "${patches[@]}"; do
-    commit="$(sed -n 's/^From \([0-9a-f]\{40\}\) .*$/\1/p' "$f")"
-    mv "$f" "./$commit.diff"
-  done
-
-  l=0
+  l=$idx_start
   while [ $l -lt $l_ordered ]; do
     IFS="|"; parts=($(echo "${ordered[$l]}")); IFS="$IFSORG"
     id="${parts[1]}"
