@@ -535,8 +535,11 @@ fn_date_sort() {
     id="${parts[1]}"
     l=$((l + 1))
     echo "applying patch: [$l] ${clr["hl"]}${id:0:7}${clr["off"]} | '${parts[2]}'"
-    git am --keep-non-patch "../patch/$id.diff" >/dev/null || return 1
+    git am --keep-non-patch "../patch/$id.diff" >/dev/null || \
+      { echo "[error] patch [$l] '$target/patch/$id.diff' did not apply cleanly, fix and resume" && return 1; }
   done
+
+  echo "[info] date ordered commit set built under '$target/repo'"
 }
 
 fn_submodule_remove() {
