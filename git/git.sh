@@ -502,7 +502,7 @@ fn_date_sort() {
       resume_id="$(echo "${ordered[$idx_start]}" | sed 's/^[^|]\+|\([^|]\+\).*/\1/')"
     else
       declare -a matches
-      IFS=$'\n'; matches=($(find "$resume_target" -name "*$resume_id*")); IFS="$IFSORG"
+      IFS=$'\n'; matches=($(find "patch" -name "*$resume_id*")); IFS="$IFSORG"
       [ ${#matches[@]} -eq 0 ] && echo "[error] cannot find next patch at target '$target' based on (partial) id match '$resume_id'" 1>&2 && return 1
       [ ${#matches[@]} -ge 0 ] && echo "[error] partial id '$resume_id' matched multiple patches at target '$target', uniqueness is required" 1>&2 && return 1
       s_="$(echo "${matches[0]}" | sed 's/\(.\*\/\)\?\(.*\)\..*$/\2/p')"
@@ -514,14 +514,16 @@ fn_date_sort() {
     echo "[info] resuming from commit '$((idx_start + 1))|$resume_id'"
   else
     target="$(fn_temp_dir "$SCRIPTNAME" ".")"
-    fn_formatpatch "root" -- -o "$target" >/dev/null
+    fn_formatpatch "root" -- -o "$target/patch" >/dev/null
     cd "$target"
+    mkdir -p "repo"
+    cd "repo"
     git init 2>/dev/null 1>&2
-    IFS=$'\n'; patches=($(find "." -type f -name "*patch")); IFS="$IFSORG"
+    IFS=$'\n'; patches=($(find "../patch" -type f -name "*patch")); IFS="$IFSORG"
     l_patches=${#patches[@]}
     for f in "${patches[@]}"; do
       commit="$(sed -n 's/^From \([0-9a-f]\{40\}\) .*$/\1/p' "$f")"
-      mv "$f" "./$commit.diff"
+      mv "$f" "../patch/$commit.diff"
     done
   fi
 
@@ -533,7 +535,7 @@ fn_date_sort() {
     id="${parts[1]}"
     l=$((l + 1))
     echo "applying patch: [$l] ${clr["hl"]}${id:0:7}${clr["off"]} | '${parts[2]}'"
-    git am --keep-non-patch "$id.diff" >/dev/null || return 1
+    git am --keep-non-patch "../patch/$id.diff" >/dev/null || return 1
   done
 }
 
