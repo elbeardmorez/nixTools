@@ -49,29 +49,113 @@ REGEX=0
 OPTION="play"
 
 help() {
-  echo ""
-  echo -e "usage: $SCRIPTNAME [OPTION] TARGET"
-  echo ""
-  echo "with OPTION:"
-  echo ""
-  echo -e "\tplay  : play media file(s)"
-  echo -e "\tsearch  : search for file(s) only"
-  echo -e "\tinfo  : output formatted information on file(s)"
-  echo -e "\tarchive  : recursively search a directory and list valid media files with their info, writing all output to a file"
-  echo -e "\tstructure  : standardise location and file structure for files (partially) matching the search term"
-  echo -e "\trate  : rate media and move structures to the nearest ratings hierarchy"
-  echo -e "\treconsile  : find media in known locations given a file containing names, and write results to an adjacent file"
-  echo -e "\tfix  : fix a stream container"
-  echo -e "\tkbps  : calculate an approximate vbr for a target file size"
-  echo -e "\tremux  : ffmpeg wrapper for changing video dimensions and a/v codecs / rates"
-  echo -e "\tsync  : (re-)synchronise a/v streams given an offset"
-  echo -e "\tedit  : demux / remux routine"
-  echo -e "\tnames  : reconsile and fix-up set of file names from a file containing lines of '#|name' templates"
-  echo -e "\tplaylist  : interactively cycle a list of filenames"
-  echo -e "\trip  : extract streams from dvd media"
-  echo ""
-  echo "with TARGET:  a target file / directory or a partial file name to search for"
-  echo ""
+  echo -e "SYNTAX: $SCRIPTNAME [OPTION]
+\nwhere OPTION:
+\n  -p|--play TARGET  : play media file(s) found at TARGET
+\n    TARGET  : a target file / directory or a partial file name to
+              search for
+\n  -s|--search SEARCH : search for file(s) in known locations
+\n    SEARCH  : a (partial) match term
+\n  -i|--info [LEVEL]  : output formatted information on file(s)
+\n    LEVEL  : number [1-5] determining the verbosity of information
+             output
+\n  -a|--archive [LEVEL] [SOURCE]
+    : recursively search a directory and list valid media files with
+      their info, writing all output to a file
+\n    LEVEL  : number [1-5] determining the verbosity of information
+             output
+    SOURCE  : root directory containing media files to archive
+\n  -str|--structure SEARCH [FILTER [FILTER2.. [FILTERx]]]
+    : create a standardised single / multi-file structure for matched
+      file(s) under the current working directory
+\n    SEARCH  : a (partial) match term
+    FILTER  : strings to remove from matched file names for a
+              multi-file structure
+\n  -r|--rate SEARCH RATING  : rate media and move structures to the
+                             nearest ratings hierarchies
+\n    SEARCH  : a (partial) match term
+    RATING  : numeric rating (eg. 1-10), to push the structure to /
+              under in a ratings hierarchy
+\n  -rec|--reconsile LIST  : match a list of names / files in list to
+                           media at known locations and write results
+                           to an adjacent file
+\n    LIST  : file containing names / files strings to search for
+\n  -f|--fix TARGET  : fix a stream container
+\n    TARGET  : the broken flv media file
+\n  --kbps VSIZE ASIZE LENGTH  : calculate an approximate vbr for a
+                               target file size
+\n    VSIZE[M|b]  : target video size in either megabytes ('M' suffix)
+                  or bytes ('b' suffix / default)
+    ASIZE[M|b]  : target audio size in either megabytes ('M' suffix)
+                  or bytes ('b' suffix / default)
+    LENGTH[m|s]  : length of stream in either minutes ('m' suffix /
+                   default) or seconds ('s' suffix)
+\n  -rmx|--remux TARGET [PROFILE] [WIDTH] [HEIGHT] [VBR] [ABR]
+                        [PASSES] [VSTREAM] [ASTREAM]
+    : ffmpeg wrapper for changing video dimensions and / or a/v codecs
+\n    TARGET  : file to remultiplex
+    PROFILE  : profile name (default: '2p6ch')
+    WIDTH  : video width dimension (default: auto)
+    HEIGHT  : video height dimension (default: auto)
+    VBR  : video bitrate (default: 1750k)
+    ABR  : audio bitrate (default: 320k)
+    PASSES  : perform x-pass conversion of stream (x: 1 or 2)
+    VSTREAM  : set video stream number (default: 0)
+    ASTREAM  : set audio stream number (default: 0)
+\n  -syn|--sync TARGET OFFSET  : (re-)synchronise a/v streams by
+                                 applying an offset
+\n    TARGET  : file to synchronise
+    OFFSET  : numeric offset in milliseconds
+\n  -e|--edit [TARGET] [FILTER]  : demux / remux routine
+\n    TARGET  : directory containing video files to demux or multiple
+            demuxed stream files (*.vid | *.aud) to concatenate and
+            multiplex (default: '.')
+    FILTER  : whitelist match expression for sed (default: '.*')
+\n  -n|--names SET [LIST]  : rename a set of files, based on a
+                           one-to-one list of pipe ('|') delimited
+                           templates of the form '[#|]#|NAME' in a
+                           file
+\n    SET  : common prefix for all resultant file names
+    LIST  : file containing templates (default: './names')
+\n  -pl|--playlist LIST  : interactively cycle a list of filenames and
+                         play the subset which begins with the
+                         selected item
+\n    LIST  : file containing file paths to cycle
+\n  --rip TITLE  : extract streams from dvd media
+\n    TITLE  : name used for output files
+\n# environment variables:
+\n## global
+DEBUG  : output debug strings of increasingly verbose nature
+         (i.e. DEBUG=2)
+TEST  : '--structure'|'--names', perform dry-run (i.e. TEST=1)
+REGEX  : '--search' (and derivatives), override default 'glob'
+         search mechanism (i.e. REGEX=1)
+ROOTDISK  : root directory containing disk mounts (default: '/media')
+ROOTISO  : root of cd / dvd mount (default: '/media/iso')
+PATHMEDIA  : path to media store (default: '\$HOME/media')
+PATHMEDIATARGETS  : pipe-delimited ('|') list of targets paths, full
+                    paths, '\$PATHMEDIA' relative paths and glob names
+                    supported
+PATHRATINGSDEFAULT  : path to ratings structure
+                      (default: '\$PATHMEDIA/watched')
+PATHARCHIVELISTS  : path to archive list(s), either full path(s) or
+                    '\$PATHMEDIATARGETS' relative path(s), falling back
+                    to '\$PATHMEDIA' relative path(s) supported
+                    (default: 'archives/')
+\n## option specific
+FILTERS_EXTRA [--structure]  : additional string filter expession for
+                               sed of the form 'SEARCH/REPLACE'
+VIDEO [--rip]  : override subtitle track extracted (default: 1)
+AUDIO [--rip]  : override subtitle track extracted (default: 1)
+SUBS [--rip]  : override subtitle track extracted (default: 1)
+CMDPLAY [--play|--playlist]  : player binary (default: 'mplayer')
+CMDPLAY_OPTIONS [--play|--playlist] :  player options (default: '-tv')
+CMDPLAY_PLAYLIST_OPTIONS  [--play|--playlist]
+  : player specific option required for playlist mode (default: '-p ')
+CMDFLVFIXER [--fix]  : 'flvfixer' script path
+PLAYLIST [--playlist]
+  : playlist file (default: '/tmp/\$CMDPLAY.playlist)
+"
 }
 
 fn_log() {
@@ -2016,7 +2100,7 @@ fn_calc_dimension() {
 fn_remux() {
   [ $DEBUG -ge 1 ] && echo "[debug fn_remux]" 1>&2
 
-  [ $# -lt 1 ] && echo "syntax: remux source_file [profile=2p6ch] [width=auto] [height=auto] [vbr=1750k] [abr=320k] [passes=1] [vstream=0] [astream=0]" && return 1
+  [ $# -lt 1 ] && help && echo "missing arg" && return 1
 
   cmdffmpeg="ffmpeg"
   cmdffmpeg="$(echo $([ $TEST -gt 0 ] && echo "echo ")$cmdffmpeg)"
@@ -2308,7 +2392,9 @@ fn_test() {
 # REGEX
 [[ $# -gt 1 && "x$1" == "xregex" ]] && REGEX=1 && shift
 
-if [ -n "$(echo $1 | sed -n 's/^\('\
+s_="$(echo "$1" | sed -n 's/^ *\-*\([^ ]\+\) *$/\1/p')"
+if [ -n "$(echo "$s_" | sed -n 's/^ *\-*\('\
+'h\|help\|'\
 's\|search\|'\
 'p\|play\|'\
 'pl\|playlist\|'\
