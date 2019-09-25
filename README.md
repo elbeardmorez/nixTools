@@ -9,6 +9,9 @@ creates a 'hardlink-based' backup set comprising an arbitrary number of sets for
 ### [blog.sh](blog)
 simple script for creating or modifying blog entry data stored as a basic key/value flat backend (file) format - cms / front-end agnostic. target blog stores can be listed directly, else via a menu system for displaying, selecting, and performing operations
 
+### [bzr.sh](bzr)
+bazaar wrapper for adding additional work-flow helpers and simplification of various built-in calls
+
 ### [challenge.sh](challenge)
 coding challenge aid to simplify structuring of challenge files, creation of appropriate empty solution sets ready for editing and ultimately solution testing
 
@@ -35,6 +38,9 @@ given a search set and a target, find all files satisfying the search under/in t
 
 ### [math.sh](math)
 bc wrapper adding miscellaneous functionality that is otherwise either painful to remember (e.g. base conversion), or painful to repeatedly implement (e.g. comparitors)
+
+### [media.sh](media)
+miscellaneous a/v functionality
 
 ### [search.sh](search)
 ease location of your (regularly used) files. offers optionally interactive selection prompt for search match verification and for 'local' searches, target files are created where not found. thin wrapper around `find`, aimed for use with other onward scripts
