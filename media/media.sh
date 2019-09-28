@@ -933,8 +933,6 @@ fn_search() {
   declare -a targets
   declare target
 
-  b_verbose=1
-  [ "x$1" = "xsilent" ] && b_verbose=0 && shift
   b_iterative=0
   [ "x$1" = "xiterative" ] && b_iterative=1 && shift
   b_interactive=0
@@ -1968,7 +1966,7 @@ fn_reconsile() {
   l_max=0
   while read line; do
     s_search="$(echo "${line%%|*}" | sed 's/\s/\./g' | awk -F'\n' '{print tolower($0)}')"
-    IFS=$'\n'; a_found=($(fn_search silent iterative "$s_search")); IFS=$IFSORG
+    IFS=$'\n'; a_found=($(fn_search iterative "$s_search")); IFS=$IFSORG
     s="$line"
     for s2 in "${a_found[@]}"; do s="$s\t$s2"; done
     echo -e "$s" >> "$file2"
