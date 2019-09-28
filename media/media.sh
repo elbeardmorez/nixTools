@@ -54,8 +54,13 @@ help() {
 \n  -p|--play TARGET  : play media file(s) found at TARGET
 \n    TARGET  : a target file / directory or a partial file name to
               search for
-\n  -s|--search SEARCH : search for file(s) in known locations
-\n    SEARCH  : a (partial) match term
+\n  -s|--search [OPTION] SEARCH : search for file(s) in known locations
+\n    OPTION:
+      -i|--interactive  : prompt to complete search on first valid
+                          results set
+      -ss|--substring-search  : search progressively shorter substring
+                                of the search term until match
+    SEARCH  : a (partial) match term
 \n  -i|--info [LEVEL]  : output formatted information on file(s)
 \n    LEVEL  : number [1-5] determining the verbosity of information
              output
@@ -922,39 +927,48 @@ fn_files() {
 }
 
 fn_search() {
-  # search in a set of target directories
-  # optionally 'iterative'ly substring search term and research until
-  # success
-  # optionally 'interactive'ly search, prompting whether to return when
-  # any given path/substring returns valid results
 
   [ $DEBUG -ge 1 ] && echo "[debug fn_search]" 1>&2
 
   declare -a targets
   declare target
+  declare search
+  declare -a args
 
-  b_iterative=0
-  [ "x$1" = "xiterative" ] && b_iterative=1 && shift
-  b_interactive=0
-  [ "x$1" = "xinteractive" ] && b_interactive=1 && shift
+  declare substring_search; substring_search=0
+  declare interactive; interactive=0
 
-  [ -z "$args" ] && help && return 1
-  s_search="$1"
+  # process args
+  while [ -n "$1" ]; do
+    arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
+    case "$arg" in
+      "ss"|"substring-search") shift; substring_search=1 ;;
+      "i"|"interactive") shift; interactive=1 ;;
+      *)
+        [ -z "$search" ] && \
+          { search="$1"; shift; } || \
+          { help; echo "[error] unsupported arg '$1'" 1>&2; return 1; }
+    esac
+  done
+
+  # validate args
+  [ -z "$search" ] && help && echo "[error] missing 'search' arg" 1>&2 && return 1
+
   if [ "$REGEX" -eq 0 ]; then
     # basic escapes only
     # \[ \] \. \^ \$ \? \* \+
     for c in \' \"; do
-      s_search=${s_search//"$c"/"\\$c"}
+      search=${search//"$c"/"\\$c"}
     done
     # replace white-space with wild-card
-    [ $DEBUG -ge 1 ] && echo "[debug fn_search] s_search (pre-basic-escape): '$s_search'" 1>&2
-    s_search=${s_search//" "/"?"}
-    [ $DEBUG -ge 1 ] && echo "[debug fn_search] s_search (post-basic-escape): '$s_search'" 1>&2
+    [ $DEBUG -ge 1 ] && echo "[debug fn_search] search (pre-basic-escape): '$search'" 1>&2
+    search=${search//" "/"?"}
+    [ $DEBUG -ge 1 ] && echo "[debug fn_search] search (post-basic-escape): '$search'" 1>&2
   else
     # escape posix regex characters
-    [ $DEBUG -ge 1 ] && echo "[debug fn_search] s_search (pre-regexp-esacape): '$s_search'" 1>&2
-    s_search="$(fn_regexp "$s_search")"
-    [ $DEBUG -ge 1 ] && echo "[debug fn_search] s_search (post-regexp-esacape): '$s_search'" 1>&2
+    [ $DEBUG -ge 1 ] && echo "[debug fn_search] search (pre-regexp-esacape): '$search'" 1>&2
+    search="$(fn_regexp "$search")"
+    [ $DEBUG -ge 1 ] && echo "[debug fn_search] search (post-regexp-esacape): '$search'" 1>&2
   fi
 
   targets=("$(pwd)")
@@ -973,19 +987,19 @@ fn_search() {
   b_continue=1
   while [ $b_continue -eq 1 ]; do
     for target in "${targets[@]}"; do
-      [ $DEBUG -ge 1 ] && echo "[debug fn_search] s_search: '$s_search', target: '$target'" 1>&2
+      [ $DEBUG -ge 1 ] && echo "[debug fn_search] search: '$search', target: '$target'" 1>&2
       if [ "$REGEX" -eq 1 ]; then
         # FIX: video file only filter for globs?
         #arr=($(find "$target" -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)$'))
-        arr=($(find $target -type f -iregex ".*$s_search.*" 2>/dev/null))
+        arr=($(find $target -type f -iregex ".*$search.*" 2>/dev/null))
       else
         # glob match
-        arr=($(find $target -type f -iname "*$s_search*" 2>/dev/null))
+        arr=($(find $target -type f -iname "*$search*" 2>/dev/null))
       fi
       if [[ ${#arr[@]} -gt 0 && -n "$arr" ]]; then
         b_add=1
-        if [ $b_interactive -eq 1 ]; then
-          echo "[user] target: '$target', search: '*s_search*', found files:" 1>&2
+        if [ $interactive -eq 1 ]; then
+          echo "[user] target: '$target', search: '*search*', found files:" 1>&2
           for f in "${arr[@]}"; do echo "  $f" 1>&2; done
           echo -n "[user] search further? [(y)es/(n)o/e(x)it]:  " 1>&2
           b_retry2=1
@@ -1008,9 +1022,9 @@ fn_search() {
     done
     if [ -d "$PATHARCHIVELISTS" ]; then
       if [ "$REGEX" -eq 0 ]; then
-        arr=($(grep -ri "$s_search" "$PATHARCHIVELISTS" 2>/dev/null))
+        arr=($(grep -ri "$search" "$PATHARCHIVELISTS" 2>/dev/null))
       else
-        arr=($(grep -rie "$s_search" "$PATHARCHIVELISTS" 2>/dev/null))
+        arr=($(grep -rie "$search" "$PATHARCHIVELISTS" 2>/dev/null))
       fi
       [ $DEBUG -ge 1 ] && echo "[debug fn_search] results arr: '${arr[@]}'" 1>&2
       # filter results
@@ -1019,9 +1033,9 @@ fn_search() {
         for s in ${arr[@]}; do
           s="$(echo "$s" | sed -n 's/^\([^:~]*\):\([^|]*\).*$/\1|\2/p')"
           if [ "$REGEX" -eq 0 ]; then
-            s="$(echo "$s" | grep -i "$s_search" 2>/dev/null)"
+            s="$(echo "$s" | grep -i "$search" 2>/dev/null)"
           else
-            s="$(echo "$s" | grep -ie "$s_search" 2>/dev/null)"
+            s="$(echo "$s" | grep -ie "$search" 2>/dev/null)"
           fi
           if [ -n "$s" ]; then
             [ -z "${arr2}" ] && arr2=("$s") || arr2=("${arr2[@]}" "$s")
@@ -1030,8 +1044,8 @@ fn_search() {
         [ $DEBUG -ge 1 ] && echo "[debug fn_search] filtered results arr2: '${arr2[@]}'" 1>&2
         # merge results
         b_add=1
-        if [ $b_interactive -eq 1 ]; then
-          echo "[user] target: '$target', search: '*s_search*', found files:" 1>&2
+        if [ $interactive -eq 1 ]; then
+          echo "[user] target: '$target', search: '*search*', found files:" 1>&2
           for f in "${arr[@]}"; do echo "  $f" 1>&2; done
           echo -n "[user] search further? [(y)es/(n)o/e(x)it]:  " 1>&2
           b_retry2=1
@@ -1055,18 +1069,17 @@ fn_search() {
       [ $DEBUG -ge 1 ] && echo "[debug] no archive lists found at: '$PATHARCHIVELISTS'" 1>&2
     fi
 
-    if [[ $b_iterative -eq 0 ||
-      ${#s_search} -le $MINSEARCH ||
-      (${#files[@]} -gt 0 && -n "${files}") ]]; then
+    if [[ $substring_search -eq 0 || \
+          ${#search} -le $MINSEARCH || \
+          (${#files[@]} -gt 0 && -n "${files}") ]]; then
       b_continue=0
     else
-      #s_search=${s_search:0:$((${#s_search} - 1))} # too slow
-      # trim back to next shortest token set, using '][)(.,:- ' delimiter
-      s=$(echo "$s_search" | sed -n 's/^\(.*\)[][)(.,: -]\+.*$/\1/p')
-      [ "${#s}" -lt $MINSEARCH ] && s=${s_search:0:$((${#s_search} - 2))}
-      [ "${#s}" -lt $MINSEARCH ] && s=${s_search:0:$((${#s_search} - 1))}
-      s_search="$s"
-      echo "$s_search" >> /tmp/search
+      # trim token ('][)(.,:- ' delimiter) until too short
+      s=$(echo "$search" | sed -n 's/^\(.*\)[][)(.,: -]\+.*$/\1/p')
+      [ "${#s}" -lt $MINSEARCH ] && s=${search:0:$((${#search} - 2))}
+      [ "${#s}" -lt $MINSEARCH ] && s=${search:0:$((${#search} - 1))}
+      search="$s"
+      echo "$search" >> /tmp/search
     fi
 
   done
@@ -1753,7 +1766,7 @@ fn_rate() {
     l_type=0 # 0 auto, 1 interactive
     while [ $l_type -lt 2 ]; do
       if [ -z "$source" ]; then
-        IFS=$'\n'; s_files=($(fn_search iterative $([ $l_type -eq 1 ] && echo "interactive") "$s_search" "$VIDEXT")); IFS=$IFSORG
+        IFS=$'\n'; s_files=($(fn_search "-ss" $([ $l_type -eq 1 ] && echo "-i") "$s_search" "$VIDEXT")); IFS=$IFSORG
         [ $DEBUG -ge 1 ] && echo "[debug fn_rate] fn_search results: count=${#s_files[@]}" 1>&2
         # filter valid
         s_files2=()
@@ -1966,7 +1979,7 @@ fn_reconsile() {
   l_max=0
   while read line; do
     s_search="$(echo "${line%%|*}" | sed 's/\s/\./g' | awk -F'\n' '{print tolower($0)}')"
-    IFS=$'\n'; a_found=($(fn_search iterative "$s_search")); IFS=$IFSORG
+    IFS=$'\n'; a_found=($(fn_search "-ss" "$s_search")); IFS=$IFSORG
     s="$line"
     for s2 in "${a_found[@]}"; do s="$s\t$s2"; done
     echo -e "$s" >> "$file2"

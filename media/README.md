@@ -14,8 +14,13 @@ where OPTION:
     TARGET  : a target file / directory or a partial file name to
               search for
 
-  -s|--search SEARCH : search for file(s) in known locations
+  -s|--search [OPTION] SEARCH : search for file(s) in known locations
 
+    OPTION:
+      -i|--interactive  : prompt to complete search on first valid
+                          results set
+      -ss|--substring-search  : search progressively shorter substring
+                                of the search term until match
     SEARCH  : a (partial) match term
 
   -i|--info [LEVEL]  : output formatted information on file(s)
