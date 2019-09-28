@@ -45,8 +45,11 @@ LOG="${LOG:-"/var/log/$SCRIPTNAME"}"
 TXT_BOLD=$(tput bold)
 TXT_RST=$(tput sgr0)
 
-REGEX=0
-OPTION="play"
+# globals options
+declare regexp; regexp=0
+
+declare -a args
+declare option; option="play"
 
 help() {
   echo -e "SYNTAX: $SCRIPTNAME [OPTION]
@@ -128,13 +131,14 @@ help() {
 \n    LIST  : file containing file paths to cycle
 \n  --rip TITLE  : extract streams from dvd media
 \n    TITLE  : name used for output files
+\n# global options:
+  -rx|--regexp  : use full regular expression (PCRE) style
+                  matching instead of the default 'escaped glob'
 \n# environment variables:
 \n## global
 DEBUG  : output debug strings of increasingly verbose nature
          (i.e. DEBUG=2)
 TEST  : '--structure'|'--names', perform dry-run (i.e. TEST=1)
-REGEX  : '--search' (and derivatives), override default 'glob'
-         search mechanism (i.e. REGEX=1)
 ROOTDISK  : root directory containing disk mounts (default: '/media')
 ROOTISO  : root of cd / dvd mount (default: '/media/iso')
 PATHMEDIA  : path to media store (default: '\$HOME/media')
@@ -954,7 +958,7 @@ fn_search() {
   # validate args
   [ -z "$search" ] && help && echo "[error] missing 'search' arg" 1>&2 && return 1
 
-  if [ "$REGEX" -eq 0 ]; then
+  if [ $regexp -eq 0 ]; then
     # basic escapes only
     # \[ \] \. \^ \$ \? \* \+
     for c in \' \"; do
@@ -988,7 +992,7 @@ fn_search() {
   while [ $b_continue -eq 1 ]; do
     for target in "${targets[@]}"; do
       [ $DEBUG -ge 1 ] && echo "[debug fn_search] search: '$search', target: '$target'" 1>&2
-      if [ "$REGEX" -eq 1 ]; then
+      if [ $regexp -eq 1 ]; then
         # FIX: video file only filter for globs?
         #arr=($(find "$target" -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)$'))
         arr=($(find $target -type f -iregex ".*$search.*" 2>/dev/null))
@@ -1021,7 +1025,7 @@ fn_search() {
       fi
     done
     if [ -d "$PATHARCHIVELISTS" ]; then
-      if [ "$REGEX" -eq 0 ]; then
+      if [ $regexp -eq 0 ]; then
         arr=($(grep -ri "$search" "$PATHARCHIVELISTS" 2>/dev/null))
       else
         arr=($(grep -rie "$search" "$PATHARCHIVELISTS" 2>/dev/null))
@@ -1032,7 +1036,7 @@ fn_search() {
         arr2=
         for s in ${arr[@]}; do
           s="$(echo "$s" | sed -n 's/^\([^:~]*\):\([^|]*\).*$/\1|\2/p')"
-          if [ "$REGEX" -eq 0 ]; then
+          if [ $regexp -eq 0 ]; then
             s="$(echo "$s" | grep -i "$search" 2>/dev/null)"
           else
             s="$(echo "$s" | grep -ie "$search" 2>/dev/null)"
@@ -1165,7 +1169,7 @@ fn_play() {
   [ $DEBUG -ge 1 ] && echo "[debug fn_play] display: '$display', search: '$s_search'" 1>&2
 
   [[ -d "$s_search" || -f "$s_search" ]] && DISPLAY=$display $CMDPLAY $CMDPLAY_OPTIONS "$s_search" "$@" && return 0
-  IFS=$'\n' s_matched=($(fn_search $([ $REGEX -eq 1 ] && echo "regex") "$s_search" 2>/dev/null )); IFS=$IFSORG
+  IFS=$'\n' s_matched=($(fn_search "$s_search" 2>/dev/null )); IFS=$IFSORG
 
   play=0
   cmdplay="$([ $DEBUG -ge 1 ] && echo 'echo ')$CMDPLAY"
@@ -2393,46 +2397,45 @@ fn_test() {
   esac
 }
 
-# args
-[ $# -lt 1 ] && help && exit 1
+# process args
+while [ -n "$1" ]; do
+  arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
+  case "$arg" in
+    "rx"|"regexp") regexp=1; shift ;;
+    *)
+      if [[ -z "$option" || ${#args[@]} -eq 0 ]]; then
+        case "$arg" in
+          "h"|"help"| \
+          "s"|"search"| \
+          "p"|"play"| \
+          "pl"|"playlist"| \
+          "i"|"info"| \
+          "a"|"archive"| \
+          "f"|"fix"| \
+          "str"|"structure"| \
+          "r"|"rate"| \
+          "rec"|"reconsile"| \
+          "kbps"| \
+          "rmx"|"remux"| \
+          "syn"|"sync"| \
+          "e"|"edit"| \
+          "n"|"names"| \
+          "rip"| \
+          "util"| \
+          "test")
+            option="$arg"
+            shift
+            continue
+            ;;
+        esac
+      fi
+      args[${#args[@]}]="$1"; shift ;;
+  esac
+done
 
-# TEST
-[[ $# -gt 1 && "x$1" == "xtest" ]] && TEST=1 && shift
-# DEBUG
-[[ $# -gt 1 && "x$1" == "xdebug" ]] && DEBUG=1 && shift && [ -n "$(echo "$1" | sed -n '/^[0-9]\+$/p')" ] && DEBUG=$1 && shift
-# REGEX
-[[ $# -gt 1 && "x$1" == "xregex" ]] && REGEX=1 && shift
+[ $DEBUG -ge 1 ] && echo "[debug $SCRIPTNAME] option: '$option', args: '${args[@]}'" 1>&2
 
-s_="$(echo "$1" | sed -n 's/^ *\-*\([^ ]\+\) *$/\1/p')"
-if [ -n "$(echo "$s_" | sed -n 's/^ *\-*\('\
-'h\|help\|'\
-'s\|search\|'\
-'p\|play\|'\
-'pl\|playlist\|'\
-'i\|info\|'\
-'a\|archive\|'\
-'f\|fix\|'\
-'str\|structure\|'\
-'r\|rate\|'\
-'rec\|reconsile\|'\
-'kbps\|'\
-'rmx\|remux\|'\
-'syn\|sync\|'\
-'e\|edit\|'\
-'n\|names\|'\
-'rip\|'\
-'util\|'\
-'test'\
-'\)$/\1/p')" ]; then
-  OPTION=$1
-  shift
-fi
-
-args=("$@")
-
-[ $DEBUG -ge 1 ] && echo "[debug $SCRIPTNAME] option: '$OPTION', args: '${args[@]}'" 1>&2
-
-case $OPTION in
+case $option in
   "s"|"search") fn_search "${args[@]}" ;;
   "p"|"play") fn_play "${args[@]}" ;;
   "pl"|"playlist") fn_play_list "${args[@]}" ;;

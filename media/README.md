@@ -116,14 +116,16 @@ where OPTION:
 
     TITLE  : name used for output files
 
+# global options:
+  -rx|--regexp  : use full regular expression (PCRE) style
+                  matching instead of the default 'escaped glob'
+
 # environment variables:
 
 ## global
 DEBUG  : output debug strings of increasingly verbose nature
          (i.e. DEBUG=2)
 TEST  : '--structure'|'--names', perform dry-run (i.e. TEST=1)
-REGEX  : '--search' (and derivatives), override default 'glob'
-         search mechanism (i.e. REGEX=1)
 ROOTDISK  : root directory containing disk mounts (default: '/media')
 ROOTISO  : root of cd / dvd mount (default: '/media/iso')
 PATHMEDIA  : path to media store (default: '$HOME/media')
