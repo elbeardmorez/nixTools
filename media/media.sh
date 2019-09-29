@@ -554,11 +554,13 @@ fn_files_info() {
     if [ -f "$s_search" ]; then
       s_files=("$s_search")
     elif [ -d "$s_search" ]; then
-      IFS=$'\n'; s_files=($(find "$s_search" -type f -maxdepth 1 -iregex '^.*\.\('"$(echo $VIDEXT\|$AUDEXT | sed 's|\||\\\||g')"'\)$' | sort)); IFS=$IFSORG
-      x=$? && [ $x -ne 0 ] && return $x
+      s_="$(find "$s_search" -type f -maxdepth 1 -iregex '^.*\.\('"$(echo $VIDEXT\|$AUDEXT | sed 's|\||\\\||g')"'\)$' | sort)"
+      res=$? && [ $res -ne 0 ] && return $res
+      IFS=$'\n'; s_files=($(echo "$s_")); IFS=$IFSORG
     else
-      IFS=$'\n'; s_files=($(fn_search "$s_search" "$VIDEXT\|$AUDEXT")); IFS=$IFSORG
-      x=$? && [ $x -ne 0 ] && return $x
+      s_="$(fn_search "$s_search" "$VIDEXT\|$AUDEXT")"
+      res=$? && [ $res -ne 0 ] && return $res
+      IFS=$'\n'; s_files=($(echo "$s_")); IFS=$IFSORG
     fi
   fi
   s_length="00:00:00.00"
@@ -767,7 +769,6 @@ fn_files() {
   s_type=""
   [ $# -gt 0 ] && s_type="$1" && shift
 
-  IFS=$'\n'
   while [ $b_search -gt 0 ]; do
     b_searched=0
     b_diff=0
@@ -785,14 +786,21 @@ fn_files() {
         [ $DEBUG -ge 2 ] && echo "[debug fn_files] #1 s_search: '$s_search' s_search_custom: '$s_search_custom' s_search_prev: '$s_search_prev'  s_search_last: '$s_search_last'" 1>&2
         [ -n "$s_search_custom" ] && s_search_prev="$s_search" && s_search="$s_search_custom"
         if [[ "x$s_search" != x$s_search_prev || -z "$s_search_last" ]]; then
-          s_files=($(find ./ -maxdepth $l_depth -iregex '.*'"$(fn_regexp "$s_search" "sed")"'.*\('"$(fn_regexp "$s_type" "sed")"'\)$'))
-          unset s_files2
-          for f in "${s_files[@]}"; do
-            [ -d "$f" ] &&
-               s_files2=("${s_files2[@]}" $(find "$f"/ $s_depth -type f)) ||
-               s_files2=("${s_files2[@]}" "$f")
+          s_="$(find ./ -maxdepth $l_depth -iregex '.*'"$(fn_regexp "$s_search" "sed")"'.*\('"$(fn_regexp "$s_type" "sed")"'\)$')"
+          res=$? && [ $res -ne 0 ] && return $res
+          IFS=$'\n'; s_files=($(echo "$s_")); IFS=$IFSORG
+
+          s_files2=()
+          for s_ in "${s_files[@]}"; do
+            if [ -d "$s_" ]; then
+              s__="$(find "$s_/" $s_depth -type f)"
+              res=$? && [ $res -ne 0 ] && return $res
+              IFS=$'\n'; s_files2=("${s_files2[@]}" $(echo "$s__")); IFS="$IFSORG"
+            else
+              s_files2=("${s_files2[@]}" "$s_")
+            fi
           done
-          s_files=(${s_files2[@]})
+          s_files=("${s_files2[@]}")
           l_found=${#s_files[@]}
           if [ $l_found -ne $l_found_prev ]; then
             b_diff=1
@@ -866,22 +874,23 @@ fn_files() {
       [ $DEBUG -ge 2 ] && echo "[debug fn_files] #3 s_search: '$s_search' s_search_custom: '$s_search_custom' s_search_prev: '$s_search_prev'  s_search_last: '$s_search_last'" 1>&2
     fi
   done
-  IFS=$IFSORG
 
   # verify files
   [ $DEBUG -ge 1 ] && echo "[debug fn_files] s_files: '${s_files[@]}'" 1>&2
   b_verify=1
-  IFS=$'\n'
   if [ $l_found -gt 0 ]; then
     if [ $b_interactive -eq 0 ]; then
-      s_files2=(${s_files[@]})
+      s_files2=("${s_files[@]}")
     else
       echo -e "verify associations for matched files" 1>&2
       b_auto_add=0
-      unset s_files2
+      s_files2=()
       for s_ in "${s_files[@]}"; do
         if [ -d "$s_" ]; then
-          for s__ in $(find "$s_" -type f); do
+          s__="$(find "$s_" -type f)"
+          res=$? && [ $res -ne 0 ] && return $res
+          IFS=$'\n'; s_files3=($(echo "$s_")); IFS="$IFSORG"
+          for s__ in "${s_files3[@]}"; do
             b_add=0
             if [ $b_auto_add -gt 0 ]; then
               b_add=1
@@ -1209,7 +1218,9 @@ fn_play() {
   [ $DEBUG -ge 1 ] && echo "[debug fn_play] display: '$display', search: '$s_search'" 1>&2
 
   [[ -d "$s_search" || -f "$s_search" ]] && DISPLAY=$display $CMDPLAY $CMDPLAY_OPTIONS "$s_search" "$@" && return 0
-  IFS=$'\n' s_matched=($(fn_search "$s_search" 2>/dev/null )); IFS=$IFSORG
+  s_=$(fn_search "${search_args[@]}")
+  res=$? && [ $res -ne 0 ] && return $res
+  IFS=$'\n'; s_matched=(echo "$s_"); IFS=$IFSORG
 
   play=0
   cmdplay="$([ $DEBUG -ge 1 ] && echo 'echo ')$CMDPLAY"
@@ -1810,7 +1821,9 @@ fn_rate() {
     l_type=0 # 0 auto, 1 interactive
     while [ $l_type -lt 2 ]; do
       if [ -z "$source" ]; then
-        IFS=$'\n'; s_files=($(fn_search "-ss" $([ $l_type -eq 1 ] && echo "-i") "$s_search" "$VIDEXT")); IFS=$IFSORG
+        s_=$(fn_search "-ss" $([ $l_type -eq 1 ] && echo "-i") "$s_search" "$VIDEXT")
+        res=$? && [ $res -ne 0 ] && return $res
+        IFS=$'\n'; s_files=($(echo "$s_")); IFS=$IFSORG
         [ $DEBUG -ge 1 ] && echo "[debug fn_rate] fn_search results: count=${#s_files[@]}" 1>&2
         # filter valid
         s_files2=()
@@ -2023,7 +2036,9 @@ fn_reconsile() {
   l_max=0
   while read line; do
     s_search="$(echo "${line%%|*}" | sed 's/\s/\./g' | awk -F'\n' '{print tolower($0)}')"
-    IFS=$'\n'; a_found=($(fn_search "-ss" "$s_search")); IFS=$IFSORG
+    s_="$(fn_search "-ss" "$s_search")"
+    res=$? && [ $res -ne 0 ] && return $res
+    IFS=$'\n'; a_found=($(echo "$s_")); IFS=$IFSORG
     s="$line"
     for s2 in "${a_found[@]}"; do s="$s\t$s2"; done
     echo -e "$s" >> "$file2"
