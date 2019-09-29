@@ -949,6 +949,7 @@ fn_search() {
   declare -a args
   declare l
   declare l_s
+  declare f
 
   declare substring_search; substring_search=0
   declare interactive; interactive=0
@@ -1063,25 +1064,26 @@ fn_search() {
           ;;
       esac
       [ $DEBUG -ge 1 ] && echo "[debug fn_search] results arr: '${arr[@]}'" 1>&2
-      # filter results
+      # format archive results 'file|info'
       if [[ ${#arr[@]} -gt 0 && -n "$arr" ]]; then
-        arr2=
-        for s in ${arr[@]}; do
-          s="$(echo "$s" | sed -n 's/^\([^:~]*\):\([^|]*\).*$/\1|\2/p')"
+        arr_2=()
+        for s_ in ${arr[@]}; do
+          s__="$(echo "$s_" | sed -n 's/^\([^:~]*\):\([^|]*\).*$/\1|\2/p')"
+          [ -z "$s__" ] && echo "[info] invalid archive format: '$s_'" && continue
+          f="${s__%|.*}"
           case "$search_type" in
             "regexp")
-              s="$(echo "$s" | grep -iP "$search" 2>/dev/null)"
+              f="$(echo "$f" | grep -iP "$search" 2>/dev/null)"
               ;;
             "raw")
-              s="$(echo "$s" | grep -iP "$(fn_regexp "$search" "perl")" 2>/dev/null)"
+              f="$(echo "$f" | grep -iP "$(fn_regexp "$search" "perl")" 2>/dev/null)"
               ;;
             "glob")
-              s="$(echo "$s" | grep -ie "$search" 2>/dev/null)"
+              f="$(echo "$f" | grep -ie "$search" 2>/dev/null)"
               ;;
           esac
-          if [ -n "$s" ]; then
-            [ -z "${arr2}" ] && arr2=("$s") || arr2=("${arr2[@]}" "$s")
-          fi
+          [ -z "$f" ] && continue  # false positive
+          arr_2[${#arr_2[@]}]="$s__"
         done
         [ $DEBUG -ge 1 ] && echo "[debug fn_search] filtered results arr2: '${arr2[@]}'" 1>&2
         # merge results
