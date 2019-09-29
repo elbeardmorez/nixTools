@@ -879,14 +879,14 @@ fn_files() {
       echo -e "verify associations for matched files" 1>&2
       b_auto_add=0
       unset s_files2
-      for f in "${s_files[@]}"; do
-        if [ -d "$f" ]; then
-          for f2 in $(find "$f2" -type f); do
+      for s_ in "${s_files[@]}"; do
+        if [ -d "$s_" ]; then
+          for s__ in $(find "$s_" -type f); do
             b_add=0
             if [ $b_auto_add -gt 0 ]; then
               b_add=1
             else
-              echo -ne "  $f [(y)es/(n)o/(a)ll/(c)ancel/e(x)it] " 1>&2
+              echo -ne "  $s__ [(y)es/(n)o/(a)ll/(c)ancel/e(x)it] " 1>&2
               b_retry=1
               while [ $b_retry -gt 0 ]; do
                 result=
@@ -900,15 +900,15 @@ fn_files() {
                 esac
               done
             fi
-            if [ $b_add -eq 1 ]; then s_files2=("${s_files2[@]}" "$f"); fi
+            if [ $b_add -eq 1 ]; then s_files2=("${s_files2[@]}" "$s__"); fi
             if [ $b_verify -eq 0 ]; then break; fi
           done
-        elif [ -f "$f" ]; then
+        elif [ -f "$s_" ]; then
           b_add=0
           if [ $b_auto_add -gt 0 ]; then
             b_add=1
           else
-            echo -ne "  $f [(y)es/(n)o/(a)ll/(c)ancel/e(x)it] " 1>&2
+            echo -ne "  $s_ [(y)es/(n)o/(a)ll/(c)ancel/e(x)it] " 1>&2
             b_retry=1
             while [ $b_retry -gt 0 ]; do
               result=
@@ -922,7 +922,7 @@ fn_files() {
               esac
             done
           fi
-          if [ $b_add -eq 1 ]; then s_files2=("${s_files2[@]}" "$f"); fi
+          if [ $b_add -eq 1 ]; then s_files2=("${s_files2[@]}" "$s_"); fi
           if [ $b_verify -eq 0 ]; then break; fi
         fi
       done
