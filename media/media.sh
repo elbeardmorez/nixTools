@@ -2491,5 +2491,5 @@ case $option in
   "rip") fn_rip "${args[@]}" ;;
   "util") fn_util "${args[@]}" ;;
   "test") fn_test "${args[@]}" ;;
-  *) help ;;
+  "h"|"help") help ;;
 esac
