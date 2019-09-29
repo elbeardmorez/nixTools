@@ -11,8 +11,8 @@ where OPTION:
 
   -p|--play TARGET  : play media file(s) found at TARGET
 
-    TARGET  : a target file / directory or a partial file name to
-              search for
+    TARGET  : a file, directory or a partial name to search for. see
+              'search' for supported strings
 
   -s|--search [OPTION] SEARCH : search for file(s) in known locations
 
@@ -21,7 +21,14 @@ where OPTION:
                           results set
       -ss|--substring-search  : search progressively shorter substring
                                 of the search term until match
-    SEARCH  : a (partial) match term
+    SEARCH  : a (partial) match term. both 'glob' and 'regular
+              expression' (PCRE) search strings are supported. an
+              initial parse for unescaped special characters is made.
+              if no such characters, or only '*' characters are found,
+              the search string will be deemed a glob, otherwise it
+              will be deemed a literal string and escaped prior to
+              regular expression search. use of the global '--regexp'
+              option circumvents this escaping
 
   -i|--info [LEVEL]  : output formatted information on file(s)
 
@@ -117,8 +124,7 @@ where OPTION:
     TITLE  : name used for output files
 
 # global options:
-  -rx|--regexp  : use full regular expression (PCRE) style
-                  matching instead of the default 'escaped glob'
+  -rx|--regexp  : assume valid regular expression (PCRE) search term
 
 # environment variables:
 

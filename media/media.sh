@@ -18,6 +18,7 @@ PATHRATINGSDEFAULT="${PATHRATINGSDEFAULT:-"${PATHMEDIA}watched/"}"
 PATHARCHIVELISTS="${PATHARCHIVELISTS:-"${PATHMEDIA}/archives/"}"
 
 CHARPOSIX='][^$?*+'
+CHARPERL='].[)(}{*|/-'
 CHARSED='].[|/-'
 CHARGREP='].['
 MINSEARCH=3
@@ -55,15 +56,22 @@ help() {
   echo -e "SYNTAX: $SCRIPTNAME [OPTION]
 \nwhere OPTION:
 \n  -p|--play TARGET  : play media file(s) found at TARGET
-\n    TARGET  : a target file / directory or a partial file name to
-              search for
+\n    TARGET  : a file, directory or a partial name to search for. see
+              'search' for supported strings
 \n  -s|--search [OPTION] SEARCH : search for file(s) in known locations
 \n    OPTION:
       -i|--interactive  : prompt to complete search on first valid
                           results set
       -ss|--substring-search  : search progressively shorter substring
                                 of the search term until match
-    SEARCH  : a (partial) match term
+    SEARCH  : a (partial) match term. both 'glob' and 'regular
+              expression' (PCRE) search strings are supported. an
+              initial parse for unescaped special characters is made.
+              if no such characters, or only '*' characters are found,
+              the search string will be deemed a glob, otherwise it
+              will be deemed a literal string and escaped prior to
+              regular expression search. use of the global '--regexp'
+              option circumvents this escaping
 \n  -i|--info [LEVEL]  : output formatted information on file(s)
 \n    LEVEL  : number [1-5] determining the verbosity of information
              output
@@ -132,8 +140,7 @@ help() {
 \n  --rip TITLE  : extract streams from dvd media
 \n    TITLE  : name used for output files
 \n# global options:
-  -rx|--regexp  : use full regular expression (PCRE) style
-                  matching instead of the default 'escaped glob'
+  -rx|--regexp  : assume valid regular expression (PCRE) search term
 \n# environment variables:
 \n## global
 DEBUG  : output debug strings of increasingly verbose nature
@@ -194,6 +201,7 @@ fn_regexp() {
   s_type="${1:-"posix"}"
   [ $DEBUG -ge 2 ] && echo "[debug fn_regexp], s_exp: '$s_exp', s_type: '$s_type', CHAR${s_type^^}: '$(eval 'echo $CHAR'${s_type^^})'" 1>&2
   case "$s_type" in
+    "perl") s_exp=$(echo "$s_exp" | sed 's/\(['$CHARPERL']\)/\\\1/g') ;;
     "grep") s_exp=$(echo "$s_exp" | sed 's/\(['$CHARGREP']\)/\\\1/g') ;;
     "sed") s_exp=$(echo "$s_exp" | sed 's/\(['$CHARSED']\)/\\\1/g') ;;
     "posix") s_exp=$(echo "$s_exp" | sed 's/\(['$CHARPOSIX']\)/\\\1/g') ;;
@@ -936,8 +944,11 @@ fn_search() {
 
   declare -a targets
   declare target
+  declare search_type
   declare search
   declare -a args
+  declare l
+  declare l_s
 
   declare substring_search; substring_search=0
   declare interactive; interactive=0
@@ -957,23 +968,31 @@ fn_search() {
 
   # validate args
   [ -z "$search" ] && help && echo "[error] missing 'search' arg" 1>&2 && return 1
+  l_s=${#search}
 
-  if [ $regexp -eq 0 ]; then
-    # basic escapes only
-    # \[ \] \. \^ \$ \? \* \+
-    for c in \' \"; do
-      search=${search//"$c"/"\\$c"}
-    done
-    # replace white-space with wild-card
-    [ $DEBUG -ge 1 ] && echo "[debug fn_search] search (pre-basic-escape): '$search'" 1>&2
-    search=${search//" "/"?"}
-    [ $DEBUG -ge 1 ] && echo "[debug fn_search] search (post-basic-escape): '$search'" 1>&2
+  [ $DEBUG -ge 1 ] && echo "[debug fn_search] pre-processing search: '$search'" 1>&2
+  if [ $regexp -eq 1 ]; then
+    search_type="regexp"
   else
-    # escape posix regex characters
-    [ $DEBUG -ge 1 ] && echo "[debug fn_search] search (pre-regexp-esacape): '$search'" 1>&2
-    search="$(fn_regexp "$search")"
-    [ $DEBUG -ge 1 ] && echo "[debug fn_search] search (post-regexp-esacape): '$search'" 1>&2
+    # search is glob or raw / literal string
+    # find special chars
+    l=0
+    while [[ $l -lt $l_s && $l -lt $l_s ]]; do
+      char="${search:$l:1}"
+      case "$char" in
+        '\') l=$((l + 1)) ;;
+        '*') ;;
+        '['|']'|'('|')'|'+'|'^'|'$'|'{'|'}') search_type="raw"; break ;;
+      esac
+      l=$((l + 1))
+    done
+    search_type="${search_type:-"glob"}"
   fi
+  # path escapes
+  for c in \' ' ' \"; do
+    search=${search//"$c"/"\\$c"}
+  done
+  [ $DEBUG -ge 1 ] && echo "[debug fn_search] post-processing search: '$search', search type: '$search_type'" 1>&2
 
   targets=("$(pwd)")
   if [ -n "$PATHMEDIATARGETS" ]; then
@@ -992,14 +1011,21 @@ fn_search() {
   while [ $b_continue -eq 1 ]; do
     for target in "${targets[@]}"; do
       [ $DEBUG -ge 1 ] && echo "[debug fn_search] search: '$search', target: '$target'" 1>&2
-      if [ $regexp -eq 1 ]; then
-        # FIX: video file only filter for globs?
-        #arr=($(find "$target" -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)$'))
-        arr=($(find $target -type f -iregex ".*$search.*" 2>/dev/null))
-      else
-        # glob match
-        arr=($(find $target -type f -iname "*$search*" 2>/dev/null))
-      fi
+      # TODO: video / audio files only?!
+      case "$search_type" in
+        "regexp")
+          # search as valid regular expression
+          arr=($(find $target -type f -name "*" | grep -iP ".*$search.*" 2>/dev/null))
+          ;;
+        "raw")
+          # search as raw string
+          arr=($(find $target -type f -name "*" | grep -iP ".*$(fn_regexp "$search" "perl").*" 2>/dev/null))
+          ;;
+        "glob")
+          # search as a glob
+          arr=($(find $target -type f -iname "*$search*" 2>/dev/null))
+          ;;
+      esac
       if [[ ${#arr[@]} -gt 0 && -n "$arr" ]]; then
         b_add=1
         if [ $interactive -eq 1 ]; then
@@ -1025,22 +1051,34 @@ fn_search() {
       fi
     done
     if [ -d "$PATHARCHIVELISTS" ]; then
-      if [ $regexp -eq 0 ]; then
-        arr=($(grep -ri "$search" "$PATHARCHIVELISTS" 2>/dev/null))
-      else
-        arr=($(grep -rie "$search" "$PATHARCHIVELISTS" 2>/dev/null))
-      fi
+      case "$search_type" in
+        "regexp")
+          arr=($(grep -riP "$search" "$PATHARCHIVELISTS" 2>/dev/null))
+          ;;
+        "raw")
+          arr=($(grep -riP "$(fn_regexp "$search" "perl")" "$PATHARCHIVELISTS" 2>/dev/null))
+          ;;
+        "glob")
+          arr=($(grep -rie "$search" "$PATHARCHIVELISTS" 2>/dev/null))
+          ;;
+      esac
       [ $DEBUG -ge 1 ] && echo "[debug fn_search] results arr: '${arr[@]}'" 1>&2
       # filter results
       if [[ ${#arr[@]} -gt 0 && -n "$arr" ]]; then
         arr2=
         for s in ${arr[@]}; do
           s="$(echo "$s" | sed -n 's/^\([^:~]*\):\([^|]*\).*$/\1|\2/p')"
-          if [ $regexp -eq 0 ]; then
-            s="$(echo "$s" | grep -i "$search" 2>/dev/null)"
-          else
-            s="$(echo "$s" | grep -ie "$search" 2>/dev/null)"
-          fi
+          case "$search_type" in
+            "regexp")
+              s="$(echo "$s" | grep -iP "$search" 2>/dev/null)"
+              ;;
+            "raw")
+              s="$(echo "$s" | grep -iP "$(fn_regexp "$search" "perl")" 2>/dev/null)"
+              ;;
+            "glob")
+              s="$(echo "$s" | grep -ie "$search" 2>/dev/null)"
+              ;;
+          esac
           if [ -n "$s" ]; then
             [ -z "${arr2}" ] && arr2=("$s") || arr2=("${arr2[@]}" "$s")
           fi
