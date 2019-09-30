@@ -556,7 +556,7 @@ fn_files_info() {
     if [ -f "$s_search" ]; then
       s_files=("$s_search")
     elif [ -d "$s_search" ]; then
-      s_="$(find "$s_search" -type f -maxdepth 1 -iregex '^.*\.\('"$(echo $VIDEXT\|$AUDEXT | sed 's|\||\\\||g')"'\)$' | sort)"
+      s_="$(find "$s_search" -maxdepth 1 -type f -iregex '^.*\.\('"$(echo $VIDEXT\|$AUDEXT | sed 's|\||\\\||g')"'\)$' | sort)"
       res=$? && [ $res -ne 0 ] && return $res
       IFS=$'\n'; s_files=($(echo "$s_")); IFS=$IFSORG
     else
@@ -1661,7 +1661,7 @@ fn_structure() {
   s_title2="$(echo "${s_title%[*}" | sed 's/\(^\.\|\.$\)//g')"
 
   #IFSORG=$IFS; IFS=$'\n'; files=($(fn_files "$n")); IFS=$IFSORG; for f2 in "${files[@]}"; do n2=${f2##*.}; [ ! -e "$n.$n2" ] && mv -i "$f2" "$n.$n2"; done; done
-  IFS=$'\n'; s_files2=($(find "./$s_short_title/" -type f -maxdepth 1 -iregex '^.*\.\('"$(echo $VIDEXT\|$VIDXEXT\|$EXTEXT | sed 's|\||\\\||g')"'\)$')); IFS=$IFSORG
+  IFS=$'\n'; s_files2=($(find "./$s_short_title/" -maxdepth 1 -type f -iregex '^.*\.\('"$(echo $VIDEXT\|$VIDXEXT\|$EXTEXT | sed 's|\||\\\||g')"'\)$')); IFS=$IFSORG
   if [ $TEST -ge 1 ]; then
     # use original files as we didn't move any!
     s_files2=()
