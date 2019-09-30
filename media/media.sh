@@ -204,7 +204,10 @@ fn_regexp() {
   # escape reserved characters
   s_exp="$1" && shift
   s_type="${1:-"posix"}"
-  [ $DEBUG -ge 2 ] && echo "[debug fn_regexp], s_exp: '$s_exp', s_type: '$s_type', CHAR${s_type^^}: '$(eval 'echo $CHAR'${s_type^^})'" 1>&2
+  if [ $DEBUG -ge 2 ]; then
+    s_="$(awk 'BEGIN{print toupper("'"$s_type"'")}')"
+    echo "[debug fn_regexp], s_exp: '$s_exp', s_type: '$s_type', CHAR$s_: '"$(eval "echo '$CHAR$s_'")"'" 1>&2
+  fi
   case "$s_type" in
     "perl") s_exp=$(echo "$s_exp" | sed 's/\(['$CHARPERL']\)/\\\1/g') ;;
     "grep") s_exp=$(echo "$s_exp" | sed 's/\(['$CHARGREP']\)/\\\1/g') ;;
