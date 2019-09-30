@@ -594,7 +594,7 @@ fn_file_multi_mask() {
   [ $DEBUG -ge 1 ] && echo "[debug fn_file_multi_mask]" 1>&2
 
   s_title="$1" && shift
-  s_target="$1" && shift
+  s_target="" && [ $# -gt 0 ] && s_target="$1" && shift
   s_mask_default="" && [ $# -gt 0 ] && s_mask_default="$1" && shift
   s_mask_val=""
   s_mask_default_single="#of#"
