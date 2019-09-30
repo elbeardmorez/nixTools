@@ -171,7 +171,7 @@ CMDPLAY_PLAYLIST_OPTIONS  [--play|--playlist]
 CMDFLVFIXER [--fix]  : 'flvfixer' script path
 PLAYLIST [--playlist]
   : playlist file (default: '/tmp/\$CMDPLAY.playlist)
-"
+" 1>&2
 }
 
 fn_log() {
