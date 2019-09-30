@@ -1213,7 +1213,22 @@ fn_play_list() {
 fn_play() {
   [ $DEBUG -ge 1 ] && echo "[debug fn_play]" 1>&2
 
-  s_search="$1" && shift
+  declare s_search
+
+  # process args
+  while [ -n "$1" ]; do
+    arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
+    case "$arg" in
+      *)
+        [ -z "$s_search" ] && \
+          { s_search="$1"; shift; } || \
+          { help; echo "[error] unsupported arg '$1'" 1>&2; return 1; }
+    esac
+  done
+
+  declare -a search_args
+  search_args[${#search_args[@]}]="$s_search"
+
   display=$(fn_display)
   [ $DEBUG -ge 1 ] && echo "[debug fn_play] display: '$display', search: '$s_search'" 1>&2
 
