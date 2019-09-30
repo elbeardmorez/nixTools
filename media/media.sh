@@ -1,5 +1,11 @@
 #!/bin/sh
 
+# includes
+set -e
+x="$(dirname "$0")/$(basename "$0")"; [ ! -f "$x" ] && x="$(which $0)"; x="$(readlink -e "$x" || echo "$x")"
+. ${x%/*}/../func_common.sh
+set +e
+
 SCRIPTNAME=${0##*/}
 IFSORG=$IFS
 DEBUG=${DEBUG:-0}
@@ -42,9 +48,6 @@ CMDINFOMPLAYER="${CMDINFOMPLAYER:-"mplayer -identify -frames 0 -vc null -vo null
 CMDFLVFIXER="${CMDFLVFIXER:-"flvfixer.php"}"
 PLAYLIST="${PLAYLIST:-"/tmp/$CMDPLAY.playlist"}"
 LOG="${LOG:-"/var/log/$SCRIPTNAME"}"
-
-TXT_BOLD=$(tput bold)
-TXT_RST=$(tput sgr0)
 
 # globals options
 declare regexp; regexp=0
@@ -1594,7 +1597,7 @@ fn_structure() {
   echo -e "set the title template$([ $l_files -gt 1 ] && echo ". supported multi-file masks: '#of#', 's##e##'"). note ']/[' are fixed title delimiters" 1>&2
   b_retry=1
   while [ $b_retry -gt 0 ]; do
-      echo -n $TXT_BOLD 1>&2 && read -e -i "$s_title" s_title && echo -n $TXT_RST 1>&2
+      echo -n ${clr["hl"]} 1>&2 && read -e -i "$s_title" s_title && echo -n ${clr["off"]} 1>&2
     echo -ne "confirm title: '$s_title'? [(y)es/(n)o/e(x)it] " 1>&2
     b_retry2=1
     while [ $b_retry2 -gt 0 ]; do
@@ -1731,7 +1734,7 @@ fn_structure() {
             break
           else
             echo -e "target file '$s_target' for '${f##*/}' already exists, rename target or set blank to skip" 1>&2
-            echo -n $TXT_BOLD 1>&2 && read -e -i "$s_target" s_target && echo -n $TXT_RST 1>&2
+            echo -n ${clr["hl"]} 1>&2 && read -e -i "$s_target" s_target && echo -n ${clr["off"]} 1>&2
             [ -z "$s_target" ] && break
           fi
         done
