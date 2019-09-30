@@ -21,6 +21,8 @@ where OPTION:
                           results set
       -ss|--substring-search  : search progressively shorter substring
                                 of the search term until match
+      -x|--extensions EXTENSIONS  : override default pipe-delimited
+                                    ('|') supported a/v extensions set
     SEARCH  : a (partial) match term. both 'glob' and 'regular
               expression' (PCRE) search strings are supported. an
               initial parse for unescaped special characters is made.

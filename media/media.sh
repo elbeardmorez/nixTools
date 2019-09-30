@@ -64,6 +64,8 @@ help() {
                           results set
       -ss|--substring-search  : search progressively shorter substring
                                 of the search term until match
+      -x|--extensions EXTENSIONS  : override default pipe-delimited
+                                    ('|') supported a/v extensions set
     SEARCH  : a (partial) match term. both 'glob' and 'regular
               expression' (PCRE) search strings are supported. an
               initial parse for unescaped special characters is made.
@@ -558,7 +560,7 @@ fn_files_info() {
       res=$? && [ $res -ne 0 ] && return $res
       IFS=$'\n'; s_files=($(echo "$s_")); IFS=$IFSORG
     else
-      s_="$(fn_search "$s_search" "$VIDEXT\|$AUDEXT")"
+      s_="$(fn_search "$s_search")"
       res=$? && [ $res -ne 0 ] && return $res
       IFS=$'\n'; s_files=($(echo "$s_")); IFS=$IFSORG
     fi
@@ -962,6 +964,7 @@ fn_search() {
 
   declare substring_search; substring_search=0
   declare interactive; interactive=0
+  declare extensions; extensions="$VIDEXT|$AUDEXT"
 
   # process args
   while [ -n "$1" ]; do
@@ -969,6 +972,7 @@ fn_search() {
     case "$arg" in
       "ss"|"substring-search") shift; substring_search=1 ;;
       "i"|"interactive") shift; interactive=1 ;;
+      "x"|"extensions") shift; extensions="$1"; shift ;;
       *)
         [ -z "$search" ] && \
           { search="$1"; shift; } || \
@@ -1021,21 +1025,21 @@ fn_search() {
   while [ $b_continue -eq 1 ]; do
     for target in "${targets[@]}"; do
       [ $DEBUG -ge 1 ] && echo "[debug fn_search] search: '$search', target: '$target'" 1>&2
-      # TODO: video / audio files only?!
       case "$search_type" in
         "regexp")
           # search as valid regular expression
-          arr=($(find $target -type f -name "*" | grep -iP ".*$search.*" 2>/dev/null))
+          arr=($(find $target -type f -name "*" | grep -iP ".*$search.*" | grep -iP '('"$extensions"')$' 2>/dev/null))
           ;;
         "raw")
           # search as raw string
-          arr=($(find $target -type f -name "*" | grep -iP ".*$(fn_regexp "$search" "perl").*" 2>/dev/null))
+          arr=($(find $target -type f -name "*" | grep -iP ".*$(fn_regexp "$search" "perl").*($extensions)" 2>/dev/null))
           ;;
         "glob")
           # search as a glob
-          arr=($(find $target -type f -iname "*$search*" 2>/dev/null))
+          arr=($(find $target -type f -iname "*$search*" | grep -iP '('"$extensions"')$' 2>/dev/null))
           ;;
       esac
+
       if [[ ${#arr[@]} -gt 0 && -n "$arr" ]]; then
         b_add=1
         if [ $interactive -eq 1 ]; then
@@ -1836,7 +1840,7 @@ fn_rate() {
     l_type=0 # 0 auto, 1 interactive
     while [ $l_type -lt 2 ]; do
       if [ -z "$source" ]; then
-        s_=$(fn_search "-ss" $([ $l_type -eq 1 ] && echo "-i") "$s_search" "$VIDEXT")
+        s_=$(fn_search "-ss" $([ $l_type -eq 1 ] && echo "-i") "-x" "$VIDEXT" "$s_search")
         res=$? && [ $res -ne 0 ] && return $res
         IFS=$'\n'; s_files=($(echo "$s_")); IFS=$IFSORG
         [ $DEBUG -ge 1 ] && echo "[debug fn_rate] fn_search results: count=${#s_files[@]}" 1>&2
