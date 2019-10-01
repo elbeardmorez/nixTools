@@ -1509,12 +1509,13 @@ fn_filter() {
   options="$options_default"
   repeat=$repeat_default
   l=1
-  while [ -n "$1" ]; do
+  while [ "$#" -gt 0 ]; do
     arg="$1"
     case "$arg" in
       "-r"|"--repeat") repeat=1 ;;
       "-mc"|"--match_case") match_case=1 ;;
       *)
+        if [ -n "$arg" ]; then
         [ $match_case -eq 0 ] && options+="I"
         filter="$arg"
         target_="$target"
@@ -1526,6 +1527,7 @@ fn_filter() {
           done
         fi
         [ $DEBUG -ge 5 ] && echo "[debug] filter #$l: '$filter' applied, '$target_' -> '$target'" 1>&2
+        fi
         # reset
         match_case=$match_case_default
         options="$options_default"
