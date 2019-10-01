@@ -1658,8 +1658,7 @@ fn_structure() {
     s_title_extra=${s_title##*[}
     if [ ${#s_title_extra} -gt 0 ]; then
       s_title_extra="[$s_title_extra"
-      s_title=$(echo "$s_title" | sed 's/'"$(fn_regexp "$s_title_extra" "sed")"'//')
-      [ "x${s_title:$((${#s_title} - 1)):1}" = "x." ] && s_title=${s_title%.}
+      s_title="$(echo "${s_title:0:$((${#s_title} - ${#s_title_extra}))}" | sed 's/\.*$//')"
     fi
     # recover (potentially modified) default multi-file mask
     [ $DEBUG -ge 1 ] && echo "s_mask: '${s_mask[@]}', s_mask_default: '$s_mask_default'" 1>&2
@@ -1677,11 +1676,11 @@ fn_structure() {
       [ $DEBUG -gt 0 ] && echo "#s_title: '$s_title'" 1>&2
     fi
 
-    s=""; while [ "x$s_title" != "x$s" ]; do s="$s_title"; s_title="$(echo "$s_title" | sed 's/\(\[\.*\]\|(\.*)\|^\.\|\.$\)//g')"; done
-    s=""; while [ "x$s_title" != "x$s" ]; do s="$s_title"; s_title="$(echo "$s_title" | sed 's/\.\././g')"; done
+    s=""; while [ "x$s_title_extra" != "x$s" ]; do s="$s_title_extra"; s_title_extra="$(echo "$s_title_extra" | sed 's/\(\[\.*\]\|(\.*)\|^\.\|\.$\)//g')"; done
+    s=""; while [ "x$s_title_extra" != "x$s" ]; do s="$s_title_extra"; s_title_extra="$(echo "$s_title_extra" | sed 's/\.\././g')"; done
   fi
 
-  [ $DEBUG -gt 0 ] && echo "#s_title: '$s_title'" 1>&2
+  [ $DEBUG -gt 0 ] && echo "[debug] title: '$s_title', extra: '$s_title_extra'" 1>&2
 
   # structure files
   # move
@@ -1726,9 +1725,8 @@ fn_structure() {
       # providing filter terms means the s_title2 contains only the stub
       # apply filters
       if [ -n "${s_mask[1]}" ]; then
-        # construct dynamic title from template and additional file info
-        # i.e post-mask characters
-        s_target="$s_title2.[$s_mask_default].$(echo "${f2%.*}" | sed 's/^.*'"$(fn_regexp "${s_mask[1]}" "sed")"'\]*//')"
+        # dynamic title part and additional file info pre-filter
+        s_target="$(echo "${f2%.*}" | sed 's/^.*'"$(fn_regexp "${s_mask[1]}" "sed")"'\]*//')"
       else
         # no delimiter. so we need to use any info in the original
         # filename that isn't in our fixed title
@@ -1741,9 +1739,6 @@ fn_structure() {
         [ $DEBUG -ge 2 ] && echo "[debug] no mask, appended unused info, target: '$s_target'" 1>&2
       fi
 
-      # go lower case now
-      #s_target="$(echo "$s_target" | awk '{gsub(" ",".",$0); print tolower($0)}')"
-
       # filters
       s_target="$(fn_filter "$s_target" \
                   "--repeat" "$filters_cmd" \
@@ -1753,6 +1748,11 @@ fn_structure() {
                   "$filters_misc" "$filters_misc2" "$filters_misc3" "$filters_misc4" \
                   "--repeat" "$filters_repeat_misc" \
                   "--repeat" "$filters_repeat_misc2")"
+
+      if [ -n "${s_mask[1]}" ]; then
+        # append filtered dynamic string to title / template prefix
+        s_target="$s_title2.[$s_mask_default].$s_target"
+      fi
 
     else
       # static
