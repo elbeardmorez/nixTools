@@ -1488,6 +1488,56 @@ fn_archive() {
   cd $CWD
 }
 
+fn_filter() {
+  [ $DEBUG -ge 1 ] && echo "[debug fn_filter]" 1>&2
+
+  declare target
+  declare target_
+  declare options
+  declare options_default; options_default="g"
+  declare match_case
+  declare match_case_default; match_case_default=0
+  declare repeat
+  declare repeat_default; repeat_default=0
+  declare filter
+  declare l
+
+  target="$1" && shift
+
+  # process option filter sets
+  match_case=$match_case_default
+  options="$options_default"
+  repeat=$repeat_default
+  l=1
+  while [ -n "$1" ]; do
+    arg="$1"
+    case "$arg" in
+      "-r"|"--repeat") repeat=1 ;;
+      "-mc"|"--match_case") match_case=1 ;;
+      *)
+        [ $match_case -eq 0 ] && options+="I"
+        filter="$arg"
+        target_="$target"
+        target="$(echo "$target" | sed 's/'"$filter"'/'"$options")"
+        if [ $repeat -eq 1 ]; then
+          s_="$(echo "$target" | sed 's/'"$filter"'/'"$options")"
+          while [ "x$s_" != "x$target" ]; do
+            target="$s_"; s_="$(echo "$target" | sed 's/'"$filter"'/'"$options")"
+          done
+        fi
+        [ $DEBUG -ge 5 ] && echo "[debug] filter #$l: '$filter' applied, '$target_' -> '$target'" 1>&2
+        # reset
+        match_case=$match_case_default
+        options="$options_default"
+        repeat=$repeat_default
+        l=$((l + 1))
+        ;;
+    esac
+    shift
+  done
+  echo "$target"
+}
+
 fn_structure() {
   [ $DEBUG -ge 1 ] && echo "[debug fn_structure]" 1>&2
 
@@ -1501,7 +1551,10 @@ fn_structure() {
 
   s_search="$1" && shift
 
-  filters_cmd=() && [ $# -gt 0 ] && filters_cmd=("$@")
+  declare delimiters; delimiters='._-'
+  declare filters_cmd; filters_cmd=""
+  while [ -n "$1" ]; do filters_cmd="$filters_cmd"'\|'"$1"; shift; done
+  [ -n "$filters_cmd" ] && filters_cmd='['"$delimiters"']\+\('"${filters_cmd:2}"'\)\(['"$delimiters"']\|$\)\+/..'
   filters_rc="$FILTERS_EXTRA"
   filters_mod='\(\s\|\.\|\[\)*[^(]\([0-9]\{4\}\)\(\s\|\.\|\]\)*/.(\2).'
   filters_codecs="\($(echo "$VIDCODECS|$AUDCODECS" | sed 's/[,=|]/\\\|/g')\)/."
@@ -1554,22 +1607,6 @@ fn_structure() {
   [[ ! -d "$s_title_path" || x$(cd "$s_title_path" && pwd) == "x$(pwd)" ]] && s_title_path=""
   s_title_template="$(echo ${s_title_template##*/} | awk '{gsub(" ",".",$0); print tolower($0)}')"
 
-  if [ ${#filters_cmd[@]} -gt 0 ]; then
-    l=1
-    for s in "${filters_cmd[@]}"; do
-      s_title_template_="$s_title_template"
-      expr='\([._-]\)\+'"$s"'\([._-]\|$\)\+'
-      while [ -n "$(echo "$s_title_template" | sed -n '/'"$expr"'/p')" ]; do
-        s_title_template=$(echo "$s_title_template" | sed 's/'"$expr"'/../Ig')
-      done
-      l=$((l + 1))
-      [ $DEBUG -ge 5 ] && echo "[debug] remove filter [$l] '$s' applied, '$s_title_template_' -> '$s_title_template'" 1>&2
-    done
-  #else
-    # clear everything between either delimiters ']','[', or delimiter
-    # '[' and end
-  fi
-
   # mask?
   s_mask_default=""
   IFS=$'\|'; s_mask=($(fn_file_multi_mask "$s_title_template")); IFS=$IFSORG
@@ -1579,12 +1616,15 @@ fn_structure() {
     s_title_template=$(echo "$s_title_template" | sed 's/\[\?'"$(fn_regexp "${s_mask[2]}" "sed")"'\]\?/['$s_mask_default']/')
   fi
 
-  s_title_template="$(echo "$s_title_template" | sed 's/'"$filters_mod"'/')"
-  s_title_template="$(echo "$s_title_template" | sed 's/'"${filters_rc:-/}"'/Ig')"
-  s_title_template="$(echo "$s_title_template" | sed 's/'"$filters_codecs"'/Ig')"
-  s_title_template="$(echo "$s_title_template" | sed 's/'"$filters_misc"'/g;s/'"$filters_misc2"'/g;s/'"$filters_misc3"'/g;s/'"$filters_misc4"'/g;')"
-  s=""; while [ "x$s_title_template" != "x$s" ]; do s="$s_title_template"; s_title_template="$(echo "$s_title_template" | sed 's/'"$filters_repeat_misc"'/g')"; done
-  s=""; while [ "x$s_title_template" != "x$s" ]; do s="$s_title_template"; s_title_template="$(echo "$s_title_template" | sed 's/'"$filters_repeat_misc2"'/g')"; done
+  # filters
+  s_title_template="$(fn_filter "$s_title_template" \
+                       "--repeat" "$filters_cmd" \
+                       "${filters_rc:-/}" \
+                       "$filters_mod" \
+                       "$filters_codecs" \
+                       "$filters_misc" "$filters_misc2" "$filters_misc3" "$filters_misc4" \
+                       "--repeat" "$filters_repeat_misc" \
+                       "--repeat" "$filters_repeat_misc2")"
 
   # set title based on search / template file name / mask / file info
   # parts
@@ -1681,33 +1721,38 @@ fn_structure() {
     IFS=$'|'; s_mask=($(fn_file_multi_mask "$f2" "" "$s_mask_default")); IFS=$IFSORG
     [ $DEBUG -gt 0 ] && echo "s_mask: '${s_mask[@]}'" 1>&2
 
-    if [ ${#filters_cmd[@]} -gt 0 ]; then
+    if [ -n "$filters_cmd" ]; then
       # we need to manipulate the target (s_title2) before it goes for its final name fixing (fn_file_target)
       # providing filter terms means the s_title2 contains only the stub
       # apply filters
-      for s in "${filters_cmd[@]}"; do f2=$(echo "$f2" | sed 's/\([._-]\)*'$s'\([._-]\)*/../Ig'); done
       if [ -n "${s_mask[1]}" ]; then
         # construct dynamic title from template and additional file info
         # i.e post-mask characters
         s_target="$s_title2.[$s_mask_default].$(echo "${f2%.*}" | sed 's/^.*'"$(fn_regexp "${s_mask[1]}" "sed")"'\]*//')"
       else
-        # no delimiter. so we need to use all info in the original
-        # filename we can try and filter any info already present
-        # in the template though
-        filters_cmd2=($(echo "$s_title2" | sed 's/[][)(-,._]/ /g'))
-        for s in ${filters_cmd2[@]}; do f2=$(echo "$f2" | sed 's/\([._-]\)*'$s'\([._-]\)*/../Ig'); done
-        s_target="$s_title2.${f2%.*}"
+        # no delimiter. so we need to use any info in the original
+        # filename that isn't in our fixed title
+        delimiters='][)([:space:],._-'
+        a_=($(echo "$s_title2" | sed 's/['"$delimiters"']/ /g'))
+        [ $DEBUG -ge 2 ] && echo "[debug] filtered title tokens '[${#a_[@]}] ${a_[@]}' from file name '$f2'" 1>&2
+        s_="$f2"
+        for s__ in ${a_[@]}; do s_=$(echo "$s_" | sed 's/['"$delimiters"']*'"$s__"'['"$delimiters"']*/../Ig'); done
+        s_target="$s_title2.${s_%.*}"
+        [ $DEBUG -ge 2 ] && echo "[debug] no mask, appended unused info, target: '$s_target'" 1>&2
       fi
 
       # go lower case now
       #s_target="$(echo "$s_target" | awk '{gsub(" ",".",$0); print tolower($0)}')"
 
-      s_target="$(echo "$s_target" | sed 's/'"$filters_mod"'/')"
-      s_target="$(echo "$s_target" | sed 's/'"${filters_rc:-/}"'/Ig')"
-      s_target="$(echo "$s_target" | sed 's/'"$filters_codecs"'/Ig')"
-      s_target="$(echo "$s_target" | sed 's/'"$filters_misc"'/g;s/'"$filters_misc2"'/g;s/'"$filters_misc3"'/g;s/'"$filters_misc4"'/g;')"
-      s=""; while [ "x$s_target" != "x$s" ]; do s="$s_target"; s_target="$(echo "$s_target" | sed 's/'"$filters_repeat_misc"'/g')"; done
-      s=""; while [ "x$s_target" != "x$s" ]; do s="$s_target"; s_target="$(echo "$s_target" | sed 's/'"$filters_repeat_misc2"'/g')"; done
+      # filters
+      s_target="$(fn_filter "$s_target" \
+                  "--repeat" "$filters_cmd" \
+                  "${filters_rc:-/}" \
+                  "$filters_mod" \
+                  "$filters_codecs" \
+                  "$filters_misc" "$filters_misc2" "$filters_misc3" "$filters_misc4" \
+                  "--repeat" "$filters_repeat_misc" \
+                  "--repeat" "$filters_repeat_misc2")"
 
     else
       # static
