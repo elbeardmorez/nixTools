@@ -1516,17 +1516,17 @@ fn_filter() {
       "-mc"|"--match_case") match_case=1 ;;
       *)
         if [ -n "$arg" ]; then
-        [ $match_case -eq 0 ] && options+="I"
-        filter="$arg"
-        target_="$target"
-        target="$(echo "$target" | sed 's/'"$filter"'/'"$options")"
-        if [ $repeat -eq 1 ]; then
-          s_="$(echo "$target" | sed 's/'"$filter"'/'"$options")"
-          while [ "x$s_" != "x$target" ]; do
-            target="$s_"; s_="$(echo "$target" | sed 's/'"$filter"'/'"$options")"
-          done
-        fi
-        [ $DEBUG -ge 5 ] && echo "[debug] filter #$l: '$filter' applied, '$target_' -> '$target'" 1>&2
+          [ $match_case -eq 0 ] && options+="I"
+          filter="$arg"
+          target_="$target"
+          target="$(echo "$target" | sed 's/'"$filter"'/'"$options")"
+          if [ $repeat -eq 1 ]; then
+            s_="$(echo "$target" | sed 's/'"$filter"'/'"$options")"
+            while [ "x$s_" != "x$target" ]; do
+              target="$s_"; s_="$(echo "$target" | sed 's/'"$filter"'/'"$options")"
+            done
+          fi
+          [ $DEBUG -ge 5 ] && echo "[debug] filter #$l: '$filter' applied, '$target_' -> '$target'" 1>&2
         fi
         # reset
         match_case=$match_case_default
