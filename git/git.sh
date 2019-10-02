@@ -99,6 +99,7 @@ fn_commit() {
     message="$message $1"
     shift
   done
+  [ -n "$message" ] && message="${message:1}"
   git commit -m "$message" "$@"
 }
 
