@@ -1548,8 +1548,6 @@ fn_structure() {
 
   b_verbose=1
   [ "x$1" = "xsilent" ] && b_verbose=0 && shift
-  b_long=1
-  [ "x$1" = "xlong" ] && b_long=1 && shift
 
   s_search="$1" && shift
 
@@ -1798,12 +1796,9 @@ fn_structure() {
     fi
   done
 
-  #echo -n "structure '" 1>&2 && echo -n "$s_title" | tee >(cat - 1>&2) && echo "' created" 1>&2
-  #echo "structure '$s_title' created" 1>&2
-  #echo "$s_title"
-  [ $b_verbose -eq 1 ] && echo -n "structure '" 1>&2
-  [ $b_long -eq 1 ] && echo -n "$pwd/$s_short_title" || echo -n "$s_short_title"
-  [ $b_verbose -eq 1 ] && echo "' created" 1>&2
+  [ $b_verbose -eq 1 ] && echo "[info] structure '$s_short_title' created" 1>&2
+
+  [ ! -t 1 ] && echo "$pwd/$s_short_title"
   return 0
 }
 
@@ -2021,7 +2016,7 @@ fn_rate() {
 
     # manual local re-structure
     if [ -z "$source" ]; then
-      source="$(fn_structure silent long "$s_search")"
+      source="$(fn_structure silent "$s_search")"
       x=$? && [ $x -ne 0 ] && return $x
     fi
 
