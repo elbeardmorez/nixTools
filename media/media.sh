@@ -2538,6 +2538,30 @@ fn_test() {
       done
       ;;
 
+    "file_multi_mask")
+      declare -a tests
+      declare -a args
+      declare expected
+      declare l
+      tests=(
+        "foo.cd.2.bar^#of#|cd.2|2of#"
+        "foo.cd.2.bar|foo.(#of#).bar^foo.(2of#).bar"
+        "foo.cd.2.bar|foo.(#of4).bar^foo.(2of4).bar"
+        "foo.s2e3.bar^s##e##|s2e3|s02e03"
+        "foo.s2e3.bar|foo.[s##e##].bar^foo.[s02e03].bar"
+      )
+      l=1
+      for s_ in "${tests[@]}"; do
+        pass=0
+        expected="${s_#*^}"
+        IFS="|"; args=($(echo "${s_%^*}")); IFS="$IFSORG"
+        res="$(fn_file_multi_mask "${args[@]}")"
+        [ "x$res" = "x$expected" ] && pass=1
+        echo "[$l|$([ $pass -eq 1 ] && echo "${clr["grn"]}pass" || echo "${clr["red"]}fail")${clr["off"]}] args: '${args[@]}' -> result: '$res'$([ $pass -eq 0 ] && echo " | expected: '$expected'")"
+        l=$((l + 1))
+      done
+      ;;
+
     "misc")
       s_files=($(find . -iregex '^.*\('"$(echo $VIDEXT\|$VIDXEXT\|nfo | sed 's|\||\\\||g')"'\)$' | sort -i))
       echo "s_files: ${s_files[@]}"
