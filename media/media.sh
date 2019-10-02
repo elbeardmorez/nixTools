@@ -665,7 +665,7 @@ fn_file_multi_mask() {
     s_mask_raw=$(echo "${s_title##/}" | sed -n 's|^.*\('"$s_search"'\).*$|\1|Ip')
     if [ -n "$s_mask_raw" ]; then
       s_type="${arr2[0]}"
-      s="s_mask_default_${s_type}" && s_mask_default=${s_mask_default:-"${!s}"}
+      s_="s_mask_default_${s_type}" && s_mask_default="${s_mask_default:-"$(eval "echo \$$s_")"}"
       s_mask_val=$(echo "${s_title##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|'$s_replace'|Ip' 2>/dev/null)
 #      case $s_type in
 #        "single") s_mask_val=$(echo "${s_title##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|\1|Ip' 2>/dev/null) ;;
