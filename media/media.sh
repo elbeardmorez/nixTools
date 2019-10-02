@@ -332,8 +332,8 @@ fn_position_add() {
   [[ $(fn_position_time_valid "$base") -eq 0 || $(fn_position_time_valid "$bump") -eq 0 ]] && echo "$base" &&  return 1
 
   IFS=$'\:\,\.'
-  a_base=($base)
-  a_bump=($bump)
+  a_base=($(echo "$base"))
+  a_bump=($(echo "$bump"))
   IFS=$IFSORG
   s_final=""
   l_carry=0
@@ -656,7 +656,7 @@ fn_file_multi_mask() {
   for s in "${arr[@]}"; do
     [ $DEBUG -ge 5 ] && echo "[debug] filter: [$l] '$s'" 1>&2
     #[ "x$s" = x"set \([0-9]\)x\([0-9]\{1,2\}\)" ] && set -x || set +x
-    IFS=" " && arr2=($s) && IFS=$IFSORG
+    IFS=" "; arr2=($(echo "$s")); IFS=$IFSORG
     #[[ -n "$s_type" && "x$s_type" != "x${arr2[0]}" ]] && continue
     s_search=${arr2[1]}
     s_replace="" && [ ${#arr2} -ge 2 ] && s_replace=${arr2[2]}
@@ -682,7 +682,7 @@ fn_file_multi_mask() {
   s_ret="$s_target" && [ -z "$s_ret" ] && s_ret="$s_mask_default"
   if [ "$s_mask_val" ]; then
     # set mask
-    IFS=$'|'; arr=($s_mask_val); IFS="$IFSORG"
+    IFS=$'|'; arr=($(echo "$s_mask_val")); IFS="$IFSORG"
     # replacing right to left is impossible to do directly in gnu sed
     # mainly, due to the lack of non-greedy match implementation
     # work around by collecting mask parts. and creating a padded
