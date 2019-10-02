@@ -601,6 +601,14 @@ fn_file_multi_mask() {
 
   [ $DEBUG -ge 1 ] && echo "[debug fn_file_multi_mask]" 1>&2
 
+  declare -a mask_parts
+  declare -a mask_zeros
+  declare -a mask_values
+  declare v_mask_part
+  declare v_mask_zero
+  declare v_mask_value
+  declare l
+
   s_title="$1" && shift
   s_target="" && [ $# -gt 0 ] && s_target="$1" && shift
   s_mask_default="" && [ $# -gt 0 ] && s_mask_default="$1" && shift
@@ -682,31 +690,44 @@ fn_file_multi_mask() {
   s_ret="$s_target" && [ -z "$s_ret" ] && s_ret="$s_mask_default"
   if [ "$s_mask_val" ]; then
     # set mask
-    IFS=$'|'; arr=($(echo "$s_mask_val")); IFS="$IFSORG"
+
     # replacing right to left is impossible to do directly in gnu sed
-    # mainly, due to the lack of non-greedy match implementation
-    # work around by collecting mask parts. and creating a padded
-    # (if necessary) replacement array of the same dimension. then
-    # just replace left to right as normal
-    arr2=()
+    # due to its lack of non-greedy matching. this is worked around by
+    # collecting mask parts and creating a padded (where necessary)
+    # replacement array of the same dimension. then left to right
+    # replacement is trivial
+
+    # mask parts / zero stubs
     while [ -n "$(echo "$s_ret" | sed -n '/#\+/p')" ]; do
-      m="$(echo "$s_ret" | sed -n 's/^[^#]*\(#\+\).*$/\1/p')"
-      #arr2[${#arr2[@]}]=$m
-      arr2[${#arr2[@]}]="$(printf "%0"${#m}"d" 0)"  # record mask length
-      # mark the hash occurance
+      # create padded 0-mask
+      s_="$(echo "$s_ret" | sed -n 's/^[^#]*\(#\+\).*$/\1/p')"
+      mask_parts[${#mask_parts[@]}]="$s_"
+      mask_zeros[${#mask_zeros[@]}]="$(printf "%0"${#s_}"d" 0)"
+      # set mask marker
       s_ret="$(echo "$s_ret" | sed -n 's/#\+/\^/p')"
     done
-    l=$((0 - ${#arr2[@]} + ${#arr[@]}))
-    for ll in $( seq 0 1 $((${#arr2[@]} - 1)) ); do
-      # replace left to right ^ markers
-      v=""
-      v2="${arr2[$ll]}"
-      [ $l -ge 0 ] && v="${arr[$l]}" && v2="$(printf "%0${#v2}d" "$(echo "$v" | sed 's/^0*//')")"
-      # replace left to right ^ markers
-      s_ret=$(echo "$s_ret" | sed 's|\^|'$v2'|')
+
+    # mask values
+    IFS=$'|'; mask_values=($(echo "$s_mask_val")); IFS="$IFSORG"
+
+    # merge available mask values with 0-mask stubs and replace ^
+    # markers from left to right
+    l=0
+    for l in $(seq 0 1 $((${#mask_parts[@]} - 1))); do
+      v_mask_part="${mask_parts[$l]}"
+      v_mask_zero="${mask_zeros[$l]}"
+      v_mask_value=""
+      if [ $l -lt ${#mask_values[@]} ]; then
+        v_mask_value="${mask_values[$l]}"
+        v_mask="$(printf "%0${#v_mask_zero}d" "$(echo "$v_mask_value" | sed 's/^0*//')")"
+      else
+        v_mask="$v_mask_part"
+      fi
+      s_ret=$(echo "$s_ret" | sed 's|\^|'$v_mask'|')
       l=$((l + 1))
     done
   fi
+
   # prefix
   [ -z "$s_target" ] && s_ret="$s_mask_default|$s_mask_raw|$s_ret"
 
