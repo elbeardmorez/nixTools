@@ -86,12 +86,14 @@ help() {
 \n    LEVEL  : number [1-5] determining the verbosity of information
              output
     SOURCE  : root directory containing media files to archive
-\n  -str|--structure SEARCH [FILTER [FILTER2.. [FILTERx]]]
+\n  -str|--structure [OPTION] SEARCH [FILTER [FILTER2.. [FILTERx]]]
     : create a standardised single / multi-file structure for matched
       file(s) under the current working directory
-\n    SEARCH  : a (partial) match term
-    FILTER  : strings to remove from matched file names for a
-              multi-file structure
+\n    OPTION:
+      -s|--silent  : suppress info message output
+    SEARCH  : a (partial) match term
+    FILTER  : string(s) to remove from matched file names in a multi-
+              file structure
 \n  -r|--rate SEARCH RATING  : rate media and move structures to the
                              nearest ratings hierarchies
 \n    SEARCH  : a (partial) match term
@@ -1543,27 +1545,38 @@ fn_filter() {
 fn_structure() {
   [ $DEBUG -ge 1 ] && echo "[debug fn_structure]" 1>&2
 
-  cmdmv="$([ $TEST -ge 1 ] && echo 'echo ')$CMDMV"
-  cmdmd="$([ $TEST -ge 1 ] && echo 'echo ')$CMDMD"
+  declare cmdmv; cmdmv="$([ $TEST -ge 1 ] && echo 'echo ')$CMDMV"
+  declare cmdmd; cmdmd="$([ $TEST -ge 1 ] && echo 'echo ')$CMDMD"
 
-  b_verbose=1
-  [ "x$1" = "xsilent" ] && b_verbose=0 && shift
-
-  s_search="$1" && shift
+  declare filters_rc; filters_rc="$FILTERS_EXTRA"
+  declare filters_mod; filters_mod='\(\s\|\.\|\[\)*[^(]\([0-9]\{4\}\)\(\s\|\.\|\]\)*/.(\2).'
+  declare filters_codecs; filters_codecs="\($(echo "$VIDCODECS|$AUDCODECS" | sed 's/[,=|]/\\\|/g')\)/."
+  declare filters_misc; filters_misc='_/\.'
+  declare filters_misc2; filters_misc2='\.\-\./\.'
+  declare filters_misc3; filters_misc3='\([^.]\)-/\1'
+  declare filters_misc4; filters_misc4='-\([^.]\)/\1'
+  declare filters_repeat_misc; filters_repeat_misc='\(\[\.*\]\|^\.\|[-.]$\)/'
+  declare filters_repeat_misc2; filters_repeat_misc2='\.\./.'
 
   declare delimiters; delimiters='._-'
+
   declare filters_cmd; filters_cmd=""
-  while [ -n "$1" ]; do filters_cmd="$filters_cmd"'\|'"$1"; shift; done
+  declare verbose; verbose=1
+  declare s_search
+
+  # process args
+  while [ -n "$1" ]; do
+    arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
+    case "$arg" in
+      "-s"|"--silent") verbose=0 ;;
+      *) [ -z "$s_search" ] && s_search="$1" || filters_cmd="$filters_cmd"'\|'"$1"
+    esac
+    shift
+  done
+
+  # validate args
+  [ -z "$s_search" ] && help && echo "[error] missing 'search' arg" 1>&2 && return 1
   [ -n "$filters_cmd" ] && filters_cmd='['"$delimiters"']\+\('"${filters_cmd:2}"'\)\(['"$delimiters"']\|$\)\+/..'
-  filters_rc="$FILTERS_EXTRA"
-  filters_mod='\(\s\|\.\|\[\)*[^(]\([0-9]\{4\}\)\(\s\|\.\|\]\)*/.(\2).'
-  filters_codecs="\($(echo "$VIDCODECS|$AUDCODECS" | sed 's/[,=|]/\\\|/g')\)/."
-  filters_misc='_/\.'
-  filters_misc2='\.\-\./\.'
-  filters_misc3='\([^.]\)-/\1'
-  filters_misc4='-\([^.]\)/\1'
-  filters_repeat_misc='\(\[\.*\]\|^\.\|[-.]$\)/'
-  filters_repeat_misc2='\.\./.'
 
   IFS=$'\n'
   s_files=($(fn_files interactive "$s_search"))
@@ -1796,7 +1809,7 @@ fn_structure() {
     fi
   done
 
-  [ $b_verbose -eq 1 ] && echo "[info] structure '$s_short_title' created" 1>&2
+  [ $verbose -ge 1 ] && echo "[info] structure '$s_short_title' created" 1>&2
 
   [ ! -t 1 ] && echo "$pwd/$s_short_title"
   return 0
@@ -2016,7 +2029,7 @@ fn_rate() {
 
     # manual local re-structure
     if [ -z "$source" ]; then
-      source="$(fn_structure silent "$s_search")"
+      source="$(fn_structure --silent "$s_search")"
       x=$? && [ $x -ne 0 ] && return $x
     fi
 

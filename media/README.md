@@ -45,13 +45,15 @@ where OPTION:
              output
     SOURCE  : root directory containing media files to archive
 
-  -str|--structure SEARCH [FILTER [FILTER2.. [FILTERx]]]
+  -str|--structure [OPTION] SEARCH [FILTER [FILTER2.. [FILTERx]]]
     : create a standardised single / multi-file structure for matched
       file(s) under the current working directory
 
+    OPTION:
+      -s|--silent  : suppress info message output
     SEARCH  : a (partial) match term
-    FILTER  : strings to remove from matched file names for a
-              multi-file structure
+    FILTER  : string(s) to remove from matched file names in a multi-
+              file structure
 
   -r|--rate SEARCH RATING  : rate media and move structures to the
                              nearest ratings hierarchies
