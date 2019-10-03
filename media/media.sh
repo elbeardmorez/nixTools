@@ -2552,12 +2552,18 @@ fn_unit_test() {
 }
 
 fn_test() {
+  # functionality testing
   [ $DEBUG -ge 1 ] && echo "[debug fn_test]" 1>&2
 
-  # functionality testing
-  [ $# -lt 1 ] && echo "[error] insufficient args, function name required" 1>&2 && return 1
-  func="$1" && shift
-  case $func in
+  declare -a tests
+  declare test_
+
+  [ $# -lt 1 ] && echo "[error] missing 'test(s) string' arg" 1>&2 && return 1
+  IFS="|"; tests=($(echo "$1")); IFS="$IFSORG"
+  shift
+  while [ ${#tests[@]} -gt 0 ]; do
+     test_="${tests[0]}"
+     case "$test_" in
     "files")
       # args: [interative] search
       IFS=$'\n'; files=($(fn_files "$@")); IFS=$IFSORG
@@ -2599,10 +2605,20 @@ fn_test() {
       echo "s_files: ${s_files[@]}"
       ;;
 
+      "static")
+        tests=( \
+          "file_multi_mask" \
+          "filter" \
+        )
+        continue
+        ;;
+
     *)
-      $func "$@"
+      $test_ "$@"
       ;;
   esac
+    tests=("${tests[@]:1}")
+  done
 }
 
 # process args
