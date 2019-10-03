@@ -49,6 +49,9 @@ CMDFLVFIXER="${CMDFLVFIXER:-"flvfixer.php"}"
 PLAYLIST="${PLAYLIST:-"/tmp/$CMDPLAY.playlist"}"
 LOG="${LOG:-"/var/log/$SCRIPTNAME"}"
 
+# global vars
+declare -A filters
+
 # globals options
 declare regexp; regexp=0
 
@@ -1530,6 +1533,18 @@ fn_filter() {
   declare l
 
   target="$1" && shift
+  if [ ${#filters[@]} -eq 0 ]; then
+    # load filters
+    filters["rc"]="$FILTERS_EXTRA"
+    filters["mod"]='\(\s\|\.\|\[\)*[^(]\([0-9]\{4\}\)\(\s\|\.\|\]\)*/.(\2).'
+    filters["codecs"]="\($(echo "$VIDCODECS|$AUDCODECS" | sed 's/[,=|]/\\\|/g')\)/."
+    filters["misc"]='_/\.'
+    filters["misc2"]='\.\-\./\.'
+    filters["misc3"]='\([^.]\)-/\1'
+    filters["misc4"]='-\([^.]\)/\1'
+    filters["repeat-misc"]='\(\[\.*\]\|^\.\|[-.]$\)/'
+    filters["repeat-misc2"]='\.\./.'
+  fi
 
   # process option filter sets
   match_case=$match_case_default
@@ -1545,6 +1560,7 @@ fn_filter() {
         if [ -n "$arg" ]; then
           [ $match_case -eq 0 ] && options+="I"
           filter="$arg"
+          [ -n "${filters["$filter"]}" ] && filter="${filters["$filter"]}"
           target_="$target"
           target="$(echo "$target" | sed 's/'"$filter"'/'"$options")"
           if [ $repeat -eq 1 ]; then
@@ -1572,16 +1588,6 @@ fn_structure() {
 
   declare cmdmv; cmdmv="$([ $TEST -ge 1 ] && echo 'echo ')$CMDMV"
   declare cmdmd; cmdmd="$([ $TEST -ge 1 ] && echo 'echo ')$CMDMD"
-
-  declare filters_rc; filters_rc="$FILTERS_EXTRA"
-  declare filters_mod; filters_mod='\(\s\|\.\|\[\)*[^(]\([0-9]\{4\}\)\(\s\|\.\|\]\)*/.(\2).'
-  declare filters_codecs; filters_codecs="\($(echo "$VIDCODECS|$AUDCODECS" | sed 's/[,=|]/\\\|/g')\)/."
-  declare filters_misc; filters_misc='_/\.'
-  declare filters_misc2; filters_misc2='\.\-\./\.'
-  declare filters_misc3; filters_misc3='\([^.]\)-/\1'
-  declare filters_misc4; filters_misc4='-\([^.]\)/\1'
-  declare filters_repeat_misc; filters_repeat_misc='\(\[\.*\]\|^\.\|[-.]$\)/'
-  declare filters_repeat_misc2; filters_repeat_misc2='\.\./.'
 
   declare delimiters; delimiters='._-'
 
@@ -1663,12 +1669,9 @@ fn_structure() {
   # filters
   s_title_template="$(fn_filter "$s_title_template" \
                        "--repeat" "$filters_cmd" \
-                       "${filters_rc:-/}" \
-                       "$filters_mod" \
-                       "$filters_codecs" \
-                       "$filters_misc" "$filters_misc2" "$filters_misc3" "$filters_misc4" \
-                       "--repeat" "$filters_repeat_misc" \
-                       "--repeat" "$filters_repeat_misc2")"
+                       "rc" "mod" "codecs" "misc" "misc2" "misc3" "misc4" \
+                       "--repeat" "repeat-misc" \
+                       "--repeat" "repeat-misc2")"
 
   # set title based on search / template file name / mask / file info
   # parts
@@ -1792,12 +1795,9 @@ fn_structure() {
       # apply filters
       s_target="$(fn_filter "$s_target" \
                   "--repeat" "$filters_cmd" \
-                  "${filters_rc:-/}" \
-                  "$filters_mod" \
-                  "$filters_codecs" \
-                  "$filters_misc" "$filters_misc2" "$filters_misc3" "$filters_misc4" \
-                  "--repeat" "$filters_repeat_misc" \
-                  "--repeat" "$filters_repeat_misc2")"
+                  "rc" "mod" "codecs" "misc" "misc2" "misc3" "misc4" \
+                  "--repeat" "repeat-misc" \
+                  "--repeat" "repeat-misc2")"
 
       if [ ${#mask_parts[@]} -gt 0 ]; then
         # append filtered dynamic string to title / template prefix
