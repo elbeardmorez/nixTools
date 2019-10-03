@@ -1721,17 +1721,16 @@ fn_structure() {
   s_short_title=${s_title%%[*} && s_short_title=${s_short_title%.}
   $cmdmd -p "$s_short_title"
   info="$s_short_title/info"
-  declare -A f_dirs
+  declare -A directories
   for f in "${s_files[@]}"; do
     $cmdmv "$f" "$s_short_title/" #2>/dev/null
-    # collect dirs
-    f2="${f%/*}"
-    [[ -d "$f2" && "x$d" != "" &&  x$(cd "$f2" && pwd) != "x$(pwd)" ]] && f_dirs["$f2"]="$f2"
+    # collect directory for clean up
+    d="$(dirname "$f")"
+    directories["$d"]="$d"
   done
-  # clean up. subdirs needs to be removed first. loop as many times
-  # as is directories achieves this, crudely!
-  for l in $(seq 1 1 ${#f_dirs[@]}); do
-    for d in "${f_dirs[@]}"; do rmdir "$d" >/dev/null 2>&1; done
+  # remove empty diretories
+  for d in "${directories[@]}"; do
+    [ -d "$d" ] && find "$d" -empty -type d -delete
   done
   #[ $DEBUG -eq 0 ] && { cd $s_title || return 1; }
   # rename
