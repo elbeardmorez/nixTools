@@ -593,102 +593,105 @@ fn_files_info() {
 }
 
 fn_file_multi_mask() {
-  # determine an appropriate default multifile mask for multi-file
-  # titles, and optionally set values
-  # passing title: determine type. return default mask
-  # passing title and target: get mask from target, search for values
-  # in title to set mask. return set mask
+  # determine an appropriate default multi-file mask for titles, and
+  # optionally determine mask values
+  # overloading:
+  # (raw)  : exploritory call, determine type
+  # return  : 'default|match|replaced'
+  # (raw, target)  : replace target's mask stubs with value(s) found
+  #                  in raw
+  # return  : 'processed'
+  # (raw, [target,] mask_default)  : override default mask
 
   [ $DEBUG -ge 1 ] && echo "[debug fn_file_multi_mask]" 1>&2
 
+  declare raw
+  declare target
+  declare processed
+  declare mask_default_single; mask_default_single="#of#"
+  declare mask_default_set; mask_default_set="s##e##"
+  declare mask_default
+  declare mask_type
+  declare search
+  declare replace
+  declare mask_values_
+  declare -a filters
   declare -a mask_parts
   declare -a mask_zeros
   declare -a mask_values
-  declare v_mask_part
-  declare v_mask_zero
-  declare v_mask_value
+  declare mask_part
+  declare mask_zero
+  declare mask_value
+  declare mask
   declare l
 
-  s_title="$1" && shift
-  s_target="" && [ $# -gt 0 ] && s_target="$1" && shift
-  s_mask_default="" && [ $# -gt 0 ] && s_mask_default="$1" && shift
-  s_mask_val=""
-  s_mask_default_single="#of#"
-  s_mask_default_set="s##e##"
+  raw="$1" && shift
+  target="" && [ $# -gt 0 ] && target="$1" && shift
+  mask_default="" && [ $# -gt 0 ] && mask_default="$1" && shift
 
   # determine type
-  s_type=""
-  if [ -n "$s_target" ]; then
+  mask_type=""
+  if [ -n "$target" ]; then
     # look for default mask in target
     # single?
-    s_mask="$(echo "$s_target" | sed -n 's|^.*\(#\+of[0-9#]\+\).*$|\1|p')"
-    if [ -n "$s_mask" ]; then
-      s_type="single" && s_mask_default="${s_mask_default:-$s_mask}"
+    mask="$(echo "$target" | sed -n 's|^.*\(#\+of[0-9#]\+\).*$|\1|p')"
+    if [ -n "$mask" ]; then
+      mask_type="single" && mask_default="${mask_default:-$mask}"
     else
-      #set?
-      s_mask="$(echo "$s_target" | sed -n 's|^.*\(s#\+e#\+\).*$|\1|p')"
-      if [ -n "$s_mask" ]; then
-        s_type="set" && s_mask_default="${s_mask_default:-$s_mask}"
+      # set?
+      mask="$(echo "$target" | sed -n 's|^.*\(s#\+e#\+\).*$|\1|p')"
+      if [ -n "$mask" ]; then
+        mask_type="set" && mask_default="${mask_default:-$mask}"
       fi
     fi
   fi
 
   # filters
-  arr=("single #of#"
-       "single cd\([0-9]\+\)"
-       "single cd[-.]\([0-9]\+\)"
-       "single cd\s\([0-9]\+\)"
-       "single \([0-9]\+\)of[0-9]\+"
-       "single \([0-9]\+\)\.of\.[0-9]\+"
-       "set s#\+e#\+"
-       "set s\([0-9]\+\)\.\?e\([0-9]\+\)"
-       "set \([0-9][0-9]\)x\([0-9]\{1,2\}\)"
-       "set \([0-9]\)x\([0-9]\{1,2\}\)"
-       "set (\s*\(0*[0-9]\)\.\?\([0-9]\{1,2\}\)\s*)"
-       "set \[\s*\(0*[0-9]\)\.\?\([0-9]\{1,2\}\)\s*\]"
-       "set \.\s*\(0*[0-9]\)\.\?\([0-9]\{1,2\}\)\s*\."
-       "set \-\s*\(0*[0-9]\)\.\?\([0-9]\{1,2\}\)\s*\-"
-       "set [.-_]\([0-9]\{2\}\)\-\([0-9]\+\)[._-]"
-       "set [.-_]\([0-9]\{1\}\)\-\([0-9]\+\)[._-]"
-       "set \-\.\?ep\?\.\?\([0-9]\+\)\.\?\-"
-       "set \.ep\?\.\?\([0-9]\+\)\."
-       "set \.s\.\?\([0-9]\+\)\. \1\|0"
-       "set part\.\?\([0-9]\+\)"
-       "set \([0-9]\+\)\.\?of\.\?[0-9]\+ \1|0"
-       "single part\.\?\([0-9]\+\)")
-
-       # invalid
-       #"single [-.]\([1-4]\)[-.]"  # false positive for name.#.
+  filters=(
+    "single #of#"
+    "single cd\([0-9]\+\)"
+    "single cd[-.]\([0-9]\+\)"
+    "single cd\s\([0-9]\+\)"
+    "single \([0-9]\+\)of[0-9]\+"
+    "single \([0-9]\+\)\.of\.[0-9]\+"
+    "set s#\+e#\+"
+    "set s\([0-9]\+\)\.\?e\([0-9]\+\)"
+    "set \([0-9][0-9]\)x\([0-9]\{1,2\}\)"
+    "set \([0-9]\)x\([0-9]\{1,2\}\)"
+    "set (\s*\(0*[0-9]\)\.\?\([0-9]\{1,2\}\)\s*)"
+    "set \[\s*\(0*[0-9]\)\.\?\([0-9]\{1,2\}\)\s*\]"
+    "set \.\s*\(0*[0-9]\)\.\?\([0-9]\{1,2\}\)\s*\."
+    "set \-\s*\(0*[0-9]\)\.\?\([0-9]\{1,2\}\)\s*\-"
+    "set [.-_]\([0-9]\{2\}\)\-\([0-9]\+\)[._-]"
+    "set [.-_]\([0-9]\{1\}\)\-\([0-9]\+\)[._-]"
+    "set \-\.\?ep\?\.\?\([0-9]\+\)\.\?\-"
+    "set \.ep\?\.\?\([0-9]\+\)\."
+    "set \.s\.\?\([0-9]\+\)\. \1\|0"
+    "set part\.\?\([0-9]\+\)"
+    "set \([0-9]\+\)\.\?of\.\?[0-9]\+ \1|0"
+    "single part\.\?\([0-9]\+\)")
 
   l=1
-  for s in "${arr[@]}"; do
-    [ $DEBUG -ge 5 ] && echo "[debug] filter: [$l] '$s'" 1>&2
-    #[ "x$s" = x"set \([0-9]\)x\([0-9]\{1,2\}\)" ] && set -x || set +x
-    IFS=" "; arr2=($(echo "$s")); IFS=$IFSORG
-    #[[ -n "$s_type" && "x$s_type" != "x${arr2[0]}" ]] && continue
-    s_search=${arr2[1]}
-    s_replace="" && [ ${#arr2} -ge 2 ] && s_replace=${arr2[2]}
-    [[ -z $s_replace && "x${arr2[0]}" == "single" ]] && s_replace="\1"
-    [[ -z $s_replace && "x${arr2[0]}" == "set" ]] && s_replace="\1\|\2"
-    s_mask_raw=$(echo "${s_title##/}" | sed -n 's|^.*\('"$s_search"'\).*$|\1|Ip')
-    if [ -n "$s_mask_raw" ]; then
-      s_type="${arr2[0]}"
-      s_="s_mask_default_${s_type}" && s_mask_default="${s_mask_default:-"$(eval "echo \$$s_")"}"
-      s_mask_val=$(echo "${s_title##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|'$s_replace'|Ip' 2>/dev/null)
-#      case $s_type in
-#        "single") s_mask_val=$(echo "${s_title##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|\1|Ip' 2>/dev/null) ;;
-#        "set")
-#          s_mask_val=$(echo "${s_title##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|\1\|\2|Ip' 2>/dev/null)
-#          [ -z "$s_mask_val" ] && s_mask_val=$(echo "${s_title##/}" | sed -n 's|^.*'"${arr2[1]}"'.*$|0\|\1|Ip' 2>/dev/null)
-#          ;;
-#      esac
+  for s_ in "${filters[@]}"; do
+    [ $DEBUG -ge 5 ] && echo "[debug] filter: [$l] '$s_'" 1>&2
+    IFS=" "; parts=($(echo "$s_")); IFS=$IFSORG
+    search=${parts[1]}
+    replace="" && [ ${#parts} -ge 2 ] && replace=${parts[2]}
+    [[ -z $replace && "x${parts[0]}" == "xsingle" ]] && replace="\1"
+    [[ -z $replace && "x${parts[0]}" == "xset" ]] && replace="\1\|\2"
+    mask_raw=$(echo "${raw##/}" | sed -n 's|^.*\('"$search"'\).*$|\1|Ip')
+    if [ -n "$mask_raw" ]; then
+      mask_type="${parts[0]}"
+      s_="mask_default_${mask_type}" && mask_default="${mask_default:-"$(eval "echo \$$s_")"}"
+      mask_values_=$(echo "${raw##/}" | sed -n 's|^.*'"${parts[1]}"'.*$|'$replace'|Ip' 2>/dev/null)
+      [ $DEBUG -ge 1 ] && echo "[debug] mask_raw: '$mask_raw', mask_values: '$mask_values_'" 1>&2
       break
     fi
     l=$((l + 1))
   done
 
-  s_ret="$s_target" && [ -z "$s_ret" ] && s_ret="$s_mask_default"
-  if [ "$s_mask_val" ]; then
+  processed="$target" && [ -z "$processed" ] && processed="$mask_default"
+  if [ -n "$mask_values_" ]; then
     # set mask
 
     # replacing right to left is impossible to do directly in gnu sed
@@ -698,41 +701,42 @@ fn_file_multi_mask() {
     # replacement is trivial
 
     # mask parts / zero stubs
-    while [ -n "$(echo "$s_ret" | sed -n '/#\+/p')" ]; do
+    while [ -n "$(echo "$processed" | sed -n '/#\+/p')" ]; do
       # create padded 0-mask
-      s_="$(echo "$s_ret" | sed -n 's/^[^#]*\(#\+\).*$/\1/p')"
+      s_="$(echo "$processed" | sed -n 's/^[^#]*\(#\+\).*$/\1/p')"
       mask_parts[${#mask_parts[@]}]="$s_"
       mask_zeros[${#mask_zeros[@]}]="$(printf "%0"${#s_}"d" 0)"
       # set mask marker
-      s_ret="$(echo "$s_ret" | sed -n 's/#\+/\^/p')"
+      processed="$(echo "$processed" | sed -n 's/#\+/\^/p')"
     done
 
     # mask values
-    IFS=$'|'; mask_values=($(echo "$s_mask_val")); IFS="$IFSORG"
+    IFS="|"; mask_values=($(echo "$mask_values_")); IFS="$IFSORG"
 
     # merge available mask values with 0-mask stubs and replace ^
     # markers from left to right
     l=0
     for l in $(seq 0 1 $((${#mask_parts[@]} - 1))); do
-      v_mask_part="${mask_parts[$l]}"
-      v_mask_zero="${mask_zeros[$l]}"
-      v_mask_value=""
+      mask_part="${mask_parts[$l]}"
+      mask_zero="${mask_zeros[$l]}"
+      mask_value=""
       if [ $l -lt ${#mask_values[@]} ]; then
-        v_mask_value="${mask_values[$l]}"
-        v_mask="$(printf "%0${#v_mask_zero}d" "$(echo "$v_mask_value" | sed 's/^0*//')")"
+        mask_value="${mask_values[$l]}"
+        mask="$(printf "%0${#mask_zero}d" "$(echo "$mask_value" | sed 's/^0*//')")"
       else
-        v_mask="$v_mask_part"
+        mask="$mask_part"
       fi
-      s_ret=$(echo "$s_ret" | sed 's|\^|'$v_mask'|')
+      processed=$(echo "$processed" | sed 's|\^|'$mask'|')
       l=$((l + 1))
     done
   fi
 
-  # prefix
-  [ -z "$s_target" ] && s_ret="$s_mask_default|$s_mask_raw|$s_ret"
-
-  # return
-  echo "$s_ret"
+  if [ -z "$target" ]; then
+    # exploratory result
+    echo "$mask_default|$mask_raw|$processed"
+  else
+    echo "$processed"
+  fi
 }
 
 fn_file_target() {
@@ -1585,6 +1589,11 @@ fn_structure() {
   declare verbose; verbose=1
   declare s_search
 
+  declare -a mask_parts
+  declare mask_default; mask_default=""
+  declare mask_raw
+  declare mask_replace
+
   # process args
   while [ -n "$1" ]; do
     arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
@@ -1642,12 +1651,13 @@ fn_structure() {
   s_title_template="$(echo ${s_title_template##*/} | awk '{gsub(" ",".",$0); print tolower($0)}')"
 
   # mask?
-  s_mask_default=""
-  IFS=$'\|'; s_mask=($(fn_file_multi_mask "$s_title_template")); IFS=$IFSORG
-  if [ ${#s_mask[@]} -gt 0 ]; then
-    [ $DEBUG -ge 5 ] && echo "[debug] mask found, parts: ${s_mask[@]}, setting generic"
-    s_mask_default=${s_mask[0]}
-    s_title_template=$(echo "$s_title_template" | sed 's/\[\?'"$(fn_regexp "${s_mask[2]}" "sed")"'\]\?/['$s_mask_default']/')
+  IFS="|"; mask_parts=($(fn_file_multi_mask "$s_title_template")); IFS=$IFSORG
+  if [ ${#mask_parts[@]} -gt 0 ]; then
+    [ $DEBUG -ge 5 ] && echo "[debug] mask found, parts: ${mask_parts[@]}, setting generic"
+    mask_default="${mask_parts[0]}"
+    mask_raw="${mask_parts[1]}"
+    mask_replace="${mask_parts[2]}"
+    s_title_template=$(echo "$s_title_template" | sed 's/\[\?'"$(fn_regexp "$mask_replace" "sed")"'\]\?/['$mask_default']/')
   fi
 
   # filters
@@ -1665,8 +1675,8 @@ fn_structure() {
   s_search_="$(echo "$s_search" | awk '{gsub(" ",".",$0); print tolower($0)}')"
   if [ -n "$(echo "$s_title_template" | grep -i "$(fn_regexp "$s_search_" "grep")")" ]; then
     s_title="$s_title_template.$s_title_info"
-  elif [ -n "$s_mask_default" ]; then
-    s_title="$s_search_.[$s_mask_default].${s_title_template#*\[${s_mask_default}\]}.$s_title_info"
+  elif [ -n "$mask_default" ]; then
+    s_title="$s_search_.[$mask_default].${s_title_template#*\[${mask_default}\]}.$s_title_info"
   else
     s_title="$s_search_.$s_title_info"
   fi
@@ -1695,19 +1705,28 @@ fn_structure() {
       s_title="$(echo "${s_title:0:$((${#s_title} - ${#s_title_extra}))}" | sed 's/\.*$//')"
     fi
     # recover (potentially modified) default multi-file mask
-    [ $DEBUG -ge 1 ] && echo "s_mask: '${s_mask[@]}', s_mask_default: '$s_mask_default'" 1>&2
-    IFS=$'\|'; s_mask=($(fn_file_multi_mask "$s_title")); IFS=$IFSORG
-    [ $DEBUG -ge 1 ] && echo "s_mask: '${s_mask[@]}', s_mask_default: '$s_mask_default'" 1>&2
+    [ $DEBUG -ge 1 ] && echo "mask [pre]: '${mask_parts[@]}'" 1>&2
+    IFS="|"; mask_parts=($(fn_file_multi_mask "$s_title")); IFS=$IFSORG
+    [ $DEBUG -ge 1 ] && echo "mask [post]: '${mask_parts[@]}'" 1>&2
     # correct default mask to be based on total files (where necessary)
-    if [[ $s_mask && -n "$(echo "${s_mask[0]}" | sed -n '/of/p')" ]]; then
-      s_mask_default=$(echo "$s_mask_default" | sed 's/\(#\+of\)#/\1'$l_files'/')
-      [ $DEBUG -ge 1 ] && echo "s_mask: '${s_mask[@]}', s_mask_default: '$s_mask_default'" 1>&2
-      IFS=$'\|'; s_mask=($(fn_file_multi_mask "$s_title" $s_mask_default)); IFS=$IFSORG
-      [ $DEBUG -ge 1 ] && echo "s_mask: '${s_mask[@]}', s_mask_default: '$s_mask_default'" 1>&2
-      # remember to update the title too, ensuring the modified default
-      # mask is there for templated replacement in the latter files loop
-      s_title=$(echo "$s_title" | sed 's/\(#\+of\)#/\1'$l_files'/')
-      [ $DEBUG -gt 0 ] && echo "#s_title: '$s_title'" 1>&2
+    if [ ${#mask_parts[@]} -eq 0 ]; then
+      mask_default=""
+      mask_raw=""
+      mask_replace=""
+    else
+      mask_default="${mask_parts[0]}"
+      mask_raw="${mask_parts[1]}"
+      mask_replace="${mask_parts[2]}"
+      if [ -n "$(echo "${s_mask[0]}" | sed -n '/of/p')" ]; then
+        mask_default=$(echo "$mask_default" | sed 's/\(#\+of\)#/\1'$l_files'/')
+        [ $DEBUG -ge 1 ] && echo "mask [pre]: '${mask_parts[@]}'" 1>&2
+        IFS="|"; mask_parts=($(fn_file_multi_mask "$s_title" $mask_default)); IFS=$IFSORG
+        [ $DEBUG -ge 1 ] && echo "mask [post]: '${mask_parts[@]}'" 1>&2
+        # update title with modified 'mask_default' for templated
+        # replacement in the latter files loop
+        s_title=$(echo "$s_title" | sed 's/\(#\+of\)#/\1'$l_files'/')
+        [ $DEBUG -ge 1 ] && echo "#s_title: '$s_title'" 1>&2
+      fi
     fi
 
     s=""; while [ "x$s_title_extra" != "x$s" ]; do s="$s_title_extra"; s_title_extra="$(echo "$s_title_extra" | sed 's/\(\[\.*\]\|(\.*)\|^\.\|\.$\)//g')"; done
@@ -1732,13 +1751,12 @@ fn_structure() {
   for d in "${directories[@]}"; do
     [ -d "$d" ] && find "$d" -empty -type d -delete
   done
-  #[ $DEBUG -eq 0 ] && { cd $s_title || return 1; }
+
   # rename
   # trim dummy extra info stub, sent as separate parameter to
   # fn_file_target function
   s_title2="$(echo "${s_title%[*}" | sed 's/\(^\.\|\.$\)//g')"
 
-  #IFSORG=$IFS; IFS=$'\n'; files=($(fn_files "$n")); IFS=$IFSORG; for f2 in "${files[@]}"; do n2=${f2##*.}; [ ! -e "$n.$n2" ] && mv -i "$f2" "$n.$n2"; done; done
   IFS=$'\n'; s_files2=($(find "./$s_short_title/" -maxdepth 1 -type f -iregex '^.*\.\('"$(echo $VIDEXT\|$VIDXEXT\|$EXTEXT | sed 's|\||\\\||g')"'\)$' | sort -i)); IFS=$IFSORG
   if [ $TEST -ge 1 ]; then
     # use original files as we didn't move any!
@@ -1750,16 +1768,15 @@ fn_structure() {
     # go lower case, remove spaces, remove path
     f2="$(echo "${f##*/}" | awk '{gsub(" ",".",$0); print tolower($0)}')"
 
-    IFS=$'|'; s_mask=($(fn_file_multi_mask "$f2" "" "$s_mask_default")); IFS=$IFSORG
-    [ $DEBUG -gt 0 ] && echo "s_mask: '${s_mask[@]}'" 1>&2
+    IFS="|"; mask_parts=($(fn_file_multi_mask "$f2" "" "$mask_default")); IFS=$IFSORG
+    [ $DEBUG -gt 0 ] && echo "mask: '${mask_parts[@]}'" 1>&2
 
     if [ -n "$filters_cmd" ]; then
-      # we need to manipulate the target (s_title2) before it goes for its final name fixing (fn_file_target)
-      # providing filter terms means the s_title2 contains only the stub
-      # apply filters
-      if [ -n "${s_mask[1]}" ]; then
+      # manipulate target (s_title2) prior to final name fixing
+      # (fn_file_target)
+      if [ -n "${mask_parts[1]}" ]; then
         # dynamic title part and additional file info pre-filter
-        s_target="$(echo "${f2%.*}" | sed 's/^.*'"$(fn_regexp "${s_mask[1]}" "sed")"'\]*//')"
+        s_target="$(echo "${f2%.*}" | sed 's/^.*'"$(fn_regexp "${mask_parts[1]}" "sed")"'\]*//')"
       else
         # no delimiter. so we need to use any info in the original
         # filename that isn't in our fixed title
@@ -1772,7 +1789,7 @@ fn_structure() {
         [ $DEBUG -ge 2 ] && echo "[debug] no mask, appended unused info, target: '$s_target'" 1>&2
       fi
 
-      # filters
+      # apply filters
       s_target="$(fn_filter "$s_target" \
                   "--repeat" "$filters_cmd" \
                   "${filters_rc:-/}" \
@@ -1782,9 +1799,9 @@ fn_structure() {
                   "--repeat" "$filters_repeat_misc" \
                   "--repeat" "$filters_repeat_misc2")"
 
-      if [ -n "${s_mask[1]}" ]; then
+      if [ ${#mask_parts[@]} -gt 0 ]; then
         # append filtered dynamic string to title / template prefix
-        s_target="$s_title2.[$s_mask_default].$s_target"
+        s_target="$s_title2.[$mask_default].$s_target"
       fi
 
     else
@@ -1798,9 +1815,9 @@ fn_structure() {
     # should use $f, but more filters would be required to cope with spaces etc.
     s_target=$(fn_file_target "$f2" "$s_target" "$s_title_extra")
     # strip failed multifile suffixes
-    s_target=$(echo "$s_target" | sed 's/\.*\(\.\['$s_mask_default'\]\)\.*/./')
+    s_target=$(echo "$s_target" | sed 's/\.*\(\.\['$mask_default'\]\)\.*/./')
 
-    [ $DEBUG -ge 1 ] && echo "s_target: '$s_target' from f: '$f', s_title2: '$s_title2', s_title_extra: '$s_title_extra', s_mask_default: $s_mask_default" 1>&2
+    [ $DEBUG -ge 1 ] && echo "s_target: '$s_target' from f: '$f', s_title2: '$s_title2', s_title_extra: '$s_title_extra', mask_default: $mask_default" 1>&2
 
     if [[ -n "$s_target" && "x$f" != "x./$s_short_title/$s_target" ]]; then
       # move!
