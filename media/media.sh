@@ -2564,46 +2564,46 @@ fn_test() {
   while [ ${#tests[@]} -gt 0 ]; do
      test_="${tests[0]}"
      case "$test_" in
-    "files")
-      # args: [interative] search
-      IFS=$'\n'; files=($(fn_files "$@")); IFS=$IFSORG
-      echo "results: count=${#files[@]}" 1>&2
-      for f in "${files[@]}"; do echo "$f"; done
-      ;;
+      "files")
+        # args: [interative] search
+        IFS=$'\n'; files=($(fn_files "$@")); IFS=$IFSORG
+        echo "results: count=${#files[@]}" 1>&2
+        for f in "${files[@]}"; do echo "$f"; done
+        ;;
 
-    "file_info")
-      declare target; target="$PWD"
-      [ $# -gt 0 ] && target="$1" && shift
-      [ ! -d "$target" ] && echo "[error] invalid target directory: '$target'" && return 1
-      for f in "$target"/*; do
-        arr=($(fn_file_info i 4 "$f/" | sed -n 's/^\[.*|\(.*\)\]\s\+.*\[\(.*\)\].*$/\1 \2/p'));
-        [ "${arr[0]}" != "${arr[1]}" ] && echo "'$f': ${arr[@]}";
-      done
-      ;;
+      "file_info")
+        declare target; target="$PWD"
+        [ $# -gt 0 ] && target="$1" && shift
+        [ ! -d "$target" ] && echo "[error] invalid target directory: '$target'" && return 1
+        for f in "$target"/*; do
+          arr=($(fn_file_info i 4 "$f/" | sed -n 's/^\[.*|\(.*\)\]\s\+.*\[\(.*\)\].*$/\1 \2/p'));
+          [ "${arr[0]}" != "${arr[1]}" ] && echo "'$f': ${arr[@]}";
+        done
+        ;;
 
-    "file_multi_mask")
-      fn_unit_test "fn_file_multi_mask" \
-        "foo.cd.2.bar^#of#|cd.2|2of#" \
-        "foo.cd.2.bar|foo.(#of#).bar^foo.(2of#).bar" \
-        "foo.cd.2.bar|foo.(#of4).bar^foo.(2of4).bar" \
-        "foo.s2e3.bar^s##e##|s2e3|s02e03" \
-        "foo.s2e3.bar|foo.[s##e##].bar^foo.[s02e03].bar"
-      ;;
+      "file_multi_mask")
+        fn_unit_test "fn_file_multi_mask" \
+          "foo.cd.2.bar^#of#|cd.2|2of#" \
+          "foo.cd.2.bar|foo.(#of#).bar^foo.(2of#).bar" \
+          "foo.cd.2.bar|foo.(#of4).bar^foo.(2of4).bar" \
+          "foo.s2e3.bar^s##e##|s2e3|s02e03" \
+          "foo.s2e3.bar|foo.[s##e##].bar^foo.[s02e03].bar"
+        ;;
 
-    "filter"|"filters")
-      declare filters_global; filters_global="rc|mod|codecs|misc|misc2|misc3|misc4|-r|repeat-misc|-r|repeat-misc2"
-      fn_unit_test "fn_filter" \
-         "abc2020|$filters_global^abc.(2020)"
-      ;;
+      "filter"|"filters")
+        declare filters_global; filters_global="rc|mod|codecs|misc|misc2|misc3|misc4|-r|repeat-misc|-r|repeat-misc2"
+        fn_unit_test "fn_filter" \
+           "abc2020|$filters_global^abc.(2020)"
+        ;;
 
-    "misc")
-      s_files=($(find . -iregex '^.*\('"$(echo $VIDEXT\|$VIDXEXT\|nfo | sed 's|\||\\\||g')"'\)$' | sort -i))
-      echo "s_files: ${s_files[@]}"
-      s_files=($(find . -iregex '^.*\('"$VIDEXT\|$VIDXEXT\|nfo"'\)$' | sort -i))
-      echo "s_files: ${s_files[@]}"
-      s_files=($(find . -iregex '^.*\(avi\|nfo\)$' | sort -i))
-      echo "s_files: ${s_files[@]}"
-      ;;
+      "misc")
+        s_files=($(find . -iregex '^.*\('"$(echo $VIDEXT\|$VIDXEXT\|nfo | sed 's|\||\\\||g')"'\)$' | sort -i))
+        echo "s_files: ${s_files[@]}"
+        s_files=($(find . -iregex '^.*\('"$VIDEXT\|$VIDXEXT\|nfo"'\)$' | sort -i))
+        echo "s_files: ${s_files[@]}"
+        s_files=($(find . -iregex '^.*\(avi\|nfo\)$' | sort -i))
+        echo "s_files: ${s_files[@]}"
+        ;;
 
       "static")
         tests=( \
@@ -2613,10 +2613,10 @@ fn_test() {
         continue
         ;;
 
-    *)
-      $test_ "$@"
-      ;;
-  esac
+      *)
+        $test_ "$@"
+        ;;
+    esac
     tests=("${tests[@]:1}")
   done
 }
