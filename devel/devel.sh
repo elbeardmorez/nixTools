@@ -1844,7 +1844,7 @@ fn_port() {
   declare -a transforms_
   declare line
   declare l_line; l_line=0
-  declare debug
+  declare debug; debug=0
   declare match
   declare match_
   declare expr_
@@ -1861,7 +1861,7 @@ fn_port() {
     l_line=$((l_line + 1))
     # skip blanks and comments
     [ -z "$(echo "$line" | sed '/\(^$\|^[ ]*#\)/d')" ] && continue
-    debug=0 && [ -n "${transforms_debug["$l_line"]}" ] && debug=1
+    [ -n "${transforms_debug["$l_line"]}" ] && debug=1
     [ $DEBUG -ge 5 ] && echo "[debug] line $l_line: '$line', process: $process, skip: $skip, debug: $debug" 1>&2
     [ $skip -eq 1 ] && skip=0 && process=1 && continue
     if [ $process -eq 1 ]; then
@@ -1897,6 +1897,7 @@ fn_port() {
             ;;
         esac
       done
+      [[ $debug -eq 1 && $skip -eq 1 ]] && debug=0
       [ $DEBUG -ge 5 ] && echo "[debug] processed, match: $match_, skip: $skip" 1>&2
       process=0
     elif [ $skip -eq 0 ]; then
@@ -1958,6 +1959,7 @@ fn_port() {
       fi
       [ $DEBUG -ge 1 ] && echo -e "[debug] post transform line count: $(cat "$f_tmp3" | wc -l)" 1>&2
       cp "$f_tmp3" "$f_tmp"
+      debug=0
     fi
   done < $transforms
 
