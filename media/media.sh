@@ -1536,7 +1536,7 @@ fn_filter() {
   if [ ${#filters[@]} -eq 0 ]; then
     # load filters
     filters["rc"]="$FILTERS_EXTRA"
-    filters["mod"]='\(\s\|\.\|\[\)*[^(]\([0-9]\{4\}\)\(\s\|\.\|\]\)*/.(\2).'
+    filters["date"]='\([^(]\)\([0-9]\{4\}\)[])._-]\?/\1.(\2)./g;s/[[(._-]\.(/.('
     filters["codecs"]="\($(echo "$VIDCODECS|$AUDCODECS" | sed 's/[,=|]/\\\|/g')\)/."
     filters["misc"]='_/\.'
     filters["misc2"]='\.\-\./\.'
@@ -1669,7 +1669,7 @@ fn_structure() {
   # filters
   s_title_template="$(fn_filter "$s_title_template" \
                        "--repeat" "$filters_cmd" \
-                       "rc" "mod" "codecs" "misc" "misc2" "misc3" "misc4" \
+                       "rc" "date" "codecs" "misc" "misc2" "misc3" "misc4" \
                        "--repeat" "repeat-misc" \
                        "--repeat" "repeat-misc2")"
 
@@ -1795,7 +1795,7 @@ fn_structure() {
       # apply filters
       s_target="$(fn_filter "$s_target" \
                   "--repeat" "$filters_cmd" \
-                  "rc" "mod" "codecs" "misc" "misc2" "misc3" "misc4" \
+                  "rc" "date" "codecs" "misc" "misc2" "misc3" "misc4" \
                   "--repeat" "repeat-misc" \
                   "--repeat" "repeat-misc2")"
 
@@ -2591,9 +2591,11 @@ fn_test() {
         ;;
 
       "filter"|"filters")
-        declare filters_global; filters_global="rc|mod|codecs|misc|misc2|misc3|misc4|-r|repeat-misc|-r|repeat-misc2"
+        declare filters_global; filters_global="rc|date|codecs|misc|misc2|misc3|misc4|-r|repeat-misc|-r|repeat-misc2"
         fn_unit_test "fn_filter" \
-           "abc2020|$filters_global^abc.(2020)"
+           "abc2020|$filters_global^abc.(2020)" \
+           "2020|$filters_global^2020" \
+           "abc[2020]|$filters_global^abc.(2020)"
         ;;
 
       "misc")
