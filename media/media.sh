@@ -2584,6 +2584,12 @@ fn_test() {
         "foo.s2e3.bar|foo.[s##e##].bar^foo.[s02e03].bar"
       ;;
 
+    "filter"|"filters")
+      declare filters_global; filters_global="rc|mod|codecs|misc|misc2|misc3|misc4|-r|repeat-misc|-r|repeat-misc2"
+      fn_unit_test "fn_filter" \
+         "abc2020|$filters_global^abc.(2020)"
+      ;;
+
     "misc")
       s_files=($(find . -iregex '^.*\('"$(echo $VIDEXT\|$VIDXEXT\|nfo | sed 's|\||\\\||g')"'\)$' | sort -i))
       echo "s_files: ${s_files[@]}"
