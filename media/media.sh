@@ -2530,6 +2530,27 @@ fn_util() {
   esac
 }
 
+fn_unit_test() {
+  declare fn; fn="$1" && shift
+  declare test_
+  declare -a args
+  declare expected
+  declare l
+  l=1
+  echo "[info] running '${clr["hl"]}$fn${clr["off"]}' tests"
+  while [ -n "$1" ]; do
+    test_="$1"
+    pass=0
+    expected="${test_#*^}"
+    IFS="|"; args=($(echo "${test_%^*}")); IFS="$IFSORG"
+    res="$($fn "${args[@]}")"
+    [ "x$res" = "x$expected" ] && pass=1
+    echo "[$l|$([ $pass -eq 1 ] && echo "${clr["grn"]}pass" || echo "${clr["red"]}fail")${clr["off"]}] args: '${args[@]}' -> result: '$res'$([ $pass -eq 0 ] && echo " | expected: '$expected'")"
+    l=$((l + 1))
+    shift
+  done
+}
+
 fn_test() {
   [ $DEBUG -ge 1 ] && echo "[debug fn_test]" 1>&2
 
@@ -2555,27 +2576,12 @@ fn_test() {
       ;;
 
     "file_multi_mask")
-      declare -a tests
-      declare -a args
-      declare expected
-      declare l
-      tests=(
-        "foo.cd.2.bar^#of#|cd.2|2of#"
-        "foo.cd.2.bar|foo.(#of#).bar^foo.(2of#).bar"
-        "foo.cd.2.bar|foo.(#of4).bar^foo.(2of4).bar"
-        "foo.s2e3.bar^s##e##|s2e3|s02e03"
+      fn_unit_test "fn_file_multi_mask" \
+        "foo.cd.2.bar^#of#|cd.2|2of#" \
+        "foo.cd.2.bar|foo.(#of#).bar^foo.(2of#).bar" \
+        "foo.cd.2.bar|foo.(#of4).bar^foo.(2of4).bar" \
+        "foo.s2e3.bar^s##e##|s2e3|s02e03" \
         "foo.s2e3.bar|foo.[s##e##].bar^foo.[s02e03].bar"
-      )
-      l=1
-      for s_ in "${tests[@]}"; do
-        pass=0
-        expected="${s_#*^}"
-        IFS="|"; args=($(echo "${s_%^*}")); IFS="$IFSORG"
-        res="$(fn_file_multi_mask "${args[@]}")"
-        [ "x$res" = "x$expected" ] && pass=1
-        echo "[$l|$([ $pass -eq 1 ] && echo "${clr["grn"]}pass" || echo "${clr["red"]}fail")${clr["off"]}] args: '${args[@]}' -> result: '$res'$([ $pass -eq 0 ] && echo " | expected: '$expected'")"
-        l=$((l + 1))
-      done
       ;;
 
     "misc")
