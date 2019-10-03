@@ -2560,7 +2560,7 @@ fn_test() {
   case $func in
     "files")
       # args: [interative] search
-      IFS=$'\n'; files=($($func "$@")); IFS=$IFSORG
+      IFS=$'\n'; files=($(fn_files "$@")); IFS=$IFSORG
       echo "results: count=${#files[@]}" 1>&2
       for f in "${files[@]}"; do echo "$f"; done
       ;;
