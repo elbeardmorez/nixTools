@@ -2515,7 +2515,7 @@ fn_util() {
       ;;
 
     "undo")
-      IFSORIG="$IFS"; IFS=$'\n'; moves=($(cat info)); IFS="$IFSORIG"
+      IFS=$'\n'; moves=($(cat info)); IFS="$IFSORG"
       for s in "${moves[@]}"; do
         f1=${s% -> *}
         f2=${s#* \-\> }
