@@ -1723,7 +1723,7 @@ fn_structure() {
       if [ -n "$(echo "${s_mask[0]}" | sed -n '/of/p')" ]; then
         mask_default=$(echo "$mask_default" | sed 's/\(#\+of\)#/\1'$l_files'/')
         [ $DEBUG -ge 1 ] && echo "mask [pre]: '${mask_parts[@]}'" 1>&2
-        IFS="|"; mask_parts=($(fn_file_multi_mask "$s_title" $mask_default)); IFS=$IFSORG
+        IFS="|"; mask_parts=($(fn_file_multi_mask "$s_title" "" "$mask_default")); IFS=$IFSORG
         [ $DEBUG -ge 1 ] && echo "mask [post]: '${mask_parts[@]}'" 1>&2
         # update title with modified 'mask_default' for templated
         # replacement in the latter files loop
