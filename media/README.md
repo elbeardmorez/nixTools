@@ -50,6 +50,20 @@ where OPTION:
       file(s) under the current working directory
 
     OPTION:
+      -m|--mode MODE  : dictates the file naming strategy based on
+                        a/v file count and mask existence and its type
+
+        MODE:
+        'auto'  : (default) deduce most appropriate file naming
+                  strategy
+        'single'  : single a/v file, or multiple a/v files with a
+                    'single' mask type identified. apply filters,
+                    verify and fix a single name, appending dynamic
+                    mask and file info parts
+        'set'  : multiple a/v files, 'set' mask type identified. apply
+                 filters, verify and fix a prefix name, appending
+                 dynamic mask, name and info parts
+
       -s|--silent  : suppress info message output
     SEARCH  : a (partial) match term
     FILTER  : string(s) to remove from matched file names in a multi-

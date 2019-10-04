@@ -93,7 +93,19 @@ help() {
     : create a standardised single / multi-file structure for matched
       file(s) under the current working directory
 \n    OPTION:
-      -s|--silent  : suppress info message output
+      -m|--mode MODE  : dictates the file naming strategy based on
+                        a/v file count and mask existence and its type
+\n        MODE:
+        'auto'  : (default) deduce most appropriate file naming
+                  strategy
+        'single'  : single a/v file, or multiple a/v files with a
+                    'single' mask type identified. apply filters,
+                    verify and fix a single name, appending dynamic
+                    mask and file info parts
+        'set'  : multiple a/v files, 'set' mask type identified. apply
+                 filters, verify and fix a prefix name, appending
+                 dynamic mask, name and info parts
+\n      -s|--silent  : suppress info message output
     SEARCH  : a (partial) match term
     FILTER  : string(s) to remove from matched file names in a multi-
               file structure
@@ -600,7 +612,7 @@ fn_file_multi_mask() {
   # optionally determine mask values
   # overloading:
   # (raw)  : exploritory call, determine type
-  # return  : 'default|match|replaced'
+  # return  : 'type|default|match|replaced'
   # (raw, target)  : replace target's mask stubs with value(s) found
   #                  in raw
   # return  : 'processed'
@@ -613,11 +625,12 @@ fn_file_multi_mask() {
   declare processed
   declare mask_default_single; mask_default_single="#of#"
   declare mask_default_set; mask_default_set="s##e##"
-  declare mask_default
-  declare mask_type
+  declare mask_default; mask_default=""
+  declare mask_type; mask_type=""
   declare search
   declare replace
   declare mask_values_
+  declare -a parts
   declare -a filters
   declare -a mask_parts
   declare -a mask_zeros
@@ -630,11 +643,24 @@ fn_file_multi_mask() {
 
   raw="$1" && shift
   target="" && [ $# -gt 0 ] && target="$1" && shift
-  mask_default="" && [ $# -gt 0 ] && mask_default="$1" && shift
+  mask_default="" &&
+  if [ $# -gt 0 ]; then
+    IFS="|"; parts=($(echo "$1")); IFS="IFSORG"
+    if [ ${#parts[@]} -eq 1 ]; then
+      if [ -n "$(echo "${parts[0]}" | sed -n '/\(single\|set\)$/p')" ]; then
+        mask_type="${parts[0]}"
+        mask_default="$(eval "echo \$mask_default_$mask_type")"
+      else
+        mask_default="${parts[0]}"
+      fi
+    else
+      mask_type="${parts[0]}"
+      mask_default="${parts[1]}"
+    fi
+  fi
 
   # determine type
-  mask_type=""
-  if [ -n "$target" ]; then
+  if [[ -z "$mask_default" && -n "$target" ]]; then
     # look for default mask in target
     # single?
     mask="$(echo "$target" | sed -n 's|^.*\(#\+of[0-9#]\+\).*$|\1|p')"
@@ -652,6 +678,7 @@ fn_file_multi_mask() {
   # filters
   filters=(
     "single #of#"
+    "single #\([0-9]\{1,2\}\)"
     "single cd\([0-9]\+\)"
     "single cd[-.]\([0-9]\+\)"
     "single cd\s\([0-9]\+\)"
@@ -684,7 +711,7 @@ fn_file_multi_mask() {
     [[ -z $replace && "x${parts[0]}" == "xset" ]] && replace="\1\|\2"
     mask_raw=$(echo "${raw##/}" | sed -n 's|^.*\('"$search"'\).*$|\1|Ip')
     if [ -n "$mask_raw" ]; then
-      mask_type="${parts[0]}"
+      mask_type="${mask_type:-"${parts[0]}"}"
       s_="mask_default_${mask_type}" && mask_default="${mask_default:-"$(eval "echo \$$s_")"}"
       mask_values_=$(echo "${raw##/}" | sed -n 's|^.*'"${parts[1]}"'.*$|'$replace'|Ip' 2>/dev/null)
       [ $DEBUG -ge 1 ] && echo "[debug] mask_raw: '$mask_raw', mask_values: '$mask_values_'" 1>&2
@@ -736,7 +763,7 @@ fn_file_multi_mask() {
 
   if [ -z "$target" ]; then
     # exploratory result
-    echo "$mask_default|$mask_raw|$processed"
+    echo "$mask_type|$mask_default|$mask_raw|$processed"
   else
     echo "$processed"
   fi
@@ -1593,18 +1620,21 @@ fn_structure() {
 
   declare filters_cmd; filters_cmd=""
   declare verbose; verbose=1
+  declare mode; mode="auto"
   declare s_search
 
   declare -a mask_parts
+  declare mask_type; mask_type=""
   declare mask_default; mask_default=""
   declare mask_raw
   declare mask_replace
 
   # process args
   while [ -n "$1" ]; do
-    arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
+    arg="$(echo "$1" | awk '{gsub(/^[ ]*/, "", $0); print(tolower($0))}')"
     case "$arg" in
       "-s"|"--silent") verbose=0 ;;
+      "-m"|"--mode") shift; mode="$1" ;;
       *) [ -z "$s_search" ] && s_search="$1" || filters_cmd="$filters_cmd"'\|'"$1"
     esac
     shift
@@ -1612,6 +1642,8 @@ fn_structure() {
 
   # validate args
   [ -z "$s_search" ] && help && echo "[error] missing 'search' arg" 1>&2 && return 1
+  [ -z "$(echo "$mode" | sed -n '/^\(auto\|single\|set\)$/p')" ] && \
+    help && echo "[error] invalid 'mode' arg '$mode'" 1>&2 && return 1
   [ -n "$filters_cmd" ] && filters_cmd='['"$delimiters"']\+\('"${filters_cmd:2}"'\)\(['"$delimiters"']\|$\)\+/..'
 
   IFS=$'\n'
@@ -1657,13 +1689,20 @@ fn_structure() {
   s_title_template="$(echo ${s_title_template##*/} | awk '{gsub(" ",".",$0); print tolower($0)}')"
 
   # mask?
-  IFS="|"; mask_parts=($(fn_file_multi_mask "$s_title_template")); IFS=$IFSORG
+  IFS="|"; mask_parts=($(fn_file_multi_mask "$s_title_template" "" "$([ "x$mode" != "xauto" ] && echo "$mode")")); IFS=$IFSORG
   if [ ${#mask_parts[@]} -gt 0 ]; then
     [ $DEBUG -ge 5 ] && echo "[debug] mask found, parts: ${mask_parts[@]}, setting generic"
-    mask_default="${mask_parts[0]}"
-    mask_raw="${mask_parts[1]}"
-    mask_replace="${mask_parts[2]}"
+    mask_type="${mask_parts[0]}"
+    mask_default="${mask_parts[1]}"
+    mask_raw="${mask_parts[2]}"
+    mask_replace="${mask_parts[3]}"
     s_title_template=$(echo "$s_title_template" | sed 's/\[\?'"$(fn_regexp "$mask_raw" "sed")"'\]\?/['$mask_default']/')
+  fi
+
+  # mode
+  if [ "x$mode" = "xauto" ]; then
+    mode="single"
+    [[ $l_files -gt 1 && "x$mask_type" == "xset" ]] && mode="set"
   fi
 
   # filters
@@ -1713,14 +1752,16 @@ fn_structure() {
     [ $DEBUG -ge 1 ] && echo "mask [post]: '${mask_parts[@]}'" 1>&2
     # correct default mask to be based on total files (where necessary)
     if [ ${#mask_parts[@]} -eq 0 ]; then
+      mask_type=""
       mask_default=""
       mask_raw=""
       mask_replace=""
     else
-      mask_default="${mask_parts[0]}"
-      mask_raw="${mask_parts[1]}"
-      mask_replace="${mask_parts[2]}"
-      if [ -n "$(echo "${s_mask[0]}" | sed -n '/of/p')" ]; then
+      mask_type="${mask_parts[0]}"
+      mask_default="${mask_parts[1]}"
+      mask_raw="${mask_parts[2]}"
+      mask_replace="${mask_parts[3]}"
+      if [ "x$mode" = "xsingle" ]; then
         mask_default=$(echo "$mask_default" | sed 's/\(#\+of\)#/\1'$l_files'/')
         [ $DEBUG -ge 1 ] && echo "mask [pre]: '${mask_parts[@]}'" 1>&2
         IFS="|"; mask_parts=($(fn_file_multi_mask "$s_title" "" "$mask_default")); IFS=$IFSORG
@@ -1774,12 +1815,12 @@ fn_structure() {
     IFS="|"; mask_parts=($(fn_file_multi_mask "$f2" "" "$mask_default")); IFS=$IFSORG
     [ $DEBUG -gt 0 ] && echo "mask: '${mask_parts[@]}'" 1>&2
 
-    if [ -n "$filters_cmd" ]; then
+    if [ "x$mask_type" = "xset" ]; then
       # manipulate target (s_title2) prior to final name fixing
       # (fn_file_target)
-      if [ -n "${mask_parts[1]}" ]; then
+      if [ -n "${mask_parts[2]}" ]; then
         # dynamic title part and additional file info pre-filter
-        s_target="$(echo "${f2%.*}" | sed 's/^.*'"$(fn_regexp "${mask_parts[1]}" "sed")"'\]*//')"
+        s_target="$(echo "${f2%.*}" | sed 's/^.*'"$(fn_regexp "${mask_parts[2]}" "sed")"'\]*//')"
       else
         # no delimiter. so we need to use any info in the original
         # filename that isn't in our fixed title
@@ -2583,11 +2624,13 @@ fn_test() {
 
       "file_multi_mask")
         fn_unit_test "fn_file_multi_mask" \
-          "foo.cd.2.bar^#of#|cd.2|2of#" \
+          "foo.cd.2.bar^single|#of#|cd.2|2of#" \
           "foo.cd.2.bar|foo.(#of#).bar^foo.(2of#).bar" \
           "foo.cd.2.bar|foo.(#of4).bar^foo.(2of4).bar" \
-          "foo.s2e3.bar^s##e##|s2e3|s02e03" \
-          "foo.s2e3.bar|foo.[s##e##].bar^foo.[s02e03].bar"
+          "foo.s2e3.bar^set|s##e##|s2e3|s02e03" \
+          "foo.s2e3.bar|foo.[s##e##].bar^foo.[s02e03].bar" \
+          "foo.bar.#2^single|#of#|#2|2of#" \
+          "foo.bar.#2||set|^set|s##e##|#2|s##e02"
         ;;
 
       "filter"|"filters")
