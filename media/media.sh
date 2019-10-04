@@ -714,7 +714,7 @@ fn_file_multi_mask() {
       mask_type="${mask_type:-"${parts[0]}"}"
       s_="mask_default_${mask_type}" && mask_default="${mask_default:-"$(eval "echo \$$s_")"}"
       mask_values_=$(echo "${raw##/}" | sed -n 's|^.*'"${parts[1]}"'.*$|'$replace'|Ip' 2>/dev/null)
-      [ $DEBUG -ge 1 ] && echo "[debug] mask_raw: '$mask_raw', mask_values: '$mask_values_'" 1>&2
+      [ $DEBUG -ge 1 ] && echo "[debug] mask_raw: '$mask_raw'" 1>&2
       break
     fi
     l=$((l + 1))
@@ -742,6 +742,13 @@ fn_file_multi_mask() {
 
     # mask values
     IFS="|"; mask_values=($(echo "$mask_values_")); IFS="$IFSORG"
+    while [ ${#mask_values[@]} -lt ${#mask_parts[@]} ]; do
+      # prepend or append stub based on type
+      [ "x$mask_type" = "xsingle" ] && \
+        mask_values=("${mask_values[@]}" "-") || \
+        mask_values=("-" "${mask_values[@]}")
+    done
+    [ $DEBUG -ge 1 ] && echo "[debug] mask_values: '${mask_values[@]}'" 1>&2
 
     # merge available mask values with 0-mask stubs and replace ^
     # markers from left to right
@@ -749,13 +756,11 @@ fn_file_multi_mask() {
     for l in $(seq 0 1 $((${#mask_parts[@]} - 1))); do
       mask_part="${mask_parts[$l]}"
       mask_zero="${mask_zeros[$l]}"
-      mask_value=""
-      if [ $l -lt ${#mask_values[@]} ]; then
-        mask_value="${mask_values[$l]}"
-        mask="$(printf "%0${#mask_zero}d" "$(echo "$mask_value" | sed 's/^0*//')")"
-      else
+      mask_value="${mask_values[$l]}"
+      mask="$mask_value"
+      [ -n "$(echo "$mask_value" | sed -n '/^[0-9]\+$/p')" ] && \
+        mask="$(printf "%0${#mask_zero}d" "$(echo "$mask_value" | sed 's/^0*//')")" || \
         mask="$mask_part"
-      fi
       processed=$(echo "$processed" | sed 's|\^|'$mask'|')
       l=$((l + 1))
     done
