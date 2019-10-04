@@ -1663,7 +1663,7 @@ fn_structure() {
     mask_default="${mask_parts[0]}"
     mask_raw="${mask_parts[1]}"
     mask_replace="${mask_parts[2]}"
-    s_title_template=$(echo "$s_title_template" | sed 's/\[\?'"$(fn_regexp "$mask_replace" "sed")"'\]\?/['$mask_default']/')
+    s_title_template=$(echo "$s_title_template" | sed 's/\[\?'"$(fn_regexp "$mask_raw" "sed")"'\]\?/['$mask_default']/')
   fi
 
   # filters
