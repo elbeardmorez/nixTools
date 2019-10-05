@@ -681,7 +681,7 @@ fn_file_multi_mask() {
     "single #of#"
     "single #\([0-9]\{1,2\}\)"
     "single cd[$delimiters]*\([0-9]\+\)"
-    "single \([0-9]\+\)[$delimiters]*of[$delimiters]*[0-9]\+"
+    "single \([0-9]\+\)[$delimiters]*of[$delimiters]*\([0-9]\+\)\+"
     "single part[$delimiters]*\([0-9]\+\)"
     "set s#\+e#\+"
     "set s\([0-9]\+\)[$delimiters]*e\([0-9]\+\)"
@@ -703,8 +703,11 @@ fn_file_multi_mask() {
     IFS=" "; parts=($(echo "$s_")); IFS=$IFSORG
     search=${parts[1]}
     replace="" && [ ${#parts} -ge 2 ] && replace=${parts[2]}
-    [[ -z $replace && "x${parts[0]}" == "xsingle" ]] && replace="\1"
-    [[ -z $replace && "x${parts[0]}" == "xset" ]] && replace="\1\|\2"
+    # construct replace part from captures
+    replace=""
+    s_="$(echo "$search" | sed 's/\\(/@@@/g;s/[^@]//g;s/@@@/-/g')"
+    for l in $(seq 1 1 ${#s_}); do replace+="\|\\$l"; done
+    [ -n "$replace" ] && replace="${replace:2}"
     mask_raw=$(echo "${raw##/}" | sed -n 's|^.*\('"$search"'\).*$|\1|Ip')
     if [ -n "$mask_raw" ]; then
       mask_type="${mask_type:-"${parts[0]}"}"
@@ -2633,7 +2636,8 @@ fn_test() {
           "foo.bar.#2^single|#of#|#2|2of#" \
           "foo.bar.#2||set|^set|s##e##|#2|s##e02" \
           "foo.2_3.bar||^set|s##e##|.2_3.|s02e03" \
-          "foo.2_3.bar||single^single|#of#|.2_3.|2of3"
+          "foo.2_3.bar||single^single|#of#|.2_3.|2of3" \
+          "foo.2of3.bar^single|#of#|2of3|2of3"
         ;;
 
       "filter"|"filters")
