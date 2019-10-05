@@ -633,6 +633,7 @@ fn_file_multi_mask() {
   declare mask_values_
   declare -a parts
   declare -a filters
+  declare -a filter_valid
   declare -a mask_parts
   declare -a mask_zeros
   declare -a mask_values
@@ -697,27 +698,45 @@ fn_file_multi_mask() {
     "set part[$delimiters]*\([0-9]\+\)"
   )
 
+  filter_valid=()
   l=1
   for s_ in "${filters[@]}"; do
     [ $DEBUG -ge 5 ] && echo "[debug] filter: [$l] '$s_'" 1>&2
     IFS=" "; parts=($(echo "$s_")); IFS=$IFSORG
     search=${parts[1]}
-    replace="" && [ ${#parts} -ge 2 ] && replace=${parts[2]}
+    mask_raw=$(echo "${raw##/}" | sed -n 's|^.*\('"${parts[1]}"'\).*$|\1|Ip')
+    if [ -n "$mask_raw" ]; then
+      mask_type="${mask_type:-"${parts[0]}"}"
+      s_="mask_default_${mask_type}" && mask_default="${mask_default:-"$(eval "echo \$$s_")"}"
+      mask_values_=$(echo "${raw##/}" | sed -n 's|^.*'"${parts[1]}"'.*$|'$replace'|Ip' 2>/dev/null)
+      [[ -z "$mask_type" || "x$mask_type" == "x${parts[0]}" ]] && filter_valid=("${parts[@]}") && break
+      [ ${#filter_valid[@]} -eq 0 ] && filter_valid=("${parts[@]}")
+    fi
+    l=$((l + 1))
+  done
+
+  if [ ${#filter_valid[@]} -gt 0 ]; then
+    search="${filter_valid[1]}"
+    mask_raw=$(echo "${raw##/}" | sed -n 's|^.*\('"$search"'\).*$|\1|Ip')
+
     # construct replace part from captures
     replace=""
     s_="$(echo "$search" | sed 's/\\(/@@@/g;s/[^@]//g;s/@@@/-/g')"
     for l in $(seq 1 1 ${#s_}); do replace+="\|\\$l"; done
     [ -n "$replace" ] && replace="${replace:2}"
-    mask_raw=$(echo "${raw##/}" | sed -n 's|^.*\('"$search"'\).*$|\1|Ip')
-    if [ -n "$mask_raw" ]; then
-      mask_type="${mask_type:-"${parts[0]}"}"
-      s_="mask_default_${mask_type}" && mask_default="${mask_default:-"$(eval "echo \$$s_")"}"
-      mask_values_=$(echo "${raw##/}" | sed -n 's|^.*'"${parts[1]}"'.*$|'$replace'|Ip' 2>/dev/null)
-      [ $DEBUG -ge 1 ] && echo "[debug] mask_raw: '$mask_raw'" 1>&2
-      break
+
+    # set default type / mask from matched mask if needed
+    if [ -z "$mask_type" ]; then
+      mask_type="${filter_valid[0]}"
+      mask_default="${mask_default:-"$(eval "echo \$mask_default_${mask_type}")"}"
     fi
-    l=$((l + 1))
-  done
+
+    # determine which raw values should be applied to the target
+    # default mask
+    mask_values_=$(echo "${raw##/}" | sed -n 's|^.*'"$search"'.*$|'$replace'|Ip' 2>/dev/null)
+
+    [ $DEBUG -ge 1 ] && echo "[debug] mask_raw: '$mask_raw'" 1>&2
+  fi
 
   processed="$target" && [ -z "$processed" ] && processed="$mask_default"
   if [ -n "$mask_values_" ]; then
@@ -2637,7 +2656,8 @@ fn_test() {
           "foo.bar.#2||set|^set|s##e##|#2|s##e02" \
           "foo.2_3.bar||^set|s##e##|.2_3.|s02e03" \
           "foo.2_3.bar||single^single|#of#|.2_3.|2of3" \
-          "foo.2of3.bar^single|#of#|2of3|2of3"
+          "foo.2of3.bar^single|#of#|2of3|2of3" \
+          "foo.2of3.bar||set|^set|s##e##|2of3|s##e02"
         ;;
 
       "filter"|"filters")
