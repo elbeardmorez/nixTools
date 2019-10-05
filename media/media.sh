@@ -620,6 +620,7 @@ fn_file_multi_mask() {
 
   [ $DEBUG -ge 1 ] && echo "[debug fn_file_multi_mask]" 1>&2
 
+  declare delimiters; delimiters="[:space:]._-"
   declare raw
   declare target
   declare processed
@@ -679,27 +680,22 @@ fn_file_multi_mask() {
   filters=(
     "single #of#"
     "single #\([0-9]\{1,2\}\)"
-    "single cd\([0-9]\+\)"
-    "single cd[-.]\([0-9]\+\)"
-    "single cd\s\([0-9]\+\)"
-    "single \([0-9]\+\)of[0-9]\+"
-    "single \([0-9]\+\)\.of\.[0-9]\+"
+    "single cd[$delimiters]*\([0-9]\+\)"
+    "single \([0-9]\+\)[$delimiters]*of[$delimiters]*[0-9]\+"
+    "single part[$delimiters]*\([0-9]\+\)"
     "set s#\+e#\+"
-    "set s\([0-9]\+\)\.\?e\([0-9]\+\)"
-    "set \([0-9][0-9]\)x\([0-9]\{1,2\}\)"
+    "set s\([0-9]\+\)[$delimiters]*e\([0-9]\+\)"
+    "set \([0-9]\{1,2\}\)x\([0-9]\{1,2\}\)"
     "set \([0-9]\)x\([0-9]\{1,2\}\)"
-    "set (\s*\(0*[0-9]\)\.\?\([0-9]\{1,2\}\)\s*)"
-    "set \[\s*\(0*[0-9]\)\.\?\([0-9]\{1,2\}\)\s*\]"
-    "set \.\s*\(0*[0-9]\)\.\?\([0-9]\{1,2\}\)\s*\."
-    "set \-\s*\(0*[0-9]\)\.\?\([0-9]\{1,2\}\)\s*\-"
-    "set [.-_]\([0-9]\{2\}\)\-\([0-9]\+\)[._-]"
-    "set [.-_]\([0-9]\{1\}\)\-\([0-9]\+\)[._-]"
-    "set \-\.\?ep\?\.\?\([0-9]\+\)\.\?\-"
-    "set \.ep\?\.\?\([0-9]\+\)\."
-    "set \.s\.\?\([0-9]\+\)\. \1\|0"
-    "set part\.\?\([0-9]\+\)"
-    "set \([0-9]\+\)\.\?of\.\?[0-9]\+ \1|0"
-    "single part\.\?\([0-9]\+\)")
+    "set [[(][$delimiters]*\(0*[0-9]\)[$delimiters]\([0-9]\{1,2\}\)[$delimiters]*[])]"
+    "set [$delimiters]\(0*[0-9]\)[$delimiters]\([0-9]\{1,2\}\)[$delimiters]*"
+    "set [$delimiters]\([0-9]\{2\}\)\-\([0-9]\+\)[$delimiters]"
+    "set [$delimiters]\([0-9]\{1\}\)\-\([0-9]\+\)[$delimiters]"
+    "set [$delimiters]ep\?[$delimiters]*\([0-9]\+\)[$delimiters]*"
+    "set [$delimiters]s[$delimiters]*\([0-9]\+\)[$delimiters] \1\|0"
+    "set \([0-9]\+\)[$delimiters]*of[$delimiters]*[0-9]\+ \1|0"
+    "set part[$delimiters]*\([0-9]\+\)"
+  )
 
   l=1
   for s_ in "${filters[@]}"; do
@@ -2635,7 +2631,9 @@ fn_test() {
           "foo.s2e3.bar^set|s##e##|s2e3|s02e03" \
           "foo.s2e3.bar|foo.[s##e##].bar^foo.[s02e03].bar" \
           "foo.bar.#2^single|#of#|#2|2of#" \
-          "foo.bar.#2||set|^set|s##e##|#2|s##e02"
+          "foo.bar.#2||set|^set|s##e##|#2|s##e02" \
+          "foo.2_3.bar||^set|s##e##|.2_3.|s02e03" \
+          "foo.2_3.bar||single^single|#of#|.2_3.|2of3"
         ;;
 
       "filter"|"filters")
