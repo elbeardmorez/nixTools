@@ -629,7 +629,9 @@ fn_file_multi_mask() {
   declare mask_default; mask_default=""
   declare mask_type; mask_type=""
   declare search
+  declare position
   declare replace
+  declare mask_positions_; mask_positions_=""
   declare mask_values_
   declare -a parts
   declare -a filters
@@ -693,8 +695,8 @@ fn_file_multi_mask() {
     "set [$delimiters]\([0-9]\{2\}\)\-\([0-9]\+\)[$delimiters]"
     "set [$delimiters]\([0-9]\{1\}\)\-\([0-9]\+\)[$delimiters]"
     "set [$delimiters]ep\?[$delimiters]*\([0-9]\+\)[$delimiters]*"
-    "set [$delimiters]s[$delimiters]*\([0-9]\+\)[$delimiters] \1\|0"
-    "set \([0-9]\+\)[$delimiters]*of[$delimiters]*[0-9]\+ \1|0"
+    "set [$delimiters]s[$delimiters]*\([0-9]\+\)[$delimiters] 1"
+    "set \([0-9]\+\)[$delimiters]*of[$delimiters]*[0-9]\+ 2"
     "set part[$delimiters]*\([0-9]\+\)"
   )
 
@@ -735,6 +737,7 @@ fn_file_multi_mask() {
     # default mask
     mask_values_=$(echo "${raw##/}" | sed -n 's|^.*'"$search"'.*$|'$replace'|Ip' 2>/dev/null)
 
+    [ ${#filter_valid[@]} -ge 2 ] && mask_positions_="${filter_valid[2]}"
     [ $DEBUG -ge 1 ] && echo "[debug] mask_raw: '$mask_raw'" 1>&2
   fi
 
@@ -760,12 +763,28 @@ fn_file_multi_mask() {
 
     # mask values
     IFS="|"; mask_values=($(echo "$mask_values_")); IFS="$IFSORG"
-    while [ ${#mask_values[@]} -lt ${#mask_parts[@]} ]; do
-      # prepend or append stub based on type
-      [ "x$mask_type" = "xsingle" ] && \
-        mask_values=("${mask_values[@]}" "-") || \
-        mask_values=("-" "${mask_values[@]}")
-    done
+    if [ -n "$mask_positions_" ]; then
+      # construct complete values set based on explicit position(s)
+      # as opposed to relying on default mask type based placement
+      # ordering (e.g. left to right for 'single' type)
+      s_=""
+      for l in $(seq 0 1 $((${#mask_positions_} - 1))); do
+        position=${mask_positions_:$l:1}
+        while [ ${#s_} -lt $((position - 1)) ]; do s_+="-"; done
+        s_+="|${mask_values[$l]}"
+      done
+      IFS="|"; mask_values=($(echo "${s_:1}")); IFS="$IFSORG"
+      while [ ${#mask_values[@]} -lt ${#mask_parts[@]} ]; do
+        mask_values=("${mask_values[@]}" "-")
+      done
+    else
+      while [ ${#mask_values[@]} -lt ${#mask_parts[@]} ]; do
+        # prepend or append stub based on type
+        [ "x$mask_type" = "xsingle" ] && \
+          mask_values=("${mask_values[@]}" "-") || \
+          mask_values=("-" "${mask_values[@]}")
+      done
+    fi
     [ $DEBUG -ge 1 ] && echo "[debug] mask_values: '${mask_values[@]}'" 1>&2
 
     # merge available mask values with 0-mask stubs and replace ^
@@ -2657,7 +2676,9 @@ fn_test() {
           "foo.2_3.bar||^set|s##e##|.2_3.|s02e03" \
           "foo.2_3.bar||single^single|#of#|.2_3.|2of3" \
           "foo.2of3.bar^single|#of#|2of3|2of3" \
-          "foo.2of3.bar||set|^set|s##e##|2of3|s##e02"
+          "foo.2of3.bar||set|^set|s##e##|2of3|s##e02" \
+          "foo.s2.ex^set|s##e##|.s2.|s02e##" \
+          "foo.e2.ex^set|s##e##|.e2.|s##e02"
         ;;
 
       "filter"|"filters")
