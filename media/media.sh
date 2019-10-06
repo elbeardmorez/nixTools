@@ -579,7 +579,7 @@ fn_files_info() {
     if [ -f "$s_search" ]; then
       s_files=("$s_search")
     elif [ -d "$s_search" ]; then
-      s_="$(find "$s_search" -maxdepth 1 -type f -iregex '^.*\.\('"$(echo $VIDEXT\|$AUDEXT | sed 's|\||\\\||g')"'\)$' | sort -i)"
+      s_="$(find "$s_search" -follow -maxdepth 1 -type f -iregex '^.*\.\('"$(echo $VIDEXT\|$AUDEXT | sed 's|\||\\\||g')"'\)$' | sort -i)"
       res=$? && [ $res -ne 0 ] && return $res
       IFS=$'\n'; s_files=($(echo "$s_")); IFS=$IFSORG
     else
@@ -893,14 +893,14 @@ fn_files() {
         [ $DEBUG -ge 2 ] && echo "[debug fn_files] #1 s_search: '$s_search' s_search_custom: '$s_search_custom' s_search_prev: '$s_search_prev'  s_search_last: '$s_search_last'" 1>&2
         [ -n "$s_search_custom" ] && s_search_prev="$s_search" && s_search="$s_search_custom"
         if [[ "x$s_search" != x$s_search_prev || -z "$s_search_last" ]]; then
-          s_="$(find ./ -maxdepth $l_depth -iregex '.*'"$(fn_regexp "$s_search" "sed")"'.*\('"$(fn_regexp "$s_type" "sed")"'\)$' | sort -i)"
+          s_="$(find "./" -follow -maxdepth $l_depth -iregex '.*'"$(fn_regexp "$s_search" "sed")"'.*\('"$(fn_regexp "$s_type" "sed")"'\)$' | sort -i)"
           res=$? && [ $res -ne 0 ] && return $res
           IFS=$'\n'; s_files=($(echo "$s_")); IFS=$IFSORG
 
           s_files2=()
           for s_ in "${s_files[@]}"; do
             if [ -d "$s_" ]; then
-              s__="$(find "$s_/" $s_depth -type f | sort -i)"
+              s__="$(find "$s_/" -follow -maxdepth $l_depth -type f | sort -i)"
               res=$? && [ $res -ne 0 ] && return $res
               IFS=$'\n'; s_files2=("${s_files2[@]}" $(echo "$s__")); IFS="$IFSORG"
             else
@@ -994,7 +994,7 @@ fn_files() {
       s_files2=()
       for s_ in "${s_files[@]}"; do
         if [ -d "$s_" ]; then
-          s__="$(find "$s_" -type f | sort -i)"
+          s__="$(find "$s_" -follow -type f | sort -i)"
           res=$? && [ $res -ne 0 ] && return $res
           IFS=$'\n'; s_files3=($(echo "$s_")); IFS="$IFSORG"
           for s__ in "${s_files3[@]}"; do
@@ -1133,15 +1133,15 @@ fn_search() {
       case "$search_type" in
         "regexp")
           # search as valid regular expression
-          arr=($(find $target -type f -name "*" | grep -iP ".*$search.*" | grep -iP '('"$extensions"')$' | sort -i 2>/dev/null))
+          arr=($(find $target -follow -type f -name "*" | grep -iP ".*$search.*" | grep -iP '('"$extensions"')$' | sort -i 2>/dev/null))
           ;;
         "raw")
           # search as raw string
-          arr=($(find $target -type f -name "*" | grep -iP ".*$(fn_regexp "$search" "perl").*($extensions)" | sort -i 2>/dev/null))
+          arr=($(find $target -follow -type f -name "*" | grep -iP ".*$(fn_regexp "$search" "perl").*($extensions)" | sort -i 2>/dev/null))
           ;;
         "glob")
           # search as a glob
-          arr=($(find $target -type f -iname "*$search*" | grep -iP '('"$extensions"')$' | sort -i 2>/dev/null))
+          arr=($(find $target -follow -type f -iname "*$search*" | grep -iP '('"$extensions"')$' | sort -i 2>/dev/null))
           ;;
       esac
 
@@ -1570,9 +1570,9 @@ fn_archive() {
 
   source="$source/"
   if [ $level -eq 0 ]; then
-    find . -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)' | sort -i > "$target$file"
+    find "./" -follow -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)' | sort -i > "$target$file"
   else
-    IFS=$'\n'; s_files=($(find . -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)' | sort -i)); IFS=$IFSORG
+    IFS=$'\n'; s_files=($(find "./" -follow -type f -iregex '^.*\.\('"$(echo $VIDEXT | sed 's|\||\\\||g')"'\)' | sort -i)); IFS=$IFSORG
     b_append=0
     for f in "${s_files[@]}"; do
       s="$f|$(fn_file_info $level "$f")"
@@ -1835,7 +1835,7 @@ fn_structure() {
   done
   # remove empty diretories
   for d in "${directories[@]}"; do
-    [ -d "$d" ] && find "$d" -empty -type d -delete
+    [ -d "$d" ] && find "$d" -follow -empty -type d -delete
   done
 
   # rename
@@ -1843,7 +1843,7 @@ fn_structure() {
   # fn_file_target function
   s_title2="$(echo "${s_title%[*}" | sed 's/\(^\.\|\.$\)//g')"
 
-  IFS=$'\n'; s_files2=($(find "./$s_short_title/" -maxdepth 1 -type f -iregex '^.*\.\('"$(echo $VIDEXT\|$VIDXEXT\|$EXTEXT | sed 's|\||\\\||g')"'\)$' | sort -i)); IFS=$IFSORG
+  IFS=$'\n'; s_files2=($(find "./$s_short_title/" -follow -maxdepth 1 -type f -iregex '^.*\.\('"$(echo $VIDEXT\|$VIDXEXT\|$EXTEXT | sed 's|\||\\\||g')"'\)$' | sort -i)); IFS=$IFSORG
   if [ $TEST -ge 1 ]; then
     # use original files as we didn't move any!
     s_files2=()
@@ -2311,7 +2311,7 @@ fn_edit() {
   [ ! -d "$target" ] && echo "[error] invalid target directory '$target'"
   target=$(cd "$target" && echo "$PWD")
 
-  IFS=$'\n'; files=($(find "$target" -maxdepth 1 -iregex '^.*\(mp4\|mkv\|avi\)$' | sort -i)); IFS=$IFSORG
+  IFS=$'\n'; files=($(find "$target" -follow -maxdepth 1 -iregex '^.*\(mp4\|mkv\|avi\)$' | sort -i)); IFS=$IFSORG
   for f in "${files[@]}"; do
     # short-circuit with filter
     [ -z "$(echo "$f" | sed -n '/'$filter'/p')" ] && continue
@@ -2324,7 +2324,7 @@ fn_edit() {
     [ ! -f "$target/$n/$n.vid" ] && ffmpeg -y -i "$f" -map 0:v:0 -c:v huffyuv -f avi "$target/$n/$n.vid";
     [ ! -f "$target/$n/$n.aud" ] && ffmpeg -y -i "$f" -map 0:a:0 -c:a copy -f mp4 "$target/$n/$n.aud";
 
-    IFS=$'\n'; mp4s=($(find $target/$n/ -maxdepth 1 -iregex '^.*mp4$' | sort -i)); IFS=$IFSORG
+    IFS=$'\n'; mp4s=($(find "$target/$n/" -follow -maxdepth 1 -iregex '^.*mp4$' | sort -i)); IFS=$IFSORG
     if [ ${#mp4s[@]} -gt 0 ]; then
       rm $target/$n/files
       echo "converting part files to transport stream format"
@@ -2690,11 +2690,11 @@ fn_test() {
         ;;
 
       "misc")
-        s_files=($(find . -iregex '^.*\('"$(echo $VIDEXT\|$VIDXEXT\|nfo | sed 's|\||\\\||g')"'\)$' | sort -i))
+        s_files=($(find "./" -follow -iregex '^.*\('"$(echo $VIDEXT\|$VIDXEXT\|nfo | sed 's|\||\\\||g')"'\)$' | sort -i))
         echo "s_files: ${s_files[@]}"
-        s_files=($(find . -iregex '^.*\('"$VIDEXT\|$VIDXEXT\|nfo"'\)$' | sort -i))
+        s_files=($(find "./" -follow -iregex '^.*\('"$VIDEXT\|$VIDXEXT\|nfo"'\)$' | sort -i))
         echo "s_files: ${s_files[@]}"
-        s_files=($(find . -iregex '^.*\(avi\|nfo\)$' | sort -i))
+        s_files=($(find "./" -follow -iregex '^.*\(avi\|nfo\)$' | sort -i))
         echo "s_files: ${s_files[@]}"
         ;;
 
