@@ -156,11 +156,15 @@ PATHMEDIA  : path to media store (default: '$HOME/media')
 PATHMEDIATARGETS  : pipe-delimited ('|') list of targets paths, full
                     paths, '$PATHMEDIA' relative paths and glob names
                     supported
-PATHRATINGSDEFAULT  : path to ratings structure
-                      (default: '$PATHMEDIA/watched')
-PATHARCHIVELISTS  : path to archive list(s), either full path(s) or
-                    '$PATHMEDIATARGETS' relative path(s), falling back
-                    to '$PATHMEDIA' relative path(s) supported
+PATHWATCHED  : pipe-delimited ('|') list of watched / rated directory
+               names to be found relative to '$PATHMEDIATARGETS'
+               path(s), falling back to relative to '$PATHMEDIA'
+               path(s)
+               (default: 'watched/')
+PATHARCHIVELISTS  : pipe-delimited ('|') list of archive list
+                    directory names to be found relative to
+                    '$PATHMEDIATARGETS' path(s), falling back to
+                    relative to '$PATHMEDIA' path(s)
                     (default: 'archives/')
 
 ## option specific

@@ -20,8 +20,8 @@ ROOTDISK="${ROOTDISK:-"/media/"}"
 ROOTISO="${ROOTISO:-"/media/iso/"}"
 PATHMEDIA="${PATHMEDIA:-"$HOME/media/"}"
 PATHMEDIATARGETS="${PATHMEDIATARGETS:-""}"
-PATHRATINGSDEFAULT="${PATHRATINGSDEFAULT:-"${PATHMEDIA}watched/"}"
-PATHARCHIVELISTS="${PATHARCHIVELISTS:-"${PATHMEDIA}/archives/"}"
+PATHWATCHED="${PATHWATCHED:-"watched/"}"
+PATHARCHIVELISTS="${PATHARCHIVELISTS:-"archives/"}"
 
 CHARPOSIX='][^$?*+'
 CHARPERL='].[)(}{*|/-'
@@ -174,11 +174,15 @@ PATHMEDIA  : path to media store (default: '\$HOME/media')
 PATHMEDIATARGETS  : pipe-delimited ('|') list of targets paths, full
                     paths, '\$PATHMEDIA' relative paths and glob names
                     supported
-PATHRATINGSDEFAULT  : path to ratings structure
-                      (default: '\$PATHMEDIA/watched')
-PATHARCHIVELISTS  : path to archive list(s), either full path(s) or
-                    '\$PATHMEDIATARGETS' relative path(s), falling back
-                    to '\$PATHMEDIA' relative path(s) supported
+PATHWATCHED  : pipe-delimited ('|') list of watched / rated directory
+               names to be found relative to '\$PATHMEDIATARGETS'
+               path(s), falling back to relative to '\$PATHMEDIA'
+               path(s)
+               (default: 'watched/')
+PATHARCHIVELISTS  : pipe-delimited ('|') list of archive list
+                    directory names to be found relative to
+                    '\$PATHMEDIATARGETS' path(s), falling back to
+                    relative to '\$PATHMEDIA' path(s)
                     (default: 'archives/')
 \n## option specific
 FILTERS_EXTRA [--structure]  : additional string filter expession for
@@ -1060,12 +1064,15 @@ fn_search() {
 
   declare -a targets
   declare target
+  declare target_archives
   declare search_type
   declare search
   declare -a args
   declare l
   declare l_s
   declare f
+
+  target_archives="$(fn_target_nearest "archive")"
 
   declare substring_search; substring_search=0
   declare interactive; interactive=0
@@ -1169,16 +1176,17 @@ fn_search() {
         fi
       fi
     done
-    if [ -d "$PATHARCHIVELISTS" ]; then
+
+    if [ -d "$target_archives" ]; then
       case "$search_type" in
         "regexp")
-          arr=($(grep -riP "$search" "$PATHARCHIVELISTS" 2>/dev/null))
+          arr=($(grep -riP "$search" "$target_archives" 2>/dev/null))
           ;;
         "raw")
-          arr=($(grep -riP "$(fn_regexp "$search" "perl")" "$PATHARCHIVELISTS" 2>/dev/null))
+          arr=($(grep -riP "$(fn_regexp "$search" "perl")" "$target_archives" 2>/dev/null))
           ;;
         "glob")
-          arr=($(grep -rie "$search" "$PATHARCHIVELISTS" 2>/dev/null))
+          arr=($(grep -rie "$search" "$target_archives" 2>/dev/null))
           ;;
       esac
       [ $DEBUG -ge 1 ] && echo "[debug fn_search] results arr: '${arr[@]}'" 1>&2
@@ -1228,7 +1236,7 @@ fn_search() {
         fi
       fi
     else
-      [ $DEBUG -ge 1 ] && echo "[debug] no archive lists found at: '$PATHARCHIVELISTS'" 1>&2
+      [ $DEBUG -ge 1 ] && echo "[debug] no archive lists found at: '$target_archives'" 1>&2
     fi
 
     if [[ $substring_search -eq 0 || \
@@ -1554,13 +1562,89 @@ fn_play() {
   fi
 }
 
+fn_target_nearest() {
+  # find a given path 'type' either at or above the current location,
+  # else at a know set of locations
+
+  # iterate up the file hierarchy looking for a target 'type' directory
+  # return empty path on failure
+
+  [ $DEBUG -ge 1 ] && echo "[debug fn_target_nearest]" 1>&2
+
+  declare type_; type_="$1"
+  declare -a targets; targets=()  # paths
+  declare type_targets_
+  declare -A visited
+
+  declare pwd_; pwd_="$(pwd)"
+
+  [ -z "$(echo "$type_" | sed -n '/\(archive\|watched\)/p')" ] && \
+    echo "[error] invalid target type '$type_'" 1>&2 && return 1
+
+  type_targets_=""
+  case "$type_" in
+    "archive") type_targets_="$PATHARCHIVELISTS" ;;
+    "watched") type_targets_="$PATHWATCHED" ;;
+  esac
+  [ -z "$type_targets_" ] && return 1
+  [ -d "$type_targets_" ] && echo "$type_targets_" && return 0
+
+  # add pwd and parent targets
+  targets=()
+  s_="$pwd_"
+  while true; do
+    targets[${#targets[@]}]="$s_"
+    s_="$(cd "$(dirname "$s_")" && pwd)"
+    [ "x$s_" = "x/" ] && break
+  done
+
+  # add PATHMEDIA based targets
+  if [ -n "$PATHMEDIATARGETS" ]; then
+    IFS="|"; a_=($(echo "$PATHMEDIATARGETS")); IFS="$IFSORG"
+    for s_ in "${a_[@]}"; do
+      if [ -d "$s_" ]; then
+        targets[${#targets[@]}]="$s_"
+      else
+        # partial targets
+        a_=($(echo $PATHMEDIA/$s_))
+        targets=(${targets[@]} ${a_[@]})
+      fi
+    done
+    [ $DEBUG -ge 2 ] && \
+      { echo "[debug] targets:" 1>&2;
+        for p in "${targets[@]}"; do echo " $p" 1>&2; done; }
+  else
+    targets[${#targets[@]}]="$PATHMEDIA"
+  fi
+
+  # test paths
+  IFS="|"; a_=($(echo "$type_targets_")); IFS="$IFSORG"
+
+  for s_ in "${targets[@]}"; do
+    for s__ in "${a_[@]}"; do
+      [ $DEBUG -ge 5 ] && echo "[debug] testing target: '$s_/$s__'" 1>&2
+      if [ -d "$s_/$s__" ]; then
+        [ $DEBUG -ge 5 ] && echo "[debug] valid target: '$s_/$s__'" 1>&2
+        echo "$s_/$s__"
+        return 0
+      fi
+    done
+  done
+
+  return 1
+}
+
 fn_archive() {
   # list files at target for archive purposes
 
   [ $DEBUG -ge 1 ] && echo "[debug fn_archive]" 1>&2
 
-  CWD="$PWD/"
-  target="$PATHARCHIVELISTS"
+  declare target
+
+  target="$(fn_target_nearest "archive")"
+  [ -z "$target" ] && \
+    echo "[error] missing archive list target" 1>&2 && return 1
+
   level=0
   [[ $# -gt 0 && -n "$(echo "$1" | sed -n '/^[0-9]\+$/p')" ]] && level=$1 && shift
   [ $# -gt 0 ] && source="$1" && shift || source="."
@@ -1584,7 +1668,6 @@ fn_archive() {
     done
   fi
   echo "updated archive list: '$target$file'"
-  cd $CWD
 }
 
 fn_filter() {
@@ -1941,6 +2024,8 @@ fn_rate() {
 
   [ $DEBUG -ge 1 ] && echo "[debug fn_rate]" 1>&2
 
+  declare target_base
+
   cmdmd="$([ $TEST -gt 0 ] && echo "echo ")$CMDMD"
   cmdmv="$([ $TEST -gt 0 ] && echo "echo ")$CMDMV"
   cmdrm="$([ $TEST -gt 0 ] && echo "echo ")$CMDRM"
@@ -1958,7 +2043,7 @@ fn_rate() {
   # path
   if [ $# -gt 0 ] && [ -n "$(echo $1 | sed -n '/^[0-9]\+$/p')" ]; then
     [ ! -d "$1" ] && echo "[user] the ratings base path '$1' is invalid" && return 1
-    s_path_base="$1" && shift
+    target_base="$1" && shift
   fi
   # rating (optional)
   [ $# -gt 0 ] && [ -n "$(echo $1 | sed -n '/^[0-9]\+$/p')" ] && l_rating="$1" && shift
@@ -2155,27 +2240,14 @@ fn_rate() {
 
   fi
 
-  if [ -z "$s_path_base" ]; then
-    # iterate up file hierarchy looking for 'watched' folder. use a default if failure
-    wd="${source%/*}"
-    b_retry=1
-    while [ $b_retry -eq 1 ]; do
-      if [ -e "$wd/watched/" ]; then
-        b_retry=0
-        s_path_base="$wd/watched/"
-      elif [ -z "$wd" ]; then
-        b_retry=0
-      else
-        wd="${wd%/*}"
-      fi
-    done
-    if [ -z "$s_path_base" ]; then
-      s_path_base="$PATHRATINGSDEFAULT"
-      [ ! -d $s_path_base ] && $cmdmd $PATHRATINGSDEFAULT
-    fi
+  if [ -z "$target_base" ]; then
+    target_base="$(fn_target_nearest "watched")"
+    [ -z "$target_base" ] && target_base="$PATHMEDIA/watched"
   fi
-  [ ! -d "$s_path_base" ] && echo "[user] the default ratings base path '$s_path_base' is invalid" 1>&2 && return 1
-  [ "x${s_path_base:$((${#s_path_base} - 1))}" != "x/" ] && s_path_base="$s_path_base/"
+  [ ! -d "$target_base" ] && \
+    echo "[error] invalid ratings path '$target_base'" 1>&2 && return 1
+
+  [ "x${target_base:$((${#target_base} - 1))}" != "x/" ] && target_base+="/"
 
   if [ ! "$l_rating" ]; then
     b_retry=1
@@ -2190,11 +2262,11 @@ fn_rate() {
     done
     #echo -en "\033[7h" 1>&2
   fi
-  echo -e "source: '$source'\ntarget: '$s_path_base$l_rating'"
-  $cmdmd "$s_path_base$l_rating" 2>/dev/null 1>&2
+  echo -e "source: '$source'\ntarget: '$target_base$l_rating'"
+  $cmdmd "$target_base$l_rating" 2>/dev/null 1>&2
 
-  if [ -e "$s_path_base$l_rating/${source##*/}" ]; then
-    echo -en "[user] path '$s_path_base$l_rating/${source##*/}' exists, overwrite? [(y)es/(no):  " 1>&2
+  if [ -e "$target_base$l_rating/${source##*/}" ]; then
+    echo -en "[user] path '$target_base$l_rating/${source##*/}' exists, overwrite? [(y)es/(no):  " 1>&2
     b_retry=1
     while [ $b_retry -eq 1 ]; do
       echo -en '\033[1D\033[K'
@@ -2208,7 +2280,7 @@ fn_rate() {
     echo ""
   fi
 
-  target="$s_path_base$l_rating"
+  target="$target_base$l_rating"
 
   dev_source="$(stat --format '%d' $source)"
   dev_target="$(stat --format '%d' $target)"
@@ -2689,6 +2761,33 @@ fn_test() {
            "abc[2020]|$filters_global^abc.(2020)"
         ;;
 
+      "target_nearest")
+        declare d_tmp; d_tmp="$(fn_temp "$SCRIPTNAME")"
+        declare -a paths; paths=( \
+          "$d_tmp/home/media/archives"
+          "$d_tmp/home/media/video/archives"
+          "$d_tmp/home/media/video5/watched/10/video"
+          "$d_tmp/home/media/extra/archives"
+          "$d_tmp/home/media/clips"
+          "$d_tmp/misc/archives"
+          "$d_tmp/tmp"
+        )
+        declare pwd_
+        PATHMEDIA="$d_tmp/home/media"
+        PATHMEDIATARGETS="video*|extra*"
+        PATHARCHIVELISTS="archives"
+        for p in "${paths[@]}"; do mkdir -p "$p" || return 1; done
+        pwd_="$d_tmp/home/media/video5/watched/10/video"
+        cd "$pwd_" >/dev/null
+        fn_unit_test "fn_target_nearest" "archive^$d_tmp/home/media/archives"
+        pwd_="$d_tmp/home/media/clips"
+        cd "$pwd_" >/dev/null
+        fn_unit_test "pwd|$pwd_" "fn_target_nearest" "archive^$d_tmp/home/media/archives"
+        pwd_="$d_tmp/tmp"
+        cd "$pwd_" >/dev/null
+        [ -d "$d_tmp" ] && rm -r "$d_tmp"
+        ;;
+
       "misc")
         s_files=($(find "./" -follow -iregex '^.*\('"$(echo $VIDEXT\|$VIDXEXT\|nfo | sed 's|\||\\\||g')"'\)$' | sort -i))
         echo "s_files: ${s_files[@]}"
@@ -2702,6 +2801,7 @@ fn_test() {
         tests=( \
           "file_multi_mask" \
           "filter" \
+          "target_nearest" \
         )
         continue
         ;;
