@@ -1692,7 +1692,7 @@ fn_filter() {
     filters["codecs"]="\($(echo "$VIDCODECS|$AUDCODECS" | sed 's/[,=|]/\\\|/g')\)/."
     filters["misc"]='_/\.'
     filters["misc2"]='\.\-\./\.'
-    filters["misc3"]='\([^.]\)-/\1'
+    filters["misc3"]='\([^.]\)-/\1.'
     filters["misc4"]='-\([^.]\)/\1'
     filters["repeat-misc"]='\(\[\.*\]\|^\.\|[-.]$\)/'
     filters["repeat-misc2"]='\.\./.'
@@ -2750,7 +2750,10 @@ fn_test() {
           "foo.2of3.bar^single|#of#|2of3|2of3" \
           "foo.2of3.bar||set|^set|s##e##|2of3|s##e02" \
           "foo.s2.ex^set|s##e##|.s2.|s02e##" \
-          "foo.e2.ex^set|s##e##|.e2.|s##e02"
+          "foo.e2.ex^set|s##e##|.e2.|s##e02" \
+          "foo.-.bar.#2|foo.-.bar.(#of10)^foo.-.bar.(2of10)" \
+          "foo-[-]-bar.#2|foo.-.bar.(#of10)^foo.-.bar.(2of10)" \
+          "foo-(info)-bar.#2.-[info2]|foo.(info).bar.(#of10)-[info2]^foo.(info).bar.(2of10)-[info2]"
         ;;
 
       "filter"|"filters")
@@ -2758,7 +2761,8 @@ fn_test() {
         fn_unit_test "fn_filter" \
            "abc2020|$filters_global^abc.(2020)" \
            "2020|$filters_global^2020" \
-           "abc[2020]|$filters_global^abc.(2020)"
+           "abc[2020]|$filters_global^abc.(2020)" \
+           "foo-(info)-bar.#2.-[info2]|$filters_global^foo.(info).bar.#2.[info2]"
         ;;
 
       "target_nearest")
