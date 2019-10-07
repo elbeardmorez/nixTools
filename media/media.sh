@@ -807,7 +807,7 @@ fn_file_multi_mask() {
     done
   fi
 
-  if [ -z "$target" ]; then
+  if [[ -z "$target" && ${#filter_valid[@]} -gt 0 ]]; then
     # exploratory result
     echo "$mask_type|$mask_default|$mask_raw|$processed"
   else
