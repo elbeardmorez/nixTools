@@ -2693,12 +2693,14 @@ fn_unit_test() {
   declare l
 
   declare verbosity; verbosity=1
+  declare info; info=""
 
   while true; do
     arg="$(echo "$1" | sed -n 's/^-\+//p')"
     [ -z "$arg" ] && break
     case "$arg" in
       "v"|"verbosity") shift; verbosity=$1; shift ;;
+      "i"|"info") shift; info="$1"; shift ;;
     esac
   done
 
@@ -2712,7 +2714,7 @@ fn_unit_test() {
     IFS="|"; args=($(echo "${test_%^*}")); IFS="$IFSORG"
     res="$($fn "${args[@]}")"
     [ "x$res" = "x$expected" ] && pass=1
-    echo "[$l|$([ $pass -eq 1 ] && echo "${clr["grn"]}pass" || echo "${clr["red"]}fail")${clr["off"]}] args: '${args[@]}' -> result: '$res'$([ $pass -eq 0 ] && echo " | expected: '$expected'")"
+    echo "[$l|$([ $pass -eq 1 ] && echo "${clr["grn"]}pass" || echo "${clr["red"]}fail")${clr["off"]}]$([ -n "$info" ] && echo " info: $info,") args: '${args[@]}' -> result: '$res'$([ $pass -eq 0 ] && echo " | expected: '$expected'")"
     l=$((l + 1))
     shift
   done
