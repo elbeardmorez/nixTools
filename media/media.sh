@@ -2686,13 +2686,25 @@ fn_util() {
 }
 
 fn_unit_test() {
-  declare fn; fn="$1" && shift
+  declare fn
   declare test_
   declare -a args
   declare expected
   declare l
+
+  declare verbosity; verbosity=1
+
+  while true; do
+    arg="$(echo "$1" | sed -n 's/^-\+//p')"
+    [ -z "$arg" ] && break
+    case "$arg" in
+      "v"|"verbosity") shift; verbosity=$1; shift ;;
+    esac
+  done
+
+  fn="$1" && shift
+  [ $verbosity -ge 1 ] && echo "[info] running '${clr["hl"]}$fn${clr["off"]}' tests"
   l=1
-  echo "[info] running '${clr["hl"]}$fn${clr["off"]}' tests"
   while [ -n "$1" ]; do
     test_="$1"
     pass=0
