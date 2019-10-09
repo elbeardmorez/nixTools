@@ -157,14 +157,15 @@ PATHMEDIATARGETS  : pipe-delimited ('|') list of targets paths, full
                     paths, '$PATHMEDIA' relative paths and glob names
                     supported
 PATHWATCHED  : pipe-delimited ('|') list of watched / rated directory
-               names to be found relative to '$PATHMEDIATARGETS'
-               path(s), falling back to relative to '$PATHMEDIA'
-               path(s)
+               names to be found relative to '\$PATHMEDIATARGETS'
+               path(s), falling back to relative to '\$PATHMEDIA'
+               path(s). full paths also supported
                (default: 'watched/')
 PATHARCHIVELISTS  : pipe-delimited ('|') list of archive list
                     directory names to be found relative to
-                    '$PATHMEDIATARGETS' path(s), falling back to
-                    relative to '$PATHMEDIA' path(s)
+                    '\$PATHMEDIATARGETS' path(s), falling back to
+                    relative to '\$PATHMEDIA' path(s). full paths also
+                    supported
                     (default: 'archives/')
 
 ## option specific

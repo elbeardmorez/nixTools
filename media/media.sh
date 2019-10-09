@@ -177,12 +177,13 @@ PATHMEDIATARGETS  : pipe-delimited ('|') list of targets paths, full
 PATHWATCHED  : pipe-delimited ('|') list of watched / rated directory
                names to be found relative to '\$PATHMEDIATARGETS'
                path(s), falling back to relative to '\$PATHMEDIA'
-               path(s)
+               path(s). full paths also supported
                (default: 'watched/')
 PATHARCHIVELISTS  : pipe-delimited ('|') list of archive list
                     directory names to be found relative to
                     '\$PATHMEDIATARGETS' path(s), falling back to
-                    relative to '\$PATHMEDIA' path(s)
+                    relative to '\$PATHMEDIA' path(s). full paths also
+                    supported
                     (default: 'archives/')
 \n## option specific
 FILTERS_EXTRA [--structure]  : additional string filter expession for
@@ -1566,17 +1567,57 @@ fn_target_nearest() {
   # find a given path 'type' either at or above the current location,
   # else at a know set of locations
 
-  # iterate up the file hierarchy looking for a target 'type' directory
-  # return empty path on failure
+  # heuristic for choosing the most suitable target is based on
+  # partial targets being used as proxies for 'media type's.
+  # 'nearest' must also be correct w.r.t. a given type whenever the
+  # current path sits under a particular media type (i.e. a component
+  # of the current path matches a 'media type')
+
+  # path components are stripped of any suffix delimiters and numbers
+  # prior to comparison
+
+  # where a mixed of full (absolute) and partial (relative) paths are
+  # set for the requested type targets e.g.
+  #
+  # PATHARCHIVELISTS="$PATHMEDIA/archives|archives
+  #
+  # then the absolute path(s) are used as fallbacks
+
+  # resolution order:
+  #
+  # #1
+  # iterate from PWD towards root looking for relevant partial type
+  # targets if any, return any match
+  #
+  # #2
+  # filter any potential target paths by 'media type' if present in
+  # current path, return if single match
+  #
+  # #3
+  # iterate valid filtered paths, return first located on same device
+  # as current path
+  #
+  # #4
+  # return first full type target lo
+  # split the PWD and match those tokens to..
+  # partial match terms
 
   [ $DEBUG -ge 1 ] && echo "[debug fn_target_nearest]" 1>&2
 
   declare type_; type_="$1"
   declare -a targets; targets=()  # paths
   declare type_targets_
+  declare -A media_types; media_types=()  # media types map
+  declare media_type
+  declare -a valid
   declare -A visited
 
   declare pwd_; pwd_="$(pwd)"
+  declare pwd_device; pwd_device=$(stat --format '%d' "$pwd_")
+
+  declare -a type_targets_partial; type_targets_partial=()
+  declare -a type_targets_full; type_targets_full=()
+  declare l
 
   [ -z "$(echo "$type_" | sed -n '/\(archive\|watched\)/p')" ] && \
     echo "[error] invalid target type '$type_'" 1>&2 && return 1
@@ -1589,13 +1630,13 @@ fn_target_nearest() {
   [ -z "$type_targets_" ] && return 1
   [ -d "$type_targets_" ] && echo "$type_targets_" && return 0
 
-  # add pwd and parent targets
-  targets=()
-  s_="$pwd_"
-  while true; do
-    targets[${#targets[@]}]="$s_"
-    s_="$(cd "$(dirname "$s_")" && pwd)"
-    [ "x$s_" = "x/" ] && break
+  # mixed absolute and partial paths, split, partials take precedence
+  # fallback to absolute paths
+  IFS="|"; a_=($(echo "$type_targets_")); IFS="$IFSORG"
+  for s_ in "${a_[@]}"; do
+    [ -d "$s_" ] && \
+      type_targets_full[${#type_targets_full[@]}]="$s_" || \
+      type_targets_partial[${#type_targets_partial[@]}]="$s_"
   done
 
   # add PATHMEDIA based targets
@@ -1606,29 +1647,111 @@ fn_target_nearest() {
         targets[${#targets[@]}]="$s_"
       else
         # partial targets
+        s__="$(echo "$s_" | sed 's/[0-9*._]*$//')"
+        media_types["$s__"]="$s__"
         a_=($(echo $PATHMEDIA/$s_))
         targets=(${targets[@]} ${a_[@]})
       fi
     done
-    [ $DEBUG -ge 2 ] && \
-      { echo "[debug] targets:" 1>&2;
-        for p in "${targets[@]}"; do echo " $p" 1>&2; done; }
+    if [ $DEBUG -ge 2 ]; then
+      echo "[debug] media_types: '${media_types[@]}'" 1>&2
+      echo "[debug] targets:" 1>&2; for p in "${targets[@]}"; do echo " $p" 1>&2; done
+    fi
   else
     targets[${#targets[@]}]="$PATHMEDIA"
   fi
 
-  # test paths
-  IFS="|"; a_=($(echo "$type_targets_")); IFS="$IFSORG"
+  # find any relevant type target in current path
+  s_="$(echo "$pwd_" | sed 's/^\/*//;s/\/\{2,\}/\//g')"
+  IFS="/"; a_=($(echo "$s_")); IFS="$IFSORG"  # tokens
+  IFS="/"; a__=($(echo "$s_" | sed 's/[0-9*._]*\//\//g;s/[0-9*._]*$//')); IFS="$IFSORG"  # stripped
+  l=$((${#a_[@]} - 1))
+  while [ $l -gt -1 ]; do
+    s_="${a_[$l]}"
+    s__="${a__[$l]}"
+    for s___ in "${media_types[@]}"; do
+      [[ "x$s___" = "x$s_" || "x$s___" = "x$s__" ]] && media_type="$s___" && break
+    done
+    l=$((l - 1))
+  done
+  [ $DEBUG -ge 2 ] && echo "[debug] target media type: '$media_type'" 1>&2
 
-  for s_ in "${targets[@]}"; do
-    for s__ in "${a_[@]}"; do
-      [ $DEBUG -ge 5 ] && echo "[debug] testing target: '$s_/$s__'" 1>&2
-      if [ -d "$s_/$s__" ]; then
-        [ $DEBUG -ge 5 ] && echo "[debug] valid target: '$s_/$s__'" 1>&2
-        echo "$s_/$s__"
-        return 0
+  valid=()
+  if [ ${#type_targets_partial[@]} -gt 0 ]; then
+    # test current path?
+    IFS="|"; a_=($(echo "$pwd_")); IFS="$IFSORG"
+    s_="$pwd_"
+    while true; do
+      for s__ in "${type_targets_partial[@]}"; do
+        [ $DEBUG -ge 5 ] && echo "[debug] testing target: '$s_/$s__'" 1>&2
+        if [ -d "$s_/$s__" ]; then
+          if [ -z "$media_type" ]; then
+            [ $DEBUG -ge 5 ] && echo "[debug] valid target: '$s_/$s__'" 1>&2
+            echo "$s_/$s__"
+            return 0
+          else
+            valid[${#valid[@]}]="$s_/$s__"
+          fi
+        fi
+      done
+      s_="$(cd "$(dirname "$s_")" && pwd)"
+      [ -n "${visited["$s_"]}" ] && break
+      visited["$s_"]=1
+      [ "x$s_" = "x/" ] && break
+    done
+  fi
+
+  if [ -n "$media_type" ]; then
+    # knock out any paths of other types
+    s_="$(echo "${media_types[@]}" | sed 's/[[:space:]]*'"$media_type"'[[:space:]]*//;s/[[:space:]]\+/\\\|/g')"
+    a_=()
+    for p in "${targets[@]}"; do
+      if [ -z "$(echo "$p" | sed -n '/\('"$s_"'\)/p')" ]; then
+        [ -n "$(echo "$p" | grep -iP "$media_type")" ] && \
+          a_=("$p" ${a_[@]}) || \
+          a_[${a_[@]}]="$p"
       fi
     done
+    [ $DEBUG -ge 2 ] && \
+      echo "[debug] filtered targets for media type:" 1>&2 && \
+      for p in "${a_[@]}"; do echo " $p" 1>&2; done
+
+    a__=()
+    for s_ in "${a_[@]}"; do
+      for s__ in "${type_targets_partial[@]}"; do
+        [ $DEBUG -ge 5 ] && echo "[debug] testing target: '$s_/$s__'" 1>&2
+        if [ -d "$s_/$s__" ]; then
+          [ $DEBUG -ge 5 ] && echo "[debug] valid target: '$s_/$s__'" 1>&2
+          a__[${#a__[@]}]="$s_/$s__"
+        fi
+      done
+    done
+    valid=(${a__[@]} ${valid[@]})
+
+    [ $DEBUG -ge 2 ] && \
+      echo "[debug] filtered valid targets for media type:" 1>&2 && \
+      for p in "${valid[@]}"; do echo " $p" 1>&2; done
+  fi
+
+  while true; do
+    if [ ${#valid[@]} -gt 0 ]; then
+      [ ${#valid[@]} -eq 1 ] && echo "${valid[0]}" && return 0
+      for s__ in "${valid[@]}"; do
+        if [ "x$(stat --format '%d' "$s__")" = "x$pwd_device" ]; then
+          [ $DEBUG -ge 2 ] && echo "[debug] valid path match: '${valid[0]}' on type '$target_type'" 1>&2
+          echo "$s__"
+          return 0
+        fi
+      done
+      echo "${valid[0]}"
+      return 0
+    fi
+    if [ ${#type_targets_full[@]} -gt 0 ]; then
+      valid=(${type_targets_full[@]})
+      target_types_full=()
+    else
+      break
+    fi
   done
 
   return 1
@@ -2793,17 +2916,18 @@ fn_test() {
         declare pwd_
         PATHMEDIA="$d_tmp/home/media"
         PATHMEDIATARGETS="video*|extra*"
-        PATHARCHIVELISTS="archives"
+        PATHARCHIVELISTS="$d_tmp/misc/archives|archives"
         for p in "${paths[@]}"; do mkdir -p "$p" || return 1; done
         pwd_="$d_tmp/home/media/video5/watched/10/video"
         cd "$pwd_" >/dev/null
-        fn_unit_test "fn_target_nearest" "archive^$d_tmp/home/media/archives"
+        fn_unit_test -i "pwd|$pwd_" "fn_target_nearest" "archive^$d_tmp/home/media/video/archives"
         pwd_="$d_tmp/home/media/clips"
         cd "$pwd_" >/dev/null
-        fn_unit_test "pwd|$pwd_" "fn_target_nearest" "archive^$d_tmp/home/media/archives"
+        fn_unit_test -v 0 -i "pwd|$pwd_" "fn_target_nearest" "archive^$d_tmp/home/media/archives"
         pwd_="$d_tmp/tmp"
         cd "$pwd_" >/dev/null
-        [ -d "$d_tmp" ] && rm -r "$d_tmp"
+        fn_unit_test -v 0 -i "pwd|$pwd_" "fn_target_nearest" "archive^$d_tmp/misc/archives"
+        [ -d "$d_tmp" ] && rm -rf "$d_tmp"
         ;;
 
       "misc")
