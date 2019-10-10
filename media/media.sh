@@ -1059,6 +1059,27 @@ fn_files() {
   fi
 }
 
+fn_search_type() {
+  # determine string as regexp / glob or raw/literal string
+  # look for special chars
+  declare search; search="$1" && shift
+  declare search_type; search_type=""
+  declare l_s; l_s=${#search}
+  declare l
+
+  l=0
+  while [[ $l -lt $l_s && $l -lt $l_s ]]; do
+    char="${search:$l:1}"
+    case "$char" in
+      '\') l=$((l + 1)) ;;
+      '*') search_type="${search_type:-"glob"}" ;;
+      '.'|'['|']'|'('|')'|'+'|'^'|'$'|'{'|'}') search_type="regexp"; break ;;
+    esac
+    l=$((l + 1))
+  done
+  echo "${search_type:-"literal"}"
+}
+
 fn_search() {
 
   [ $DEBUG -ge 1 ] && echo "[debug fn_search]" 1>&2
@@ -1101,19 +1122,8 @@ fn_search() {
   if [ $regexp -eq 1 ]; then
     search_type="regexp"
   else
-    # search is glob or raw / literal string
-    # find special chars
-    l=0
-    while [[ $l -lt $l_s && $l -lt $l_s ]]; do
-      char="${search:$l:1}"
-      case "$char" in
-        '\') l=$((l + 1)) ;;
-        '*') ;;
-        '['|']'|'('|')'|'+'|'^'|'$'|'{'|'}') search_type="raw"; break ;;
-      esac
-      l=$((l + 1))
-    done
-    search_type="${search_type:-"glob"}"
+    search_type="$(fn_search_type "$search")"
+    [ "x$search_type" = "xregexp" ] && search_type="raw"
   fi
   # path escapes
   for c in \' ' ' \"; do
@@ -2930,6 +2940,14 @@ fn_test() {
         [ -d "$d_tmp" ] && rm -rf "$d_tmp"
         ;;
 
+      "search_type")
+         fn_unit_test "fn_search_type" \
+           "foobar^literal" \
+           "foo\*bar^literal" \
+           "foo*bar^glob" \
+           "foo.*bar^regexp"
+        ;;
+
       "misc")
         s_files=($(find "./" -follow -iregex '^.*\('"$(echo $VIDEXT\|$VIDXEXT\|nfo | sed 's|\||\\\||g')"'\)$' | sort -i))
         echo "s_files: ${s_files[@]}"
@@ -2944,6 +2962,7 @@ fn_test() {
           "file_multi_mask" \
           "filter" \
           "target_nearest" \
+          "search_type" \
         )
         continue
         ;;
