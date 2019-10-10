@@ -626,6 +626,7 @@ fn_file_multi_mask() {
   [ $DEBUG -ge 1 ] && echo "[debug fn_file_multi_mask]" 1>&2
 
   declare delimiters; delimiters="[:space:]._-"
+  declare delimiters2; delimiters2="_-"
   declare raw
   declare target
   declare processed
@@ -696,7 +697,7 @@ fn_file_multi_mask() {
     "set \([0-9]\{1,2\}\)x\([0-9]\{1,2\}\)"
     "set \([0-9]\)x\([0-9]\{1,2\}\)"
     "set [[(][$delimiters]*\(0*[0-9]\)[$delimiters]\([0-9]\{1,2\}\)[$delimiters]*[])]"
-    "set [$delimiters]\(0*[0-9]\)[$delimiters]\([0-9]\{1,2\}\)[$delimiters]*"
+    "set [$delimiters]\(0*[0-9]\)[$delimiters2]\([0-9]\{1,2\}\)[$delimiters]*"
     "set [$delimiters]\([0-9]\{2\}\)\-\([0-9]\+\)[$delimiters]"
     "set [$delimiters]\([0-9]\{1\}\)\-\([0-9]\+\)[$delimiters]"
     "set [$delimiters]ep\?[$delimiters]*\([0-9]\+\)[$delimiters]*"
