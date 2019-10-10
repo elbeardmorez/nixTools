@@ -1864,7 +1864,7 @@ fn_structure() {
   declare cmdmv; cmdmv="$([ $TEST -ge 1 ] && echo 'echo ')$CMDMV"
   declare cmdmd; cmdmd="$([ $TEST -ge 1 ] && echo 'echo ')$CMDMD"
 
-  declare delimiters; delimiters='._-'
+  declare delimiters; delimiters='+._-'
 
   declare filters_cmd; filters_cmd=""
   declare verbose; verbose=1
