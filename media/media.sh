@@ -1880,6 +1880,10 @@ fn_structure() {
   declare verbose; verbose=1
   declare mode; mode="auto"
   declare s_search
+  declare s_title
+  declare s_title_info
+  declare s_title_template
+  declare search_type
 
   declare -a mask_parts
   declare mask_type; mask_type=""
@@ -1954,7 +1958,6 @@ fn_structure() {
     mask_default="${mask_parts[1]}"
     mask_raw="${mask_parts[2]}"
     mask_replace="${mask_parts[3]}"
-    s_title_template=$(echo "$s_title_template" | sed 's/\[\?'"$(fn_regexp "$mask_raw" "sed")"'\]\?/['$mask_default']/')
   fi
 
   # mode
@@ -1972,13 +1975,27 @@ fn_structure() {
 
   # set title based on search / template file name / mask / file info
   # parts
-  s_search_="$(echo "$s_search" | awk '{gsub(" ",".",$0); print tolower($0)}')"
-  if [ -n "$(echo "$s_title_template" | grep -i "$(fn_regexp "$s_search_" "grep")")" ]; then
-    s_title="$s_title_template.$s_title_info"
-  elif [ -n "$mask_default" ]; then
-    s_title="$s_search_.[$mask_default].${s_title_template#*\[${mask_default}\]}.$s_title_info"
-  else
-    s_title="$s_search_.$s_title_info"
+  s_title=""
+  search_type="$(fn_search_type "$s_search")"
+  s_="$(echo "$s_search" | awk '{gsub(" ",".",$0); print tolower($0)}')"
+  case "$search_type" in
+    "regexp")
+      [ -n "$(echo "$s_title_template" | grep -iP "$s_")" ] && \
+        s_title="$s_title_template.$s_title_info"
+      ;;
+    "raw")
+      [ -n "$(echo "$s_title_template" | grep -iP "$(fn_regexp "$s_search_" "grep")")" ] && \
+        s_title="$s_title_template.$s_title_info"
+      ;;
+    "glob"|"literal")
+      [ -n "$(echo "$s_title_template" | grep -iP "$(fn_regexp "$s_search_" "grep")")" ] && \
+        s_title="$s_title_template.$s_title_info"
+      ;;
+  esac
+  s_title="${s_title:="$s_$([ -n "$mask_default" ] && echo ".[$mask_default]").$s_title_info"}"
+  if [ -n "$mask_default" ]; then
+    s_title=$(echo "$s_title" | sed 's/\[\?'"$(fn_regexp "$mask_raw" "sed")"'\]\?/['$mask_default']/')
+    s_title_template=$(echo "$s_title_template" | sed 's/\[\?'"$(fn_regexp "$mask_raw" "sed")"'\]\?/['$mask_default']/')
   fi
 
   echo -e "set the title template$([ $l_files -gt 1 ] && echo ". supported multi-file masks: '#of#', 's##e##'"). note ']/[' are fixed title delimiters" 1>&2
