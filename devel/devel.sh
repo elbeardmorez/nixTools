@@ -259,14 +259,14 @@ fn_patch_filter_match() {
         "message")
           case "$vcs" in
             "git"|"subversion"|"bazaar")
-              [ -z "$(echo "${parts[$((${#parts[@]} - 1))]}" | sed -n '/'"$search"'/p')" ] && return 1
+              [ -z "$(echo "${parts[$((${#parts[@]} - 1))]}" | grep -iP "$search")" ] && return 1
               ;;
           esac
           ;;
         "author")
           case "$vcs" in
             "git"|"subversion"|"bazaar")
-              [ -z "$(echo "${parts[2]}" | sed -n '/'"$search"'/p')" ] && return 1
+              [ -z "$(echo "${parts[2]}" | grep -iP "$search")" ] && return 1
               ;;
           esac
           ;;
