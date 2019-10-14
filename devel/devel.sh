@@ -329,9 +329,9 @@ fn_repo_search() {
         # narrow initially
         cmd_args[${#cmd_args[@]}]="-P"
         if [ -n "${commits_filters["message"]}" ]; then
-          cmd_args[${#cmd_args[@]}]="--grep='.*$(echo "${commits_filters["message"]}" | sed 's/\n.*$//').*'"
+          cmd_args[${#cmd_args[@]}]="--grep=$(echo "${commits_filters["message"]}" | sed 's/\n.*$//')"
         elif [ -n "${commits_filters["author"]}" ]; then
-          cmd_args[${#cmd_args[@]}]="--author='.*$(echo "${commits_filters["author"]}" | sed 's/\n.*$//').*'"
+          cmd_args[${#cmd_args[@]}]="--author=$(echo "${commits_filters["author"]}" | sed 's/\n.*$//')"
         fi
         IFS=$'\n'; matches=($(git log "${cmd_args[@]}")); IFS="$IFSORG"
         for commit in "${matches[@]}"; do
