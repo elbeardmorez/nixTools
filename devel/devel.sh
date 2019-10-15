@@ -137,7 +137,12 @@ help() {
                                  (default: assumes 'new')
       -id|--interactive-description  : interactively edit commit
                                        description
-      -rn|--readme-name [=]NAME  : override default readme file name
+      -xd|--transform-description [TRANSFORMS]
+        : apply sed expression(s) to the descriptions. repeated option
+          use supported
+\n        TRANSFORMS:  a sed flavour regexp string or a path to a file
+                     containing such expressions, one per line
+\n      -rn|--readme-name [=]NAME  : override default readme file name
                                    (default: README.md)
       -rs|--readme-status [=STATUS]  : append a commit status string
                                        to the readme entry
@@ -614,6 +619,7 @@ fn_commits() {
   declare auto_commit
   declare interactive_match; interactive_match=0
   declare interactive_description; interactive_description=0
+  declare -a transforms_description
   declare description
   declare name
   declare type
@@ -675,6 +681,10 @@ fn_commits() {
           ;;
         "id"|"interactive-description")
           interactive_description=1
+          ;;
+        "xd"|"transform-description")
+          shift
+          transforms_description[${#transforms_description[@]}]="$1"
           ;;
         "rn"|"readme-name")
           shift
@@ -798,6 +808,15 @@ fn_commits() {
     done
   fi
 
+  if [ ${#transforms_description[@]} -gt 0 ]; then
+    a_=()
+    for s_ in "${transforms_description[@]}"; do
+      [ ! -f "$s_" ] && a_[${#a_[@]}]="$s_" && continue
+      IFS=$'\n'; a_=("${a[@]}" $(cat "$s_")); IFS="$IFS_ORG"
+    done
+    transforms_description=("${a_[@]}")
+  fi
+
   [ -z "$(echo "$order" | sed -n '/^\(default\|date\)$/p')" ] && \
     { help "$option"; echo "[error] invalid order '$order'" 1>&2; return 1; }
 
@@ -902,6 +921,11 @@ fn_commits() {
     [ $interactive_description -eq 1 ] && \
       { description="$(fn_patch_description "$f" "$vcs_source")" || return 1; } || \
       { description="$(fn_patch_info "$f" "$vcs_source" "description")" || return 1; }
+    if [ ${#transforms_description[@]} -gt 0 ]; then
+      for s_ in "${transforms_description[@]}"; do
+        description="$(echo "$description" | sed 's/'"$s_"'/')"
+      done
+    fi
     name="$(fn_patch_name "$description")" || return 1
     commit_set=()
 

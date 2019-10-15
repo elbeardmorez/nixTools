@@ -133,6 +133,12 @@ with OPTION:
                                  (default: assumes 'new')
       -id|--interactive-description  : interactively edit commit
                                        description
+      -xd|--transform-description [TRANSFORMS]
+        : apply sed expression(s) to the descriptions. repeated option
+          use supported
+
+        TRANSFORMS:  a sed flavour regexp string or a path to a file
+                     containing such expressions, one per line
       -rn|--readme-name [=]NAME  : override default readme file name
                                    (default: README.md)
       -rs|--readme-status [=STATUS]  : append a commit status string
