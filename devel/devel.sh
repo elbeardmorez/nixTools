@@ -142,6 +142,11 @@ help() {
           use supported
 \n        TRANSFORMS:  a sed flavour regexp string or a path to a file
                      containing such expressions, one per line
+\n      -xm|--transform-message [TRANSFORMS]
+        : apply sed expression(s) to the commit messages. repeated
+          option use supported
+\n        TRANSFORMS:  a sed flavour regexp string or a path to a file
+                     containing such expressions, one per line
 \n      -rn|--readme-name [=]NAME  : override default readme file name
                                    (default: README.md)
       -rs|--readme-status [=STATUS]  : append a commit status string
@@ -620,6 +625,7 @@ fn_commits() {
   declare interactive_match; interactive_match=0
   declare interactive_description; interactive_description=0
   declare -a transforms_description
+  declare -a transforms_message
   declare description
   declare name
   declare type
@@ -685,6 +691,10 @@ fn_commits() {
         "xd"|"transform-description")
           shift
           transforms_description[${#transforms_description[@]}]="$1"
+          ;;
+        "xm"|"transform-message")
+          shift
+          transforms_message[${#transforms_message[@]}]="$1"
           ;;
         "rn"|"readme-name")
           shift
@@ -815,6 +825,14 @@ fn_commits() {
       IFS=$'\n'; a_=("${a[@]}" $(cat "$s_")); IFS="$IFS_ORG"
     done
     transforms_description=("${a_[@]}")
+  fi
+  if [ ${#transforms_message[@]} -gt 0 ]; then
+    a_=()
+    for s_ in "${transforms_message[@]}"; do
+      [ ! -f "$s_" ] && a_[${#a_[@]}]="$s_" && continue
+      IFS=$'\n'; a_=("${a[@]}" $(cat "$s_")); IFS="$IFS_ORG"
+    done
+    transforms_message=("${a_[@]}")
   fi
 
   [ -z "$(echo "$order" | sed -n '/^\(default\|date\)$/p')" ] && \
@@ -1262,6 +1280,14 @@ END { fn_test(section); }' "$f_readme")"
         done
         declare commit_message
         commit_message="[$([ $new -eq 1 ] && echo "add" || echo "mod")]$([ -n "$repo_map_" ] && echo " $repo_map_,") $(echo $description$entry_version | sed 's/^\[\([^]]*\)\]/\1,/')"
+        if [ ${#transforms_message[@]} -gt 0 ]; then
+          a_=()
+          if [ ${#transforms_message[@]} -gt 0 ]; then
+            for s_ in "${transforms_message[@]}"; do
+              commit_message="$(echo "$commit_message" | sed 's/'"$s_"'/')"
+            done
+          fi
+        fi
         GIT_AUTHOR_DATE="$dt" GIT_COMMITTER_DATE="$dt" git commit -m "$commit_message"
         cd - 1>/dev/null
       fi

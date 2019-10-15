@@ -139,6 +139,14 @@ with OPTION:
 
         TRANSFORMS:  a sed flavour regexp string or a path to a file
                      containing such expressions, one per line
+
+      -xm|--transform-message [TRANSFORMS]
+        : apply sed expression(s) to the commit messages. repeated
+          option use supported
+
+        TRANSFORMS:  a sed flavour regexp string or a path to a file
+                     containing such expressions, one per line
+
       -rn|--readme-name [=]NAME  : override default readme file name
                                    (default: README.md)
       -rs|--readme-status [=STATUS]  : append a commit status string
