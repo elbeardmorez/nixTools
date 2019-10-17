@@ -152,6 +152,7 @@ with OPTION:
       -rs|--readme-status [=STATUS]  : append a commit status string
                                        to the readme entry
                                        (default: pending)
+      -ncmb|--no-commit-message-body  : commit title only
       -nr|--no-readme  : don't update target readme(s)
       -ac|--auto-commit [=MODE]  : attempt to commit to target repo(s)
                                    non-interactively

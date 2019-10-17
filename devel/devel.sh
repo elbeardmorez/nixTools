@@ -152,6 +152,7 @@ help() {
       -rs|--readme-status [=STATUS]  : append a commit status string
                                        to the readme entry
                                        (default: pending)
+      -ncmb|--no-commit-message-body  : commit title only
       -nr|--no-readme  : don't update target readme(s)
       -ac|--auto-commit [=MODE]  : attempt to commit to target repo(s)
                                    non-interactively
@@ -618,6 +619,7 @@ fn_commits() {
   declare -a files
   declare order; order="default"
   declare dump; dump=0
+  declare commit_comments; commit_comments=1
   declare readme; readme="README.md"
   declare readme_status; readme_status=""
   declare readme_status_default; readme_status_default="pending"
@@ -704,6 +706,9 @@ fn_commits() {
           shift && s="$(echo "$1" | sed -n '/^[^-]/{s/=\?//p;}')"
           readme="${s:-$readme_status_default}"
           [ -z "$s" ] && continue  # no shift
+          ;;
+        "ncmb"|"no-commit-message-body")
+          commit_comments=0
           ;;
         "nr"|"no-readme")
           readme=""
@@ -912,6 +917,8 @@ fn_commits() {
   declare f_readme
   declare f_tmp
   declare f_new
+  declare commit_message_title
+  declare commit_message_body
   declare -a commit_set
   declare decision_opts
   declare opt_string
@@ -924,6 +931,7 @@ fn_commits() {
   declare -A info_new
   declare repo_map_
   declare repo_root
+  declare -a cmd_args_commit
   declare name_
   declare files_
   declare name__
@@ -944,6 +952,7 @@ fn_commits() {
         description="$(echo "$description" | sed 's/'"$s_"'/')"
       done
     fi
+    comments="$(fn_patch_info "$f" "$vcs_source" "comments")" || return 1
     name="$(fn_patch_name "$description")" || return 1
     commit_set=()
 
@@ -1201,7 +1210,7 @@ fn_commits() {
           "subversion") entry_ref="[svn rev:${id#r}$([ -n "$readme_status" ] && echo " | $readme_status")]" ;;
           *) echo "[error] unsupported repository type" 1>&2 && return 1 ;;
         esac
-        entry_comments="$(fn_patch_info "$target_fqn" "$vcs_source" "comments")" || return 1
+        entry_comments="$comments"
         entry_new="##### $entry_description$entry_version\n###### $entry_ref$([ -n "$entry_comments" ] && echo "\n"'```'"\n$entry_comments\n"'```')"
         [ ! -e "$f_readme" ] && \
           echo "### ${repo_map_:-$(basename "$target_fq")}" >> "$f_readme"
@@ -1278,17 +1287,24 @@ END { fn_test(section); }' "$f_readme")"
           f_="./$(echo "$f" | sed 's|^'"$repo_root"'||')"
           git add "$f_" || return 1
         done
-        declare commit_message
-        commit_message="[$([ $new -eq 1 ] && echo "add" || echo "mod")]$([ -n "$repo_map_" ] && echo " $repo_map_,") $(echo $description$entry_version | sed 's/^\[\([^]]*\)\]/\1,/')"
+        commit_message_title="[$([ $new -eq 1 ] && echo "add" || echo "mod")]$([ -n "$repo_map_" ] && echo " $repo_map_,") $(echo $description$entry_version | sed 's/^\[\([^]]*\)\]/\1,/')"
         if [ ${#transforms_message[@]} -gt 0 ]; then
           a_=()
           if [ ${#transforms_message[@]} -gt 0 ]; then
             for s_ in "${transforms_message[@]}"; do
-              commit_message="$(echo "$commit_message" | sed 's/'"$s_"'/')"
+              commit_message_title="$(echo "$commit_message_title" | sed 's/'"$s_"'/')"
             done
           fi
         fi
-        GIT_AUTHOR_DATE="$dt" GIT_COMMITTER_DATE="$dt" git commit -m "$commit_message"
+        cmd_args_commit=()
+        cmd_args_commit[${#cmd_args_commit[@]}]="-m"
+        cmd_args_commit[${#cmd_args_commit[@]}]="$commit_message_title"
+        if [[ -n "$comments" && $commit_comments -eq 1 ]]; then
+          commit_message_body="$(echo -e "$comments")"
+          cmd_args_commit[${#cmd_args_commit[@]}]="-m"
+          cmd_args_commit[${#cmd_args_commit[@]}]="$commit_message_body"
+        fi
+        GIT_AUTHOR_DATE="$dt" GIT_COMMITTER_DATE="$dt" git commit "${cmd_args_commit[@]}"
         cd - 1>/dev/null
       fi
     fi
