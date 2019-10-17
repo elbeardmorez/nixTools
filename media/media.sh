@@ -1154,7 +1154,7 @@ fn_search() {
           # search as valid regular expression
           arr=($(find $target -follow -type f -name "*" | grep -iP ".*$search.*" | grep -iP '('"$extensions"')$' | sort -i 2>/dev/null))
           ;;
-        "raw")
+        "literal")
           # search as raw string
           arr=($(find $target -follow -type f -name "*" | grep -iP ".*$(fn_regexp "$search" "perl").*($extensions)" | sort -i 2>/dev/null))
           ;;
@@ -1194,7 +1194,7 @@ fn_search() {
         "regexp")
           arr=($(grep -riP "$search" "$target_archives" 2>/dev/null))
           ;;
-        "raw")
+        "literal")
           arr=($(grep -riP "$(fn_regexp "$search" "perl")" "$target_archives" 2>/dev/null))
           ;;
         "glob")
@@ -1213,7 +1213,7 @@ fn_search() {
             "regexp")
               f="$(echo "$f" | grep -iP "$search" 2>/dev/null)"
               ;;
-            "raw")
+            "literal")
               f="$(echo "$f" | grep -iP "$(fn_regexp "$search" "perl")" 2>/dev/null)"
               ;;
             "glob")
