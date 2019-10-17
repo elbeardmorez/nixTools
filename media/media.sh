@@ -1406,7 +1406,7 @@ fn_play() {
     # iterate list and play
     # format | title|file[|search]
     [ $DEBUG -eq 2 ] && echo "[debug fn_play] s_playlist: ${s_playlist[@]}" 1>&2
-    s_files=
+    s_files=()
     select=1
     for s in "${s_playlist[@]}"; do
       title="${s%%|*}" && title="${title##*/}" && s="${s:$((${#title} + 1))}"
@@ -1531,9 +1531,7 @@ fn_play() {
             done
             # add to playlist
             [ $DEBUG -ge 1 ] && echo "[debug fn_play] file: $file" 1>&2
-            if [[ -e "$file" && -n "$file" ]]; then
-              [ -z "${s_files[@]}" ] && s_files=("$file") || s_files=("${s_files[@]}" "$file")
-            fi
+            [ -e "$file" ] && s_files[${#s_files[@]}]="$file"
           fi
         fi
       fi
