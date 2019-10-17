@@ -1720,7 +1720,7 @@ fn_target_nearest() {
       if [ -z "$(echo "$p" | sed -n '/\('"$s_"'\)/p')" ]; then
         [ -n "$(echo "$p" | grep -iP "$media_type")" ] && \
           a_=("$p" ${a_[@]}) || \
-          a_[${a_[@]}]="$p"
+          a_[${#a_[@]}]="$p"
       fi
     done
     [ $DEBUG -ge 2 ] && \
