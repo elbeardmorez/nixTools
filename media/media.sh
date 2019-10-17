@@ -1414,19 +1414,12 @@ fn_play() {
       [ $DEBUG -ge 1 ] && echo "[debug fn_play] title: '$title', file: '$file', search: '$search'" 1>&2
       if [ -n "$(echo "$file" | grep "/dev/dvd")" ]; then
         # play?
-        echo -n "play '$title'? [(y)es/(n)o/e(x)it]:  "
-        b_retry=1
-        while [ $b_retry -eq 1 ]; do
-          echo -en '\033[1D\033[K'
-          read -n 1 -s result
-          case "$result" in
-            "x" | "X") echo -n $result; b_retry=0; echo ""; return 0 ;;
-            "n" | "N") echo -n $result; b_retry=0; file="" ;;
-            "y" | "Y") echo -n $result; b_retry=0 ;;
-            *) echo -n " " 1>&2
-          esac
-        done
-        echo ""
+        res="$(fn_decision "[user] play '$title', (y)es, (n)o or e(x)it" "ynx")"
+        case "$res" in
+          "x") return 0 ;;
+          "n") file="" ;;
+          "y") ;;
+        esac
         if [ -n "$file" ]; then
           played=0
           b_retry=1
@@ -1450,20 +1443,16 @@ fn_play() {
             else
               if [[ ! -t $(fn_drive_status) || $played -gt 0 ]]; then
                 # block until disc is inserted
-                echo -n "[user] insert "$NEXT"disk for '$title' [(r)etry|(e)ject|(l)oad|e(x)it]:  "
-                b_retry2=1
-                while [ $b_retry2 -eq 1 ]; do
-                  echo -en '\033[1D\033[K'
-                  read -n 1 -s result
-                  case "$result" in
-                    "r" | "R") echo -n $result; [ -t $(fn_drive_status) ] && b_retry2=0 ;;
-                    "e" | "E") echo -n $result; umount /dev/dvd >/dev/null 1>&2; [ -t $(fn_drive_status) ] && eject -T >/dev/null 1>&2 ;;
-                    "l" | "L") echo -n $result; [ ! -t $(fn_drive_status) ] && eject -t 2>/dev/null ;;
-                    "x" | "X") echo -n $result; b_retry=0; b_retry2=0; file="" ;;
-                    *) echo -n " " 1>&2
+                while true; do
+                  res="$(fn_decision "[user] insert "$NEXT"disk for '$title' (r)etry, (e)ject, (l)oad or e(x)it" "relx")"
+                  case "$res" in
+                    "r") [ -t $(fn_drive_status) ] && break ;;
+                    "e") umount /dev/dvd >/dev/null 1>&2; [ -t $(fn_drive_status) ] && eject -T >/dev/null 1>&2 ;;
+                    "l") [ ! -t $(fn_drive_status) ] && eject -t 2>/dev/null ;;
+                    "x") b_retry=0; file=""; break ;;
                   esac
+                  echo -en "$CUR_UP$LN_RST"
                 done
-                echo ""
               fi
               if [ -n "$file" ]; then
                 if [ "x$file" = "x/dev/dvd" ]; then
@@ -1509,20 +1498,16 @@ fn_play() {
         if [ -n "$(echo "$file" | grep -iP '^.*\.('$VIDEXT')$')" ]; then
 
           # play?
-          echo -n "play '$title'? [(y)es/(n)o/(v)erbose/e(x)it]:  "
-          b_retry=1
-          while [ $b_retry -eq 1 ]; do
-            echo -en '\033[1D\033[K'
-            read -n 1 -s result
-            case "$result" in
-              "y" | "Y") echo -n $result; b_retry=0 ;;
-              "n" | "N") echo -n $result; b_retry=0; file="" ;;
-              "v" | "V") echo -n $result; echo -en "\033[G\033[1Kplay '$file'? [(y)es/(n)o/(v)erbose/e(x)it]:  " ;;
-              "x" | "X") echo -n $result; b_retry=0; echo ""; return 0 ;;
-              *) echo -n " " 1>&2
+          declare verbose; verbose=0
+          while true; do
+            res="$(fn_decision "[user] play '$([ $verbose -eq 1 ] && echo "$file" || echo "$title")', (y)es, (n)o, (v)erbose or e(x)it" "ynvx")"
+            case "$res" in
+              "y") break ;;
+              "n") file=""; break ;;
+              "v") echo -en "$CUR_UP$LN_RST"; verbose=1 ;;
+              "x") return 0 ;;
             esac
           done
-          echo ""
 
           if [ -n "$file" ]; then
             # block whilst file doesn't exist
@@ -1531,19 +1516,14 @@ fn_play() {
               if [ -e "$file" ]; then
                 b_retry=0
               else
-                echo -n "[user] file '$file' does not exist? [(r)etry/(s)kip/e(x)it]:  "
-                b_retry2=1
-                while [ $b_retry2 -eq 1 ]; do
-                  echo -en '\033[1D\033[K'
-                  read -n 1 -s result
-                  case "$result" in
-                    "x" | "X") echo -n $result; b_retry=0; b_retry2=0; echo ""; return 0 ;;
-                    "s" | "S") echo -n $result; b_retry=0; b_retry2=0 ;;
-                    "r" | "R") echo -n $result; b_retry2=0 ;;
-                    *) echo -n " " 1>&2
+                while true; do
+                  res="$(fn_decision "[user] file '$file' does not exist, (r)etry, (s)kip or e(x)it" "rsx")"
+                  case "$res" in
+                    "x") return 0 ;;
+                    "s") b_retry=0; break ;;
+                    "r") echo -en "$CUR_UP$LN_RST"; break ;;
                   esac
                 done
-                echo ""
               fi
             done
             # add to playlist
