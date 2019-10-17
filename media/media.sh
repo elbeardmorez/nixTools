@@ -1364,7 +1364,7 @@ fn_play() {
   [[ -d "$s_search" || -f "$s_search" ]] && DISPLAY=$display $CMDPLAY $CMDPLAY_OPTIONS "$s_search" "$@" && return 0
   s_=$(fn_search "${search_args[@]}")
   res=$? && [ $res -ne 0 ] && return $res
-  IFS=$'\n'; s_matched=(echo "$s_"); IFS=$IFSORG
+  IFS=$'\n'; s_matched=($(echo "$s_")); IFS=$IFSORG
 
   play=0
   cmdplay="$([ $DEBUG -ge 1 ] && echo 'echo ')$CMDPLAY"
