@@ -1407,6 +1407,7 @@ fn_play() {
     # format | title|file[|search]
     [ $DEBUG -eq 2 ] && echo "[debug fn_play] s_playlist: ${s_playlist[@]}" 1>&2
     s_files=
+    select=1
     for s in "${s_playlist[@]}"; do
       title="${s%%|*}" && title="${title##*/}" && s="${s:$((${#title} + 1))}"
       file="${s%%*|}" && s="${s:$((${#file} + 1))}"
@@ -1414,10 +1415,11 @@ fn_play() {
       [ $DEBUG -ge 1 ] && echo "[debug fn_play] title: '$title', file: '$file', search: '$search'" 1>&2
       if [ -n "$(echo "$file" | grep "/dev/dvd")" ]; then
         # play?
-        res="$(fn_decision "[user] play '$title', (y)es, (n)o or e(x)it" "ynx")"
+        res="$(fn_decision "[user] play '$title', (y)es, (n)o, (d)one or e(x)it" "yndx")"
         case "$res" in
           "x") return 0 ;;
           "n") file="" ;;
+          "d") echo -e "$CUR_UP$LN_RST"; file=""; select=0 ;;
           "y") ;;
         esac
         if [ -n "$file" ]; then
@@ -1500,11 +1502,12 @@ fn_play() {
           # play?
           declare verbose; verbose=0
           while true; do
-            res="$(fn_decision "[user] play '$([ $verbose -eq 1 ] && echo "$file" || echo "$title")', (y)es, (n)o, (v)erbose or e(x)it" "ynvx")"
+            res="$(fn_decision "[user] play '$([ $verbose -eq 1 ] && echo "$file" || echo "$title")', (y)es, (n)o, (v)erbose, (d)one or e(x)it" "ynvdx")"
             case "$res" in
               "y") break ;;
               "n") file=""; break ;;
               "v") echo -en "$CUR_UP$LN_RST"; verbose=1 ;;
+              "d") echo -e "$CUR_UP$LN_RST"; select=0; file=""; break ;;
               "x") return 0 ;;
             esac
           done
@@ -1534,6 +1537,7 @@ fn_play() {
           fi
         fi
       fi
+      [ $select -eq 0 ] && break
     done
 
     # play remaining files
