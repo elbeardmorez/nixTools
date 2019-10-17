@@ -1387,8 +1387,7 @@ fn_play() {
       name="${s%%|*}" && s=${s:$((${#name} + 1))}
       s=""
       prepend=0
-      #title="$(echo "$name" | sed -n 's/^.*\/\([^[]*\)[. ]\+.*$/\1/p')"
-      title="${name##*/}" && title="${title%[*}" && title="$(echo "$title" | sed 's/\(^\.\|\.$\)//g')"  # alternative approach below
+      title="${name##*/}" && title="${title%[*}" && title="$(echo "$title" | sed 's/\(^\.\|\.$\)//g')"
       case "$type" in
         "dvd"|"dvds") s="$title|dvdnav:////dev/dvd"; prepend=1 ;;
         "vcd"|"vcds") s="$title|vcd:////dev/dvd"; prepend=1 ;;
@@ -1405,12 +1404,12 @@ fn_play() {
     done
 
     # iterate list and play
-    # format | title:file[:search]
+    # format | title|file[|search]
     [ $DEBUG -eq 2 ] && echo "[debug fn_play] s_playlist: ${s_playlist[@]}" 1>&2
     s_files=
     for s in "${s_playlist[@]}"; do
-      title="${s%%|*}" && s=${s:$((${#title} + 1))} && title="$(echo ${title##*/} | sed 's/[. ]\[.*$//I')"
-      file="${s%%|*}" && s=${s:$((${#file} + 1))}
+      title="${s%%|*}" && title="${title##*/}" && s="${s:$((${#title} + 1))}"
+      file="${s%%*|}" && s="${s:$((${#file} + 1))}"
       search="$s" && [ "x$search" = "x$file" ] && search=""
       [ $DEBUG -ge 1 ] && echo "[debug fn_play] title: '$title', file: '$file', search: '$search'" 1>&2
       if [ -n "$(echo "$file" | grep "/dev/dvd")" ]; then
