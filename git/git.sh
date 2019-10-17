@@ -323,7 +323,7 @@ fn_date_check() {
   fi
 
   [ $DEBUG -ge 1 ] && echo "[debug] previous commit date: '$prev_commit_date'" 1>&2
-  git log --reverse --format=format:"authored: %ad | committed: %cd | version: ${clr["bwn"]}%H${clr["off"]}%n %s (%an)" "${cmdargs[@]}" "$target" | awk \
+  git log --reverse --format=format:"authored: %ad | committed: %cd | version: ${clr["bwn"]}%H${clr["off"]}%n %s (%an)" "$target" | awk \
     -v type="$type" \
     -v date_type=$date_type \
     -v issues_only=$issues_only \
