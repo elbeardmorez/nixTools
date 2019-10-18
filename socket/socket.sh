@@ -227,4 +227,5 @@ option="out"
 case $option in
   "in"|"out") fn_process $option "$@" ;;
   "h"|"help") help ;;
+  *) help && echo "[error] unrecognised arg '$option'" 1>&2 && exit 1 ;;
 esac
