@@ -11,48 +11,47 @@ IFSORG="$IFS"
 
 rc="$HOME/.nixTools/$SCRIPTNAME"
 
+declare search; search=""
+declare -a search_targets; search_targets_default=('~/documents')
+declare -a search_targets_default; search_targets=(${search_targets_default[@]})
 declare search_types; search_types="fl"
 declare -A file_types
 file_types["f"]="file"
 file_types["l"]="symbolic link"
 file_types["d"]="directory"
+declare file_results; file_results=""
 declare depth; depth=0
-declare -a search_targets
-declare -a search_targets_default
-search_targets_default=('~/documents')
-search_targets=(${search_targets_default[@]})
-
-custom_targets=0
-interactive=-1
-verbose=0
-
-file_results=""
-search=""
+declare custom_targets; custom_targets=0
+declare interactive; interactive=-1
+declare verbose; verbose=0
+declare -a files
+declare -a results
+declare option
+declare arg
+declare res
+declare s_
 
 help() {
   echo -e "SYNTAX '$SCRIPTNAME [OPTIONS] SEARCH
 \nwhere 'OPTIONS' can be\n
-  -h, --help  : this help information
-  -i [COUNT], --interactive [COUNT]  : enable verification prompt for
-                                       each match when more than COUNT
-                                       (default: 0) unique match(es)
-                                       are found
-  -t [TARGETS], --targets [TARGETS]  : override* search target path(s).
-                                       TARGETS can either be a path, or
-                                       a file containing paths, one
-                                       path per line
-                                       (default: $rc)
-  -ft TYPES, --file-types TYPES  : override the default search file
-                                   types (default: fl)
+  -h|--help  : this help information
+  -i|--interactive [COUNT]  : enable verification prompt for each
+                              match when more than COUNT (default: 0)
+                              unique match(es) are found
+  -t|--targets [TARGETS]  : override* search target path(s). TARGETS
+                            can either be a path, or a file containing
+                            paths, one path per line
+                            (default: $rc)
+  -ft|--file-types TYPES  : override the default search file types
+                            (default: fl)
 \n    TYPES  : non-delimited list of characters representing a file
              type, supporting:
       f  : file
       l  : symbolic link
       d  : directory
-\n  -d DEPTH, --depth DEPTH  : max depth of target hierarchies to search
-  -r TARGET, --results TARGET  : file to dump search results to, one
-                                 per line
-  -v, --verbose                : output additional info
+\n  -d|--depth DEPTH  : max depth of target hierarchies to search
+  -r|--results TARGET  : file to dump search results to, one per line
+  -v, --verbose  : output additional info
 \nand 'SEARCH' is  : a (partial) file name to search for in the list of
                    search target paths*
 \n*default: ${search_targets_default[*]}
@@ -102,9 +101,6 @@ fi
 # run help after option parsing / verification
 [ "x$option" = "xhelp" ] && help && exit
 
-declare -a files
-declare -a results
-
 [ -z "$search" ] && \
   echo "[error] missing search criteria" 1>&2 && exit 1
 
@@ -136,7 +132,6 @@ else
     if [[ $interactive -eq -1 || ${#files[@]} -le $interactive ]]; then
       results[${#results[@]}]="$f"
     else
-      result=""
       res="$(fn_decision "[user] search match, use $(fn_file_type "--long" "$f") '$f'?" "ync")"
       [ "x$res" = "xc" ] && exit  # !break, no partial results
       [ "x$res" = "xn" ] && continue
@@ -146,9 +141,9 @@ else
 fi
 
 if [ ${#results[@]} -gt 0 ]; then
-  s=""
-  for f in "${results[@]}"; do s+="\n$f"; done
-  results="${s:2}"
+  s_=""
+  for f in "${results[@]}"; do s_+="\n$f"; done
+  results="${s_:2}"
   [ -n "$file_results" ] && echo -e "$results" >> "$file_results"
   echo -e "$results"
 else

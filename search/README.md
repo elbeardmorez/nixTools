@@ -9,18 +9,16 @@ SYNTAX 'search_ [OPTIONS] SEARCH
 
 where 'OPTIONS' can be
 
-  -h, --help  : this help information
-  -i [COUNT], --interactive [COUNT]  : enable verification prompt for
-                                       each match when more than COUNT
-                                       (default: 0) unique match(es)
-                                       are found
-  -t [TARGETS], --targets [TARGETS]  : override* search target path(s).
-                                       TARGETS can either be a path, or
-                                       a file containing paths, one
-                                       path per line
-                                       (default: ~/.nixTools/search_)
-  -ft TYPES, --file-types TYPES  : override the default search file
-                                   types (default: fl)
+  -h|--help  : this help information
+  -i|--interactive [COUNT]  : enable verification prompt for each
+                              match when more than COUNT (default: 0)
+                              unique match(es) are found
+  -t|--targets [TARGETS]  : override* search target path(s). TARGETS
+                            can either be a path, or a file containing
+                            paths, one path per line
+                            (default: ~/.nixTools/search_)
+  -ft|--file-types TYPES  : override the default search file types
+                            (default: fl)
 
     TYPES  : non-delimited list of characters representing a file
              type, supporting:
@@ -28,10 +26,9 @@ where 'OPTIONS' can be
       l  : symbolic link
       d  : directory
 
-  -d DEPTH, --depth DEPTH  : max depth of target hierarchies to search
-  -r TARGET, --results TARGET  : file to dump search results to, one
-                                 per line
-  -v, --verbose                : output additional info
+  -d|--depth DEPTH  : max depth of target hierarchies to search
+  -r|--results TARGET  : file to dump search results to, one per line
+  -v, --verbose  : output additional info
 
 and 'SEARCH' is  : a (partial) file name to search for in the list of
                    search target paths*
@@ -39,7 +36,7 @@ and 'SEARCH' is  : a (partial) file name to search for in the list of
 *default: ~/documents
 
 # state
-rc: /root/.nixTools/search_ [found]
+rc: ~/.nixTools/search_ [found]
 search target(s):
   ~/documents
 ```
