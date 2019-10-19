@@ -526,12 +526,28 @@ fn_reversed_map_values() {
 }
 
 fn_file_type() {
-  declare file_path; file_path="$1"
+  declare file_path
+  declare part; parts=0
+  while [ -n "$1" ]; do
+    arg="$(echo "$1" | sed 's/^[ -]*//')"
+    case "$arg" in
+      "short") idx=0 ;;
+      "long") idx=1 ;;
+      *) [ -n "$file_path" ] && \
+           echo "[error] unrecognised arg '$1'" 1>&2 && return 1
+        file_path="$1"
+    esac
+    shift
+  done
   [ ! -e "$file_path" ] && \
     echo "[error] invalid file path '$file_path'" 1>&2 && return 1
-  [ -h "$file_path" ] && echo "l|symbolic link" && return 0
-  [ -f "$file_path" ] && echo "f|file" && return 0
-  [ -d "$file_path" ] && echo "d|directory" && return 0
+  if [ -h "$file_path" ]; then info=("l" "symbolic link")
+  elif [ -f "$file_path" ]; then info=("f" "file")
+  elif [ -d "$file_path" ]; then info=("d" "directory")
+  fi
+  [ $idx -ge 0 ] && \
+    echo "${info[$idx]}" || \
+    echo "$(fn_str_join "|" "${info[@]}")"
 }
 
 fn_search_set() {
