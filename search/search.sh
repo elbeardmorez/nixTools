@@ -54,16 +54,16 @@ option=search
 # parse options
 [ $# -lt 1 ] && help && echo "[error] not enough args" 1>&2 && exit 1
 while [ -n "$1" ]; do
-  arg="$(echo "$1" | sed 's/[ ]*-*//g')"
+  arg="$(echo "$1" | sed 's/^[ ]*-*//g')"
   case "$arg" in
     "h"|"help") option=help ;;
     "i"|"interactive")
       interactive=0
-      [[ $# -gt 2 && -z "$(echo "$2" | sed -n '/[ ]*-\+/p')" ]] && \
+      [[ $# -gt 2 && -z "$(echo "$2" | sed -n '/^[ ]*-\+/p')" ]] && \
         { shift && interactive=$1; } ;;
     "t"|"targets")
       custom_targets=1
-      [[ $# -gt 2 && -z "$(echo "$2" | sed -n '/[ ]*-\+/p')" ]] && \
+      [[ $# -gt 2 && -z "$(echo "$2" | sed -n '/^[ ]*-\+/p')" ]] && \
         { shift && search_targets=("$1"); } || search_targets=("$rc") ;;
     "r"|"results") shift && file_results="$1" ;;
     "v"|"verbose") verbose=1 ;;
