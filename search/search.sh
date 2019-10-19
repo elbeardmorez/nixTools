@@ -11,6 +11,11 @@ IFSORG="$IFS"
 
 rc="$HOME/.nixTools/$SCRIPTNAME"
 
+declare search_types; search_types="fl"
+declare -A file_types
+file_types["f"]="file"
+file_types["l"]="symbolic link"
+file_types["d"]="directory"
 declare -a search_targets
 declare -a search_targets_default
 search_targets_default=('~/documents')
@@ -36,7 +41,14 @@ help() {
                                        a file containing paths, one
                                        path per line
                                        (default: $rc)
-  -r TARGET, --results TARGET  : file to dump search results to, one
+  -ft TYPES, --file-types TYPES  : override the default search file
+                                   types (default: fl)
+\n    TYPES  : non-delimited list of characters representing a file
+             type, supporting:
+      f  : file
+      l  : symbolic link
+      d  : directory
+\n  -r TARGET, --results TARGET  : file to dump search results to, one
                                  per line
   -v, --verbose                : output additional info
 \nand 'SEARCH' is  : a (partial) file name to search for in the list of
@@ -65,6 +77,7 @@ while [ -n "$1" ]; do
       custom_targets=1
       [[ $# -gt 2 && -z "$(echo "$2" | sed -n '/^[ ]*-\+/p')" ]] && \
         { shift && search_targets=("$1"); } || search_targets=("$rc") ;;
+    "ft"|"file-types") shift && search_types="$1" ;;
     "r"|"results") shift && file_results="$1" ;;
     "v"|"verbose") verbose=1 ;;
     *) [ -n "$search" ] && help && echo "[error] unknown arg '$arg'" 1>&2; search="$1" ;;
@@ -97,7 +110,9 @@ if [[ -f "$search" && ("x$(dirname "$search")" != "x." ||
                        $custom_targets -eq 0) ]]; then
   # differentiate 'search' strings from paths (absolute or relative)
   # assume local file if no custom targets are specified
-  results[${#results[@]}]="$search"
+  s_="$(fn_file_type "$search")"
+  [ -n "$(echo "$search_types" | sed -n '/'"${s_%|*}"'/p')" ] && \
+    results[${#results[@]}]="$search"
 elif [[ "x$(dirname "$search")" != "x." || "x${search:0:1}" == "x." ]]; then
   # create explicit relative files
   if [ $interactive -ge 0 ]; then
@@ -110,9 +125,9 @@ elif [[ "x$(dirname "$search")" != "x." || "x${search:0:1}" == "x." ]]; then
   fi
 else
   # use search targets
-  IFS=$'\n'; files=($(fn_search_set "$search" 0 fl "${search_targets[@]}")); IFS="$IFSORG"
+  IFS=$'\n'; files=($(fn_search_set "$search" 0 "$search_types" "${search_targets[@]}")); IFS="$IFSORG"
   if [ ${#files[@]} -eq 0 ]; then
-    IFS=$'\n'; files=($(fn_search_set "$search" 0 fl "./")); IFS="$IFSORG"
+    IFS=$'\n'; files=($(fn_search_set "$search" 0 "$search_types" "./")); IFS="$IFSORG"
   fi
 
   for f in "${files[@]}"; do
@@ -120,7 +135,8 @@ else
       results[${#results[@]}]="$f"
     else
       result=""
-      res="$(fn_decision "[user] search match, use file '$f'?" "ync")"
+      s_="$(fn_file_type "$f")"
+      res="$(fn_decision "[user] search match, use ${s_#*|} '$f'?" "ync")"
       [ "x$res" = "xc" ] && exit  # !break, no partial results
       [ "x$res" = "xn" ] && continue
       results[${#results[@]}]="$f"

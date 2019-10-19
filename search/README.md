@@ -19,6 +19,15 @@ where 'OPTIONS' can be
                                        a file containing paths, one
                                        path per line
                                        (default: ~/.nixTools/search_)
+  -ft TYPES, --file-types TYPES  : override the default search file
+                                   types (default: fl)
+
+    TYPES  : non-delimited list of characters representing a file
+             type, supporting:
+      f  : file
+      l  : symbolic link
+      d  : directory
+
   -r TARGET, --results TARGET  : file to dump search results to, one
                                  per line
   -v, --verbose                : output additional info
