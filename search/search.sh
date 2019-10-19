@@ -16,6 +16,7 @@ declare -A file_types
 file_types["f"]="file"
 file_types["l"]="symbolic link"
 file_types["d"]="directory"
+declare depth; depth=0
 declare -a search_targets
 declare -a search_targets_default
 search_targets_default=('~/documents')
@@ -48,7 +49,8 @@ help() {
       f  : file
       l  : symbolic link
       d  : directory
-\n  -r TARGET, --results TARGET  : file to dump search results to, one
+\n  -d DEPTH, --depth DEPTH  : max depth of target hierarchies to search
+  -r TARGET, --results TARGET  : file to dump search results to, one
                                  per line
   -v, --verbose                : output additional info
 \nand 'SEARCH' is  : a (partial) file name to search for in the list of
@@ -78,6 +80,7 @@ while [ -n "$1" ]; do
       [[ $# -gt 2 && -z "$(echo "$2" | sed -n '/^[ ]*-\+/p')" ]] && \
         { shift && search_targets=("$1"); } || search_targets=("$rc") ;;
     "ft"|"file-types") shift && search_types="$1" ;;
+    "d"|"depth") shift && depth=$1 ;;
     "r"|"results") shift && file_results="$1" ;;
     "v"|"verbose") verbose=1 ;;
     *) [ -n "$search" ] && help && echo "[error] unknown arg '$arg'" 1>&2; search="$1" ;;
@@ -124,9 +127,9 @@ elif [[ "x$(dirname "$search")" != "x." || "x${search:0:1}" == "x." ]]; then
   fi
 else
   # use search targets
-  IFS=$'\n'; files=($(fn_search_set "$search" 0 "$search_types" "${search_targets[@]}")); IFS="$IFSORG"
+  IFS=$'\n'; files=($(fn_search_set "$search" 0 "$search_types" $depth "${search_targets[@]}")); IFS="$IFSORG"
   if [ ${#files[@]} -eq 0 ]; then
-    IFS=$'\n'; files=($(fn_search_set "$search" 0 "$search_types" "./")); IFS="$IFSORG"
+    IFS=$'\n'; files=($(fn_search_set "$search" 0 "$search_types" $depth "./")); IFS="$IFSORG"
   fi
 
   for f in "${files[@]}"; do

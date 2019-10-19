@@ -28,6 +28,7 @@ where 'OPTIONS' can be
       l  : symbolic link
       d  : directory
 
+  -d DEPTH, --depth DEPTH  : max depth of target hierarchies to search
   -r TARGET, --results TARGET  : file to dump search results to, one
                                  per line
   -v, --verbose                : output additional info
