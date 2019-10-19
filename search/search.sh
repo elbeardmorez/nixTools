@@ -110,8 +110,7 @@ if [[ -f "$search" && ("x$(dirname "$search")" != "x." ||
                        $custom_targets -eq 0) ]]; then
   # differentiate 'search' strings from paths (absolute or relative)
   # assume local file if no custom targets are specified
-  s_="$(fn_file_type "$search")"
-  [ -n "$(echo "$search_types" | sed -n '/'"${s_%|*}"'/p')" ] && \
+  [ -n "$(echo "$search_types" | sed -n '/'"$(fn_file_type "--short" "$search")"'/p')" ] && \
     results[${#results[@]}]="$search"
 elif [[ "x$(dirname "$search")" != "x." || "x${search:0:1}" == "x." ]]; then
   # create explicit relative files
@@ -135,8 +134,7 @@ else
       results[${#results[@]}]="$f"
     else
       result=""
-      s_="$(fn_file_type "$f")"
-      res="$(fn_decision "[user] search match, use ${s_#*|} '$f'?" "ync")"
+      res="$(fn_decision "[user] search match, use $(fn_file_type "--long" "$f") '$f'?" "ync")"
       [ "x$res" = "xc" ] && exit  # !break, no partial results
       [ "x$res" = "xn" ] && continue
       results[${#results[@]}]="$f"
