@@ -525,6 +525,15 @@ fn_reversed_map_values() {
   for v in "${reversed_map[@]}"; do echo "$v"; done
 }
 
+fn_file_type() {
+  declare file_path; file_path="$1"
+  [ ! -e "$file_path" ] && \
+    echo "[error] invalid file path '$file_path'" 1>&2 && return 1
+  [ -h "$file_path" ] && echo "l|symbolic link" && return 0
+  [ -f "$file_path" ] && echo "f|file" && return 0
+  [ -d "$file_path" ] && echo "d|directory" && return 0
+}
+
 fn_search_set() {
   declare search
   search="$1" && shift
