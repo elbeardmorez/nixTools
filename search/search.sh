@@ -134,9 +134,9 @@ elif [[ "x$(dirname "$search")" != "x." || "x${search:0:1}" == "x." ]]; then
   fi
 else
   # use search targets
-  IFS=$'\n'; files=($(fn_search_set "$search" 0 "$search_types" $depth "${search_targets[@]}")); IFS="$IFSORG"
+  IFS=$'\n'; files=($(fn_search_set "$search" 0 "$search_types" $depth "${search_targets[@]}" | sed '/^\.\+$/d')); IFS="$IFSORG"
   if [ ${#files[@]} -eq 0 ]; then
-    IFS=$'\n'; files=($(fn_search_set "$search" 0 "$search_types" $depth "./")); IFS="$IFSORG"
+    IFS=$'\n'; files=($(fn_search_set "$search" 0 "$search_types" $depth "./" | sed '/^\.\+$/d')); IFS="$IFSORG"
   fi
 
   for f in "${files[@]}"; do
