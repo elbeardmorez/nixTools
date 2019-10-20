@@ -89,6 +89,8 @@ transforms_check() {
     shift
   done
   [ $DEBUG -ge 1 ] && echo "[debug] transforms: [${#transforms[@]}] ${transforms[*]}"
+
+  return 0
 }
 
 # vars
