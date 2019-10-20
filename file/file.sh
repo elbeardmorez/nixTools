@@ -100,6 +100,7 @@ declare rename_period_compression; rename_period_compression=1
 declare -a args
 declare -a search_args
 declare search
+declare search_
 declare replace
 declare target2
 declare target_suffix
@@ -115,7 +116,7 @@ arg="$(echo "$1" | awk '{gsub(/^[ ]*-*/,"",$0); print(tolower($0))}')"
 [[ "x$option" == "xh" || "x$option" == "xhelp" ]] && help && exit
 
 # set targets
-search_args=("--targets" "--interactive" 1)
+search_args=("--interactive" 1)
 while [ $# -gt 0 ]; do
   [ $# -eq 1 ] && target="$1" && shift && break
   if [[ "x$1" == "x-xs" || "x$1" == "x--search-args" ]]; then
@@ -132,12 +133,21 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+search_=1
+search_args[${#search_args[@]}]="--targets"
 if [ -d "$target" ]; then
   case "$option" in
-    "dp"|"dupe"|"m"|"move") targets=("$target") ;;
-    *) IFS=$'\n'; targets=($(find "$target" -type f)); IFS="$IFSORG" ;;
+    "dp"|"dupe"|"m"|"move")
+      targets=("$target")
+      search=0
+      ;;
+    *)
+      search_args[${#search_args[@]}]="$target"
+      target="*"
+      ;;
   esac
-else
+fi
+if [ $search_ -eq 1 ]; then
   targets_="$(search_ "${search_args[@]}" "$target")"
   res=$? && [ $res -ne 0 ] && exit $res
   IFS=$'\n'; targets=($(echo "$targets_")); IFS="$IFSORG"
