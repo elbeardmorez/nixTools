@@ -62,6 +62,11 @@ $(for p in "${search_targets[@]}"; do echo -e "  $p"; done)
 " 1>&2
 }
 
+fn_interactive() {
+  declare f; f="$1" && shift
+  fn_decision "[user] search match, use $(fn_file_type "--long" "$f") '$f'?" "ync"
+}
+
 option=search
 
 # parse options
@@ -109,8 +114,14 @@ if [[ -f "$search" && ("x$(dirname "$search")" != "x." ||
                        $custom_targets -eq 0) ]]; then
   # differentiate 'search' strings from paths (absolute or relative)
   # assume local file if no custom targets are specified
-  [ -n "$(echo "$search_types" | sed -n '/'"$(fn_file_type "--short" "$search")"'/p')" ] && \
-    results[${#results[@]}]="$search"
+  if [ -n "$(echo "$search_types" | sed -n '/'"$(fn_file_type "--short" "$search")"'/p')" ]; then
+    if [ $interactive -eq -1 ]; then
+      results[${#results[@]}]="$f"
+    else
+      [ "x$(fn_interactive "$search")" = "xy" ] && \
+        results[${#results[@]}]="$search"
+    fi
+  fi
 elif [[ "x$(dirname "$search")" != "x." || "x${search:0:1}" == "x." ]]; then
   # create explicit relative files
   if [ $interactive -ge 0 ]; then
@@ -132,7 +143,7 @@ else
     if [[ $interactive -eq -1 || ${#files[@]} -le $interactive ]]; then
       results[${#results[@]}]="$f"
     else
-      res="$(fn_decision "[user] search match, use $(fn_file_type "--long" "$f") '$f'?" "ync")"
+      res="$(fn_interactive "$f")"
       [ "x$res" = "xc" ] && exit  # !break, no partial results
       [ "x$res" = "xn" ] && continue
       results[${#results[@]}]="$f"
